@@ -18,7 +18,7 @@ M2:
   executor output, human events), drive the runtime with `ReplayAdapter`, and compare derived
   events field by field; divergence report with both versions. Test with an injected
   nondeterminism bug that replay catches.
-- [ ] Casebook format and import (JSON Lines), content-hash versions, `casebook.imported`.
+- [x] Casebook format and import (JSON Lines), content-hash versions, `casebook.imported`.
 - [ ] Rehearsal: one run per case (trigger `case`), tools served from case context, no action
   executed, `leak` detection, `rehearsal.*` events, parallelism bounded and deterministic in
   ordering.
@@ -45,9 +45,16 @@ Later:
 - `GateRule` (pure, decision 0017): a missing baseline or differing case sets fail the gate; a
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
+- Casebooks: cases are sorted by id and a casebook's version is the SHA-256 of canonical JSON
+  Lines (sorted keys, no whitespace, `/` unescaped), so reordering or reformatting keeps the
+  version. Duplicate ids, `v` other than 1, empty ids, and empty casebooks are rejected. The
+  normalized casebook is stored as one blob whose hash equals the version. Writes go through
+  `EvalRecorder` (blob put and event append), which the facade adapts to the ledger once it
+  lands.
 
 ## Questions
 
 ## Log
 
 - 2026-11-09: interfaces `Replayer`, `Rehearser`, `Scorer`, `Gate` with stubs (8247b8d)
+- 2026-11-09: `DivergenceFinder`, exact and rubric scorers, pure `GateRule` (6a59273)

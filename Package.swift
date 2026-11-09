@@ -42,7 +42,8 @@ let package = Package(
             name: "AryaAdaptersTests", dependencies: ["AryaAdapters"], exclude: ["Fixtures"]),
         .testTarget(name: "AryaMemoryTests", dependencies: ["AryaMemory"]),
         .testTarget(name: "AryaRuntimeTests", dependencies: ["AryaRuntime"]),
-        .testTarget(name: "AryaEvalTests", dependencies: ["AryaEval"]),
+        .testTarget(
+            name: "AryaEvalTests", dependencies: ["AryaEval"], resources: [.copy("Fixtures")]),
         .testTarget(name: "AryaTests", dependencies: ["Arya"]),
         .testTarget(name: "AryaDesignTests", dependencies: ["AryaDesign"]),
         .testTarget(name: "AryaCLITests", dependencies: ["AryaCLI"]),
