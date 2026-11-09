@@ -2,12 +2,13 @@ import Foundation
 
 /// The tabs of a steward's main pane, in STYLE.md order.
 enum StewardTab: String, CaseIterable, Identifiable, Sendable {
-    case stream, changes, ledger, memory, routines, rehearsals
+    case overview, stream, changes, ledger, memory, routines, rehearsals
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .overview: "Overview"
         case .stream: "Stream"
         case .changes: "Changes"
         case .ledger: "Ledger"
@@ -31,7 +32,8 @@ struct NavigationState: Hashable, Sendable {
     var destination: Destination?
     /// The run selected in the rail, within the selected steward.
     var run: String?
-    var tab: StewardTab = .stream
+    /// Overview is the default: every steward opens on its metric, plan, and activity.
+    var tab: StewardTab = .overview
 
     /// The selected steward id, if a steward pane is showing.
     var steward: String? {
@@ -39,9 +41,13 @@ struct NavigationState: Hashable, Sendable {
         return nil
     }
 
-    /// Selects a steward; keeps the tab, clears the run unless it is the same steward.
+    /// Selects a steward. Another steward opens on its Overview tab with no run; the same
+    /// steward keeps its tab and run.
     mutating func select(steward id: String) {
-        if steward != id { run = nil }
+        if steward != id {
+            run = nil
+            tab = .overview
+        }
         destination = .steward(id)
     }
 

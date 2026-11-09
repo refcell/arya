@@ -17,6 +17,7 @@ lanes read it to find interfaces. `Tests/<Module>Tests` belongs to the lane that
 | eval | [eval.md](eval.md) | `Sources/AryaEval`, `Tests/AryaEvalTests` |
 | app-shell | [app-shell.md](app-shell.md) | `Sources/AryaDesign`, `Sources/AryaApp/App`, `Sources/AryaApp/Shell`, `Tests/AryaDesignTests`, `etc/app`, `docs/STYLE.md` |
 | app-views | [app-views.md](app-views.md) | `Sources/AryaApp/Features` (shares `Tests/AryaAppTests` with app-shell) |
+| app-outcome | [app-outcome.md](app-outcome.md) | `Sources/AryaApp/Features/Outcome`, `Sources/AryaApp/Features/Onboarding`, their `Tests/AryaAppTests` files |
 | cli-e2e | [cli-e2e.md](cli-e2e.md) | `Sources/AryaCLI`, `etc/examples`, `just e2e`, `just demo`, `README.md`, `etc/scripts/tidy.sh` |
 
 Shared files (`Package.swift`, `Justfile`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`,

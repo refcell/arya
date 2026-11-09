@@ -19,7 +19,7 @@ struct StewardOverview: Hashable, Sendable {
         }
         // Rehearsal case runs (`rehearsal: true`) are not live work.
         let lastRun = mine.last {
-            $0.type == "run.started" && $0.payload["rehearsal"]?.bool != true
+            $0.type == "run.started" && !OutcomeRuns.isRehearsal($0.payload)
         }?.run
         let decided = Set(
             mine.filter {

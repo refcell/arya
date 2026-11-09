@@ -97,6 +97,7 @@ enum PreviewFixtures {
                 "approval": .string(question), "kind": "question",
                 "question": "Is ISSUE-9 a duplicate of ISSUE-4, or a new bug?", "to": "person:alex",
             ])
+        OutcomeFixtures.plan(&log)
         return log.events
     }
 

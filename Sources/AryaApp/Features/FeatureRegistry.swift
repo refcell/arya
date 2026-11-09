@@ -9,6 +9,15 @@ enum FeatureRegistry {
     @ViewBuilder
     static func view(for tab: StewardTab, context: FeatureContext) -> some View {
         switch tab {
+        case .overview:
+            if let store = context.store, let steward = context.steward?.id {
+                OverviewTab(
+                    store: store, steward: steward,
+                    openRun: { run in context.model.navigation.select(run: run, steward: steward) })
+            } else {
+                EmptyState(
+                    "No overview yet.", guidance: "A steward's plan and activity appear here.")
+            }
         case .stream:
             if let store = context.store, let steward = context.steward?.id {
                 StreamTab(
@@ -53,6 +62,18 @@ enum FeatureRegistry {
                 EmptyState(
                     "No rehearsals yet.", guidance: "Rehearse the charter against a casebook.")
             }
+        }
+    }
+
+    /// The selected steward's outcome line (KPI against target, sparkline, status, and the
+    /// pane's one primary action), shown under its name above the tabs.
+    @ViewBuilder
+    static func outcomeLine(_ context: FeatureContext) -> some View {
+        if let store = context.store, let steward = context.steward?.id {
+            OutcomeLine(
+                store: store, steward: steward,
+                review: { context.model.navigation.showApprovals() },
+                runNow: { Task { await context.model.startRun() } })
         }
     }
 

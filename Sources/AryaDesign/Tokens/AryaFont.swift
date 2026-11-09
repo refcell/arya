@@ -108,6 +108,11 @@ public enum AryaFont {
     public static let monoSmall = AryaTextStyle(
         name: "monoSmall", face: .mono, size: 11, lineHeight: 16)
 
+    /// Large monospaced numerals for a headline metric value (proposed by app-outcome).
+    /// Not in `all` until STYLE.md lists it.
+    public static let metric = AryaTextStyle(
+        name: "metric", face: .mono, size: 28, lineHeight: 32, weight: .medium)
+
     /// Every type token, in the guide's order.
     public static let all: [AryaTextStyle] = [
         display, title, heading, body, bodyStrong, caption, overline, mono, monoSmall,

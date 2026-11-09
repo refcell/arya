@@ -1,0 +1,172 @@
+import Foundation
+import Testing
+
+@testable import AryaApp
+
+private let now = FeatureTestClock.now
+private let steward = PreviewFixtures.steward
+
+private func triage() -> OutcomeSnapshot {
+    OutcomeSnapshot.build(
+        events: PreviewFixtures.triage(now: now), steward: steward, now: now, lastSeen: nil)
+}
+
+@Test func statusComparesTheLatestValueWithTheTargetInItsDirection() {
+    #expect(OutcomeStatus.of(value: 0.96, target: 0.95, direction: .up) == .onTrack)
+    #expect(OutcomeStatus.of(value: 0.93, target: 0.95, direction: .up) == .atRisk)
+    #expect(OutcomeStatus.of(value: 0.80, target: 0.95, direction: .up) == .offTrack)
+    #expect(OutcomeStatus.of(value: 4, target: 5, direction: .down) == .onTrack)
+    #expect(OutcomeStatus.of(value: 5.2, target: 5, direction: .down) == .atRisk)
+    #expect(OutcomeStatus.of(value: 9, target: 5, direction: .down) == .offTrack)
+    #expect(OutcomeStatus.of(value: nil, target: 5, direction: .down) == .noData)
+    #expect(OutcomeStatus.of(value: 1, target: nil, direction: .up) == .noTarget)
+}
+
+@Test func headlineLeadsWithTheMetricAgainstItsTarget() {
+    let summary = triage().state
+    #expect(summary.metric?.name == "triaged_within_1h")
+    #expect(summary.latest.map { abs($0 - 0.93) < 1e-9 } == true)
+    #expect(summary.status == .atRisk)
+    #expect(summary.points.count >= 5)
+    #expect(summary.success == "triaged_within_1h at 0.95 or more.")
+    #expect(summary.outcome.hasPrefix("Every new issue"))
+    #expect(OutcomeText.change(summary.points)?.hasPrefix("+0.") == true)
+}
+
+@Test func readinessExplainsWhyNot() {
+    let summary = triage().state
+    #expect(
+        summary.readiness == .notReady(reason: "rehearsal passed 1 of 3; review and mark ready"))
+    var log = FeatureEventBuilder(start: now)
+    log.add("steward.created", ["charter": PreviewFixtures.charter, "version": 1])
+    #expect(
+        OutcomeReadiness.build(events: log.events, steward: steward)
+            == .notReady(reason: "never rehearsed on past work"))
+    log.add("steward.ready", ["charterVersion": 1])
+    #expect(
+        OutcomeReadiness.build(events: log.events, steward: steward) == .ready(charterVersion: 1))
+    #expect(OutcomeReadiness.ready(charterVersion: 1).text == "ready (v1)")
+}
+
+@Test func autonomyReadsThePolicy() {
+    let autonomy = triage().state.autonomy
+    #expect(autonomy.level == .assisted)
+    #expect(autonomy.text == "assisted · auto label · never close")
+    #expect(OutcomeAutonomy.build(charter: nil).level == .supervised)
+    #expect(OutcomeAutonomy.build(charter: ["policy": ["default": "auto"]]).level == .autonomous)
+    #expect(OutcomeAutonomy.build(charter: ["policy": ["default": "deny"]]).level == .locked)
+}
+
+@Test func nextWakeFollowsTheShortestIntervalFromTheLastIntervalRun() throws {
+    var log = FeatureEventBuilder(start: now)
+    log.add("steward.created", ["charter": PreviewFixtures.charter, "version": 1])
+    log.add("run.started", run: "run_1", after: 100, ["trigger": "interval"])
+    let started = try #require(log.events.last?.at)
+    let charter = PreviewFixtures.charter
+    let wake = OutcomeWake.build(
+        events: log.events, steward: steward, charter: charter, now: started.addingTimeInterval(60))
+    #expect(wake == .at(started.addingTimeInterval(900)))
+    #expect(wake.text(now: started.addingTimeInterval(60)) == "in 14m")
+    let late = OutcomeWake.build(
+        events: log.events, steward: steward, charter: charter,
+        now: started.addingTimeInterval(2000))
+    #expect(late == .at(started.addingTimeInterval(2700)))
+    log.add("steward.paused")
+    #expect(
+        OutcomeWake.build(events: log.events, steward: steward, charter: charter, now: now)
+            == .paused)
+    #expect(
+        OutcomeWake.build(
+            events: [], steward: steward, charter: ["triggers": [["kind": "manual"]]], now: now)
+            == .onDemand)
+}
+
+@Test func planShowsTheNewestStepsAndWhatChanged() throws {
+    let plan = try #require(triage().plan)
+    #expect(plan.steps.map(\.status) == [.done, .doing, .todo, .todo])
+    #expect(plan.doneCount == 1)
+    #expect(plan.activeCount == 4)
+    #expect(plan.added.count == 2)
+    #expect(plan.removed == ["Close stale duplicates"])
+    #expect(plan.reason?.hasPrefix("Closing is denied") == true)
+    #expect(plan.run == PreviewFixtures.liveRun)
+    #expect(OutcomePlan.build(events: [], steward: steward) == nil)
+}
+
+@Test func activityListsLiveActionsWithReasonsNewestFirst() throws {
+    let activity = triage().activity
+    #expect(activity.map(\.action) == ["a2", "a1"])
+    let assign = try #require(activity.first)
+    #expect(assign.state == .waiting)
+    #expect(assign.policy == .ask)
+    #expect(assign.reason == "Alex owns the login page.")
+    let label = try #require(activity.last)
+    #expect(label.state == .executed)
+    #expect(label.policy == .auto)
+    #expect(label.target == "tracker:ISSUE-7")
+    #expect(!activity.contains { $0.run.hasPrefix("run_r") })
+    #expect(OutcomeActivityText.tally(activity) == "✓ 1  ◷ 1")
+    #expect(
+        OutcomeActivityText.spoken(label)
+            == "label tracker:ISSUE-7, executed, because Bugs get the bug label.")
+}
+
+@Test func recapCountsWhatHappenedSinceTheLastVisit() throws {
+    let snapshot = triage()
+    let recap = snapshot.recap
+    #expect(recap.goal.hasPrefix("Every new issue"))
+    #expect(recap.lastRun?.run == PreviewFixtures.finishedRun)
+    #expect(recap.lastRun?.summary == "Labeled ISSUE-7 and asked to assign it.")
+    #expect(recap.pending.map(\.approval) == [PreviewFixtures.pendingApproval])
+    #expect(recap.questions == 1)
+    #expect(OutcomeRecapText.since(recap) == "1 run ended · 1 action taken")
+    #expect(OutcomeRecapText.unresolved(recap)?.hasPrefix("1 approval · 1 question") == true)
+    let newest = try #require(PreviewFixtures.triage(now: now).last?.seq)
+    let later = OutcomeSnapshot.build(
+        events: PreviewFixtures.triage(now: now), steward: steward, now: now, lastSeen: newest)
+    #expect(OutcomeRecapText.since(later.recap) == "nothing new")
+}
+
+@Test func visitsAreRememberedPerSteward() throws {
+    let defaults = try #require(UserDefaults(suiteName: "arya.outcome.tests"))
+    defaults.removePersistentDomain(forName: "arya.outcome.tests")
+    #expect(OutcomeVisits.lastSeen("st_a", defaults: defaults) == nil)
+    OutcomeVisits.record(42, steward: "st_a", defaults: defaults)
+    #expect(OutcomeVisits.lastSeen("st_a", defaults: defaults) == 42)
+    #expect(OutcomeVisits.lastSeen("st_b", defaults: defaults) == nil)
+}
+
+@Test func recapParagraphAppearsOnlyForAReturningPerson() throws {
+    let recap = triage().recap
+    #expect(OutcomeRecapText.paragraph(recap, seenAt: nil, now: now) == nil)
+    let text = try #require(
+        OutcomeRecapText.paragraph(recap, seenAt: now.addingTimeInterval(-7200), now: now))
+    #expect(
+        text
+            == "Since you looked 2h ago: 1 run ended, 1 action taken. Last run done: Labeled "
+            + "ISSUE-7 and asked to assign it. Waiting on you: 1 approval, 1 question, 2 proposals."
+    )
+    let quiet = OutcomeRecap(
+        goal: "", lastRun: nil, runsSince: 0, actionsSince: [], pending: [], questions: 0,
+        failedActions: 0, openProposals: 0)
+    #expect(OutcomeRecapText.paragraph(quiet, seenAt: now, now: now) == nil)
+}
+
+@Test func outcomeLineOffersReviewWhenApprovalsWait() {
+    #expect(OutcomeText.review(1) == "Review 1 approval")
+    #expect(OutcomeText.review(3) == "Review 3 approvals")
+    #expect(
+        OutcomeText.spoken(triage().state)
+            == "triaged_within_1h is 0.93 against a target of 0.95, at risk.")
+    #expect(OutcomeActivity.State.executed.mark == "✓")
+    #expect(OutcomeActivity.State.waiting.mark == "◷")
+}
+
+@Test func rehearsalRunsAreRecognizedInEveryRecordedShape() {
+    #expect(OutcomeRuns.isRehearsal(["rehearsal": "reh_1", "case": "case-0001"]))
+    #expect(OutcomeRuns.isRehearsal(["input": ["kind": "case", "text": "x"]]))
+    #expect(OutcomeRuns.isRehearsal(["rehearsal": true]))
+    #expect(OutcomeRuns.isRehearsal(["trigger": "case"]))
+    #expect(!OutcomeRuns.isRehearsal(["trigger": "manual", "input": ["kind": "manual"]]))
+    #expect(!OutcomeRuns.isRehearsal(["rehearsal": false, "trigger": "interval"]))
+}

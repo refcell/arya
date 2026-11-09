@@ -51,6 +51,9 @@ struct StewardPane: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HeaderView(model: model, steward: steward)
+            FeatureRegistry.outcomeLine(model.featureContext())
+                .padding(.horizontal, AryaSpace.s5)
+                .padding(.bottom, AryaSpace.s3)
             TextTabBar(tabs: tabs, selection: tabBinding, inset: AryaSpace.s5)
             FeatureRegistry.view(for: model.navigation.tab, context: model.featureContext())
                 .frame(

@@ -7,7 +7,7 @@ import Testing
     @Test func tabsFollowTheStyleGuideOrder() {
         #expect(
             StewardTab.allCases.map(\.title) == [
-                "Stream", "Changes", "Ledger", "Memory", "Routines", "Rehearsals",
+                "Overview", "Stream", "Changes", "Ledger", "Memory", "Routines", "Rehearsals",
             ])
     }
 
@@ -20,7 +20,11 @@ import Testing
         #expect(state.tab == .stream)
     }
 
-    @Test func switchingStewardsClearsTheRunButKeepsTheTab() {
+    @Test func stewardsOpenOnTheirOverview() {
+        #expect(NavigationState().tab == .overview)
+    }
+
+    @Test func switchingStewardsClearsTheRunAndOpensTheOverview() {
         var state = NavigationState()
         state.select(run: "run_14", steward: "st_triage")
         state.tab = .memory
@@ -28,7 +32,7 @@ import Testing
         #expect(state.run == "run_14")
         state.select(steward: "st_spend")
         #expect(state.run == nil)
-        #expect(state.tab == .memory)
+        #expect(state.tab == .overview)
     }
 
     @Test func reconcileFallsBackToTheFirstSteward() {
