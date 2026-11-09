@@ -9,12 +9,11 @@ struct StreamTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: AryaSpace.s3) {
-                StewardOverviewLine(store: store, steward: steward)
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
                 RunControls(store: store, steward: steward, run: run).id(run)
             }
-            .padding(AryaSpace.s5)
-            .aryaHairline(edge: .bottom)
+            .padding(.horizontal, AryaSpace.s5)
+            .padding(.top, AryaSpace.s3)
             if let run {
                 RunStreamView(store: store, run: run)
             } else {
@@ -36,28 +35,51 @@ private struct RunControls: View {
     @AryaState private var replayProblem: String?
     @AryaState private var replaying = false
 
+    @AryaState private var asking = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s3) {
+        VStack(alignment: .leading, spacing: AryaSpace.s2) {
             HStack(spacing: AryaSpace.s3) {
-                CharterTextField(placeholder: "Input for a manual run (optional)", text: $input)
-                Button("Run now") { start() }
-                    .buttonStyle(.aryaSecondary)
-                    .help("Start a run now, as the manual trigger would.")
+                Spacer()
                 if run != nil {
-                    Button(replaying ? "Replaying" : "Replay") { replayRun() }
-                        .buttonStyle(.aryaTertiary)
-                        .disabled(!ended || replaying)
-                        .help(
-                            ended
-                                ? "Re-run from the ledger alone and compare with the recording."
-                                : "Replay is available once the run ends.")
+                    Menu("More") {
+                        Button(replaying ? "Replaying" : "Replay this run") { replayRun() }
+                            .disabled(!ended || replaying)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    .help("Replay re-runs the run from the ledger alone and compares.")
                 }
+                Button("Run now…") { asking = true }
+                    .buttonStyle(.aryaSecondary)
+                    .popover(isPresented: $asking, arrowEdge: .bottom) { runNow }
             }
             if let replayProblem {
-                Text(replayProblem).aryaText(AryaFont.body, AryaColor.negative)
+                Text(replayProblem).aryaText(AryaFont.caption, AryaColor.negative)
             }
             if let replay { ReplayReport(result: replay) }
         }
+    }
+
+    private var runNow: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s2) {
+            Text("Start a run now").aryaText(AryaFont.bodyStrong, AryaColor.ink)
+            CharterTextField(placeholder: "What should it work on? (optional)", text: $input)
+                .frame(width: AryaSize.readingWidth / 2)
+            HStack {
+                Spacer()
+                Button("Cancel") { asking = false }.buttonStyle(.aryaTertiary)
+                    .keyboardShortcut(.cancelAction)
+                Button("Start run") {
+                    asking = false
+                    start()
+                }
+                .buttonStyle(.aryaPrimary)
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(AryaSpace.s4)
     }
 
     private var ended: Bool {

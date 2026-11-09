@@ -26,25 +26,12 @@ struct RunStreamView: View {
                 "No steps yet.",
                 guidance: "Steps appear here as the run reads, decides, and proposes.")
         } else {
-            HStack(spacing: 0) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: AryaSpace.s2) {
-                        StatusLine(status: stream.status)
-                        FeatureWriteErrorLine(store: store)
-                        ConversationPane(steps: stream.conversation, now: store.now)
-                    }
-                    .padding(AryaSpace.s4)
+            ScrollView {
+                RunThread(stream: stream, now: store.now, context: context(stream))
+                    .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
+                    .padding(.horizontal, AryaSpace.s5)
+                    .padding(.vertical, AryaSpace.s4)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(minWidth: AryaSize.readingWidth / 2, maxWidth: .infinity)
-                AryaHairline(.vertical)
-                ScrollView {
-                    WorkPane(stream: stream, now: store.now, context: context(stream))
-                        .padding(AryaSpace.s4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(minWidth: AryaSize.readingWidth / 2, maxWidth: .infinity)
-                .background(AryaColor.surface)
             }
             .background(AryaColor.canvas)
         }

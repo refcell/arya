@@ -40,6 +40,28 @@ enum FeatureJSON: Hashable, Sendable {
     var strings: [String] { array?.compactMap(\.string) ?? [] }
 
     /// Compact JSON with sorted keys, for code blocks and table cells.
+    /// Indented JSON with sorted keys, two spaces per level; a bare string as itself.
+    var prettyText: String {
+        if case .string(let value) = self { return value }
+        return pretty(indent: "")
+    }
+
+    private func pretty(indent: String) -> String {
+        let inner = indent + "  "
+        switch self {
+        case .array(let items) where !items.isEmpty:
+            let lines = items.map { inner + $0.pretty(indent: inner) }
+            return "[\n" + lines.joined(separator: ",\n") + "\n" + indent + "]"
+        case .object(let members) where !members.isEmpty:
+            let lines = members.keys.sorted().map { key in
+                inner + Self.quote(key) + ": " + (members[key] ?? .null).pretty(indent: inner)
+            }
+            return "{\n" + lines.joined(separator: ",\n") + "\n" + indent + "}"
+        default:
+            return compactText
+        }
+    }
+
     var compactText: String {
         switch self {
         case .null: return "null"

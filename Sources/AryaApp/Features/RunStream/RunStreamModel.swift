@@ -56,6 +56,49 @@ struct ProposedActionStep: Hashable, Sendable {
     var binding: String? = nil
     /// What running the routine produced, for a `routine` action that ran.
     var routine: RoutineRun? = nil
+    /// The action's parameters, for example a reply's `text`.
+    var params: FeatureJSON = [:]
+
+    /// The full content the action would write, for actions that carry text (a reply, a
+    /// comment, a message), shown in full on its approval.
+    var content: String? {
+        for key in ["text", "body", "message", "comment"] {
+            if let text = params[key]?.string, !text.isEmpty { return text }
+        }
+        return nil
+    }
+
+    /// The other parameters as `key: value` lines, for actions without text content.
+    var paramLines: [String] {
+        guard case .object(let members) = params else { return [] }
+        return members.keys.sorted().compactMap { key in
+            guard content == nil || !["text", "body", "message", "comment"].contains(key),
+                let value = members[key]
+            else { return nil }
+            return "\(key): \(value.string ?? value.compactText)"
+        }
+    }
+
+    /// How much harm a wrong action could do, from its kind.
+    var risk: ActionRisk { ActionRisk(kind: kind) }
+
+    /// The policy reason in words: `rule:reply` as "rule reply".
+    var policyReason: String { rule.replacingOccurrences(of: ":", with: " ") }
+}
+
+/// How much harm a wrong action of a kind could do: low for reversible bookkeeping (labels,
+/// routing), medium for writes people read (replies, comments, assignments), high for actions
+/// that are hard to undo (closing, deleting, merging, running code). Unknown kinds are medium.
+enum ActionRisk: String, Hashable, Sendable {
+    case low, medium, high
+
+    init(kind: String) {
+        switch kind {
+        case "label", "unlabel", "route", "tag", "untag", "move": self = .low
+        case "close", "delete", "merge", "routine", "refund", "pay", "publish": self = .high
+        default: self = .medium
+        }
+    }
 }
 
 /// A routine action's result: the runtime's `RoutineOutcome`, recorded as the executor output
@@ -115,6 +158,15 @@ struct RunStream: Hashable, Sendable {
     var steward: String?
     var steps: [StreamStep]
     var status: RunStatus
+    /// The text the run started with, for example the message it acts on.
+    var input: String? = nil
+
+    /// The run in one line: its summary once finished, else its input, else its id.
+    var title: String {
+        if case .finished(_, let summary) = status, !summary.isEmpty { return summary }
+        if let input, let line = input.split(separator: "\n").first { return String(line) }
+        return run
+    }
 
     /// Projects one run's events into a stream. Events of other runs are ignored. Adapter
     /// notifications come from `run.adapter.event`, which holds each raw JSON-RPC line. Tool
@@ -128,7 +180,7 @@ struct RunStream: Hashable, Sendable {
         }
         return RunStream(
             run: run, steward: projector.steward, steps: projector.steps,
-            status: projector.status)
+            status: projector.status, input: projector.input)
     }
 
     /// The approval ids in this run still waiting for a person.
@@ -150,6 +202,7 @@ private struct RunStreamProjector {
     var steps: [StreamStep] = []
     var status: RunStatus = .running
     var steward: String?
+    var input: String?
     private var toolIndex: [String: Int] = [:]
     private var actionIndex: [String: Int] = [:]
     private var approvalAction: [String: String] = [:]
@@ -160,7 +213,10 @@ private struct RunStreamProjector {
         let p = event.payload
         switch event.type {
         case "run.started":
-            add(event, .started(trigger: p["trigger"]?.string ?? "manual"))
+            // `trigger` is a string; newer runs record `input: {kind, text}` instead.
+            input = p["input"]?["text"]?.string ?? p["input"]?.string
+            let trigger = p["trigger"]?.string ?? p["input"]?["kind"]?.string ?? "manual"
+            add(event, .started(trigger: trigger))
         case "run.adapter.event": applyAdapter(event)
         case "run.tool.call": applyToolCall(event, p)
         case "run.tool.result": applyToolResult(event, p)
@@ -253,7 +309,7 @@ private struct RunStreamProjector {
             summary: ApprovalText.summary(kind: kind, target: target),
             rationale: action["rationale"]?.string ?? "",
             policy: p["disposition"]?.string ?? "ask", rule: p["reason"]?.string ?? "",
-            outcome: .proposed, binding: action["binding"]?.string)
+            outcome: .proposed, binding: action["binding"]?.string, params: action["params"] ?? [:])
         actionIndex[id] = steps.count
         add(event, .action(step))
     }

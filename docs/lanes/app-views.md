@@ -137,6 +137,14 @@ M4:
   right pane. `run.decision` is `{decision: {id, choice, rationale, alternatives?}}` (the
   recorded shape); the flat shape is still read for older recordings.
 
+- Run thread (supersedes the split pane): one column, top to bottom. A quiet meta line, the
+  input the run started from, one line per step, tool calls and actions as mono one-liners
+  with a check or cross that expand on click (pretty JSON, wrapping), and the finish step as
+  the only place the summary appears. Policy pills show only for ask and deny. An approval is
+  an unboxed block: full proposed content (`params.text`), the input it answers, why, binding,
+  policy reason, and risk (`ActionRisk` by action kind), with Deny quiet and Approve the one
+  accent element. Manual input and Replay sit behind "Run now…" and a "More" menu.
+
 ## Questions
 - (from app-shell) `FeatureRegistry` now routes Changes, Ledger, Memory, Routines, and
   Rehearsals to your views when a store is wired; metric chart placement is yours. Changes
@@ -175,4 +183,4 @@ M4:
 - 2026-11-09: charter editor that saves changes as proposals (7451fa6).
 - 2026-11-09: Changes tab hosts the metric chart and charter editor (06dcbbb).
 - 2026-11-09: run now, replay, and rehearse controls (4ab0e07).
-\n- 2026-11-09: inbox, steward overview, and binding detail (acdb4fc).\n- 2026-11-09: routine versions on approvals and always allow (2247b2e).\n- 2026-11-09: Visual check (demo home, dark): Stream split pane with timed conversation rows and work cards with check marks and policy pills; decision rows were empty on real data (nested payload), fixed. Approval card still the old component.\n
+\n- 2026-11-09: inbox, steward overview, and binding detail (acdb4fc).\n- 2026-11-09: routine versions on approvals and always allow (2247b2e).\n- 2026-11-09: Visual check (demo home, dark): Stream split pane with timed conversation rows and work cards with check marks and policy pills; decision rows were empty on real data (nested payload), fixed. Approval card still the old component.\n- 2026-11-09: Visual check (demo home, dark): run thread is one column with no cards, chips, or ids; one accent element (Approve); reply text and the input it answers shown in full; summary once as the final step; input and Replay behind Run now… and More. Remaining on this screen are app-shell's: serif title, effort control, six tabs, run labels.\n
