@@ -23,4 +23,6 @@ public enum EvalError: Error, Equatable, Sendable {
     case unknownRun(RunID)
     /// A rehearsal run's rehearsal is not on the ledger, or no casebook source was given.
     case unknownRehearsal(RehearsalID)
+    /// A judge's reply was not a valid verdict, or the judge gave none.
+    case badVerdict(String)
 }

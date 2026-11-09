@@ -146,6 +146,7 @@ Next (lane-extended, in order):
 
 ## Questions
 
+- (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
 - HANDOFF 2026-11-09 (second session, ended near auto-compaction): backlog (1)-(4) done and

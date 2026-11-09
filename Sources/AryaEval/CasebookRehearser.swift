@@ -45,7 +45,9 @@ public protocol CasebookSource: Sendable {
 /// Rehearses a steward on a casebook: every case `samples` times, at most `maxParallel` runs
 /// at once. Events (actor `system`) are recorded after all runs finish, in case-id order, so
 /// the ledger order does not depend on which run finished first. A run that throws scores 0
-/// for that sample. Cases are scored by the charter's scorer unless `scorer` overrides it.
+/// for that sample. Cases are scored by the charter's scorer unless `scorer` overrides it, or
+/// by `judge` with `rubric` when both are set; judgments are recorded with each case's score.
+/// A judge that fails scores the sample 0.
 public struct CasebookRehearser: Rehearser {
     public var runner: any CaseRunner
     public var casebooks: any CasebookSource
@@ -54,11 +56,17 @@ public struct CasebookRehearser: Rehearser {
     public var sink: any EventSink
     public var ambient: Ambient
     public var maxParallel: Int
+    /// Scores every sample instead of the scorer when set with a rubric.
+    public var judge: (any CaseJudge)?
+    public var rubric: String?
 
     public init(
         runner: any CaseRunner, casebooks: any CasebookSource, sink: any EventSink,
-        ambient: Ambient, scorer: (any Scorer)? = nil, maxParallel: Int = 1
+        ambient: Ambient, scorer: (any Scorer)? = nil, maxParallel: Int = 1,
+        judge: (any CaseJudge)? = nil, rubric: String? = nil
     ) {
+        self.judge = judge
+        self.rubric = rubric
         self.runner = runner
         self.casebooks = casebooks
         self.scorer = scorer
@@ -99,7 +107,8 @@ public struct CasebookRehearser: Rehearser {
                 EvalEventType.rehearsalCaseScored, request.steward,
                 RehearsalCaseScoredPayload(
                     rehearsal: id, caseID: item.id, runs: slice.map(\.run),
-                    scores: outcome.samples, leak: outcome.leak, results: slice.map(\.result)))
+                    scores: outcome.samples, leak: outcome.leak, results: slice.map(\.result),
+                    judgments: judge == nil ? nil : slice.compactMap(\.judgment)))
         }
         let result = RehearsalResult(id: id, request: request, outcomes: outcomes)
         try await record(
@@ -116,6 +125,7 @@ public struct CasebookRehearser: Rehearser {
         var score: CaseScore
         var leak: Bool
         var result: JSONValue?
+        var judgment: JudgeRecord?
     }
 
     /// Runs every job with bounded parallelism and returns results in job order.
@@ -142,15 +152,40 @@ public struct CasebookRehearser: Rehearser {
         do {
             let outcome = try await runner.run(job)
             var score = scorer.score(expected: job.caseItem.expected, actual: outcome.result)
+            var judgment: JudgeRecord?
+            if let judge, let rubric {
+                (score, judgment) = await judged(job, outcome.result, judge, rubric)
+            }
             if outcome.leak {
                 score = CaseScore(value: 0, passed: false, notes: score.notes + ["leak"])
             }
             return Done(
-                run: outcome.run, score: score, leak: outcome.leak, result: outcome.result)
+                run: outcome.run, score: score, leak: outcome.leak, result: outcome.result,
+                judgment: judgment)
         } catch {
             let note = "run failed: \(String(describing: error))"
             return Done(
                 run: nil, score: CaseScore(value: 0, passed: false, notes: [note]), leak: false)
+        }
+    }
+
+    func judged(
+        _ job: CaseRunRequest, _ actual: JSONValue, _ judge: any CaseJudge, _ rubric: String
+    ) async -> (CaseScore, JudgeRecord) {
+        let request = JudgeRequest(
+            rehearsal: job.rehearsal, caseID: job.caseItem.id, sample: job.sample,
+            input: job.caseItem.input.text, expected: job.caseItem.expected, actual: actual,
+            rubric: rubric)
+        do {
+            let verdict = try await judge.judge(request)
+            let record = JudgeRecord(
+                sample: job.sample, judge: judge.name, rubric: rubric, verdict: verdict)
+            return (verdict.score, record)
+        } catch {
+            let note = "judge failed: \(String(describing: error))"
+            let record = JudgeRecord(
+                sample: job.sample, judge: judge.name, rubric: rubric, error: note)
+            return (CaseScore(value: 0, passed: false, notes: [note]), record)
         }
     }
 

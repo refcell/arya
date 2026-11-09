@@ -37,7 +37,7 @@ M2:
   and corrections applied.
 
 Later:
-- [ ] Judge-adapter scorer (an adapter scores a result against the expected one).
+- [x] Judge-adapter scorer (an adapter scores a result against the expected one).
 
 ## Decisions
 
@@ -65,6 +65,14 @@ Later:
   `rehearsal.case.scored` now keeps each sample's result (optional `results`, absent in older
   events). `ResultDiff` compares only what a case states: object keys the case omits are
   ignored, arrays compare item by item. Corrections are those recorded with the rehearsal's id.
+- Judges: `CaseJudge` scores a sample asynchronously. `AdapterJudge` opens one adapter session
+  per sample (rubric prompt as instructions, case/expected/actual as canonical JSON input, a
+  verdict `resultSchema`, no tools) and validates the untrusted verdict (`value` finite in
+  0...1, `passed` a boolean, notes strings). `CasebookRehearser(judge:rubric:)` scores with it
+  and records each `JudgeRecord` in `rehearsal.case.scored.judgments` (no new event type);
+  a failed judge scores 0 with its error. `RecordedJudge` serves recorded verdicts so replay
+  and re-scoring never ask a judge again. A charter-level `ScorerSpec.judge` needs the ledger
+  lane (asked in its Questions).
 - `GateRule` (pure, decision 0017): a missing baseline or differing case sets fail the gate; a
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
@@ -132,3 +140,4 @@ Later:
 - 2026-11-09: stored casebook projection `CasebookBook`, `StoredCasebooks` (d1ecf71)
 - 2026-11-09: replay engine `RunReplayer(sink:casebooks:)`, a `Replayer` whose
   `replay(run:) async throws -> ReplayReport` drives `RunEngine` on recorded inputs (36829d4)
+- 2026-11-09: rehearsal-run replay, `RehearsalReports` review model, `AdapterJudge`/`CaseJudge`
