@@ -51,12 +51,16 @@ struct Opened {
     let executor = RecordingExecutor()
     let workspace: Workspace
 
-    init(_ runs: [FakeScript.Run] = [], leases: any RunLeases = MemoryRunLeases()) async throws {
+    init(
+        _ runs: [FakeScript.Run] = [], leases: any RunLeases = MemoryRunLeases(),
+        adapters: (any AdapterFactory)? = nil
+    ) async throws {
         workspace = try await Workspace.open(
             home: home.url,
             wiring: Wiring(
                 ambient: .fixed(stepMillis: 1),
-                adapters: ScriptedFactory(script: FakeScript(runs: runs)), executor: executor,
+                adapters: adapters ?? ScriptedFactory(script: FakeScript(runs: runs)),
+                executor: executor,
                 leases: leases, questionPoll: .milliseconds(1)))
     }
 

@@ -70,7 +70,7 @@ M3:
 - [x] Restart recovery wiring on `open` (interrupted runs fail, pending approvals stay).
 - [x] Facade-level end-to-end test with the fake adapter that mirrors the M3 scenario
   (`ScenarioTests`, on `etc/examples/triage`).
-- [ ] `whatIf(run:)` via eval's `Counterfactuals(runner: RuntimeCaseRunner)` (eval ask).
+- [x] `whatIf(run:proposal:)` via eval's `Counterfactuals(runner: RuntimeCaseRunner)`.
 
 ## Decisions
 
@@ -179,4 +179,4 @@ M3:
 - 2026-11-09: one-call screen reads `improve(steward:) -> ImproveView` and
   `knowledge(steward:) -> KnowledgeView`, sentences written in the facade; 50 tests.
 - 2026-11-09: `correct(run:expected:note:by:)` on eval's `Corrector.correct(run:)` and
-  `expected(run:choice:)` from the run's recorded result; 51 tests. `whatIf(run:)` still open.
+  `expected(run:choice:)` from the run's recorded result; `whatIf(run:proposal:)`; 52 tests.

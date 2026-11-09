@@ -1,5 +1,6 @@
 import AryaAdapters
 import AryaCore
+import AryaRuntime
 import Foundation
 import Testing
 
@@ -169,5 +170,60 @@ extension JSONValue {
     }
     await #expect(throws: WorkspaceError.self) {
         try await workspace.correct(run: run.id, expected: Data("[1]".utf8))
+    }
+}
+
+/// Answers with `other` for charters whose outcome is `outcome`, else with `live`.
+private struct ByOutcome: AdapterFactory {
+    var live: FakeScript
+    var other: FakeScript
+    var outcome: String
+
+    func makeAdapter(for charter: Charter, run: RunID) async throws -> any Adapter {
+        try await ScriptedFactory(script: charter.outcome == outcome ? other : live)
+            .makeAdapter(for: charter, run: run)
+    }
+}
+
+@Test func whatIfSaysWhatARunWouldHaveDone() async throws {
+    var other = liveResult
+    other[set: "decisions"] = [["id": "d1", "choice": "shipping"]]
+    let outcome = "Every new message is routed within thirty minutes."
+    let opened = try await Opened(
+        adapters: ByOutcome(
+            live: FakeScript(runs: [FakeScript.Run(result: liveResult)]),
+            other: FakeScript(runs: [FakeScript.Run(result: other)]), outcome: outcome))
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let run = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let runsBefore = try await workspace.runs(steward: "st_inbox").count
+    let executedBefore = await opened.executor.requests.count
+    var next = try Charter.load(from: try inboxCharterJSON())
+    next.outcome = outcome
+    let proposal = try await workspace.proposeCharter(
+        steward: "st_inbox", charter: try CanonicalJSON.encode(next), baseVersion: 1)
+
+    let same = try await workspace.whatIf(run: run.id)
+    #expect(same.differences.isEmpty)
+    let answer = try await workspace.whatIf(run: run.id, proposal: proposal.id)
+
+    #expect(answer.run == run.id)
+    #expect(answer.proposal == proposal.id)
+    #expect(answer.steward == "st_inbox")
+    #expect(answer.rehearsalRun != nil)
+    #expect(answer.did.contains("billing"))
+    #expect(answer.wouldHave.contains("shipping"))
+    #expect(answer.differences.contains("decisions[0].choice"))
+    #expect(answer.fixesCorrection == nil)
+    #expect(!answer.summary.isEmpty)
+    #expect(try await workspace.rehearsals(steward: "st_inbox").isEmpty)
+    #expect(try await workspace.runs(steward: "st_inbox").count == runsBefore + 2)
+    let executedAfter = await opened.executor.requests.count
+    #expect(executedAfter == executedBefore)
+    await #expect(throws: WorkspaceError.notFound("run_missing")) {
+        try await workspace.whatIf(run: "run_missing")
+    }
+    await #expect(throws: WorkspaceError.notFound("prop_missing")) {
+        try await workspace.whatIf(run: run.id, proposal: "prop_missing")
     }
 }

@@ -63,3 +63,62 @@ extension ReplaySummary.Difference {
             replayed: try text(divergence.replayed))
     }
 }
+
+/// What a run would have done under another charter, for the run thread.
+public struct WhatIfSummary: Sendable, Hashable, Codable {
+    public var run: String
+    public var steward: String
+    /// The proposal whose charter answered, or `nil` for the live charter.
+    public var proposal: String?
+    /// The rehearsal-mode run that answered; `nil` when it could not start.
+    public var rehearsalRun: String?
+    /// What the run did and what it would have done, in words.
+    public var did: String
+    public var wouldHave: String
+    /// Paths where the two differ, for example `decisions[0].choice`.
+    public var differences: [String]
+    /// Whether it would now match the person's correction; `nil` without one.
+    public var fixesCorrection: Bool?
+    public var leak: Bool
+    /// One line for the run thread, shown verbatim.
+    public var summary: String
+}
+
+extension Workspace {
+    /// Runs `run` again as a rehearsal-mode case under a proposal's charter (or the steward's
+    /// live charter) and says what it would have done. Never counts as a rehearsal, and its
+    /// actions are never executed.
+    public func whatIf(run: String, proposal: String? = nil) async throws -> WhatIfSummary {
+        guard let record = try await runBook().records[RunID(unchecked: run)] else {
+            throw WorkspaceError.notFound(run)
+        }
+        let charter: Charter
+        var proposalID: ProposalID?
+        if let proposal {
+            guard
+                let found = try ProposalBook(try await sink.events(from: 1))
+                    .records[ProposalID(unchecked: proposal)],
+                found.steward == record.steward
+            else { throw WorkspaceError.notFound(proposal) }
+            charter = found.charter
+            proposalID = found.id
+        } else {
+            charter = try await existing(record.steward.rawValue).charter
+        }
+        let answer: RunCounterfactual
+        do {
+            answer = try await Counterfactuals(
+                sink: sink, runner: RuntimeCaseRunner(loop: engine, sink: sink), ambient: ambient
+            ).whatIf(run: record.id, charter: charter, proposal: proposalID)
+        } catch EvalError.unknownRun {
+            throw WorkspaceError.notFound(run)
+        } catch let error as EvalError {
+            throw WorkspaceError.rejected(String(describing: error))
+        }
+        return WhatIfSummary(
+            run: run, steward: record.steward.rawValue, proposal: proposal,
+            rehearsalRun: answer.rehearsalRun?.rawValue, did: answer.didText,
+            wouldHave: answer.wouldHaveText, differences: answer.diff.map(\.path),
+            fixesCorrection: answer.fixesCorrection, leak: answer.leak, summary: answer.summary)
+    }
+}
