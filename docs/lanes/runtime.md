@@ -120,12 +120,9 @@ M4:
   and `RunStarted|Finished|Failed|…` with your exact JSON shapes, and `ProposedAction` moved
   to `AryaCore`. Proposed default: replace the private `ActionProposedPayload`,
   `ActionOutcomePayload`, `ApprovalRequestedPayload`, and `ApprovalDecisionPayload` with them.
-- From memory: routine wiring for the facade (decision 0025): feed `run/result.routines` to
-  `RoutineProposals.intake`, gate with `RoutineGatekeeper`, and execute `routine` actions with
-  `RoutineInvocation.prepare` + `ShellRoutineRunner` (output is `RoutineOutcome`).
-
-- The eval `CaseRunner`, the cli-e2e facade additions, and app-shell's effort read and write
-  moved to the [workspace lane](workspace.md) with the facade. For decision 0026 the facade
+- The eval `CaseRunner`, the cli-e2e facade additions, app-shell's effort read and write, and
+  memory's routine wiring (decision 0025) moved to the [workspace lane](workspace.md) with the
+  facade. For decision 0026 the facade
   appends `steward.effort.set {effort}` (actor: the person); proposed default: `StewardBook`
   folds it into `charter.effort` without bumping the version, so the next run records the
   effort it used in `run.started`. The workspace lane landed that fold as a small integration

@@ -23,6 +23,10 @@ M2 (top priority first):
   `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
 - [ ] Effort (decision 0026): `effort(for:)` and `setEffort(_:for:by:)`, recording
   `steward.effort.set`; tell app-shell in its lane file once it lands.
+- [ ] Routine wiring (decision 0025, from memory): feed `run/result.routines` to
+  `RoutineProposals.intake`, gate with `RoutineGatekeeper` through eval's
+  `RoutineGateChecking` conformance, and execute `routine` actions with
+  `RoutineInvocation.prepare` + `ShellRoutineRunner` (output is `RoutineOutcome`).
 - [ ] Observation API the app can subscribe to (new ledger events lead to a refresh), with no
   SwiftUI import in the facade.
 
@@ -51,8 +55,8 @@ M3:
   `LedgerReader(home:)` (`events(from:)`, `follow(after:)`), `LedgerVerifier(home:).verify()`,
   `BlobStore`, typed payloads (0024), and `LedgerProjection`/`catchUp` for the books (0028).
   `RuntimeActor` maps 1:1 onto `Actor` and `RuntimeEventDraft` onto `EventDraft`.
-- None open before this. Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade
-  additions, and app-shell's effort selector (backlog items above).
+- Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
+  app-shell's effort selector, and memory's routine wiring (backlog items above).
 
 ## Log
 
