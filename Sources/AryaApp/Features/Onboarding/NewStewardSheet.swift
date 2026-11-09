@@ -161,6 +161,7 @@ struct NewStewardFields: View {
                         draft.signOff = nil
                     }),
                 options: NewStewardDraft.Autonomy.allCases.map { ($0, $0.label) })
+            Text(draft.autonomy.hint).aryaText(AryaFont.caption, AryaColor.inkFaint)
         }
         labeled("Needs your sign-off") {
             if draft.actionKinds.isEmpty {
@@ -178,7 +179,11 @@ struct NewStewardFields: View {
                     )
                     .disabled(draft.never.contains(kind))
                     Text("\(draft.risk(kind)) risk")
-                        .aryaText(AryaFont.caption, riskColor(draft.risk(kind)))
+                        .aryaText(
+                            AryaFont.caption,
+                            draft.never.contains(kind)
+                                ? AryaColor.inkFaint : riskColor(draft.risk(kind))
+                        )
                     Spacer()
                     Text(rowState(kind)).aryaText(AryaFont.caption, AryaColor.inkFaint)
                 }

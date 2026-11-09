@@ -42,6 +42,14 @@ struct NewStewardDraft: Hashable, Sendable {
         case auto
 
         var label: String { self == .ask ? "Ask before acting" : "Act on its own" }
+
+        /// What the choice does: it only sets where the sign-off checklist starts.
+        var hint: String {
+            switch self {
+            case .ask: "Every action starts checked; uncheck the ones it may do on its own."
+            case .auto: "Only high-risk actions start checked; the rest run on their own."
+            }
+        }
     }
 
     /// A system the steward can work in: a known binding to switch on, or a custom command.

@@ -113,3 +113,5 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   new-steward 1-5 dark and light pass the 5 requirements; no config syntax outside Advanced.
 - 2026-11-09: sign-off risk now follows the runtime (charter `policy.risk`, recorded
   resolution, else `medium`), so `reply` reads medium in the wizard and in approvals.
+- 2026-11-09: autonomy shows one muted line saying it only sets where the sign-off list
+  starts; never rows dim fully; snapshot frame centered (form about 18% down).
