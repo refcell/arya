@@ -154,11 +154,14 @@ public struct StewardDraft: Sendable, Hashable, Codable {
         public var binding: String?
         /// `auto`, `ask`, or `deny`.
         public var decision: String
+        /// The guardrail in a person's words, shown where the rule holds an action.
+        public var note: String?
 
-        public init(action: String, binding: String? = nil, decision: String) {
+        public init(action: String, binding: String? = nil, decision: String, note: String? = nil) {
             self.action = action
             self.binding = binding
             self.decision = decision
+            self.note = note
         }
     }
 
@@ -350,7 +353,8 @@ extension StewardDraft {
             guard let decision = PolicyDecision(rawValue: rule.decision) else {
                 throw fail("rule \(rule.action): decision must be auto, ask, or deny")
             }
-            return Policy.Rule(action: rule.action, binding: rule.binding, decision: decision)
+            return Policy.Rule(
+                action: rule.action, binding: rule.binding, decision: decision, note: rule.note)
         }
         let bindings = try self.bindings.map { binding -> CharterBinding in
             switch binding.kind {

@@ -383,3 +383,33 @@ struct Opened {
     let run = try await opened.workspace.startRun(steward: "st_inbox")
     #expect(run.title == "Manual run.")
 }
+
+@Test func approvalsSayWhichGuardrailHeldThem() async throws {
+    var result = liveResult
+    result[set: "actions"] = [
+        ["id": "a3", "kind": "reply", "binding": "inbox", "target": "inbox:MSG-9"],
+        ["id": "a4", "kind": "route", "binding": "inbox", "target": "inbox:MSG-9"],
+    ]
+    var charter = try Charter.load(from: try inboxCharterJSON())
+    charter.policy = Policy(rules: [
+        Policy.Rule(action: "reply", decision: .ask, note: "Replies to customers need sign-off"),
+        Policy.Rule(action: "label", decision: .ask),
+    ])
+    let opened = try await Opened([FakeScript.Run(result: result)])
+    _ = try await opened.workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    let stored = try Charter.load(from: try await opened.workspace.charter("st_inbox"))
+    #expect(stored.policy.rules.first?.note == "Replies to customers need sign-off")
+
+    _ = try await opened.workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+
+    let pending = try await opened.workspace.approvals()
+    let reply = try #require(pending.first { $0.actionKind == "reply" })
+    #expect(reply.policyRule == "rule:reply")
+    #expect(reply.policyText == "Replies to customers need sign-off")
+    let route = try #require(pending.first { $0.actionKind == "route" })
+    #expect(route.policyText == "Actions the charter does not name need approval.")
+    let label = ProposedAction(id: "a1", kind: "label", binding: "inbox")
+    #expect(
+        Workspace.policyText("rule:label", action: label, charter: stored)
+            == "Label actions need approval (charter rule).")
+}

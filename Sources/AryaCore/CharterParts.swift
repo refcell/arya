@@ -130,14 +130,20 @@ public struct Policy: Hashable, Sendable, Codable {
         /// Limits the rule to one binding; nil matches any binding.
         public var binding: String?
         public var decision: PolicyDecision
+        /// The guardrail in a person's words, shown where the rule holds an action, for
+        /// example "Replies to customers need sign-off".
+        public var note: String?
 
-        public init(action: String, binding: String? = nil, decision: PolicyDecision) {
+        public init(
+            action: String, binding: String? = nil, decision: PolicyDecision, note: String? = nil
+        ) {
             self.action = action
             self.binding = binding
             self.decision = decision
+            self.note = note
         }
 
-        private enum CodingKeys: String, CodingKey { case action, binding, decision }
+        private enum CodingKeys: String, CodingKey { case action, binding, decision, note }
     }
 
     public var `default`: PolicyDecision

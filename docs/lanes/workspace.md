@@ -11,7 +11,8 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 
 Approval block and run threads (redesign):
 - [x] `ApprovalSummary.content` (params as text), `params`, `source` (the run input),
-  `policyRule`, `risk` and `why` (from the recorded result); `approval(_:)` for one item.
+  `policyRule`, `policyText` (the rule's `note`, else a sentence), `risk` and `why` (from the
+  recorded result); `approval(_:)` for one item.
 - [x] `RunSummary.title` (summary, else the input's first line, about 60 characters);
   `DecisionSummary` (`choice`, `why`); `startRun(steward:)` with no input.
 
@@ -128,6 +129,8 @@ M3:
   `AryaCore` import
 - 2026-11-09: plan, risk, and `why` are read from each run's recorded `run/result` wire record
   (`RecordedResults`) until runtime folds them into its own events
+- 2026-11-09: charter policy rules take an optional `note` (the guardrail in a person's
+  words; small AryaCore edit, ARCHITECTURE.md updated) for the approval block
 - 2026-11-09: recap takes the last seen `seq` from the caller; the facade keeps no per-person
   state
 - 2026-11-09: routine intake runs in the facade after each facade-started live run (runtime
@@ -154,3 +157,4 @@ M3:
   without input; 41 AryaTests.
 - 2026-11-09: plan, approval risk and why, decision and action why from recorded results;
   42 AryaTests.
+- 2026-11-09: approval `policyText` from charter rule notes; 43 AryaTests.

@@ -205,17 +205,46 @@ public actor Workspace {
         }
         let actionIDs = try await approvalQueue.book().records
         let recorded = RecordedResults(try reader.events())
+        let charters = Dictionary(
+            try await lifecycle.book().all.map { ($0.id.rawValue, $0.charter) },
+            uniquingKeysWith: { first, _ in first })
         return approvals.map { approval in
             var out = approval
             let run = RunID(unchecked: approval.run)
             out.source = runs[run]?.input
             if case .action(let action)? = actionIDs[ApprovalID(unchecked: approval.id)]?.subject {
                 out.policyRule = reasons["\(approval.run):\(action.id)"]
+                out.policyText = out.policyRule.map {
+                    Self.policyText(
+                        $0, action: action, charter: charters[approval.steward])
+                }
                 let wire = recorded.action(action.id, run: run)
                 out.risk = wire?.risk?.rawValue
                 out.why = wire?.why
             }
             return out
+        }
+    }
+
+    /// A policy verdict reason (`rule:<action>`, `rule:routine:<name>@<v>`, `default`,
+    /// `routine_default`) in a person's words, preferring the matching rule's `note`.
+    static func policyText(_ reason: String, action: ProposedAction, charter: Charter?) -> String {
+        let label = action.kind.prefix(1).uppercased() + action.kind.dropFirst()
+        if reason.hasPrefix("rule:") {
+            let name = String(reason.dropFirst("rule:".count))
+            let rule = charter?.policy.rules.first {
+                $0.action == name && ($0.binding == nil || $0.binding == action.binding)
+            }
+            if let note = rule?.note, !note.isEmpty { return note }
+            return "\(label) actions need approval (charter rule)."
+        }
+        switch reason {
+        case "default":
+            return "Actions the charter does not name need approval."
+        case "routine_default":
+            return "A routine version needs approval until the charter names it."
+        default:
+            return "Held for approval (\(reason))."
         }
     }
 

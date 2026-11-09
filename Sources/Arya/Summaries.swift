@@ -186,6 +186,9 @@ public struct ApprovalSummary: Sendable, Hashable, Codable, Identifiable {
     public var source: String?
     /// The policy verdict that held it, for example `default` or `rule:reply`.
     public var policyRule: String?
+    /// That verdict in a person's words: the charter rule's `note`, else a sentence built from
+    /// the rule, for example "Reply actions need approval.".
+    public var policyText: String?
     /// The adapter's risk hint for the action (`low`, `medium`, `high`), when it gave one.
     /// Policy, not the hint, decides.
     public var risk: String?

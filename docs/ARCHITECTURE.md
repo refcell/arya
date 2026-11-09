@@ -190,6 +190,9 @@ A charter is a versioned JSON document. Version numbers increase by one per acce
 ```
 
 - `policy.default` is `ask` when omitted: an unknown action kind is never executed silently.
+- `policy.rules[].note` (optional) states the guardrail in a person's words, for example
+  "Replies to customers need sign-off"; the approval view shows it where the rule holds an
+  action.
 - `bindings[].read` lists the tools a harness may call during a run. `bindings[].actions` lists
   the action kinds arya may execute through that binding after policy and approval.
 - Validation rejects unknown binding references, empty outcomes, and duplicate ids.
