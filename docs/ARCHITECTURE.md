@@ -106,7 +106,8 @@ Each line is one event:
   Any other chain break makes the ledger read-only until a person runs `arya ledger verify` and
   decides.
 - **Event types** are namespaced:
-  - `steward.*`: `created`, `charter.updated`, `ready`, `paused`, `retired`
+  - `steward.*`: `created`, `charter.updated`, `effort.set`, `ready`, `paused`, `resumed`,
+    `retired`
   - `run.*`: `started`, `input`, `adapter.event`, `tool.call`, `tool.result`, `decision`,
     `finished`, `failed`
   - `action.*`: `proposed`, `executed`, `failed`, `rejected`

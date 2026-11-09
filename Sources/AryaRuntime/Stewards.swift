@@ -19,6 +19,8 @@ public enum StewardEventType {
     public static let resumed = "steward.resumed"
     /// The steward is gone for good.
     public static let retired = "steward.retired"
+    /// A person changed the steward's effort (decision 0026); the charter version stays.
+    public static let effortSet = "steward.effort.set"
 }
 
 /// Lifecycle status of a steward.
@@ -74,6 +76,14 @@ struct CharterPayload: Codable, Hashable {
     }
 }
 
+struct EffortPayload: Codable, Hashable {
+    var effort: Effort
+
+    enum CodingKeys: String, CodingKey {
+        case effort
+    }
+}
+
 struct ReasonPayload: Codable, Hashable {
     var reason: String?
 
@@ -111,6 +121,9 @@ public struct StewardBook: Sendable {
             let body = try Payload.decode(CharterPayload.self, event.payload)
             records[id]?.charter = body.charter
             records[id]?.version = body.version
+        case StewardEventType.effortSet:
+            records[id]?.charter.effort = try Payload.decode(EffortPayload.self, event.payload)
+                .effort
         case StewardEventType.ready: records[id]?.ready = true
         case StewardEventType.paused: records[id]?.status = .paused
         case StewardEventType.resumed: records[id]?.status = .active
@@ -184,6 +197,19 @@ public struct StewardLifecycle: Sendable {
     {
         try await transition(
             id, from: [.active, .paused], type: StewardEventType.retired, reason, actor)
+    }
+
+    /// Records `steward.effort.set` (decision 0026): an operational change, so no gate and no
+    /// new charter version. Setting the current effort records nothing.
+    @discardableResult
+    public func setEffort(_ effort: Effort, for id: StewardID, by actor: RuntimeActor = .localUser)
+        async throws -> StewardRecord
+    {
+        let current = try await existing(id)
+        guard current.status != .retired else { throw StewardError.wrongStatus(id, current.status) }
+        guard current.charter.effort != effort else { return current }
+        return try await record(
+            StewardEventType.effortSet, id, actor, EffortPayload(effort: effort))
     }
 
     private func check(_ charter: Charter) throws {

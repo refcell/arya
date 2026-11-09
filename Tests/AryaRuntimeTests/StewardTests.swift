@@ -102,3 +102,19 @@ private func makeLifecycle() -> (StewardLifecycle, MemoryEventSink) {
     #expect(text.contains("- tracker (mcp); read: search, get; propose: label, comment, assign"))
     #expect(text.contains("- triaged_within_1h (ratio, higher is better), target 0.95"))
 }
+
+@Test func effortChangeKeepsTheCharterVersion() async throws {
+    let (lifecycle, sink) = makeLifecycle()
+    try await lifecycle.create(triageCharter())
+    let id = StewardID(unchecked: "st_triage")
+    let record = try await lifecycle.setEffort(.high, for: id, by: .person("person:alex"))
+    #expect(record.charter.effort == .high)
+    #expect(record.version == 1)
+    let event = try await sink.events(from: 1).last
+    #expect(event?.type == StewardEventType.effortSet)
+    #expect(event?.draft.actor == .person("person:alex"))
+    #expect(event?.payload == ["effort": "high"])
+    // Setting the same effort again records nothing.
+    try await lifecycle.setEffort(.high, for: id)
+    #expect(try await sink.events(from: 1).count == 2)
+}

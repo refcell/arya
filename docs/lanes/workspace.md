@@ -9,6 +9,10 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 
 ## Backlog
 
+M1 (the facade still throws `unavailable` for these):
+- [ ] A ledger-backed `EventSink` for the home, then stewards, runs, approvals, ledger read,
+  and verify through the runtime.
+
 M2 (top priority first):
 - [x] Runtime-backed `AryaEval.CaseRunner` in `Sources/Arya` (the runtime cannot import eval):
   one run with trigger kind `case` for `request.caseItem`, tool reads answered from its
@@ -17,6 +21,8 @@ M2 (top priority first):
 - [ ] cli-e2e facade additions: `charter(_ id:) -> Data` (live charter), `run(_ id:) ->
   RunDetail` (decisions and per-action dispositions), and the calls behind `casebook import`,
   `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
+- [ ] Effort (decision 0026): `effort(for:)` and `setEffort(_:for:by:)`, recording
+  `steward.effort.set`; tell app-shell in its lane file once it lands.
 - [ ] Observation API the app can subscribe to (new ledger events lead to a refresh), with no
   SwiftUI import in the facade.
 
@@ -39,6 +45,9 @@ M3:
   one place they meet.
 
 ## Questions
+
+- None open. Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade
+  additions, and app-shell's effort selector (backlog items above).
 
 ## Log
 

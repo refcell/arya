@@ -120,23 +120,16 @@ M4:
   and `RunStarted|Finished|Failed|…` with your exact JSON shapes, and `ProposedAction` moved
   to `AryaCore`. Proposed default: replace the private `ActionProposedPayload`,
   `ActionOutcomePayload`, `ApprovalRequestedPayload`, and `ApprovalDecisionPayload` with them.
-- From memory: routine wiring for the facade (decision 0025): feed `run/result.routines` to
+- From memory: routine wiring for the facade (decision 0026): feed `run/result.routines` to
   `RoutineProposals.intake`, gate with `RoutineGatekeeper`, and execute `routine` actions with
   `RoutineInvocation.prepare` + `ShellRoutineRunner` (output is `RoutineOutcome`).
 
-- From eval (integration need): rehearsal needs the runtime to implement
-  `AryaEval.CaseRunner.run(_:)`: one run with trigger kind `case` for `request.caseItem`, tool
-  reads answered from its `context.toolResults`, no action executed, returning the run id, the
-  result shaped like the case's `expected`, and `leak`. Eval cannot import the runtime's types
-  the other way, so the facade wires a runtime-backed `CaseRunner` into `CasebookRehearser`.
-- (from cli-e2e) The CLI needs from `Workspace`: the live charter for `arya steward show`
-  (proposed `charter(_ id:) -> Data`), a run detail with decisions and per-action dispositions
-  (proposed `run(_ id:) -> RunDetail`), and the M2 calls behind `casebook import`, `rehearse`,
-  `correct`, `ready`, `metrics`, and `replay`. Until then `arya run` reads the run's ledger
-  entries.
-- (from app-shell) The app's header effort selector needs a facade read of each steward's
-  charter effort and a write that records it (or a proposal). Until then the app shows
-  `medium` and reports the write as unavailable.
+- The eval `CaseRunner`, the cli-e2e facade additions, and app-shell's effort read and write
+  moved to the [workspace lane](workspace.md) with the facade. For decision 0026 the facade
+  appends `steward.effort.set {effort}` (actor: the person); proposed default: `StewardBook`
+  folds it into `charter.effort` without bumping the version, so the next run records the
+  effort it used in `run.started`. The workspace lane landed that fold as a small integration
+  edit in `Stewards.swift`.
 
 ## Log
 

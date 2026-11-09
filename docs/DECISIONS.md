@@ -188,3 +188,14 @@ Run-proposed routines enter through `RoutineProposals.intake`, which stores cont
 before drafting `routine.proposed`. Why: `GateCheckRequest` names a charter version, and a
 routine change must be rehearsable without minting a new charter version.
 
+### 0026 — 2026-11-09 — Effort is an operational setting, not a gated proposal
+
+A steward's effort (`low`, `medium`, `high`) says how hard its adapter should work, not what the
+steward should do, so changing it does not go through a proposal or a gate. The facade exposes
+`effort(for:)` and `setEffort(_:for:by:)`; the write appends `steward.effort.set {effort}`
+attributed to the deciding person, and the runtime's steward projection folds it into the
+live charter's `effort` without bumping the charter version. Every run and rehearsal records
+the effort it used in `run.started`, so baselines stay comparable: a rehearsal at a different
+effort is visible as such. Why: the header selector in the app must act at once, and effort
+never changes instructions.
+
