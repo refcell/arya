@@ -40,7 +40,7 @@ M1:
 
 M2:
 - [ ] Projections: metric series per steward, proposals, rehearsals, casebook versions.
-- [ ] Projection cache in `cache/` with a header naming the last `seq`; delete-safe.
+- [x] Projection cache in `cache/` with a header naming the last `seq`; delete-safe.
 
 M3:
 - [ ] Ledger query API for the app's ledger table: filter by steward, run, type, actor; page by
@@ -96,6 +96,9 @@ M3:
 - Projections fold `Event`s through `Projected<P>`, which refuses any event that is not the
   next `seq` with the matching `prev`; `catchUp` falls back to a rebuild when the ledger was
   replaced or truncated behind a projection (the hash at its `seq` changed).
+- `ProjectionCache(home:)` stores `{"v":1,"name","seq","hash","value"}` per projection in
+  `cache/<name>.json` (atomic writes). `current(_:name:)` loads, catches up, and saves; any
+  unreadable or stale file is treated as absent, so deleting `cache/` is always safe.
 - `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
 
 ## Questions

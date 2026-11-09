@@ -3,7 +3,7 @@ import AryaCore
 /// A small, ledger-owned projection: event counts, and where each steward's and run's events
 /// are. The facade uses it to page the ledger table and to find a run's events without a
 /// full scan of every payload.
-public struct LedgerIndex: LedgerProjection, Hashable {
+public struct LedgerIndex: LedgerProjection, Hashable, Codable {
     /// Where a run's events are.
     public struct RunSpan: Hashable, Sendable, Codable {
         public var steward: StewardID?
@@ -26,6 +26,10 @@ public struct LedgerIndex: LedgerProjection, Hashable {
     public private(set) var lastAt: Timestamp?
 
     public init() {}
+
+    enum CodingKeys: String, CodingKey {
+        case events, countsByType, eventsBySteward, runs, firstAt, lastAt
+    }
 
     public mutating func apply(_ event: Event) throws {
         events += 1
