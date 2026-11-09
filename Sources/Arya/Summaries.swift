@@ -107,6 +107,30 @@ public struct RunSummary: Sendable, Hashable, Codable, Identifiable {
     }
 }
 
+extension RunSummary {
+    /// Decodes a summary; JSON written before `title` existed gets one from `summary`.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try c.decode(String.self, forKey: .id),
+            steward: try c.decode(String.self, forKey: .steward),
+            parent: try c.decodeIfPresent(String.self, forKey: .parent),
+            trigger: try c.decode(String.self, forKey: .trigger),
+            charterVersion: try c.decode(Int.self, forKey: .charterVersion),
+            status: try c.decode(Status.self, forKey: .status),
+            endStatus: try c.decodeIfPresent(String.self, forKey: .endStatus),
+            failureReason: try c.decodeIfPresent(String.self, forKey: .failureReason),
+            summary: try c.decodeIfPresent(String.self, forKey: .summary),
+            startedAt: try c.decode(Date.self, forKey: .startedAt),
+            endedAt: try c.decodeIfPresent(Date.self, forKey: .endedAt),
+            costMicros: try c.decode(Int.self, forKey: .costMicros),
+            actionsProposed: try c.decode(Int.self, forKey: .actionsProposed))
+        title =
+            try c.decodeIfPresent(String.self, forKey: .title)
+            ?? Self.title(summary: summary, input: "")
+    }
+}
+
 /// An item in the approval queue: a held action or a question from a run.
 public struct ApprovalSummary: Sendable, Hashable, Codable, Identifiable {
     /// What is being approved.
