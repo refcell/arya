@@ -15,8 +15,13 @@ M1 (the facade still throws `unavailable` for these):
 - [ ] `replay(run:) -> ReplaySummary`: a thin call into eval's `RunReplayer` (eval owns the
   replay engine, project lead decision); the facade shape is published and throws
   `unavailable` until it lands.
-- [ ] `routine(name:version:) -> RoutineDetail` and `routineHistory(name:)` from
-  `RoutineLibrary` (app-views: routine history and diff).
+- [x] Memory and routine reads from `MemoryProjection`/`RoutineLibrary`:
+  `memory(steward:includeRetracted:)`, `routines(steward:)`,
+  `routine(steward:name:version:) -> RoutineDetail` (body, gate status, provenance),
+  `routineContent`, `routineHistory(steward:name:)`; `caseExpected(casebook:case:)`.
+- [x] Adapter launch through the public `AryaAdapters.AdapterProfiles` (exec profiles, `env`).
+- [ ] Eval's `CaseRunRequest.routine` (candidate routines) and gate wiring
+  (`RoutineRehearsalGate` into `RoutineGatekeeper`, `RehearsalGate` into `ProposalDesk`).
 
 M2 (top priority first):
 - [x] Runtime-backed `AryaEval.CaseRunner` in `Sources/Arya` (the runtime cannot import eval):
@@ -73,10 +78,7 @@ M3:
 
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
-- (from memory) Facade memory/routine API can map `MemoryProjection(ledger:)`, `RoutineLibrary(ledger:)`, `allNotes`, `overview`, `history`, `diff(…store:)`, `RunPreparation.context`, `MemoryIntake.notes`, `RoutineProposals.intake` (see memory.md Decisions).
 - (from eval) `CaseRunRequest.routine` names a candidate routine: run the case with `RoutineLibrary.candidateRoutines(for:)` instead of the live routines; wire `AryaEval.RoutineRehearsalGate` into `RoutineGatekeeper` and `RehearsalGate` into `ProposalDesk`/`GateChecking`.
-- (from app-views) the app also needs a case's expected result for rehearsal review: proposed `Workspace.caseExpected(casebook:case:) -> JSONValue?` (nil when missing), alongside the planned `routine(name:version:)`.
-- (from adapters) `AryaAdapters.AdapterProfiles` is public now (validation, `env`, exec profiles); proposed default: replace the internal `AdapterProfiles` in `Sources/Arya/AdapterProfiles.swift` with `try AdapterProfiles.load(from:).profile(charter.adapter).command(name:profilesFile:effort:environment:)`.
 
 ## Log
 
@@ -85,3 +87,10 @@ M3:
 - 2026-11-09: core facade on the real ledger: stewards, effort, runs, approvals, ledger,
   events, verify, restart recovery
 - 2026-11-09: M2 calls: casebooks, rehearse, correct, ready, metrics, and `run(_:)` detail
+- 2026-11-09: replay is a thin call into eval's `RunReplayer` (eval owns the engine)
+- 2026-11-09: routine reads take a steward (`RoutineLibrary` keys by steward and name);
+  `caseExpected` returns canonical JSON `Data`, like `charter(_:)`, so the app needs no
+  `AryaCore` import
+- 2026-11-09: `just e2e` after 40f9468: steps 1-2 ok, 3 PENDING (`importCasebook`: the
+  facade call is live, the CLI `WorkspaceBackend` still stubs it); replay engine handed to
+  eval; memory and routine reads, `caseExpected`, and public adapter profiles landed.

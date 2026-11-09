@@ -152,7 +152,7 @@ extension Workspace {
     var rehearser: CasebookRehearser {
         CasebookRehearser(
             runner: RuntimeCaseRunner(loop: engine, sink: sink),
-            casebooks: HomeCasebooks(sink: sink, blobs: BlobStore(home: home)), sink: sink,
+            casebooks: casebookSource, sink: sink,
             ambient: ambient)
     }
 
@@ -164,7 +164,8 @@ extension Workspace {
         guard let match else {
             throw WorkspaceError.notFound(version ?? "casebook for \(steward)")
         }
-        return try await HomeCasebooks(sink: sink, blobs: BlobStore(home: home))
+        return
+            try await casebookSource
             .casebook(version: match.version)
     }
 
@@ -197,6 +198,10 @@ struct HomeBlobs: EvalBlobStore {
 }
 
 /// Imported casebooks by version, read from the ledger and blobs.
+extension Workspace {
+    var casebookSource: HomeCasebooks { HomeCasebooks(sink: sink, blobs: BlobStore(home: home)) }
+}
+
 struct HomeCasebooks: CasebookSource {
     let sink: any EventSink
     let blobs: BlobStore
