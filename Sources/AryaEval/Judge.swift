@@ -1,6 +1,7 @@
 import AryaAdapters
 import AryaCore
 import AryaRuntime
+import Foundation
 
 /// What a judge scores: one sample's result against the case's expected result.
 public struct JudgeRequest: Hashable, Sendable, Codable {
@@ -214,5 +215,39 @@ public struct RecordedJudge: CaseJudge {
 
     static func key(_ rehearsal: RehearsalID, _ caseID: CaseID, _ sample: Int) -> String {
         "\(rehearsal.rawValue)/\(caseID.rawValue)/\(sample)"
+    }
+}
+
+/// Serves fixed verdicts by case id, from a file shaped `{v: 1, judge, verdicts: {case: {value,
+/// passed, notes}}}` (see `etc/examples/triage/judge`). For offline demos and tests of a rubric;
+/// a case without a verdict throws, so it scores 0.
+public struct CaseVerdicts: CaseJudge {
+    public var name: String
+    public var verdicts: [CaseID: JudgeVerdict]
+
+    public init(name: String, verdicts: [CaseID: JudgeVerdict]) {
+        self.name = name
+        self.verdicts = verdicts
+    }
+
+    public init(data: Data) throws {
+        struct File: Decodable {
+            var judge: String
+            var verdicts: [String: JudgeVerdict]
+        }
+        let file = try JSONDecoder().decode(File.self, from: data)
+        var verdicts: [CaseID: JudgeVerdict] = [:]
+        for (key, verdict) in file.verdicts {
+            guard let id = CaseID(rawValue: key) else { throw EvalError.badVerdict("case \(key)") }
+            verdicts[id] = verdict
+        }
+        self.init(name: file.judge, verdicts: verdicts)
+    }
+
+    public func judge(_ request: JudgeRequest) async throws -> JudgeVerdict {
+        guard let verdict = verdicts[request.caseID] else {
+            throw EvalError.badVerdict("no verdict for \(request.caseID.rawValue)")
+        }
+        return verdict
     }
 }

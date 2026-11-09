@@ -38,8 +38,11 @@ Priority (replay before live, visible in the app):
   under 10 s (about 0.3 s idle), pinned by `fiftyCaseRehearsalIsFast`.
 - [x] Live readiness reads as one sentence (`Not ready: case-0005 would regress; 2 of last 20
   runs would change`) plus `regressionLines`, one per regression.
-- [x] Demo charter v2 (`Fixtures/backtest/demo`): proposed against the example charter on the
-  example casebook it improves case-0006 and regresses case-0005; seeding is cli-e2e's.
+- [x] Demo charter v2 (`etc/examples/triage/charter-v2.json`), proposed by `just demo` right
+  after the first rehearsal: it improves case-0006 and regresses case-0005, and the gate fails.
+  `arya propose` now runs the gate, as its help says.
+- [x] Judge example (`etc/examples/triage/judge`): a tone and policy rubric with recorded
+  verdicts served by `CaseVerdicts`; scores read as one sentence each, 7/8 pass.
 
 M1:
 - [x] Interfaces only, so other lanes can compile against them: `Replayer`, `Rehearser`,
@@ -213,3 +216,4 @@ Later:
 - 2026-11-09: live readiness gate, casebook builder from history, 50-case perf test
 - 2026-11-09: facade wrapper `Corrector.correct(run:expected:note:person:)`
 - 2026-11-09: readiness sentence and regression lines, demo charter v2 fixture
+- 2026-11-09: demo proposes charter v2 and gates it, judge example, `CaseVerdicts`

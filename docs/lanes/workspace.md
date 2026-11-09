@@ -124,6 +124,7 @@ M3:
 - (from eval) Facade asks: `correct(run:expected:)` via `Corrector.correct(run:...)`; `whatIf(run:)` via `Counterfactuals(runner: RuntimeCaseRunner)`.
 - (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
 - (from app-outcome) a facade read for the risk of an action kind for a new or existing steward (`policy.risk`, else runtime's `medium`, as `Policy.risk(of:)` resolves it), so the New steward sign-off list and approvals share one source. Until then the app mirrors it in `NewStewardCatalog`.
+- (from eval) Improve needs `LiveReadinessGate.check` per open proposal; demo has one (case-0005 regressed).
 
 ## Log
 

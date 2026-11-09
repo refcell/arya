@@ -1,0 +1,70 @@
+{
+  "v": 1,
+  "judge": "triage-rubric",
+  "verdicts": {
+    "case-0001": {
+      "value": 1,
+      "passed": true,
+      "notes": [
+        "polite, no reply needed",
+        "followed policy"
+      ]
+    },
+    "case-0002": {
+      "value": 1,
+      "passed": true,
+      "notes": [
+        "polite, no reply needed",
+        "followed policy"
+      ]
+    },
+    "case-0003": {
+      "value": 1,
+      "passed": true,
+      "notes": [
+        "polite, no reply needed",
+        "followed policy"
+      ]
+    },
+    "case-0004": {
+      "value": 1,
+      "passed": true,
+      "notes": [
+        "polite, no reply needed",
+        "followed policy"
+      ]
+    },
+    "case-0005": {
+      "value": 1,
+      "passed": true,
+      "notes": [
+        "polite, no reply needed",
+        "kept security in the security queue"
+      ]
+    },
+    "case-0006": {
+      "value": 0.5,
+      "passed": false,
+      "notes": [
+        "polite, no reply needed",
+        "routed a how-to question to billing"
+      ]
+    },
+    "case-0007": {
+      "value": 1,
+      "passed": true,
+      "notes": [
+        "polite, no reply needed",
+        "followed policy"
+      ]
+    },
+    "case-0008": {
+      "value": 1,
+      "passed": true,
+      "notes": [
+        "polite, no reply needed",
+        "followed policy"
+      ]
+    }
+  }
+}

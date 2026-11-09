@@ -16,6 +16,8 @@ never delete a message.
 | `casebook.jsonl` | eight past messages with their known category and actions |
 | `fake-script.json` | what the fake adapter answers for each input (see below) |
 | `adapters.json` | the `fake-triage` adapter profile; paths are relative to the repository root |
+| `charter-v2.json` | a proposed version 2 that `just demo` proposes; its `fake-triage-v2` profile runs `fake-script-v2.json` |
+| `judge/` | a rubric judge for tone and policy adherence with recorded verdicts ([judge/README.md](triage/judge/README.md)) |
 
 The scripted steward gets seven of the eight cases right. On `case-0006` ("Update card on
 file") it answers `billing` where the casebook says `how-to`; the message is about the card the
@@ -25,6 +27,10 @@ to `billing`, and the next rehearsal scores eight of eight.
 The live input `New message MSG-201: Refund for a duplicate charge` produces a `label` and a
 `route` action, which the policy executes, and a `reply`, which waits for approval. It also
 records one memory note and one `routed_within_1h` measurement.
+
+`charter-v2.json` drops the security routing guardrail and treats card-on-file questions as
+how-to. Gated on the casebook as imported, it improves `case-0006` and regresses `case-0005`
+(seven of eight both ways), so the gate fails and the demo home has one failed proposal to show.
 
 ## Fake adapter script
 

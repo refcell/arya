@@ -72,6 +72,9 @@ sed -e "s|\"arya-fake-adapter\"|\"$bin/arya-fake-adapter\"|" \
 seed "define the triage steward" steward create --charter "$example/charter.json"
 seed "import its casebook" casebook import st_triage "$example/casebook.jsonl"
 seed "rehearse it" rehearse st_triage
+# A proposed charter v2, gated on the casebook as imported: case-0006 improves, case-0005
+# regresses (etc/examples/triage/charter-v2.json).
+seed "propose charter v2" propose st_triage --charter "$example/charter-v2.json"
 seed "correct case-0006" correct st_triage case-0006 --choice billing \
   --note "A question about the card on file is a billing question."
 seed "rehearse it again" rehearse st_triage

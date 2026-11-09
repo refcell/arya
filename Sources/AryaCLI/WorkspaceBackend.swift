@@ -277,7 +277,11 @@ extension WorkspaceBackend {
             try await workspace.proposeCharter(
                 steward: steward, charter: data, baseVersion: live.charterVersion)
         }
-        return Mapping.proposal(summary)
+        // Rehearse and gate it on the steward's newest casebook, as the command promises.
+        let gated = try await call("checkProposal") {
+            try await workspace.checkProposal(summary.id)
+        }
+        return Mapping.proposal(gated)
     }
 
     func listProposals(steward: String?) async throws(CLIError) -> [ProposalRow] {
