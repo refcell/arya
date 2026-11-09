@@ -3,7 +3,7 @@ import Testing
 
 @testable import AryaDesign
 
-@Suite struct ColorTokenTests {
+@MainActor @Suite struct ColorTokenTests {
     @Test func paperAndInkValuesMatchTheGuide() {
         #expect(AryaColorToken.canvas.light.description == "#F6F1E7")
         #expect(AryaColorToken.canvas.dark.description == "#141311")

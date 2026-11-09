@@ -3,7 +3,7 @@ import Testing
 
 @testable import AryaDesign
 
-@Suite struct TypeAndSpaceTokenTests {
+@MainActor @Suite struct TypeAndSpaceTokenTests {
     @Test func typeScaleMatchesTheGuide() {
         let sizes = AryaFont.all.map { "\($0.name) \(Int($0.size))/\(Int($0.lineHeight))" }
         #expect(

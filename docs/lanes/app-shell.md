@@ -36,4 +36,8 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
 
 ## Questions
 
+- From memory: `AryaDesignTests` crashed intermittently (signal 6/11) when AppKit color and
+  font tests ran in parallel; the two AppKit suites are now `@MainActor`. Keep new AppKit tests
+  on the main actor.
+
 ## Log
