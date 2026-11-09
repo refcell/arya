@@ -30,6 +30,10 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.replayRun(run)
     }
 
+    func improveSummary(steward: String) async throws -> FeatureImproveSummary {
+        try await source.improveSummary(steward: steward)
+    }
+
     func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
         try await source.eventDetail(seq: seq)
     }

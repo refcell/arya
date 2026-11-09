@@ -61,3 +61,18 @@ private let now = FeatureTestClock.now
     #expect(LedgerText.step(step, title: nil, run: event.run!).hasPrefix("Step \(step.count) of "))
     #expect(LedgerText.step(nil, title: "Labeled it", run: "run_01ABCDEF") == "Labeled it")
 }
+
+@Test func improveHeadlinePrefersTheWorkspaceSentence() throws {
+    let events = PreviewFixtures.triage(now: now)
+    let item = try #require(RehearsalList.build(events: events).rehearsals.first)
+    let written = FeatureImproveSummary(
+        rehearsal: item.id, rehearsalText: "Passed 1 of 3 cases on triage (charter v1).",
+        ready: false, markedReady: false, readinessText: "not ready: 2 cases failed",
+        readinessReasons: ["2 cases failed"], cases: [], gates: [:])
+    #expect(
+        ImproveText.headline(item, written: written, ready: nil, now: now)
+            == "Passed 1 of 3 cases on triage (charter v1).")
+    #expect(
+        ImproveText.headline(item, written: nil, ready: nil, now: now)
+            == ImproveText.summary(item, ready: nil, now: now))
+}

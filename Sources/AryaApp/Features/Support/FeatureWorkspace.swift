@@ -30,6 +30,29 @@ enum FeatureWrite: Hashable, Sendable {
     case createSteward(StewardDraft)
 }
 
+/// The Improve screen as the workspace writes it: the rehearsal and readiness in sentences,
+/// and each case's result, expectation, and difference in words.
+struct FeatureImproveSummary: Hashable, Sendable {
+    struct Case: Hashable, Sendable {
+        var id: String
+        var wouldHave: String
+        var expected: String
+        var diff: String
+        var passed: Bool
+        var leak: Bool
+    }
+
+    var rehearsal: String?
+    var rehearsalText: String
+    var ready: Bool
+    var markedReady: Bool
+    var readinessText: String
+    var readinessReasons: [String]
+    var cases: [Case]
+    /// Gate text by proposal id.
+    var gates: [String: String]
+}
+
 /// One event as the inspector shows it.
 struct FeatureEventDetail: Hashable, Sendable {
     /// Where the event sits in its run: its position from 1, the run's event count, and title.
@@ -111,6 +134,8 @@ protocol FeatureWorkspace: Sendable {
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON?
     /// Replays a finished run and reports the first difference from the recording.
     func replay(run: String) async throws -> FeatureReplayResult
+    /// The Improve screen's sentences for one steward, written by the workspace.
+    func improveSummary(steward: String) async throws -> FeatureImproveSummary
     /// One event's inspector detail (hash chain, run position, readable payload), or nil.
     func eventDetail(seq: Int) async throws -> FeatureEventDetail?
     /// Yields once whenever new events may be available.
@@ -126,6 +151,12 @@ extension FeatureWorkspace {
     /// Workspaces without a casebook read report that expected results are not available yet.
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON? {
         throw FeatureReadError.unavailable("expected results")
+    }
+
+    /// Workspaces without an Improve read report it unavailable; the screen then projects
+    /// the ledger itself.
+    func improveSummary(steward: String) async throws -> FeatureImproveSummary {
+        throw FeatureReadError.unavailable("improve summary")
     }
 
     /// Workspaces without an event read report it unavailable; the inspector then shows the

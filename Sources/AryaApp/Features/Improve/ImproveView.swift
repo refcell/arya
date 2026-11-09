@@ -9,6 +9,8 @@ struct ImproveView: View {
     var steward: String
     @AryaState private var chosen: String?
     @AryaState private var expanded: String?
+    /// The workspace's sentences for the newest rehearsal, when the workspace can write them.
+    @AryaState private var summary: FeatureImproveSummary?
 
     var body: some View {
         switch store.state {
@@ -25,7 +27,8 @@ struct ImproveView: View {
                     rehearsal(RehearsalList.build(events: events, steward: steward), events: events)
                     AryaHairline()
                     ImproveProposals(
-                        store: store, list: ChangeList.build(events: events, steward: steward))
+                        store: store, list: ChangeList.build(events: events, steward: steward),
+                        gates: summary?.gates ?? [:])
                 }
                 .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
                 .padding(.horizontal, AryaSpace.s5)
@@ -33,6 +36,9 @@ struct ImproveView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(AryaColor.canvas)
+            .task(id: events.count) {
+                summary = try? await store.workspace.improveSummary(steward: steward)
+            }
         }
     }
 
@@ -40,9 +46,10 @@ struct ImproveView: View {
     private func rehearsal(_ list: RehearsalList, events: [FeatureEvent]) -> some View {
         if let item = list.rehearsals.first(where: { $0.id == chosen }) ?? list.rehearsals.first {
             let mark = list.readyMark(steward: item.steward, charterVersion: item.charterVersion)
+            let written = summary?.rehearsal == item.id ? summary : nil
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
-                    Text(ImproveText.summary(item, ready: mark, now: store.now))
+                    Text(ImproveText.headline(item, written: written, ready: mark, now: store.now))
                         .aryaText(AryaFont.bodyStrong, AryaColor.ink).monospacedDigit()
                     Spacer(minLength: AryaSpace.s3)
                     if list.rehearsals.count > 1 { history(list) }
@@ -56,13 +63,18 @@ struct ImproveView: View {
                     }
                 }
                 Text(ImproveText.meta(item)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                if let written, !written.ready {
+                    ForEach(written.readinessReasons, id: \.self) { reason in
+                        Text(reason).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    }
+                }
             }
             VStack(alignment: .leading, spacing: 0) {
                 let scores = ImproveText.showsScores(item)
                 ForEach(item.cases) { result in
                     CaseLine(
                         store: store, item: item, result: result, events: events,
-                        showsScore: scores,
+                        reviewed: written?.cases.first { $0.id == result.id }, showsScore: scores,
                         isExpanded: expanded == result.id
                     ) { expanded = expanded == result.id ? nil : result.id }
                 }
@@ -111,6 +123,8 @@ private struct CaseLine: View {
     var item: RehearsalItem
     var result: CaseResult
     var events: [FeatureEvent]
+    /// The workspace's words for this case, when it wrote them.
+    var reviewed: FeatureImproveSummary.Case?
     var showsScore: Bool
     var isExpanded: Bool
     var toggle: () -> Void
@@ -142,7 +156,7 @@ private struct CaseLine: View {
             if isExpanded { detail.padding(.leading, AryaSpace.s5).padding(.bottom, AryaSpace.s3) }
         }
         .task(id: "\(isExpanded)/\(result.corrections.count)") {
-            guard isExpanded else { return }
+            guard isExpanded, reviewed == nil else { return }
             expected = await CaseExpectationLoader.load(
                 store.workspace, casebook: item.casebook, result: result)
         }
@@ -150,8 +164,13 @@ private struct CaseLine: View {
 
     private var detail: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
-            labeled("Would have done", ImproveText.wouldHaveDone(result, events: events))
-            labeled("Expected", expectedText, note: expectedNote)
+            labeled(
+                "Would have done",
+                reviewed?.wouldHave ?? ImproveText.wouldHaveDone(result, events: events))
+            labeled("Expected", reviewed?.expected ?? expectedText, note: expectedNote)
+            if let diff = reviewed?.diff, diff != "matches expected" {
+                labeled("Difference", diff)
+            }
             if result.leak {
                 Text("The run read the expected answer, so this case cannot pass.")
                     .aryaText(AryaFont.caption, AryaColor.negative)
@@ -217,6 +236,8 @@ private struct CaseLine: View {
 private struct ImproveProposals: View {
     @ObservedObject var store: FeatureStore
     var list: ChangeList
+    /// The workspace's gate sentence by proposal id.
+    var gates: [String: String]
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
@@ -255,7 +276,8 @@ private struct ImproveProposals: View {
             if !item.reason.isEmpty {
                 Text(item.reason).aryaText(AryaFont.body, AryaColor.inkMuted)
             }
-            Text(ChangesText.gate(item.gate)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            Text(gates[item.id] ?? ChangesText.gate(item.gate))
+                .aryaText(AryaFont.caption, AryaColor.inkFaint)
             if let regressions = ChangesText.regressions(item.gate) {
                 Text(regressions).aryaText(AryaFont.monoSmall, AryaColor.negative)
             }

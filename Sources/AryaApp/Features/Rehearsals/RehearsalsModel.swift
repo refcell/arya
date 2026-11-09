@@ -288,6 +288,18 @@ enum ImproveText {
         return text
     }
 
+    /// The summary line: the workspace's rehearsal sentence when it wrote one for this
+    /// rehearsal (with "Ready since …" once marked), else the projected summary.
+    static func headline(
+        _ item: RehearsalItem, written: FeatureImproveSummary?, ready: ReadyRecord?, now: Date
+    ) -> String {
+        guard let written, !written.rehearsalText.isEmpty else {
+            return summary(item, ready: ready, now: now)
+        }
+        guard let ready else { return written.rehearsalText }
+        return written.rehearsalText + " Ready since \(FeatureTime.relative(ready.at, now: now))."
+    }
+
     /// "charter v1 · casebook 1a2b3c", with "· for a proposal" when it rehearsed one.
     static func meta(_ item: RehearsalItem) -> String {
         var text = "charter v\(item.charterVersion) · casebook "

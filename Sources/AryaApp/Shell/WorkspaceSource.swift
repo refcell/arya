@@ -32,6 +32,8 @@ protocol WorkspaceSource: Sendable {
     func replayRun(_ run: String) async throws -> FeatureReplayResult
     /// One event's inspector detail.
     func eventDetail(seq: Int) async throws -> FeatureEventDetail?
+    /// The Improve screen's sentences.
+    func improveSummary(steward: String) async throws -> FeatureImproveSummary
 }
 
 extension WorkspaceSource {
@@ -49,6 +51,10 @@ extension WorkspaceSource {
 
     func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
         throw FeatureReadError.unavailable("event detail")
+    }
+
+    func improveSummary(steward: String) async throws -> FeatureImproveSummary {
+        throw FeatureReadError.unavailable("improve summary")
     }
 }
 
@@ -134,6 +140,21 @@ extension Workspace: WorkspaceSource {
                 FeatureEventDetail.Step(
                     run: $0.run, index: $0.index, count: $0.count, title: $0.title)
             })
+    }
+
+    func improveSummary(steward: String) async throws -> FeatureImproveSummary {
+        let view = try await improve(steward: steward)
+        return FeatureImproveSummary(
+            rehearsal: view.rehearsal?.id, rehearsalText: view.rehearsalText, ready: view.ready,
+            markedReady: view.markedReady, readinessText: view.readinessText,
+            readinessReasons: view.readinessReasons,
+            cases: view.cases.map {
+                FeatureImproveSummary.Case(
+                    id: $0.caseID, wouldHave: $0.wouldHave, expected: $0.expected, diff: $0.diff,
+                    passed: $0.passed, leak: $0.leak)
+            },
+            gates: Dictionary(
+                view.proposals.map { ($0.proposal.id, $0.gate) }, uniquingKeysWith: { a, _ in a }))
     }
 
     /// A facade replay summary in the feature views' shape.
