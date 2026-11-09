@@ -25,7 +25,10 @@ M1 (the facade still throws `unavailable` for these):
   `checkProposal`, `acceptProposal`, `rejectProposal`, `overrideProposal`) through
   `ProposalDesk` + `RehearsalGate`; routine versions (`gateRoutine`, `overrideRoutine`)
   through `RoutineGatekeeper` + `RoutineRehearsalGate`.
-- [ ] Routine intake from `run/result.routines` and `routine` action execution.
+- [x] Routine wiring (decisions 0025, 0031, 0032): facade runs record `run/result.routines`
+  as `routine.proposed` (`RoutineProposals.intake`, bodies in blobs, not live until gated);
+  `RoutineActionExecutor` runs `routine` actions with the live version (`RoutineInvocation`
+  + `ShellRoutineRunner`, run scratch dir) after the per-name policy or an approval.
 
 M2 (top priority first):
 - [x] Runtime-backed `AryaEval.CaseRunner` in `Sources/Arya` (the runtime cannot import eval):
@@ -37,12 +40,8 @@ M2 (top priority first):
   `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
 - [x] Effort (decision 0026): `effort(for:)` and `setEffort(_:for:by:)`, recording
   `steward.effort.set`; tell app-shell in its lane file once it lands.
-- [ ] Routine wiring (decision 0025, from memory): feed `run/result.routines` to
-  `RoutineProposals.intake`, gate with `RoutineGatekeeper` through eval's
-  `RoutineGateChecking` conformance, and execute `routine` actions with
-  `RoutineInvocation.prepare` + `ShellRoutineRunner` (output is `RoutineOutcome`).
-- [ ] Observation API the app can subscribe to (new ledger events lead to a refresh), with no
-  SwiftUI import in the facade.
+- [x] Observation API: `changes(after:)` yields the newest `seq` (newest-only buffer, other
+  writers included) and `lastSeq()`; no SwiftUI import.
 
 M3:
 - [x] Restart recovery wiring on `open` (interrupted runs fail, pending approvals stay).
@@ -98,6 +97,8 @@ M3:
 - 2026-11-09: routine reads take a steward (`RoutineLibrary` keys by steward and name);
   `caseExpected` returns canonical JSON `Data`, like `charter(_:)`, so the app needs no
   `AryaCore` import
+- 2026-11-09: routine intake runs in the facade after each facade-started live run (runtime
+  has no blob store); scheduler-started runs get it when the facade drives `arya serve` (M4)
 - 2026-11-09: routine gates and overrides get a fresh proposal id (routine proposals have no
   `proposal.created`); an override records `routine.promoted` by the person, then
   `proposal.overridden` with the reason; a charter proposal title is the reason's first line
@@ -113,3 +114,4 @@ M3:
 - 2026-11-09: `replay(run:)` on eval's `RunReplayer`. `just e2e`: ok (15 steps): init, create,
   import, rehearse 7/8, correct case-0006, rehearse 8/8, ready, live run, approval wait,
   approve, executed, metric recorded, series updated, replay zero divergence, verify.
+- 2026-11-09: routine wiring (intake, execution, approvals) and `changes(after:)`; 34 AryaTests.

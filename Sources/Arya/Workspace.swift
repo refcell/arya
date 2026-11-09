@@ -1,6 +1,7 @@
 import AryaAdapters
 import AryaCore
 import AryaLedger
+import AryaMemory
 import AryaRuntime
 import Foundation
 
@@ -31,13 +32,14 @@ public actor Workspace {
         reader = LedgerReader(home: home)
         approvalQueue = ApprovalQueue(sink: sink, ambient: wiring.ambient)
         dispatcher = ActionDispatcher(
-            sink: sink, approvals: approvalQueue, executor: wiring.executor)
-        let work = home.appendingPathComponent("cache/work", isDirectory: true)
+            sink: sink, approvals: approvalQueue,
+            executor: RoutineActionExecutor(
+                home: home, fallback: wiring.executor, runner: wiring.routines))
         engine = RunEngine(
             sink: sink, ambient: wiring.ambient, adapters: wiring.adapters, dispatcher: dispatcher,
             approvals: approvalQueue,
             workdir: { run in
-                let url = work.appendingPathComponent(run.rawValue, isDirectory: true)
+                let url = HomeLayout.work(home, run: run)
                 try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
                 return url.path
             },
@@ -143,6 +145,7 @@ public actor Workspace {
     public func startRun(steward: String, input: String) async throws -> RunSummary {
         let id = try await existing(steward).id
         let outcome = try await mapped { try await engine.run(.manual(id, text: input)) }
+        try await recordProposedRoutines(outcome, steward: id)
         guard let record = try await runBook().records[outcome.run] else {
             throw WorkspaceError.notFound(outcome.run.rawValue)
         }
@@ -221,6 +224,31 @@ public actor Workspace {
         }
     }
 
+    /// Observation for views: yields the newest ledger `seq` whenever events after `seq` are
+    /// appended, by this process or another one sharing the home. Only the newest value is
+    /// buffered, so a burst (a run, a rehearsal) reaches a slow consumer as one refresh. Pass
+    /// `lastSeq()` to skip what is already shown. The stream ends when the consumer stops or
+    /// throws when the ledger cannot be read.
+    public nonisolated func changes(after seq: Int = 0) -> AsyncThrowingStream<Int, Error> {
+        let source = reader.follow(after: Int64(max(0, seq)))
+        return AsyncThrowingStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            let task = Task {
+                do {
+                    for try await event in source { continuation.yield(Int(event.seq)) }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// The `seq` of the newest event, or 0 for an empty ledger.
+    public func lastSeq() async throws -> Int {
+        try await sink.events(from: 1).last?.seq ?? 0
+    }
+
     /// Verifies the hash chain, `seq` continuity, and envelopes.
     public func verifyLedger() async throws -> LedgerCheck {
         let result = try LedgerVerifier(home: home).verify()
@@ -295,6 +323,8 @@ struct Wiring: Sendable {
     var executor: any ActionExecutor
     var leases: any RunLeases
     var questionPoll: Duration = .milliseconds(250)
+    /// Runs `routine` actions' scripts.
+    var routines: any RoutineRunning = ShellRoutineRunner()
 }
 
 /// Errors the facade reports.
@@ -325,6 +355,11 @@ enum HomeLayout {
                 at: home.appendingPathComponent(name, isDirectory: true),
                 withIntermediateDirectories: true)
         }
+    }
+
+    /// Scratch directory of one run (adapter workdir and routine workdir).
+    static func work(_ home: URL, run: RunID) -> URL {
+        home.appendingPathComponent("cache/work/\(run.rawValue)", isDirectory: true)
     }
 
     /// Where run leases live (`cache/runs/<run>.lock`).

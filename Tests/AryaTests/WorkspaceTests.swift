@@ -297,3 +297,32 @@ struct Opened {
     #expect(report.events > 2)
     await #expect(throws: WorkspaceError.self) { try await workspace.replay(run: "run_missing") }
 }
+
+@Test func changesReportTheNewestSeqIncludingOtherWriters() async throws {
+    let opened = try await Opened()
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let shown = try await workspace.lastSeq()
+    #expect(shown > 0)
+    let changes = workspace.changes(after: shown)
+
+    // Another workspace on the same home stands in for the CLI writing while the app watches.
+    let other = try await Workspace.open(
+        home: opened.home.url,
+        wiring: Wiring(
+            ambient: .fixed(stepMillis: 1), adapters: ScriptedFactory(script: FakeScript()),
+            executor: RecordingExecutor(), leases: MemoryRunLeases()))
+    try await other.pauseSteward("st_inbox")
+    try await other.resumeSteward("st_inbox")
+    let newest = try await workspace.lastSeq()
+    #expect(newest == shown + 2)
+
+    var seen: [Int] = []
+    for try await seq in changes {
+        seen.append(seq)
+        if seq == newest { break }
+    }
+    #expect(seen.last == newest)
+    #expect(seen.allSatisfy { $0 > shown })
+    #expect(seen == seen.sorted())
+}
