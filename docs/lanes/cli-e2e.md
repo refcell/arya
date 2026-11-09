@@ -38,8 +38,9 @@ M3:
 ## Decisions
 
 - `just e2e` (`etc/scripts/e2e.sh`) runs every M3 step through the CLI against a temporary home
-  and prints ok, PENDING (exit 69 or an unknown command), or FAIL per step; later steps are
-  skipped. Exit 0 all ok, 1 failed, 2 pending. Checks read `--json` output with `plutil`, so the
+  and prints ok, PENDING (exit 69 or an unknown command), or FAIL per step. Steps sit in
+  groups (setup, rehearsal, live, metrics, replay); a step is skipped only when a group it needs
+  is not ok, so the live run is tested while rehearsal is pending. Exit 0 all ok, 1 failed, 2 pending. Checks read `--json` output with `plutil`, so the
   script needs nothing beyond macOS. The M2 JSON shapes it reads are defined in
   `Sources/AryaCLI/ImprovementModels.swift`.
 - `etc/examples/triage` is a support inbox triage steward (CEO request). The scripted steward
@@ -65,9 +66,11 @@ M3:
 - (from workspace) Live: core calls, `charter(_:)`, `run(_:) -> RunDetail?`, `importCasebook(steward:data:name:)`, `casebooks(steward:)`, `rehearse(steward:casebook:)`, `rehearsals(steward:)`, `expected(steward:case:choice:)` (for `--choice`), `correct(steward:case:expected:note:casebook:by:)`, `markReady(steward:by:)`, `metrics(steward:windowSeconds:)`; `replay(run:)` next.
 
 ## Log
-- 2026-11-09: `just publish <TestFilter>` (etc/scripts/publish.sh) implements decision 0029
+- 2026-11-09: e2e in dependency groups; steps 1-2 and 8-11 and 15 pass on the real facade;
+  `arya run` reads nested `run.decision` payloads
+- 2026-11-09: `just publish <TestFilter>` (d3f06eb) (etc/scripts/publish.sh) implements decision 0029
 - 2026-11-09: faster `just ci` (one `--build-tests` build, parallel lint), decision 0029,
-  AGENTS.md publish rule; unavailable messages point at the workspace lane
+  AGENTS.md publish rule; unavailable messages point at the workspace lane (ee69024)
 - 2026-11-09: example script back on the canonical `responses`/`default` format
 - 2026-11-09: tidy checks `CLAUDE.md` = `AGENTS.md`, shell syntax, no workflow files (8491625)
 - 2026-11-09: README status, usage, and e2e description (260de38)

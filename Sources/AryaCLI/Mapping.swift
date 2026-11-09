@@ -143,7 +143,8 @@ struct RunDigest: Sendable, Equatable {
             let payload = Self.object(entry.payload)
             switch entry.type {
             case "run.decision":
-                if let choice = payload["choice"] as? String { decisions.append(choice) }
+                let decision = payload["decision"] as? [String: Any] ?? payload
+                if let choice = decision["choice"] as? String { decisions.append(choice) }
             case "action.proposed":
                 let action = payload["action"] as? [String: Any] ?? payload
                 guard let id = action["id"] as? String else { continue }

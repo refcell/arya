@@ -8,7 +8,10 @@
 #   e2e.sh --keep    keep the temporary home and print its path
 #
 # Each step prints ok, PENDING (the command or the piece behind it is not built yet: exit 69
-# or an unknown command), or FAIL. Steps after the first non-ok step are skipped.
+# or an unknown command), or FAIL. Steps belong to groups (setup, rehearsal, live, metrics,
+# replay);
+# a step runs only while its own group and the groups it needs are ok, and is skipped
+# otherwise, so the live run is exercised even while rehearsal is pending.
 # Exit status: 0 all ok, 1 a step failed, 2 a step is pending.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -37,8 +40,9 @@ if ! just build >"$work/build.log" 2>&1; then
 fi
 bin=$(swift build --show-bin-path)
 
-state=ok    # ok, then fail or pending after the first step that is not ok
+state=ok    # overall: ok, pending, or fail (fail wins)
 n=0
+groups_bad=" "   # groups with a step that was not ok, space-separated
 out="$work/out.json"
 err="$work/err.txt"
 
@@ -56,29 +60,35 @@ expect() {
   return 1
 }
 
-# step NAME CHECK ARGS...: run `arya ARGS...`, then the shell function CHECK on its output.
+# step NAME GROUP NEEDS CHECK ARGS...: run `arya ARGS...` and the shell function CHECK on its
+# output. GROUP is the step's group; NEEDS lists groups (comma-separated, or -) it depends on.
 step() {
-  local name=$1 check=$2 rc=0
-  shift 2
+  local name=$1 group=$2 needs=$3 check=$4 rc=0 dep result
+  shift 4
   n=$((n + 1))
-  if [ "$state" != ok ]; then
-    printf '  %2d  %-36s skipped\n' "$n" "$name"
-    return 0
-  fi
+  for dep in $group ${needs//,/ }; do
+    if [ "$dep" != - ] && [[ "$groups_bad" == *" $dep "* ]]; then
+      printf '  %2d  %-36s skipped (needs %s)\n' "$n" "$name" "$dep"
+      return 0
+    fi
+  done
   arya "$@" >"$out" 2>"$err" || rc=$?
   if [ "$rc" -eq 69 ] || { [ "$rc" -eq 64 ] && grep -q 'unknown command' "$err"; }; then
     printf '  %2d  %-36s PENDING  %s\n' "$n" "$name" "$(head -n 1 "$err" | sed 's/^arya: //')"
-    state=pending
+    result=pending
   elif [ "$rc" -ne 0 ]; then
     printf '  %2d  %-36s FAIL (exit %d)\n' "$n" "$name" "$rc"
     sed 's/^/    /' "$err"
-    state=fail
+    result=fail
   elif ! "$check"; then
     printf '  %2d  %-36s FAIL\n' "$n" "$name"
-    state=fail
+    result=fail
   else
     printf '  %2d  %-36s ok\n' "$n" "$name"
+    return 0
   fi
+  groups_bad="$groups_bad$group "
+  if [ "$result" = fail ]; then state=fail; elif [ "$state" = ok ]; then state=pending; fi
 }
 
 # Checks, one per step. They read the step's JSON output through `get`.
@@ -103,7 +113,11 @@ check_run() {
 check_approvals() { expect "pending approval" "$(get 0.id)" "$approval_id"; }
 check_approved() { expect state "$(get state)" granted; }
 check_ledger() {
-  grep -q '"type" : "action.executed"' "$out" || { echo "    no action.executed event"; return 1; }
+  local executed
+  executed=$(grep -c '"type" : "action.executed"' "$out" || true)
+  expect "action.executed events (label, route, approved reply)" "$executed" 3
+}
+check_metric_event() {
   grep -q '"type" : "metric.recorded"' "$out" || { echo "    no metric.recorded event"; return 1; }
 }
 check_metrics() { expect metric "$(get 0.metric)" routed_within_1h && expect points "$(get 0.points)" 1; }
@@ -117,24 +131,31 @@ install_profile() {
 }
 
 echo "e2e: scenario (home: temporary)"
-step "init a home" check_init init
+step "init a home" setup - check_init init
 [ "$state" = ok ] && install_profile
-step "create the triage steward" check_created steward create --charter "$example/charter.json"
-step "import the casebook" check_imported casebook import st_triage "$example/casebook.jsonl"
-step "rehearse: 7 of 8 pass" check_first_rehearsal rehearse st_triage
-step "correct case-0006" check_corrected correct st_triage case-0006 --choice billing
-step "rehearse again: 8 of 8 pass" check_second_rehearsal rehearse st_triage
-step "mark the steward ready" check_ready ready st_triage
-step "run live on a new message" check_run run st_triage --input "$live_input"
-step "the reply waits for approval" check_approvals approvals --steward st_triage
-step "approve the reply" check_approved approve "${approval_id:-unknown}" --note "looks right"
-step "ledger has the action and metric" check_ledger ledger tail --count 200 --steward st_triage
-step "metric series updated" check_metrics metrics st_triage
-step "replay the run: zero divergence" check_replay replay "${run_id:-unknown}"
-step "verify the ledger" check_verify ledger verify
+step "create the triage steward" setup - check_created \
+  steward create --charter "$example/charter.json"
+step "import the casebook" rehearsal setup check_imported \
+  casebook import st_triage "$example/casebook.jsonl"
+step "rehearse: 7 of 8 pass" rehearsal setup check_first_rehearsal rehearse st_triage
+step "correct case-0006" rehearsal setup check_corrected \
+  correct st_triage case-0006 --choice billing
+step "rehearse again: 8 of 8 pass" rehearsal setup check_second_rehearsal rehearse st_triage
+step "mark the steward ready" rehearsal setup check_ready ready st_triage
+step "run live on a new message" live setup check_run run st_triage --input "$live_input"
+step "the reply waits for approval" live setup check_approvals approvals --steward st_triage
+step "approve the reply" live setup check_approved approve "${approval_id:-unknown}" \
+  --note "looks right"
+step "the approved reply executed" live setup check_ledger \
+  ledger tail --count 200 --steward st_triage
+step "the run recorded its metric" metrics live check_metric_event \
+  ledger tail --count 200 --steward st_triage
+step "metric series updated" metrics live check_metrics metrics st_triage
+step "replay the run: zero divergence" replay live check_replay replay "${run_id:-unknown}"
+step "verify the ledger" setup - check_verify ledger verify
 
 case "$state" in
   ok) echo "e2e: ok ($n steps)" ;;
-  pending) echo "e2e: pending; the first PENDING step above names the missing piece"; exit 2 ;;
+  pending) echo "e2e: pending; each PENDING step above names the missing piece"; exit 2 ;;
   *) echo "e2e: FAILED"; exit 1 ;;
 esac

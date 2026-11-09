@@ -79,7 +79,8 @@ private func entry(_ seq: Int, _ type: String, _ payload: String) -> LedgerEntry
 @Test func runReportReadsDecisionsAndDispositions() {
     let entries = [
         entry(1, "run.started", #"{"trigger":{"kind":"manual"}}"#),
-        entry(2, "run.decision", #"{"id":"d1","choice":"billing"}"#),
+        entry(2, "run.decision", #"{"decision":{"id":"d1","choice":"billing"}}"#),
+        entry(11, "run.decision", #"{"id":"d2","choice":"refund"}"#),
         entry(3, "action.proposed", #"{"id":"a1","kind":"label","target":"inbox:MSG-201"}"#),
         entry(
             4, "action.proposed", #"{"action":{"id":"a2","kind":"route","target":"inbox:MSG-201"}}"#
@@ -97,7 +98,7 @@ private func entry(_ seq: Int, _ type: String, _ payload: String) -> LedgerEntry
         status: .finished, endStatus: "completed", summary: "routed", startedAt: at)
     let report = Mapping.report(run, entries: entries.reversed(), approvals: [])
     #expect(report.status == "completed")
-    #expect(report.decisions == ["billing"])
+    #expect(report.decisions == ["billing", "refund"])
     #expect(report.actions.map(\.disposition) == [.executed, .executed, .held, .rejected])
     #expect(report.actions.map(\.approval) == [nil, nil, "ap_1", nil])
 }
