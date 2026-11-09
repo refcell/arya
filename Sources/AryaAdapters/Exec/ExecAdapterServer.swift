@@ -19,10 +19,15 @@ public actor ExecAdapterServer {
     private var agent: ProcessTransport?
     private var events: [RunEvent] = []
     private var output: [String] = []
+    private var outputBytes = 0
+    private var mcpConfigFile: URL?
     private var lastResult: JSONValue?
     private var stopRequested = false
     private var resultSent = false
     private var closed = false
+
+    /// How much agent output is kept for parsing: the last 8 MiB, where the result is.
+    public static let maxOutputBytes = 8 << 20
 
     /// The MCP config file written into `workdir` for `mcpConfig: "file"` profiles.
     public static let mcpConfigFileName = ".arya-mcp.json"
@@ -160,6 +165,7 @@ public actor ExecAdapterServer {
         let url = URL(fileURLWithPath: request.workdir)
             .appendingPathComponent(Self.mcpConfigFileName)
         try LineCodec.encodeJSON(config).write(to: url)
+        mcpConfigFile = url
         return url.path
     }
 
@@ -176,6 +182,13 @@ public actor ExecAdapterServer {
 
     private func consume(_ line: String) async {
         output.append(line)
+        outputBytes += line.utf8.count + 1
+        var dropped = 0
+        while outputBytes > Self.maxOutputBytes, dropped < output.count - 1 {
+            outputBytes -= output[dropped].utf8.count + 1
+            dropped += 1
+        }
+        if dropped > 0 { output.removeFirst(dropped) }
         guard profile.parse == .jsonl else { return }
         switch ExecOutput.parse(jsonLine: line) {
         case .result(let value): lastResult = value
@@ -237,6 +250,8 @@ public actor ExecAdapterServer {
     private func finish(_ status: RunStatus, result: JSONValue?) async {
         guard !resultSent, let session else { return }
         resultSent = true
+        // The config names arya's tool commands only; remove it so workdir holds run output.
+        if let file = mcpConfigFile { try? FileManager.default.removeItem(at: file) }
         await notify(
             RPCMethod.runResult, RunResultParams(session: session, status: status, result: result))
     }

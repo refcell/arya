@@ -126,3 +126,23 @@ func protocolExampleRoundTrips(_ example: ProtocolExample) throws {
         text == #"{"id":1,"jsonrpc":"2.0","method":"initialize","params":{"a":"x/y","b":1}}"#
             + "\n")
 }
+
+@Test func lineSplitterHandlesChunksAndCaps() {
+    var splitter = LineSplitter(maxLineBytes: 8)
+    #expect(splitter.append(Data("ab\ncd".utf8)) == [Data("ab".utf8)])
+    #expect(splitter.append(Data("e\n\nf".utf8)) == [Data("cde".utf8), Data()])
+    // An over-long line is cut at the cap and its rest dropped up to the next newline.
+    #expect(splitter.append(Data("123456789".utf8)) == [Data("f1234567".utf8)])
+    #expect(splitter.append(Data("more".utf8)) == [])
+    #expect(splitter.append(Data("xx\nok\n".utf8)) == [Data("ok".utf8)])
+    #expect(splitter.append(Data("tail".utf8)) == [])
+    #expect(splitter.finish() == Data("tail".utf8))
+    #expect(splitter.finish() == nil)
+}
+
+@Test func cutLineIsAProtocolError() {
+    var splitter = LineSplitter(maxLineBytes: 10)
+    let lines = splitter.append(Data(#"{"jsonrpc":"2.0","method":"run/event"}"#.utf8 + [0x0A]))
+    #expect(lines.count == 1)
+    #expect(throws: RPCError.self) { try LineCodec.decode(lines[0]) }
+}

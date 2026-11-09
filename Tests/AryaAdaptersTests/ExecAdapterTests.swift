@@ -4,8 +4,9 @@ import Testing
 
 @testable import AryaAdapters
 
-/// A temporary directory holding a shell script that stands in for a command-line agent.
-struct FakeAgent {
+/// A temporary directory holding a shell script that stands in for a command-line agent. The
+/// directory is removed when the agent goes away.
+final class FakeAgent: Sendable {
     let directory: URL
     let script: URL
 
@@ -17,6 +18,10 @@ struct FakeAgent {
         try ("#!/bin/sh\n" + body + "\n").write(to: script, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes(
             [.posixPermissions: 0o755], ofItemAtPath: script.path)
+    }
+
+    deinit {
+        try? FileManager.default.removeItem(at: directory)
     }
 
     func profile(
@@ -111,6 +116,8 @@ func execRun(_ agent: FakeAgent, _ profile: AdapterProfile, schema: JSONValue? =
     let updates = try await execRun(agent, profile)
     let result = try #require(updates.compactMap(\.result).first?.result)
     #expect(result["mcpServers"]?["tracker"]?["args"] == ["binding-proxy"])
+    let config = agent.directory.appendingPathComponent(ExecAdapterServer.mcpConfigFileName)
+    #expect(!FileManager.default.fileExists(atPath: config.path))
 }
 
 @Test(arguments: [

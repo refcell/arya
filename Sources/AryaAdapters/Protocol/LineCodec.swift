@@ -39,25 +39,56 @@ public enum LineCodec {
 }
 
 /// Splits a byte stream into `\n`-terminated lines.
+///
+/// A line longer than `maxLineBytes` is cut to its first `maxLineBytes` bytes and the rest,
+/// up to the next newline, is dropped. A cut JSON-RPC line no longer decodes, so a runaway
+/// adapter shows up as a protocol error instead of exhausting memory.
 public struct LineSplitter: Sendable {
-    private var buffer = Data()
+    /// The default cap: 8 MiB.
+    public static let defaultMaxLineBytes = 8 << 20
 
-    public init() {}
+    public let maxLineBytes: Int
+    private var buffer = Data()
+    private var discarding = false
+
+    public init(maxLineBytes: Int = LineSplitter.defaultMaxLineBytes) {
+        self.maxLineBytes = max(1, maxLineBytes)
+    }
 
     /// Appends bytes and returns every complete line, without its newline.
     public mutating func append(_ data: Data) -> [Data] {
         buffer.append(data)
         var lines: [Data] = []
-        while let index = buffer.firstIndex(of: 0x0A) {
-            lines.append(Data(buffer[buffer.startIndex..<index]))
-            buffer = Data(buffer[buffer.index(after: index)...])
+        var start = buffer.startIndex
+        while let newline = buffer[start...].firstIndex(of: 0x0A) {
+            if discarding {
+                discarding = false
+            } else {
+                lines.append(capped(buffer[start..<newline]))
+            }
+            start = buffer.index(after: newline)
+        }
+        buffer = Data(buffer[start...])
+        if discarding {
+            buffer = Data()
+        } else if buffer.count > maxLineBytes {
+            lines.append(capped(buffer[...]))
+            buffer = Data()
+            discarding = true
         }
         return lines
     }
 
     /// The bytes after the last newline, returned once the stream has ended.
     public mutating func finish() -> Data? {
-        defer { buffer = Data() }
+        defer {
+            buffer = Data()
+            discarding = false
+        }
         return buffer.isEmpty ? nil : buffer
+    }
+
+    private func capped(_ bytes: Data.SubSequence) -> Data {
+        Data(bytes.prefix(maxLineBytes))
     }
 }
