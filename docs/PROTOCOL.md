@@ -206,13 +206,61 @@ in its profile (`adapters.json`), so charters never name models.
   "args":{"low":["-p"],"medium":["-p"],"high":["-p"]},"mcpConfig":"none"}}}
 ```
 
+## Fake adapter scripts
+
+`arya-fake-adapter --script <file>` and the in-process `FakeAdapter` run the same server from a
+JSON script. `run/start` picks the run whose `input` equals `input.text`, else the run without
+`input`; with neither it fails with `-32004`. The session id is `fake-<run>`.
+
+```json
+{"v":1,"adapter":{"name":"fake","version":"0.1.0"},
+ "capabilities":{"effort":["low","medium","high"],"send":true,"cost":true,"transcript":true,
+                 "tools":"none","sandbox":"workdir"},
+ "runs":[
+  {"input":"New issue: login page times out",
+   "steps":[{"event":{"kind":"message","role":"assistant","text":"Looking."}},
+            {"sleepMs":50},
+            {"ask":{"question":"Assign to Alex?","to":"person:alex"}}],
+   "status":"completed",
+   "result":{"summary":"Labeled ISSUE-7.","decisions":[{"id":"d1","choice":"bug"}]},
+   "cost":{"inputTokens":120,"outputTokens":40,"costMicros":900}},
+  {"steps":[{"crash":{"exitCode":3}}]}]}
+```
+
+`adapter` and `capabilities` are optional (the defaults are shown). Per run, every field but
+`steps` is optional: `status` defaults to `completed`, `result` to none, `cost` to zeros.
+`startError` (`{"code":…,"message":…}`) makes `run/start` fail; `ignoreStop: true` acknowledges
+`run/stop` without sending `run/result`, to test termination. Steps run in order, each with one
+key:
+
+| step | effect |
+| --- | --- |
+| `event` | emit a `run/event` with the next `seq` |
+| `sleepMs` | wait that many milliseconds |
+| `ask` | send `host/ask`, wait, then emit the answer as a `message` event with role `human` |
+| `stdout` | write the text as one raw stdout line (a protocol error) |
+| `crash` | exit with `exitCode` without a `run/result` |
+| `hang` | produce nothing until `run/stop` |
+
+After the last step the adapter sends `run/result`. `run/send` emits the message as a `message`
+event, and `run/stop` ends the run with `status: "stopped"`.
+
+## Host behavior
+
+arya's client (`AdapterConnection` in `AryaAdapters`) enforces the timing rules above: a request
+fails after 30 seconds without a response; after `run/stop`, sent by a person or by the idle
+timeout, the adapter has 10 seconds to send `run/result` before SIGTERM and, 5 seconds later,
+SIGKILL; after `shutdown` it has 5 seconds to exit. A stdout line that is not a JSON-RPC message
+is recorded as received and reported as a protocol error; the runtime decides whether it fails
+the run. A request from the adapter other than `host/ask` gets `-32601`.
+
 ## Conformance
 
 The conformance suite in `Tests/AryaAdaptersTests` runs the protocol against any adapter
 binary:
 
 ```sh
-ARYA_ADAPTER_CMD="path/to/adapter args" swift test --filter AdapterConformance
+ARYA_ADAPTER_CMD="path/to/adapter args" just test AdapterConformance
 ```
 
 It checks the handshake, version negotiation, one-run-per-process, `seq` ordering, exactly one

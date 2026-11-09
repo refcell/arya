@@ -1,0 +1,65 @@
+import Foundation
+
+/// The direction of a recorded message, from arya's point of view.
+public enum WireDirection: String, Sendable, Hashable, Codable {
+    /// arya wrote it to the adapter.
+    case sent
+    /// arya read it from the adapter.
+    case received
+}
+
+/// One line that crossed the connection, exactly as written or read.
+public struct WireRecord: Sendable, Hashable {
+    public var direction: WireDirection
+    /// The bytes of the line, without its newline.
+    public var line: Data
+    /// The decoded message, or `nil` when the line was not a valid JSON-RPC message.
+    public var message: RPCMessage?
+
+    public init(direction: WireDirection, line: Data, message: RPCMessage?) {
+        self.direction = direction
+        self.line = line
+        self.message = message
+    }
+}
+
+/// Something the host learns from an adapter, in the order it happened.
+///
+/// Every line in both directions arrives first as `.wire`, so a recorder that stores `.wire`
+/// updates keeps the full conversation in order. The typed cases follow the `.wire` update of
+/// the message they come from.
+public enum AdapterUpdate: Sendable, Hashable {
+    case wire(WireRecord)
+    /// A `run/event` notification.
+    case event(RunEventParams)
+    /// The `run/result` notification.
+    case result(RunResultParams)
+    /// A `host/ask` request; reply with ``Adapter/answer(_:_:)``.
+    case ask(id: RPCID, HostAskParams)
+    /// A stdout line or message that broke the protocol.
+    case protocolError(RPCError)
+    /// No message arrived within the run's timeout; arya sent `run/stop` with reason
+    /// `timeout`.
+    case timedOut
+    /// The adapter is gone. Always the last update.
+    case exited(AdapterExit)
+}
+
+/// The host's view of one adapter: typed requests and an ordered stream of updates.
+///
+/// Implemented by ``AdapterConnection`` (over a process or an in-memory pipe) and by
+/// ``ReplayAdapter``.
+public protocol Adapter: Sendable {
+    /// Every update, ending with `.exited`. Iterate it once.
+    var updates: AsyncStream<AdapterUpdate> { get }
+    func initialize(_ params: InitializeParams) async throws(AdapterError) -> InitializeResult
+    func start(_ params: RunStartParams) async throws(AdapterError) -> RunStartResult
+    func send(_ params: RunSendParams) async throws(AdapterError)
+    func stop(_ params: RunStopParams) async throws(AdapterError)
+    func transcript(_ params: SessionParams) async throws(AdapterError) -> TranscriptResult
+    func cost(_ params: SessionParams) async throws(AdapterError) -> CostResult
+    /// Sends `shutdown`, closes stdin, and waits for the adapter to exit.
+    func shutdown() async throws(AdapterError)
+    /// Answers a `host/ask` request.
+    func answer(_ id: RPCID, _ result: HostAskResult) async throws(AdapterError)
+}

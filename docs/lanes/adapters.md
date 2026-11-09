@@ -11,20 +11,20 @@ decisions 0004, 0014, 0016.
 ## Backlog
 
 M1:
-- [ ] Protocol types: requests, responses, notifications, `RunEvent`, `RunResult`,
+- [x] Protocol types: requests, responses, notifications, `RunEvent`, `RunResult`,
   capabilities, error codes; golden tests for every example in PROTOCOL.md.
-- [ ] Line-delimited JSON-RPC codec: framing, id matching, notifications, adapter-to-host
+- [x] Line-delimited JSON-RPC codec: framing, id matching, notifications, adapter-to-host
   requests, protocol errors on non-JSON stdout.
-- [ ] `Adapter` protocol (async): `initialize`, `start`, `send`, `stop`, `cost`, `shutdown`, an
+- [x] `Adapter` protocol (async): `initialize`, `start`, `send`, `stop`, `cost`, `shutdown`, an
   `AsyncStream` of messages; every message in both directions surfaced for recording.
-- [ ] Process transport: spawn with `Foundation.Process`, pipes, stderr capture to a blob
+- [x] Process transport: spawn with `Foundation.Process`, pipes, stderr capture to a blob
   writer, timeout handling (`run/stop`, then SIGTERM, then SIGKILL), exit detection
   (`adapter_exited`).
-- [ ] `FakeAdapter` (in-process) driven by a script: events and a result keyed by input text;
+- [x] `FakeAdapter` (in-process) driven by a script: events and a result keyed by input text;
   can simulate delays, errors, crashes, and `host/ask`.
-- [ ] `arya-fake-adapter --script <file>`: the same script over stdio; script format documented
+- [x] `arya-fake-adapter --script <file>`: the same script over stdio; script format documented
   in PROTOCOL.md.
-- [ ] Conformance suite (`AdapterConformance`) run against `arya-fake-adapter` by default and
+- [x] Conformance suite (`AdapterConformance`) run against `arya-fake-adapter` by default and
   `ARYA_ADAPTER_CMD` when set.
 
 M2:
@@ -39,6 +39,28 @@ M4:
   into `workdir` from `run/start.tools`; `sandbox` capability reported honestly.
 
 ## Decisions
+
+- Free-form JSON uses `AryaCore.JSONValue`; the wire encoding is `CanonicalJSON`, so recorded
+  lines are byte-stable.
+- `RunResultParams.result` stays a raw `JSONValue` so the runtime can validate it against
+  `resultSchema` and record it even when it does not decode; `decodedResult()` gives the typed
+  `RunResult`, whose absent lists decode as empty.
+- Unknown `run/event` kinds decode as `.other(kind:fields:)` and re-encode unchanged.
+- `effort` is a plain string on the wire types; the runtime maps it from `AryaCore`'s charter
+  type, which avoids a second `Effort` type.
+- One client, `AdapterConnection`, serves every transport. `FakeAdapter` is that client over an
+  in-memory pipe to `FakeAdapterServer`, the same server the `arya-fake-adapter` binary runs, so
+  host code paths are identical in tests and with real processes.
+- `AdapterUpdate.wire` carries every line in both directions, in order, before the typed update
+  it produces; the runtime records `.wire` as `run.adapter.event`.
+- stderr goes to a `StderrSink`; the runtime passes one that writes the transcript blob.
+  `StderrBuffer` keeps it in memory.
+- The stop grace (10 s, then SIGTERM, then SIGKILL after 5 s) applies to every `run/stop`,
+  not only timeouts, so a person's stop cannot hang a run.
+- `AdapterCommand.environment` is the child's complete environment, passed by the caller;
+  names without `/` are resolved on its `PATH` through `/usr/bin/env`.
+- `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
+  an error instead of killing arya.
 
 ## Questions
 

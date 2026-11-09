@@ -1,0 +1,1 @@
+{"v":1,"runs":[{"steps":[{"event":{"kind":"thinking","text":"about to fail"}},{"crash":{"exitCode":3}}]}]}
