@@ -52,7 +52,7 @@ The full design is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Memory and routines | `Sources/AryaMemory` | notes with provenance, versioned routine library | in progress: notes, retrieval, corrections, routine library |
 | Eval | `Sources/AryaEval` | replay, casebooks, rehearsal, scorers, proposals, gates, metrics | in progress: casebooks, scorers, corrections, readiness |
 | App | `Sources/AryaDesign`, `Sources/AryaApp` | design system, shell, run stream, approvals, ledger, rehearsals | in progress: tokens, components, run stream, approvals, ledger |
-| CLI | `Sources/AryaCLI`, `etc/examples` | the `arya` command, examples, end-to-end scenario | in progress: every M1 and M2 command parsed and wired; `just e2e` runs |
+| CLI | `Sources/AryaCLI`, `etc/examples` | the `arya` command, examples, end-to-end scenario | in progress: M1 and most M2 commands work; `just e2e` passes 14 of 15 steps (replay pending); `just demo` |
 
 Each area has a backlog with its decisions and progress log in [docs/lanes](docs/lanes). The plan
 is in [docs/ROADMAP.md](docs/ROADMAP.md).
