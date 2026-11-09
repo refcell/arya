@@ -1,7 +1,8 @@
 import AryaDesign
 import SwiftUI
 
-/// The window content: the rail, a hairline, and the main pane. Starts the live updates.
+/// The window content on one canvas: the sidebar, a hairline, the page, and the inspector
+/// behind another hairline when open (STYLE.md Layout). Starts the live updates.
 struct RootView: View {
     let model: AppModel
     /// The "now" for relative times; the app passes the clock, previews pass a fixed date.
@@ -11,11 +12,31 @@ struct RootView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            RailView(model: model, now: now()).frame(width: railWidth)
+            VStack(spacing: 0) {
+                RailView(model: model, now: now())
+                HStack {
+                    Button {
+                        model.navigation.inspector.toggle()
+                    } label: {
+                        Image(systemName: "gearshape").font(.system(size: 13))
+                    }
+                    .buttonStyle(.aryaTertiary)
+                    .accessibilityLabel("Settings")
+                    .help("Settings (Option-Command-I)")
+                    Spacer()
+                }
+                .padding(AryaSpace.s2)
+            }
+            .frame(width: railWidth)
             AryaHairline(.vertical)
                 .overlay { resizeHandle }
             MainPane(model: model)
+            if model.navigation.inspector {
+                AryaHairline(.vertical)
+                InspectorView(model: model)
+            }
         }
+        .ignoresSafeArea(.container, edges: .top)
         .frame(minWidth: AryaSize.windowMinWidth, minHeight: AryaSize.windowMinHeight)
         .background(AryaColor.canvas)
         .task {

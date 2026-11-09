@@ -231,4 +231,4 @@ and `inkFaint` for `inkMuted`.
 | Space, sizes, radii | `AryaSpace.s1` … `s7`, `AryaSize.*`, `AryaRadius.small` |
 | Hairline | `AryaHairline`, `.aryaHairline(edge:)` |
 | Buttons | `.aryaPrimary`, `.aryaQuiet` (`.aryaSecondary`), `.aryaTertiary` |
-| Components | `SidebarRow`, `ThreadRow`, `TextTabBar`, `OutcomeLine`, `Sparkline`, `StepRow`, `ToolCallRow`, `ApprovalCard` (the approval block), `InlineError`, `EmptyState` |
+| Components | `SidebarRow`, `ThreadRow`, `TextTabBar`, `Sparkline` (the app's `OutcomeLine` composes it), `StepRow`, `ToolCallRow`, `ApprovalCard` (the approval block), `InlineError`, `EmptyState` |

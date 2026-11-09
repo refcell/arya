@@ -95,38 +95,6 @@ public struct Sparkline: View {
     }
 }
 
-/// The steward's KPI at a glance (STYLE.md Outcome line): value, target, sparkline, status.
-public struct OutcomeLine: View {
-    let value: String
-    let target: String?
-    let series: [Double]
-    let onTarget: Bool
-    let status: String
-
-    public init(
-        value: String, target: String?, series: [Double], onTarget: Bool, status: String
-    ) {
-        self.value = value
-        self.target = target
-        self.series = series
-        self.onTarget = onTarget
-        self.status = status
-    }
-
-    public var body: some View {
-        HStack(alignment: .center, spacing: AryaSpace.s3) {
-            Text(value).aryaText(AryaFont.metric, AryaColor.ink)
-            if let target {
-                Text("target \(target)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-            }
-            if series.count > 1 { Sparkline(series, onTarget: onTarget) }
-            Text(status)
-                .aryaText(AryaFont.caption, onTarget ? AryaColor.positive : AryaColor.warning)
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
 /// An error shown on the action that failed (STYLE.md Errors), dismissible.
 public struct InlineError: View {
     let message: String

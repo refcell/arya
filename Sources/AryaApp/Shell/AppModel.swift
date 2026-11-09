@@ -47,6 +47,14 @@ final class AppModel {
 
     var pendingApprovalCount: Int { approvals.count }
 
+    /// Pending approvals for one steward.
+    func pendingApprovals(steward: String) -> Int {
+        approvals.filter { $0.steward == steward }.count
+    }
+
+    /// Clears the error shown beside the action that failed.
+    func dismissProblem() { problem = nil }
+
     var selectedSteward: StewardSummary? {
         navigation.steward.flatMap { id in stewards.first { $0.id == id } }
     }

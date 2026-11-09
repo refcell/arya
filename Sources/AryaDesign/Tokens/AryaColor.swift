@@ -141,7 +141,7 @@ public enum AryaColor {
 }
 
 /// The app's appearance. Dark is the default whatever the system setting (STYLE.md, decision
-/// 0035); light is a secondary choice.
+/// 0036); light is a secondary choice.
 public enum AryaAppearance: String, CaseIterable, Sendable {
     case dark, light
 

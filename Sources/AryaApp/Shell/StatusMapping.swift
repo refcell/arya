@@ -1,6 +1,7 @@
 import Arya
 import AryaDesign
 import CoreGraphics
+import Foundation
 
 /// How facade states appear as AryaDesign statuses.
 enum StatusMapping {
@@ -12,10 +13,15 @@ enum StatusMapping {
         }
     }
 
-    /// A run's rail label, numbered from 1 in start order ("run 14"), because run ids are long
-    /// and opaque. `position` counts from the newest run, as the rail lists them.
-    static func runLabel(position: Int, of count: Int) -> String {
-        "run \(count - position)"
+    /// A run's thread title (STYLE.md Thread row): the first line of its summary, else its
+    /// trigger ("manual run"). Never a run number or id.
+    static func threadTitle(of run: RunSummary) -> String {
+        let summary =
+            run.summary?.split(separator: "\n").first
+            .map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
+        if !summary.isEmpty { return summary }
+        let trigger = run.trigger.trimmingCharacters(in: .whitespaces)
+        return trigger.isEmpty ? "run" : "\(trigger) run"
     }
 
     static func status(of run: RunSummary) -> AryaStatus {

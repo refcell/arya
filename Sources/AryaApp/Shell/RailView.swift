@@ -2,7 +2,7 @@ import Arya
 import AryaDesign
 import SwiftUI
 
-/// The left rail: stewards with their runs nested under the selected one, then approvals.
+/// The sidebar: stewards with their runs as threads under the selected one (STYLE.md).
 struct RailView: View {
     let model: AppModel
     /// The fixed "now" used for relative times, so a render is a pure function of its inputs.
@@ -13,7 +13,6 @@ struct RailView: View {
 
     var body: some View {
         ScrollView { content }
-            .background(AryaColor.surface)
             .focusable()
             .focusEffectDisabled()
             .onMoveCommand { direction in
@@ -35,19 +34,25 @@ struct RailView: View {
         }
     }
 
-    /// The rail's rows without the scroll view (renders offscreen for tests).
+    /// The sidebar's rows without the scroll view (renders offscreen for tests): the
+    /// wordmark, a "Needs you" row while approvals wait, then stewards with their runs as
+    /// threads under the selected one (STYLE.md Layout).
     var content: some View {
         VStack(alignment: .leading, spacing: 0) {
-            RailGroupLabel("Stewards").padding(.bottom, AryaSpace.s1)
+            Text("arya")
+                .aryaText(AryaFont.monoStrong, AryaColor.ink)
+                .padding(.horizontal, AryaSpace.s2)
+                .frame(height: AryaSize.rowHeight)
+                .padding(.bottom, AryaSpace.s3)
+            needsYouRow
+            RailGroupLabel("Stewards")
+                .padding(.bottom, AryaSpace.s1)
             ForEach(model.stewards) { steward in
                 stewardRows(steward)
             }
-            RailGroupLabel("Approvals")
-                .padding(.top, AryaSpace.s5)
-                .padding(.bottom, AryaSpace.s1)
-            approvalsRow
         }
-        .padding(.top, AryaSpace.s4)
+        .padding(.horizontal, AryaSpace.s2)
+        .padding(.top, AryaSize.titleBarInset)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -59,27 +64,27 @@ struct RailView: View {
         } label: {
             RailRow(
                 steward.name, status: StatusMapping.status(of: steward, runs: runs),
-                isSelected: isSelected && model.navigation.run == nil)
+                isSelected: isSelected && model.navigation.run == nil
+                    && model.navigation.destination != .approvals)
         }
         .buttonStyle(.plain)
         if isSelected {
-            ForEach(Array(runs.prefix(Self.runLimit).enumerated()), id: \.element.id) {
-                index, run in
+            ForEach(runs.prefix(Self.runLimit)) { run in
                 Button {
                     model.navigation.select(run: run.id, steward: steward.id)
                 } label: {
-                    RailRow(
-                        StatusMapping.runLabel(position: index, of: runs.count),
-                        status: StatusMapping.status(of: run),
-                        trailing: AryaTime.relative(run.startedAt, now: now),
-                        isSelected: model.navigation.run == run.id, indent: AryaSpace.s4)
+                    ThreadRow(
+                        StatusMapping.threadTitle(of: run),
+                        time: ThreadRow.shortTime(run.startedAt, now: now),
+                        needsYou: model.approvals.contains { $0.run == run.id },
+                        isSelected: model.navigation.run == run.id)
                 }
                 .buttonStyle(.plain)
             }
         }
     }
 
-    @ViewBuilder private var approvalsRow: some View {
+    @ViewBuilder private var needsYouRow: some View {
         let isSelected = model.navigation.destination == .approvals
         let select = { model.navigation.showApprovals() }
         if let store = model.featureStore {
@@ -90,26 +95,32 @@ struct RailView: View {
     }
 }
 
-/// The approvals entry with its pending count in `bodyStrong`/`accent`, hidden at zero.
+/// "Needs you" with the pending count in `accent`; the whole row hides at zero.
 struct ApprovalsRow: View {
     let count: Int
     let isSelected: Bool
     let select: () -> Void
 
     var body: some View {
-        Button(action: select) {
-            HStack {
-                Text("Queue").aryaText(AryaFont.body, AryaColor.ink)
-                Spacer()
-                CountLabel(count, style: AryaFont.bodyStrong, color: AryaColor.accent)
+        if count > 0 || isSelected {
+            Button(action: select) {
+                HStack {
+                    Text("Needs you").aryaText(AryaFont.body, AryaColor.ink)
+                    Spacer()
+                    CountLabel(count, style: AryaFont.monoStrong, color: AryaColor.accent)
+                }
+                .padding(.horizontal, AryaSpace.s2)
+                .frame(height: AryaSize.rowHeight)
+                .background(
+                    isSelected ? AryaColor.selection : .clear,
+                    in: RoundedRectangle(cornerRadius: AryaRadius.small)
+                )
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, AryaSpace.s3)
-            .frame(height: AryaSize.railRowHeight)
-            .background(isSelected ? AryaColor.selection : .clear)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .padding(.bottom, AryaSpace.s4)
+            .accessibilityLabel("Needs you, \(count) pending")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Approvals, \(count) pending")
     }
 }
 

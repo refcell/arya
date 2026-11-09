@@ -14,26 +14,34 @@ enum FeatureRegistry {
                 OverviewTab(
                     store: store, steward: steward,
                     openRun: { run in context.model.navigation.select(run: run, steward: steward) },
-                    rehearse: { context.model.navigation.tab = .rehearsals })
+                    rehearse: { context.model.navigation.tab = .improve })
             } else {
                 EmptyState(
                     "No overview yet.", guidance: "A steward's plan and activity appear here.")
             }
-        case .stream:
+        case .improve:
             if let store = context.store, let steward = context.steward?.id {
-                StreamTab(
-                    store: store, steward: steward, run: context.run?.id ?? context.runs.first?.id)
+                VStack(alignment: .leading, spacing: 0) {
+                    RehearsalsView(store: store, steward: steward)
+                    AryaHairline()
+                    ChangesTab(store: store, steward: steward)
+                }
             } else {
                 EmptyState(
-                    "No runs yet.",
-                    guidance: "A run starts when a routine fires or you start one by hand.")
+                    "Nothing to improve yet.",
+                    guidance: "Rehearsals and proposed charter changes appear here.")
             }
-        case .changes:
-            if let store = context.store, let steward = context.steward?.id {
-                ChangesTab(store: store, steward: steward)
+        case .knowledge:
+            if let store = context.store {
+                VStack(alignment: .leading, spacing: 0) {
+                    MemoryView(store: store, steward: context.steward?.id)
+                    AryaHairline()
+                    RoutinesView(store: store, steward: context.steward?.id)
+                }
             } else {
                 EmptyState(
-                    "No changes proposed.", guidance: "Proposals to the charter appear here.")
+                    "No knowledge yet.",
+                    guidance: "Notes kept between runs, and routines written after repeated work.")
             }
         case .ledger:
             if let store = context.store {
@@ -43,26 +51,19 @@ enum FeatureRegistry {
                     "The ledger is empty.",
                     guidance: "Every event this steward records appears here.")
             }
-        case .memory:
-            if let store = context.store {
-                MemoryView(store: store, steward: context.steward?.id)
-            } else {
-                EmptyState(
-                    "No memory yet.", guidance: "Notes the steward keeps between runs appear here.")
-            }
-        case .routines:
-            if let store = context.store {
-                RoutinesView(store: store, steward: context.steward?.id)
-            } else {
-                EmptyState("No routines yet.", guidance: "Routines the steward writes appear here.")
-            }
-        case .rehearsals:
-            if let store = context.store {
-                RehearsalsView(store: store, steward: context.steward?.id)
-            } else {
-                EmptyState(
-                    "No rehearsals yet.", guidance: "Rehearse the charter against a casebook.")
-            }
+        }
+    }
+
+    /// A run's transcript: the selected run, else the newest.
+    @ViewBuilder
+    static func transcript(_ context: FeatureContext) -> some View {
+        if let store = context.store, let steward = context.steward?.id {
+            StreamTab(
+                store: store, steward: steward, run: context.run?.id ?? context.runs.first?.id)
+        } else {
+            EmptyState(
+                "No runs yet.",
+                guidance: "A run starts when a routine fires or you start one by hand.")
         }
     }
 

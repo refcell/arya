@@ -139,3 +139,15 @@ M4:
   orange label and one orange button. Still failing: gray title bar with a window title (rule 1),
   effort control in a header (rule 3), six tabs (rule 4), "run 18" thread titles, event id under
   Decision, duplicated summary, "action" and "auto" labels (app-views). Next push fixes chrome.
+- 2026-11-09: chrome: hidden title bar with no title text, one canvas for sidebar, page, and
+  inspector, hairline splits; sidebar shows the `arya` wordmark, "Needs you N" (hidden at zero),
+  stewards, and runs as threads titled by summary; steward page has no header band, a sans title,
+  one primary action, and four tabs (Overview, Improve, Knowledge, Ledger); effort, pause, home,
+  and appearance moved to the settings inspector (gear, Option-Command-I); the window-wide error
+  banner became an inline, dismissible error under the title.
+- Visual check (chrome, `just app` on the demo home): R1 pass, traffic lights on the canvas and
+  no strip; R2 pass, one canvas and hairlines only; R4 pass, four tabs and summary-titled
+  threads; R5 pass, sans title and mono threads. R3: the header's review link is quiet on
+  Overview so the inline Approve is the one orange element. Remaining in the Overview body
+  (app-views): boxed tool cards, `auto` chips and "Ran", the charter status line, and the
+  manual-run field shown inline.

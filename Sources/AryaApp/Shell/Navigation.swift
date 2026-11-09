@@ -2,19 +2,22 @@ import Foundation
 
 /// The tabs of a steward's main pane, in STYLE.md order.
 enum StewardTab: String, CaseIterable, Identifiable, Sendable {
-    case overview, stream, changes, ledger, memory, routines, rehearsals
+    /// Plan, recap, and recent activity (the default).
+    case overview
+    /// Rehearsals, proposals, and charter changes.
+    case improve
+    /// Memory and routines.
+    case knowledge
+    case ledger
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .overview: "Overview"
-        case .stream: "Stream"
-        case .changes: "Changes"
+        case .improve: "Improve"
+        case .knowledge: "Knowledge"
         case .ledger: "Ledger"
-        case .memory: "Memory"
-        case .routines: "Routines"
-        case .rehearsals: "Rehearsals"
         }
     }
 }
@@ -32,8 +35,9 @@ struct NavigationState: Hashable, Sendable {
     var destination: Destination?
     /// The run selected in the rail, within the selected steward.
     var run: String?
-    /// Overview is the default: every steward opens on its metric, plan, and activity.
     var tab: StewardTab = .overview
+    /// Whether the right-hand inspector (settings and detail) is open.
+    var inspector = false
 
     /// The selected steward id, if a steward pane is showing.
     var steward: String? {
@@ -43,6 +47,12 @@ struct NavigationState: Hashable, Sendable {
 
     /// Selects a steward. Another steward opens on its Overview tab with no run; the same
     /// steward keeps its tab and run.
+    /// Shows a steward's page with no run selected (the breadcrumb's way back).
+    mutating func select(steward id: String, showRun run: String?) {
+        destination = .steward(id)
+        self.run = run
+    }
+
     mutating func select(steward id: String) {
         if steward != id {
             run = nil
@@ -51,11 +61,10 @@ struct NavigationState: Hashable, Sendable {
         destination = .steward(id)
     }
 
-    /// Selects a run under its steward and shows its stream.
+    /// Selects a run under its steward; the page shows its transcript.
     mutating func select(run id: String, steward stewardID: String) {
         destination = .steward(stewardID)
         run = id
-        tab = .stream
     }
 
     mutating func showApprovals() {

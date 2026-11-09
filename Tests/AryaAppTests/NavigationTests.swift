@@ -1,3 +1,4 @@
+import Arya
 import AryaDesign
 import Foundation
 import Testing
@@ -7,18 +8,18 @@ import Testing
 @Suite struct NavigationTests {
     @Test func tabsFollowTheStyleGuideOrder() {
         #expect(
-            StewardTab.allCases.map(\.title) == [
-                "Overview", "Stream", "Changes", "Ledger", "Memory", "Routines", "Rehearsals",
-            ])
+            StewardTab.allCases.map(\.title) == ["Overview", "Improve", "Knowledge", "Ledger"])
+        #expect(StewardTab.allCases.count <= 4)
     }
 
-    @Test func selectingARunShowsItsStream() {
+    @Test func selectingARunKeepsTheTab() {
         var state = NavigationState()
+        #expect(state.tab == .overview)
         state.tab = .ledger
         state.select(run: "run_14", steward: "st_triage")
         #expect(state.steward == "st_triage")
         #expect(state.run == "run_14")
-        #expect(state.tab == .stream)
+        #expect(state.tab == .ledger)
     }
 
     @Test func stewardsOpenOnTheirOverview() {
@@ -28,7 +29,7 @@ import Testing
     @Test func switchingStewardsClearsTheRunAndOpensTheOverview() {
         var state = NavigationState()
         state.select(run: "run_14", steward: "st_triage")
-        state.tab = .memory
+        state.tab = .knowledge
         state.select(steward: "st_triage")
         #expect(state.run == "run_14")
         state.select(steward: "st_spend")
@@ -56,9 +57,20 @@ import Testing
         #expect(state.destination == .approvals)
     }
 
-    @Test func runsAreNumberedInStartOrder() {
-        #expect(StatusMapping.runLabel(position: 0, of: 14) == "run 14")
-        #expect(StatusMapping.runLabel(position: 13, of: 14) == "run 1")
+    @Test func threadsAreTitledBySummaryNeverById() {
+        let at = Date(timeIntervalSince1970: 0)
+        var run = RunSummary(
+            id: "run_01M70W8CV2", steward: "st_triage", trigger: "manual", charterVersion: 1,
+            status: .finished, summary: "billing · routed MSG-201\nmore", startedAt: at)
+        #expect(StatusMapping.threadTitle(of: run) == "billing · routed MSG-201")
+        run.summary = nil
+        #expect(StatusMapping.threadTitle(of: run) == "manual run")
+        #expect(!StatusMapping.threadTitle(of: run).contains("run_"))
+    }
+
+    @Test func thePrimaryActionNamesTheApprovals() {
+        #expect(StewardPage.reviewTitle(1) == "Review 1 approval")
+        #expect(StewardPage.reviewTitle(3) == "Review 3 approvals")
     }
 
     @Test func railWidthStaysInBounds() {

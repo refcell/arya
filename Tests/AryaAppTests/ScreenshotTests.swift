@@ -19,7 +19,7 @@ import Testing
         var shots: [(String, Destination, StewardTab)] = StewardTab.allCases.map {
             ($0.rawValue, .steward(steward.id), $0)
         }
-        shots.append(("approvals", .approvals, .stream))
+        shots.append(("needs-you", .approvals, .overview))
         for (name, destination, tab) in shots {
             model.navigation.select(steward: steward.id)
             model.navigation.destination = destination

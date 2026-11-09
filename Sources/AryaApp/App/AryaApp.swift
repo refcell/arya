@@ -36,6 +36,7 @@ struct AryaApp: App {
                     session.enableNotifications()
                 }
         }
+        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1120, height: 720)
         .windowResizability(.contentMinSize)
         .commands { AryaCommands(session: session) }
@@ -59,7 +60,7 @@ struct SessionView: View {
             }
         }
         .frame(minWidth: AryaSize.windowMinWidth, minHeight: AryaSize.windowMinHeight)
-        .navigationSubtitle(session.subtitle)
+        .background(AryaColor.canvas)
         .environment(\.aryaTextScale, TextScale.normalized(textScale))
     }
 }
@@ -107,8 +108,10 @@ struct AryaCommands: Commands {
             }
         }
         CommandMenu("Go") {
-            Button("Approvals") { session.model?.navigation.showApprovals() }
+            Button("Needs You") { session.model?.navigation.showApprovals() }
                 .keyboardShortcut("0")
+            Button("Settings") { session.model?.navigation.inspector.toggle() }
+                .keyboardShortcut("i", modifiers: [.command, .option])
             Divider()
             ForEach(Array(StewardTab.allCases.enumerated()), id: \.element) { index, tab in
                 Button(tab.title) { session.model?.navigation.tab = tab }

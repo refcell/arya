@@ -119,6 +119,11 @@ public enum AryaFont {
     public static let metric = AryaTextStyle(
         name: "metric", face: .mono, size: 20, lineHeight: 24, weight: .medium)
 
+    /// Older names, kept so views compile while they move over: the uppercase label and the
+    /// page title (there is no display face any more).
+    public static let overline = label
+    public static let display = title
+
     public static let all: [AryaTextStyle] = [
         title, heading, body, bodyStrong, caption, label, mono, monoStrong, monoSmall, metric,
     ]
