@@ -73,28 +73,34 @@ private func crewCharter(maxParallel: Int) -> Charter {
     #expect(await harness.executor.requests.isEmpty)
 }
 
+/// Waits until exactly `count` questions are pending (each blocks one live child), then checks
+/// that no more show up, and answers them.
+private func answer(_ count: Int, in harness: RunHarness) async throws {
+    var pending: [ApprovalRecord] = []
+    for _ in 0..<2000 where pending.count < count {
+        pending = try await harness.approvals.book().pending
+        try await Task.sleep(for: .milliseconds(2))
+    }
+    try await Task.sleep(for: .milliseconds(50))
+    pending = try await harness.approvals.book().pending
+    #expect(pending.count == count)
+    for record in pending { _ = try await harness.approvals.grant(record.id, by: .localUser) }
+}
+
 @Test func crewRespectsMaxParallel() async throws {
+    // Each child asks a question and waits, so pending questions = children running at once.
     for width in [1, 2] {
-        let harness = RunHarness(script: crewScript(childSteps: [.sleep(milliseconds: 30)]))
-        let outcome = try await harness.start(charter: crewCharter(maxParallel: width))
-        let children = Set(try #require(outcome.crew).children.map(\.run))
-        let events = try await harness.sink.events(from: 1).filter {
-            guard let run = $0.draft.run else { return false }
-            return children.contains(run)
-                && [RunEventType.started, RunEventType.finished].contains($0.type)
+        let harness = RunHarness(
+            script: crewScript(childSteps: [.ask(question: "Which log?", to: nil)]))
+        let run = Task { try await harness.start(charter: crewCharter(maxParallel: width)) }
+        if width == 1 {
+            try await answer(1, in: harness)
+            try await answer(1, in: harness)
+        } else {
+            try await answer(2, in: harness)
         }
-        // Width 1: start, finish, start, finish. Width 2: both start first.
-        let expected =
-            width == 1
-            ? [
-                RunEventType.started, RunEventType.finished, RunEventType.started,
-                RunEventType.finished,
-            ]
-            : [
-                RunEventType.started, RunEventType.started, RunEventType.finished,
-                RunEventType.finished,
-            ]
-        #expect(events.map(\.type) == expected)
+        let outcome = try await run.value
+        #expect(try #require(outcome.crew).children.count == 2)
     }
 }
 
