@@ -57,6 +57,7 @@ M3:
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
 - (from ledger) Everything for the ledger-backed `EventSink` has landed: `LedgerStore`, `LedgerReader` (`follow`), `LedgerVerifier`, `ProjectionCache`, payloads (0024), `LedgerProjection` (0028); see docs/lanes/ledger.md Decisions.
+- (from memory) Facade memory/routine API can map `MemoryProjection(ledger:)`, `RoutineLibrary(ledger:)`, `allNotes`, `overview`, `history`, `diff(…store:)`, `RunPreparation.context`, `MemoryIntake.notes`, `RoutineProposals.intake` (see memory.md Decisions).
 
 ## Log
 

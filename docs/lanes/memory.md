@@ -131,3 +131,4 @@ M3 (integration toward the end-to-end scenario):
 - 2026-11-09: run memory intake, `RunPreparation.context`, `allNotes` landed (d7bc2f0).
 - 2026-11-09: fixed the runtime.md reference to decision 0025 (ef53890).
 - 2026-11-09: ledger `BlobStore` adopted as `RoutineBlobStore`; `MemoryReplay.check` (5570258).
+- 2026-11-09: routine overview, version diff, provenance read models (5f704c2).
