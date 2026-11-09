@@ -196,7 +196,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
     let updates = await collect(adapter)
     #expect(updates.contains(.timedOut))
     #expect(updates.compactMap(\.result).isEmpty)
-    #expect(updates.last?.exit == .signaled(SIGTERM))
+    #expect(updates.last?.exit == .signaled(SIGTERM), "\(updates)")
 }
 
 func requestParams(_ message: RPCMessage) -> JSONValue? {

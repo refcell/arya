@@ -77,8 +77,10 @@ public final class InMemoryTransport: AdapterTransport {
 
     /// Simulates SIGTERM: the adapter's input closes and the connection ends at once.
     public func terminate(grace: Duration) async {
-        adapterIn.finish()
+        // Record the signal before closing the adapter's input, or the adapter could see
+        // end-of-input and report a clean exit first.
         end(.signaled(SIGTERM), state: state, hostOut: hostOut)
+        adapterIn.finish()
     }
 }
 

@@ -169,10 +169,11 @@ Sent exactly once per run:
 ### `host/ask`
 
 `{"session":"…","question":"…","to":"person:alex"}` → `{"answer":"…"}`. The adapter asks a
-person a question (`to` is optional; the default is the local user). arya shows it in the
-approval queue until it is answered or the run's timeout passes (`"answer": null`). In
-rehearsal and replay the answer comes from the recording; an unrecorded question in rehearsal
-answers `null`.
+person a question (`to` is optional; the default is the local user). While it is unanswered, arya's
+idle timer is paused; the run's `limits.timeoutSeconds` stays the hard cap, at which arya answers
+`null`. arya shows it in the approval queue until it is answered or the run's timeout passes
+(`"answer": null`). In rehearsal and replay the answer comes from the recording; an unrecorded
+question in rehearsal answers `null`.
 
 ## Errors
 
