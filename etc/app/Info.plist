@@ -8,6 +8,8 @@
     <string>Arya</string>
     <key>CFBundleExecutable</key>
     <string>AryaApp</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>app.arya.Arya</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -22,8 +24,12 @@
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.developer-tools</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Open source. See LICENSE.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

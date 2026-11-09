@@ -21,7 +21,7 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
   tab bar (Changes, Ledger, Memory, Routines, Rehearsals), main pane host for feature views.
 - [x] Approval queue entry point always visible with a pending count.
 - [x] Live updates: observe the facade's event stream and refresh on the main actor.
-- [ ] `etc/app/Info.plist` and icon placeholder; `just app` and `just run-app` produce and open
+- [x] `etc/app/Info.plist` and icon placeholder; `just app` and `just run-app` produce and open
   a working `Arya.app`.
 - [x] Preview fixtures: a stub workspace with sample stewards for development and screenshots.
 
@@ -62,6 +62,8 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
   passes the store in `FeatureContext.store`; preview mode wires app-views' `PreviewWorkspace`
   next to `ShellPreviewWorkspace` (same `st_triage` run ids). Next: a facade-backed
   `FeatureWorkspace` so real homes feed the feature views too.
+- The icon is drawn at bundle time by `etc/app/make-icon.swift` (AppKit, STYLE.md colors) and
+  converted with `sips` and `iconutil`, so no binary asset is tracked.
 
 ## Questions
 
@@ -72,3 +74,6 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).
 - 2026-11-09: AryaDesign components and decision 0021 (`@AryaState`) landed (3234ede).
+- 2026-11-09: window, rail, header, tabs, approvals entry, live updates, preview workspace
+  (c1b00af). For app-views: `FeatureRegistry` now hosts `RunStreamView` and
+  `ApprovalQueueView` through `FeatureContext.store`; it is yours to extend.
