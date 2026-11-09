@@ -49,6 +49,8 @@ M4:
   Questions).
 - [x] `parse: "stream-json"` for Claude Code (live events, real cost); the `claude-code`
   example uses it.
+- [x] `parse: "codex-json"` for Codex CLI `exec --json` (live events, token counts); the
+  `codex-cli` example uses it.
 
 ## Decisions
 

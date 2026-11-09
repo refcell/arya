@@ -110,6 +110,9 @@ public enum OutputParser: String, Sendable, Hashable, Codable {
     /// Claude Code's `--output-format stream-json`: messages become run events, and the final
     /// `result` line gives the result (its last fenced `json` block), the cost, and failure.
     case streamJSON = "stream-json"
+    /// Codex CLI's `exec --json`: completed items become run events, the last agent message
+    /// gives the result (its last fenced `json` block), and turn usage gives token counts.
+    case codexJSON = "codex-json"
 }
 
 /// How `arya-exec-adapter` hands `run/start.tools` to the agent.

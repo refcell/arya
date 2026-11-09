@@ -222,3 +222,47 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
     #expect(cost == CostResult(inputTokens: 5, outputTokens: 3, costMicros: 2000))
     try await adapter.shutdown()
 }
+
+@Test func codexJSONAgentStreamsEventsResultAndTokens() async throws {
+    let fixture = Fixtures.url("codex-json-run.jsonl").path
+    // Two turns: usage adds up.
+    let agent = try FakeAgent("cat > /dev/null\ncat '\(fixture)'\ncat '\(fixture)'")
+    let (transport, endpoint) = InMemoryPipe.make()
+    let server = ExecAdapterServer(
+        profile: agent.profile(parse: .codexJSON), environment: ["PATH": "/usr/bin:/bin"],
+        endpoint: endpoint)
+    Task { await server.serve() }
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    _ = try await adapter.initialize(InitializeParams(client: Sample.client))
+    let session = try await adapter.start(agent.start()).session
+    let updates = await collect(adapter, until: \.isResult)
+    let kinds = updates.compactMap(\.event).map(\.event.kind)
+    let turn = ["thinking", "tool_call", "tool_result", "tool_call", "tool_result", "message"]
+    #expect(kinds == ["status"] + turn + turn)
+    #expect(
+        updates.compactMap(\.event).contains {
+            if case .toolCall(_, "tracker/get", _) = $0.event.body { return true }
+            return false
+        })
+    let result = try #require(updates.compactMap(\.result).first)
+    #expect(result.status == .completed)
+    #expect(try result.decodedResult().summary == "ok")
+    let cost = try await adapter.cost(SessionParams(session: session))
+    #expect(cost == CostResult(inputTokens: 80, outputTokens: 14))
+    try await adapter.shutdown()
+}
+
+@Test func codexJSONTurnFailureFailsTheRun() async throws {
+    let agent = try FakeAgent(
+        """
+        cat > /dev/null
+        printf '%s\\n' '{"type":"turn.failed","error":{"message":"stream ended"}}'
+        """)
+    let updates = try await execRun(agent, agent.profile(parse: .codexJSON))
+    #expect(updates.compactMap(\.result).first?.status == .failed)
+    #expect(
+        updates.compactMap(\.event).contains {
+            if case .error("stream ended") = $0.event.body { return true }
+            return false
+        })
+}

@@ -119,3 +119,29 @@ func resultSchemaChecks(_ value: JSONValue, _ problem: String?) {
         ExecOutput.parse(streamJSONLine: #"{"type":"result","subtype":"error_max_turns"}"#)
             == .final(text: "", isError: true, cost: CostResult()))
 }
+
+@Test func codexJSONLinesAreMapped() {
+    #expect(ExecOutput.parse(codexJSONLine: #"{"type":"turn.started"}"#) == .other)
+    #expect(
+        ExecOutput.parse(codexJSONLine: #"{"type":"item.started","item":{"type":"reasoning"}}"#)
+            == .other)
+    let failedCommand = #"""
+        {"type":"item.completed","item":{"id":"c1","type":"command_execution",
+        "command":"false","status":"failed","exit_code":1,"aggregated_output":""}}
+        """#.replacingOccurrences(of: "\n", with: "")
+    #expect(
+        ExecOutput.parse(codexJSONLine: failedCommand)
+            == .events(
+                [
+                    RunEvent(.toolCall(id: "c1", tool: "shell", input: ["command": "false"])),
+                    RunEvent(.toolResult(id: "c1", output: "", isError: true)),
+                ], reply: nil))
+    #expect(
+        ExecOutput.parse(codexJSONLine: #"{"type":"turn.failed","error":{"message":"boom"}}"#)
+            == .failed("boom"))
+    #expect(
+        ExecOutput.parse(
+            codexJSONLine:
+                #"{"type":"turn.completed","usage":{"input_tokens":3,"output_tokens":1}}"#)
+            == .usage(CostResult(inputTokens: 3, outputTokens: 1)))
+}

@@ -122,6 +122,84 @@ extension ExecOutput {
     }
 }
 
+extension ExecOutput {
+    /// What one `codex-json` output line means.
+    public enum CodexJSONLine: Sendable, Hashable {
+        /// A completed item, as run events; `reply` is set for an agent message.
+        case events([RunEvent], reply: String?)
+        /// A finished turn's token usage (Codex reports no dollar cost); turns add up.
+        case usage(CostResult)
+        /// A failed turn or a stream error.
+        case failed(String)
+        /// Anything else (thread and turn starts, item starts and updates, non-JSON).
+        case other
+    }
+
+    /// `codex-json` parsing of one line.
+    public static func parse(codexJSONLine line: String) -> CodexJSONLine {
+        guard let value = try? CanonicalJSON.decode(JSONValue.self, from: Data(line.utf8)),
+            let type = value["type"]?.stringValue
+        else { return .other }
+        switch type {
+        case "item.completed":
+            guard let item = value["item"] else { return .other }
+            return codexItem(item)
+        case "turn.completed":
+            let usage = value["usage"]
+            return .usage(
+                CostResult(
+                    inputTokens: Int64(usage?["input_tokens"]?.intValue ?? 0),
+                    outputTokens: Int64(usage?["output_tokens"]?.intValue ?? 0)))
+        case "turn.failed", "error":
+            let message =
+                value["error"]?["message"]?.stringValue ?? value["message"]?.stringValue
+                ?? "the agent reported an error"
+            return .failed(message)
+        default:
+            return .other
+        }
+    }
+
+    private static func codexItem(_ item: JSONValue) -> CodexJSONLine {
+        let id = item["id"]?.stringValue ?? ""
+        let failed = item["status"] == "failed"
+        switch item["type"]?.stringValue {
+        case "agent_message":
+            guard let text = item["text"]?.stringValue else { return .other }
+            return .events([RunEvent(.message(role: "assistant", text: text))], reply: text)
+        case "reasoning":
+            guard let text = item["text"]?.stringValue else { return .other }
+            return .events([RunEvent(.thinking(text: text))], reply: nil)
+        case "command_execution":
+            let exitCode = item["exit_code"]?.intValue
+            let input: JSONValue = ["command": item["command"] ?? .null]
+            return .events(
+                [
+                    RunEvent(.toolCall(id: id, tool: "shell", input: input)),
+                    RunEvent(
+                        .toolResult(
+                            id: id, output: item["aggregated_output"] ?? .null,
+                            isError: failed || (exitCode ?? 0) != 0)),
+                ], reply: nil)
+        case "mcp_tool_call":
+            let server = item["server"]?.stringValue ?? ""
+            let tool = item["tool"]?.stringValue ?? ""
+            let name = server.isEmpty ? tool : "\(server)/\(tool)"
+            return .events(
+                [
+                    RunEvent(
+                        .toolCall(id: id, tool: name, input: item["arguments"] ?? .object([:]))),
+                    RunEvent(
+                        .toolResult(
+                            id: id, output: item["result"] ?? item["error"] ?? .null,
+                            isError: failed)),
+                ], reply: nil)
+        default:
+            return .other
+        }
+    }
+}
+
 /// A small JSON Schema checker for `run/start.resultSchema`: `type` (including lists of
 /// types), `properties`, `required`, `additionalProperties: false`, `items`, `enum`, `const`,
 /// `minItems`, and `maxItems`. Other keywords are ignored, so a schema using them is checked

@@ -25,6 +25,7 @@ public actor ExecAdapterServer {
     private var cost = CostResult()
     private var finalText: String?
     private var agentReportedError = false
+    private var lastReply: String?
     private var stopRequested = false
     private var resultSent = false
     private var closed = false
@@ -214,6 +215,21 @@ public actor ExecAdapterServer {
             case .other:
                 break
             }
+        case .codexJSON:
+            switch ExecOutput.parse(codexJSONLine: line) {
+            case .events(let events, let reply):
+                for event in events { await emit(event) }
+                if let reply { lastReply = reply }
+            case .usage(let turn):
+                cost = CostResult(
+                    inputTokens: cost.inputTokens + turn.inputTokens,
+                    outputTokens: cost.outputTokens + turn.outputTokens, costMicros: 0)
+            case .failed(let message):
+                agentReportedError = true
+                await emit(RunEvent(.error(message: message)))
+            case .other:
+                break
+            }
         }
     }
 
@@ -230,6 +246,8 @@ public actor ExecAdapterServer {
             result = ExecOutput.lastJSONBlock(in: text)
         case .streamJSON:
             result = finalText.flatMap(ExecOutput.lastJSONBlock(in:))
+        case .codexJSON:
+            result = lastReply.flatMap(ExecOutput.lastJSONBlock(in:))
         case .jsonl:
             break
         }
@@ -318,7 +336,7 @@ public enum ExecPrompt {
                     + String(decoding: LineCodec.encodeJSON($0), as: UTF8.self)
             } ?? ""
         switch parse {
-        case .text, .streamJSON:
+        case .text, .streamJSON, .codexJSON:
             parts.append(
                 "When you are done, reply with the result as one JSON object in a fenced json"
                     + " code block. The last such block is read as the result." + schema)

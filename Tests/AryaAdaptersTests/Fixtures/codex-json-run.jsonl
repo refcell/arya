@@ -1,0 +1,8 @@
+{"type":"thread.started","thread_id":"thread-1"}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"item_0","type":"reasoning","text":""}}
+{"type":"item.completed","item":{"id":"item_0","type":"reasoning","text":"Reading the issue."}}
+{"type":"item.completed","item":{"id":"item_1","type":"command_execution","command":"ls","status":"completed","exit_code":0,"aggregated_output":"notes.md\n"}}
+{"type":"item.completed","item":{"id":"item_2","type":"mcp_tool_call","server":"tracker","tool":"get","arguments":{"id":"ISSUE-1"},"status":"completed","result":{"content":[{"type":"text","text":"open"}]}}}
+{"type":"item.completed","item":{"id":"item_3","type":"agent_message","text":"Done.\n```json\n{\"summary\":\"ok\"}\n```"}}
+{"type":"turn.completed","usage":{"input_tokens":40,"cached_input_tokens":30,"output_tokens":7}}
