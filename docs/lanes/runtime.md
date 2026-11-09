@@ -120,7 +120,7 @@ M4:
   and `RunStarted|Finished|Failed|…` with your exact JSON shapes, and `ProposedAction` moved
   to `AryaCore`. Proposed default: replace the private `ActionProposedPayload`,
   `ActionOutcomePayload`, `ApprovalRequestedPayload`, and `ApprovalDecisionPayload` with them.
-- From memory: routine wiring for the facade (decision 0026): feed `run/result.routines` to
+- From memory: routine wiring for the facade (decision 0025): feed `run/result.routines` to
   `RoutineProposals.intake`, gate with `RoutineGatekeeper`, and execute `routine` actions with
   `RoutineInvocation.prepare` + `ShellRoutineRunner` (output is `RoutineOutcome`).
 

@@ -120,3 +120,4 @@ M3 (integration toward the end-to-end scenario):
 - 2026-11-09: shell routine execution, `RoutineInvocation`, `RoutineOutcome` landed (1da32d6).
 - 2026-11-09: projections read ledger `Event`s; payloads conform to `EventPayload` (d82f2b3).
 - 2026-11-09: routine proposals, `RoutineGatekeeper`, decision 0025 landed (77bd06a).
+- 2026-11-09: run memory intake, `RunPreparation.context`, `allNotes` landed (d7bc2f0).
