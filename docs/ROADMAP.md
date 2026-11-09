@@ -52,24 +52,36 @@ app bundle script.
 
 ## M3.5 — App parity (done when the app reads as a working steward, not a log viewer)
 
-The M3 checklist passes, but the app is still far from the target experience. Owners are in
-parentheses.
+The M3 checklist passes, but the app was far from the target experience. Owners are in
+parentheses; status as of 2026-11-09. "Landed" means on main; the redesigned screens still await
+review.
 
-- Restyle to a dense, dark workspace layout (app-shell, app-views).
-- Outcome-first steward screen: the metric against its target with a sparkline, the current
-  plan, a recap of recent work, and activity that gives the reason for each step (app-outcome,
-  workspace, eval).
-- New steward flow: outcome, success metric, target, guardrails, autonomy level, and bindings
-  (app-outcome, workspace).
-- Planning that adapts as a run learns more (runtime, adapters).
-- Risk and autonomy levels, with approvals that explain why they are asked (runtime, app-views).
-- Backtest comparison and readiness visible in the app (eval, app-views).
+- Restyle (app-shell, app-views). Landed in a clean single-canvas style instead of the dense
+  dark layout first listed (decision 0036): hidden title bar, four tabs, one accent.
+- Outcome-first steward screen: metric against target with a sparkline, plan, recap, and
+  activity with reasons (app-outcome, workspace, eval). Landed: the Overview tab reads outcome,
+  recap, activity, and runtime plans from the facade.
+- New steward flow: outcome, metric, target, guardrails, autonomy, bindings (app-outcome,
+  workspace). Landed, with structured create in the facade and real connection, people, and
+  sign-off controls.
+- Planning that adapts (runtime, adapters). Partly landed: runs return a plan, and stewards keep
+  it across runs (`plan.updated`, decision 0035); re-planning within a run
+  is open.
+- Risk and autonomy levels with explained approvals (runtime, app-views). Landed (decision
+  0037): actions carry risk, stewards an autonomy level, and approvals show the guardrail and why they were held.
+- Backtest comparison and readiness visible (eval, app-views). Partly landed: backtest,
+  readiness, and trend read models and a live readiness gate exist, and Improve shows rehearsals
+  and proposals; a side-by-side backtest comparison view is open.
 - Onboarding to systems and people, and a context view of people, history, and decisions
-  (app-outcome, runtime, memory work through workspace).
-- People channels: a local inbox, plus email and chat (runtime, app-outcome).
-- Sandboxed routines and adapters (runtime).
-- Fleet view of sub-agents (app-views).
-- Schedule and long-running work view (app-outcome).
+  (app-outcome, runtime, memory work through workspace). Partly landed: the New steward flow
+  connects systems and people, and a Knowledge screen read exists; the context view is open.
+- People channels: local inbox, email, and chat (runtime, app-outcome). Partly landed: the
+  runtime's local inbox and a Needs you list; email and chat bindings are open (M4).
+- Sandboxed routines and adapters (runtime). Landed: routines, binding servers, and exec agents
+  run under an OS sandbox profile in the run workdir, and replay uses a sandboxed engine.
+- Fleet view of sub-agents (app-views). Open.
+- Schedule and long-running work view (app-outcome). Partly landed: the runtime exposes each
+  steward's next wake and recent trigger outcomes; the view is open.
 
 ## M4 — Real harnesses
 
