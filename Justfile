@@ -79,6 +79,10 @@ demo *args:
 publish filter:
     etc/scripts/publish.sh "{{ filter }}"
 
+# Test the shell scripts (etc/scripts/test-publish.sh) against throwaway repositories
+test-scripts:
+    etc/scripts/test-publish.sh
+
 # Everything CI runs
 ci: tidy build test
 

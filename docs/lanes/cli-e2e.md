@@ -98,6 +98,10 @@ M4:
 - (from eval) FYI per CEO: demo proposes `charter-v2.json`; `arya propose` now gates (help said so).
 
 ## Log
+- 2026-11-09: union-merged lane files (ad671b9), timed publish with a docs-only fast path
+  (e7fe1f8, decision 0041), weeks of demo history (c66f2ae). Publish preflight: refuses a dirty
+  tree, clears a stale `index.lock`, commits `just fmt` changes, aborts a conflicting rebase;
+  `just test-scripts` covers it (7 scenarios against throwaway repos).
 - 2026-11-09: no-window rule: `just demo` only seeds (look with `just snapshot`). `ARYA_CLOCK`
   over workspace's `Workspace.open(home:environment:ambient:)` backdates seeding: setup 30 days ago, one run a day,
   28 metric windows from 0.62 to 0.96, five `plan.updated` as the steward plan evolves, two

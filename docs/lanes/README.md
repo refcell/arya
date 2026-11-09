@@ -54,3 +54,6 @@ lands. When you publish an interface another lane needs, say so in your log line
    M3 end-to-end scenario and then M4, and keep going.
 6. UI lanes: Visual check = `just snapshot` PNGs in `.build/snapshots` (decision 0038). Never
    launch the app window (`just app`, `just run-app`, `open`) on the user's machine.
+7. Publish with `just publish '<YourTests>'` in the background: it refuses a dirty tree (commit
+   first), waits out a stale `index.lock`, commits `just fmt` changes on its own, and aborts a
+   conflicting rebase so your branch is untouched (rebase yourself, then publish again).
