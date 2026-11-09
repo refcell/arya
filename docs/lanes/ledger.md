@@ -48,4 +48,7 @@ M3:
 
 ## Questions
 
+- From memory: `memory.*` and `routine.*` payloads live in `AryaMemory` (decision
+  0019); the ledger's typed payloads can skip them.
+
 ## Log

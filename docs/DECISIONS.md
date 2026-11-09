@@ -117,3 +117,9 @@ would make gates flaky, while hidden tolerances would make them meaningless.
 
 A charter's `policy.default` is `ask` when omitted, so an action kind no rule mentions is held
 for approval, never executed silently. Why: guardrails should fail safe.
+
+### 0019 — 2026-11-09 — Memory and routine payloads live in AryaMemory
+
+The `Codable` payloads for `memory.*` and `routine.*` events are defined in `AryaMemory`, which
+also projects them. `AryaLedger` stores them as opaque payloads. Why: `AryaMemory` depends on
+`AryaLedger`, not the other way around, and a single owner avoids two types per event.
