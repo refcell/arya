@@ -20,7 +20,7 @@ M1:
 - [x] `Charter` (with `CharterBinding`, `Trigger`, `Policy`, `Limits`, `Scorer`, `GateConfig`,
   `Effort`) and `Case`, matching the JSON in ARCHITECTURE.md, with validation errors and golden
   fixtures. `GateChecking` protocol.
-- [ ] `Event` envelope and `Actor`; the write rule from decision 0012; golden test of one line.
+- [x] `Event` envelope and `Actor`; the write rule from decision 0012; golden test of one line.
 - [ ] Segment store: `ledger/000001.jsonl`, rollover at 64 MiB (configurable for tests),
   per-append `flock` with tail re-read, `fsync`.
 - [ ] Reader: iterate all events in order, from a `seq`, and follow new appends (for `tail` and
@@ -66,6 +66,11 @@ M3:
   binding-specific rule beats a general one.
 - `GateChecking` takes `GateCheckRequest` and returns `GateCheckVerdict`, named so they do not
   clash with eval's `GateRequest`/`GateVerdict`; `RefusingGate` is the fail-safe default.
+- `Event.payload` is a `JSONValue` object; typed access is `event.payload(as: P.self)` for any
+  `EventPayload` (`static var type`). Writers build an `EventDraft` (type, actor, steward, run,
+  payload); the store stamps `id`/`at` from `Ambient` and `seq`/`prev`/`hash` under the lock.
+  `EventType` is an open string struct so unknown types still decode. Optional `steward` and
+  `run` are omitted from the line when nil. `Actor.system` is `{"kind":"system","id":"arya"}`.
 - `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
 
 ## Questions
