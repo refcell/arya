@@ -103,6 +103,40 @@ import Testing
         #expect(try await workspace.effort(for: steward.id) == next.rawValue)
     }
 
+    @Test func featureWritesReachARealHome() async throws {
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent("arya-app-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let workspace = try await Workspace.open(home: home)
+        let charterData = try Data(
+            contentsOf: Self.repoRoot.appendingPathComponent("etc/examples/triage/charter.json"))
+        let steward = try await workspace.createSteward(charter: charterData)
+        let features = FacadeFeatureWorkspace(source: workspace)
+        let charter = try JSONDecoder().decode(FeatureJSON.self, from: charterData)
+        try await features.record(
+            .proposeCharter(
+                CharterProposal(
+                    steward: steward.id, baseVersion: 1, charter: charter,
+                    title: "Same charter", reason: "a test proposal")))
+        #expect(try await workspace.proposals(steward: steward.id).count == 1)
+        #expect(try await features.caseExpected(casebook: "missing", caseID: "case-0001") == nil)
+        await #expect(throws: WorkspaceError.self) {
+            try await features.record(.retractMemory(note: "mem_1", reason: "stale"))
+        }
+    }
+
+    @Test func replaySummariesMapOntoTheFeatureShape() throws {
+        let json = """
+            {"run":"run_0001","events":4,"divergences":[{"index":2,"seq":9,
+            "type":"run.decision","field":"payload.choice","recorded":"{}","replayed":"[]"}]}
+            """
+        let summary = try JSONDecoder().decode(ReplaySummary.self, from: Data(json.utf8))
+        let result = Workspace.featureReplay(summary)
+        #expect(result.run == "run_0001" && result.events == 4)
+        #expect(result.divergences.first?.field == "payload.choice")
+        #expect(result.divergences.first?.seq == 9)
+    }
+
     static let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 

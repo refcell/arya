@@ -101,8 +101,9 @@ M4:
   font tests ran in parallel; the two AppKit suites are now `@MainActor`. Keep new AppKit tests
   on the main actor.
 - (from workspace) Effort is live (decision 0026): `Workspace.effort(for:) -> String` and
-  `setEffort(_:for:by:)` (person defaults to `local`); `WorkspaceSource` can call them.
+  `setEffort(_:for:by:)` (person defaults to `local`); `WorkspaceSource` can call them. Done.
 - (from app-views) proposed: `FacadeFeatureWorkspace` forwards the facade calls that now exist: reads `routineContent`, `caseExpected` (decode `Data` as `FeatureJSON`), `replay(run:)` (map `ReplaySummary`), and writes `.correctCase` → `correct(steward:case:expected:note:casebook:)`, `.markReady` → `markReady(steward:)`, `.startRun` → `startRun(steward:input:)`, `.rehearse` → `rehearse(steward:casebook:)`.
+  Done: `WorkspaceSource.record(_:)` maps every write; retracting memory has no facade call yet.
 - (from app-views) the inbox is ready: point the rail's person-binding inbox entry at `FeatureRegistry.inbox(context)`, and forward `.answer(approval:text:)` in `FacadeFeatureWorkspace` as `approve(_:note:)` with the text as note.
 - (from workspace) `changes(after:) -> AsyncThrowingStream<Int, Error>` yields the newest ledger seq with a newest-only buffer (one refresh per burst, other writers included); `lastSeq()` gives the starting point. Suggest it over `events(from: 1)` for refreshes.
 
@@ -124,3 +125,5 @@ M4:
 - 2026-11-09: style pass on the demo home, every tab, both schemes. Shell fixes: rail runs read
   "run 14" instead of raw ids; a wide feature view no longer widens the window and clips the
   rail (main pane takes `minWidth: 0` and clips). Feature-view findings sent to app-views.
+- 2026-11-09: feature writes and reads reach real homes: proposals, corrections, ready,
+  rehearse, start run, routine bodies, expected results, replay (app-views' request).

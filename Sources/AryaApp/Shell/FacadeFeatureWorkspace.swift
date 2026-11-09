@@ -1,9 +1,9 @@
 import Arya
 import Foundation
 
-/// Feeds the feature views (`FeatureWorkspace`) from the facade (`WorkspaceSource`), so a real
-/// home shows the same views as preview mode. Payloads are decoded from the canonical JSON text
-/// the facade returns; writes the facade has no call for report "cannot do that yet".
+/// Feeds the feature views (`FeatureWorkspace`) from the facade (`WorkspaceSource`). Payloads
+/// are decoded from the canonical JSON text the facade returns; writes and reads go through the
+/// source, which reports "not available yet" for anything the facade has no call for.
 struct FacadeFeatureWorkspace: FeatureWorkspace {
     let source: any WorkspaceSource
 
@@ -13,16 +13,21 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
 
     @discardableResult
     func record(_ write: FeatureWrite) async throws -> [FeatureEvent] {
-        switch write {
-        case .approve(let approval):
-            _ = try await source.approve(approval, note: nil)
-        case .deny(let approval, let reason):
-            _ = try await source.deny(approval, note: reason.isEmpty ? nil : reason)
-        default:
-            throw WorkspaceError.unavailable("\(write)")
-        }
+        try await source.record(write)
         // The store reloads every event after a write, so the appended events are not needed.
         return []
+    }
+
+    func routineContent(steward: String, name: String, version: String) async throws -> String? {
+        try await source.routineBody(steward: steward, name: name, version: version)
+    }
+
+    func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON? {
+        try await source.expectedResult(casebook: casebook, caseID: caseID)
+    }
+
+    func replay(run: String) async throws -> FeatureReplayResult {
+        try await source.replayRun(run)
     }
 
     func verify() async throws -> FeatureVerifyResult {

@@ -96,6 +96,15 @@ actor FakeWorkspaceSource: WorkspaceSource {
         try setStatus(.active, of: id, type: "steward.resumed")
     }
 
+    func record(_ write: FeatureWrite) throws {
+        switch write {
+        case .approve(let approval): _ = try approve(approval, note: nil)
+        case .deny(let approval, let reason): _ = try deny(approval, note: reason)
+        case .startRun(let steward, let input): _ = try startRun(steward: steward, input: input)
+        default: throw WorkspaceError.unavailable("\(write)")
+        }
+    }
+
     func startRun(steward: String, input: String) throws -> RunSummary {
         guard stewardList.contains(where: { $0.id == steward }) else {
             throw WorkspaceError.notFound(steward)
