@@ -193,6 +193,7 @@ extension Workspace {
 struct HomeBlobs: EvalBlobStore {
     let store: BlobStore
     func putBlob(_ data: Data) async throws -> String { try store.put(data) }
+    func getBlob(_ hex: String) async throws -> Data { try store.get(hex) }
 }
 
 /// Imported casebooks by version, read from the ledger and blobs.
