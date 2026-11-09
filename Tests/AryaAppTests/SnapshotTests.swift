@@ -43,6 +43,9 @@ import Testing
             try page("run-approval") { $0.select(run: waiting.id, steward: steward.id) }
         }
         try page("needs-you") { $0.showApprovals() }
+        try write(
+            "needs-you-autonomy", scheme: scheme,
+            render(RootView(model: await autonomyModel()), dark: dark))
         try page("improve") { $0.tab = .improve }
         try page("knowledge") { $0.tab = .knowledge }
         // The event inspector for a selected ledger row joins this set when app-views ships it.
@@ -90,6 +93,43 @@ import Testing
         return AppModel(
             source: FakeWorkspaceSource(now: now),
             featureStore: FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now))
+    }
+
+    /// A steward at `suggest` autonomy with one low-risk label held for approval because of
+    /// that level, not a charter rule (decision 0037: reason `autonomy:suggest:low`), shown on
+    /// the Needs you page so the autonomy explanation can be judged.
+    private func autonomyModel() async -> AppModel {
+        let now = FakeWorkspaceSource.referenceDate
+        var log = FeatureEventBuilder(start: now.addingTimeInterval(-600))
+        var charter = PreviewFixtures.charter
+        if case .object(var members) = charter {
+            members["autonomy"] = "suggest"
+            charter = .object(members)
+        }
+        log.add("steward.created", actor: .localUser, ["charter": charter, "version": 1])
+        let run = "run_0100"
+        log.add("run.started", run: run, ["trigger": "interval"])
+        let action: FeatureJSON = [
+            "id": "a9", "kind": "label", "target": "inbox:MSG-301",
+            "rationale": "Asks about a charge on the card, so billing.", "risk": "low",
+        ]
+        log.add(
+            "action.proposed", run: run,
+            [
+                "action": action, "disposition": "ask", "reason": "autonomy:suggest:low",
+                "risk": "low", "autonomy": "suggest",
+            ])
+        log.add(
+            "approval.requested", run: run,
+            ["approval": "apv_0100", "kind": "action", "action": action, "to": "local"])
+        let model = AppModel(
+            source: FakeWorkspaceSource(now: now),
+            featureStore: FeatureStore(
+                workspace: PreviewWorkspace(events: log.events, now: now), now: now))
+        await model.refresh()
+        await model.featureStore?.reload()
+        model.navigation.showApprovals()
+        return model
     }
 
     /// A fresh, empty home in the temp directory, for the first-launch state.

@@ -175,3 +175,7 @@ M4:
   line, two when selected, full title on hover.
 - Visual check (`just snapshot` settings, run): Effort labeled once with a visible selection,
   Appearance shows Dark checked; five threads take about 120 pt; R1-R5 pass.
+- 2026-11-09: snapshot state `needs-you-autonomy`: a `suggest` steward's low-risk label held by
+  autonomy (`autonomy:suggest:low`), not a rule.
+- Visual check (`just snapshot` needs-you-autonomy): one orange action, the held action, its why
+  and "held by autonomy suggest low · risk low"; R1-R5 pass. Wording of that line is app-views'.
