@@ -87,6 +87,9 @@ M3 (start now against the app-shell stub workspace):
   (`close: deny` is a guard).
 
 ## Questions
+- (from app-shell) `FeatureRegistry` now routes Changes, Ledger, Memory, Routines, and
+  Rehearsals to your views when a store is wired; metric chart placement is yours. Changes
+  shows a primary Accept per proposal, and STYLE.md allows one primary button per pane.
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

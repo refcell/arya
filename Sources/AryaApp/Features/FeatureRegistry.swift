@@ -18,17 +18,40 @@ enum FeatureRegistry {
                     guidance: "A run starts when a routine fires or you start one by hand.")
             }
         case .changes:
-            EmptyState("No changes proposed.", guidance: "Proposals to the charter appear here.")
+            if let store = context.store {
+                ChangesView(store: store, steward: context.steward?.id)
+            } else {
+                EmptyState(
+                    "No changes proposed.", guidance: "Proposals to the charter appear here.")
+            }
         case .ledger:
-            EmptyState(
-                "The ledger is empty.", guidance: "Every event this steward records appears here.")
+            if let store = context.store {
+                LedgerView(store: store)
+            } else {
+                EmptyState(
+                    "The ledger is empty.",
+                    guidance: "Every event this steward records appears here.")
+            }
         case .memory:
-            EmptyState(
-                "No memory yet.", guidance: "Notes the steward keeps between runs appear here.")
+            if let store = context.store {
+                MemoryView(store: store, steward: context.steward?.id)
+            } else {
+                EmptyState(
+                    "No memory yet.", guidance: "Notes the steward keeps between runs appear here.")
+            }
         case .routines:
-            EmptyState("No routines yet.", guidance: "Routines the steward writes appear here.")
+            if let store = context.store {
+                RoutinesView(store: store, steward: context.steward?.id)
+            } else {
+                EmptyState("No routines yet.", guidance: "Routines the steward writes appear here.")
+            }
         case .rehearsals:
-            EmptyState("No rehearsals yet.", guidance: "Rehearse the charter against a casebook.")
+            if let store = context.store {
+                RehearsalsView(store: store, steward: context.steward?.id)
+            } else {
+                EmptyState(
+                    "No rehearsals yet.", guidance: "Rehearse the charter against a casebook.")
+            }
         }
     }
 

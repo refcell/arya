@@ -109,3 +109,4 @@ M4:
 - 2026-11-09: rail arrow keys, `just screenshots`, one approvals count (bdd54f6).
 - 2026-11-09: effort through the facade; real homes show stewards (7f3044c).
 - 2026-11-09: Return and Escape on focused approval cards (5b52dba).
+- 2026-11-09: approval notifications with Approve and Deny actions (b0260e4).

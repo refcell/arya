@@ -16,11 +16,13 @@ import Testing
         await model.refresh()
         await store.reload()
         model.navigation.select(run: "run_0002", steward: "st_triage")
-        let shots: [(String, Destination)] = [
-            ("steward", .steward("st_triage")), ("approvals", .approvals),
-        ]
-        for (name, destination) in shots {
+        var shots: [(String, Destination, StewardTab)] = StewardTab.allCases.map {
+            ($0.rawValue, .steward("st_triage"), $0)
+        }
+        shots.append(("approvals", .approvals, .stream))
+        for (name, destination, tab) in shots {
             model.navigation.destination = destination
+            model.navigation.tab = tab
             let image = try #require(render(model, dark: scheme == "dark"))
             if let dir = ProcessInfo.processInfo.environment["ARYA_SCREENSHOTS_DIR"] {
                 let url = URL(fileURLWithPath: dir).appendingPathComponent("\(name)-\(scheme).png")
