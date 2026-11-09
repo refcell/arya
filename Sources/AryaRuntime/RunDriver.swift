@@ -259,6 +259,8 @@ final class RunDriver: @unchecked Sendable {
 
     private func dispose(_ actions: [ProposedAction]) async throws -> [ActionDisposal] {
         switch request.mode {
+        case .live where request.isCrewChild:
+            return try await loop.dispatcher.recordOnly(actions, charter: charter, run: run)
         case .live:
             return try await loop.dispatcher.dispose(actions, charter: charter, run: run)
         case .rehearsal:

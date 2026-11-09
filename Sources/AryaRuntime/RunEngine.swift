@@ -107,6 +107,8 @@ public struct RunOutcome: Sendable, Hashable {
     public var disposals: [ActionDisposal]
     /// True when a rehearsal tool call had no recorded answer.
     public var leak: Bool
+    /// The crew this run delegated to, if any.
+    public var crew: CrewOutcome?
 }
 
 /// Makes a fresh adapter for each run (one process per run, PROTOCOL.md).
@@ -164,6 +166,17 @@ public struct RunEngine: Sendable {
         let charter = request.charter ?? steward.charter
         let version = request.charter == nil ? steward.version : 0
         let run = ambient.newID(RunID.self)
+        var outcome = try await drive(run, request, charter, version)
+        if request.fansOut, let delegations = outcome.result?.delegations, !delegations.isEmpty {
+            outcome.crew = try await runCrew(
+                delegations, parent: run, request: request, charter: charter)
+        }
+        return outcome
+    }
+
+    private func drive(_ run: RunID, _ request: RunRequest, _ charter: Charter, _ version: Int)
+        async throws -> RunOutcome
+    {
         let lease = try leases.acquire(run)
         defer { lease.release() }
         let instructions = InstructionComposer.compose(InstructionInputs(charter: charter))

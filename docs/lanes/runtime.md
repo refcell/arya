@@ -37,7 +37,7 @@ M2:
 - [x] Triggers: manual, interval, message; the scheduler holds `scheduler.lock`;
   only ready, unpaused stewards take live triggers.
 - [ ] Calendar triggers: core `Trigger` has no calendar kind yet; add it with core first.
-- [ ] Crews: delegations become child runs bounded by `crew.maxParallel`, then one join run.
+- [x] Crews: delegations become child runs bounded by `crew.maxParallel`, then one join run.
 - [x] Budgets: `maxTurns`, `timeoutSeconds`, `maxCostMicros` enforced with `run/stop`.
 - [ ] Wire `GateChecking` to `AryaEval` in the facade; charter and routine changes go live only
   through it.
@@ -138,6 +138,13 @@ M4:
   message run when a `message` trigger matches the sender (a person binding id), with that
   person as actor. `SchedulerLock` flocks `<home>/scheduler.lock`; the facade takes it before
   creating a `Scheduler`.
+- Crews: `RunEngine.run` fans out a live top-level run's `delegations` before returning
+  (`RunOutcome.crew`). A child keeps the parent's trigger kind and charter, has `parent` set,
+  and records its actions as `action.proposed` only. The `join` run's input is canonical JSON
+  `{children: [{delegation, title, run, status, summary?, decisions, actions}]}`, where
+  `status` is `completed`, `stopped`, or `failed:<reason>`; failed children are reported, not
+  retried. Children, joins, and rehearsals never fan out (depth 1). `SchedulePlan` looks only
+  at top-level runs.
 
 ## Questions
 
@@ -173,3 +180,4 @@ M4:
 - 2026-11-09: `metric.recorded` from live-run measurements (decision 0030)
 - 2026-11-09: budgets: turns, cost, and wall-clock deadline enforced with `run/stop`
 - 2026-11-09: triggers and scheduler (`SchedulePlan`, `Scheduler`, `SchedulerLock`); interrupted scheduled runs re-queue
+- 2026-11-09: crews: child runs bounded by `crew.maxParallel`, then one join run

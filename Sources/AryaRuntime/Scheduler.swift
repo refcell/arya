@@ -19,7 +19,9 @@ public enum SchedulePlan {
             guard steward.takesLiveTriggers, let every = interval(steward.charter) else {
                 return nil
             }
-            let live = runs.all.filter { $0.steward == steward.id && !$0.rehearsal }
+            let live = runs.all.filter {
+                $0.steward == steward.id && !$0.rehearsal && $0.parent == nil
+            }
             if live.contains(where: { $0.status == .running }) { return nil }
             guard let last = live.last(where: { $0.trigger == RunInputKind.schedule.rawValue })
             else { return steward.id }
