@@ -120,6 +120,14 @@ public struct RehearsalReports: Sendable {
             leaks: outcomes.filter(\.leak).count, cases: cases)
     }
 
+    /// The recorded result of a rehearsal.
+    public func result(_ id: RehearsalID) async throws -> RehearsalResult {
+        guard let record = try RehearsalBook(try await sink.events(from: 1)).records[id] else {
+            throw EvalError.unknownRehearsal(id)
+        }
+        return record.result
+    }
+
     static func caseReport(
         _ item: Case, _ scored: RehearsalCaseScoredPayload?, _ corrections: [CaseCorrectedPayload]
     ) -> CaseReport {

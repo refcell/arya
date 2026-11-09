@@ -9,6 +9,14 @@ corrections, readiness, proposals, gates, and outcome metrics over time. Design:
 
 ## Backlog
 
+Priority (replay before live, visible in the app):
+- [x] Strategy backtest: `Backtester` rehearses two variants (current versus proposed charter
+  or routine) on one casebook; `BacktestComparison` per case shows each variant's result,
+  score, diff against what actually happened, delta and change, plus the gate verdict.
+- [x] Readiness read model: `ReadinessReport` with pass rate versus threshold, regressions,
+  last rehearsal time, corrections outstanding, and coded reasons for "not ready because".
+- [x] Outcome trend for sparklines: `OutcomeTrend` over fixed windows ending at a given time.
+
 M1:
 - [x] Interfaces only, so other lanes can compile against them: `Replayer`, `Rehearser`,
   `Scorer`, `Gate` (conforming to `GateChecking`), with stub implementations.
@@ -73,6 +81,15 @@ Later:
   a failed judge scores 0 with its error. `RecordedJudge` serves recorded verdicts so replay
   and re-scoring never ask a judge again. A charter-level `ScorerSpec.judge` needs the ledger
   lane (asked in its Questions).
+- Backtests always rehearse both variants fresh, so both sides see the same casebook, runner
+  and scorer. A case's change is decided by pass state first, then by score delta; the gate
+  verdict (current as baseline) is reported alongside. "What actually happened" is the case's
+  expected result as recorded and corrected.
+- Readiness: ready means a fresh live rehearsal (charter version and routines unchanged since
+  it finished), pass rate at least the threshold (default 1, every case), no leaks, no
+  regression against the previous live rehearsal on the same casebook, and no correction
+  recorded since it finished. `markedReady` is separate: a person still decides.
+- Trends take `end` from the caller and never read a clock; windows are epoch-aligned.
 - `GateRule` (pure, decision 0017): a missing baseline or differing case sets fail the gate; a
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
@@ -141,3 +158,4 @@ Later:
 - 2026-11-09: replay engine `RunReplayer(sink:casebooks:)`, a `Replayer` whose
   `replay(run:) async throws -> ReplayReport` drives `RunEngine` on recorded inputs (36829d4)
 - 2026-11-09: rehearsal-run replay, `RehearsalReports` review model, `AdapterJudge`/`CaseJudge`
+- 2026-11-09: backtest comparison, readiness report, outcome trend read models

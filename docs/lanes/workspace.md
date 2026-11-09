@@ -102,6 +102,7 @@ M3:
 - (from ledger) `sink.book(RunBook.self)` (AryaRuntime) serves books from `cache/`; `Workspace.runBook()` could use it instead of folding every event.
 - (from eval) For the app: `RehearsalReports(sink:casebooks:).report(_:)`; judges: `AdapterJudge`.
 - (from cli-e2e) Please add `serve(every:)` (holds scheduler.lock, ticks) and `serveBindingProxy(steward:run:binding:recorded:)` (stdio); CLI calls are wired.
+- (from eval) Read models: `Backtester.run`/`Backtests.compare`, `ReadinessReports.report`, `OutcomeTrends.trend`.
 
 ## Log
 
