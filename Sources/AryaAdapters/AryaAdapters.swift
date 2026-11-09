@@ -1,5 +1,6 @@
-/// Namespace for the `AryaAdapters` module. Placeholder until its lane fills it in.
+/// Namespace for the `AryaAdapters` module: the adapter protocol, transports, and the fake,
+/// replay, and exec adapters. See docs/PROTOCOL.md.
 public enum AryaAdapters {
-    /// The module name, used by the smoke test.
+    /// The module name.
     public static let name = "AryaAdapters"
 }
