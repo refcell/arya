@@ -370,3 +370,29 @@ private struct WhatIfRunner: CaseRunner {
     #expect(fixed.ready)
     #expect(fixed.summary == "ready: casebook 1/1, 1 recent runs checked, 1 improved")
 }
+
+@Test func facadeCorrectionFindsTheStewardsCasebook() async throws {
+    let (sink, run) = try await recordRun()
+    let blobs = MemoryBlobs()
+    let corrector = Corrector(sink: sink, blobs: blobs, ambient: .fixed(seed: 31))
+    let want: JSONValue = ["decisions": [["choice": "how-to"]]]
+
+    // No casebook yet: one named "corrections" is started.
+    let first = try await corrector.correct(run: run, expected: want)
+    #expect(first.casebook?.name == "corrections")
+    #expect(first.note.text == "Corrected what run \(run.rawValue) did.")
+
+    // Later corrections land in the steward's newest casebook.
+    let line = #"{"v":1,"id":"c1","input":{"text":"t"},"expected":{}}"#
+    try await CasebookImporter(blobs: blobs, sink: sink)
+        .importCasebook(name: "inbox", data: Data(line.utf8), steward: steward)
+    let second = try await corrector.correct(
+        run: run, expected: ["decisions": [["choice": "billing"]]], note: "Billing after all.",
+        person: "person:alex")
+    #expect(second.casebook?.name == "inbox")
+    #expect(second.casebook?.cases.count == 2)
+
+    await #expect(throws: EvalError.unknownRun(RunID(unchecked: "run_nope"))) {
+        try await corrector.correct(run: RunID(unchecked: "run_nope"), expected: want)
+    }
+}

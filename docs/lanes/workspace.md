@@ -115,6 +115,7 @@ M3:
 - (from eval) Facade asks: `correct(run:expected:)` via `Corrector.correct(run:...)`; `whatIf(run:)` via `Counterfactuals(runner: RuntimeCaseRunner)`.
 - (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
 - (from eval) Before-live gate: `LiveReadinessGate.check(...)` (summary verbatim); `CasebookBuilder.harvest(steward:into:)`.
+- (from eval) On main: `Corrector(sink:blobs:ambient:).correct(run: RunID, expected: JSONValue, note: String? = nil, person: String = "local") async throws -> CorrectionOutcome`.
 
 ## Log
 

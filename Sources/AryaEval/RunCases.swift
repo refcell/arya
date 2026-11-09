@@ -68,6 +68,31 @@ extension Casebook {
 }
 
 extension Corrector {
+    /// The facade's entry point: corrects what `run` did to `expected`. Finds the run's steward
+    /// and that steward's newest casebook (or starts one named `corrections`), then corrects as
+    /// `correct(run:expected:note:in:steward:person:)`.
+    public func correct(
+        run: RunID, expected: JSONValue, note: String? = nil, person: String = "local"
+    ) async throws -> CorrectionOutcome {
+        let events = try await sink.events(from: 1)
+        guard
+            let steward = events.first(where: {
+                $0.draft.run == run && $0.type == RunEventType.started
+            })?.draft.steward
+        else { throw EvalError.unknownRun(run) }
+        let newest = try CasebookBook(events).versions.values
+            .filter { $0.steward == steward }
+            .max { $0.seq < $1.seq }
+        var book = try Casebook(name: "corrections", cases: [])
+        if let newest {
+            book = try await StoredCasebooks(sink: sink, blobs: blobs).casebook(
+                version: newest.imported.version)
+        }
+        return try await correct(
+            run: run, expected: expected, note: note ?? "Corrected what run \(run.rawValue) did.",
+            in: book, steward: steward, person: person)
+    }
+
     /// Corrects what a run did (the in-app correction on a run thread): the run becomes a case
     /// of `book` with `expected` (added, or updating the case a rehearsal run came from), a new
     /// casebook version is recorded, then `case.corrected` and the memory note as `correct`.

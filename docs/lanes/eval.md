@@ -207,3 +207,4 @@ Later:
 - 2026-11-09: per-check score data and text for rubric, exact, and judge scorers
 - 2026-11-09: run corrections as cases, one-sentence scores, single-run what-if
 - 2026-11-09: live readiness gate, casebook builder from history, 50-case perf test
+- 2026-11-09: facade wrapper `Corrector.correct(run:expected:note:person:)`
