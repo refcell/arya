@@ -334,3 +334,15 @@ still asks (0032). `action.proposed` records `risk` and `autonomy`, and its `rea
 `Risk`, `Autonomy`, and `RiskRule` live in `AryaCore`; the new fields are omitted when unset,
 so existing charters and lines encode byte for byte as before. Why: a steward that owns an
 outcome should act on safe steps by itself and ask only where the risk warrants it.
+
+### 0038 — 2026-11-09 — Visual checks use offscreen snapshots
+
+Agents never launch the app window on the user's machine: no `just app`, `just run-app`, or
+`open` of the bundle, and nothing that shows a window, a Dock icon, or takes focus. A visual
+check is `just snapshot`, which seeds or reuses `.build/demo-home` and renders every key state
+(first launch, Overview, a run thread, a run with an approval, Needs you, Improve, Knowledge,
+Ledger with the inspector, and the New steward flow) at 1400 × 1000 pt in dark and light to
+`.build/snapshots/<state>.png` through `NSHostingView.cacheDisplay` inside a test process.
+Sheets render as standalone pages because they do not draw offscreen. Why: a window launched
+by an agent steals focus from the person using the machine, and offscreen PNGs on seeded data
+are reproducible and reviewable.

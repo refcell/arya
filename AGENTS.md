@@ -89,6 +89,8 @@ byte-identical copy of this file; edit both together (`cp AGENTS.md CLAUDE.md`).
   deterministic tests. No test touches the network or the user's real arya home.
 - Persisted formats get golden-file tests under `Tests/<Module>Tests/Fixtures`.
 - `just e2e` runs the end-to-end scenario ([docs/ROADMAP.md](docs/ROADMAP.md), milestone M3).
+- Visual check = `just snapshot` PNGs: every key app state rendered offscreen on the demo home
+  to `.build/snapshots`. Never launch the app window on the user's machine (decision 0038).
 
 ## Layout
 

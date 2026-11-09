@@ -102,12 +102,9 @@ struct StewardPage: View {
 
     private var stewardPage: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {
-                PageTitle(title: steward.name, subtitle: steward.outcome)
-                Spacer(minLength: AryaSpace.s4)
-                primaryAction
-            }
-            .padding(.horizontal, AryaSize.pagePadding)
+            // The outcome line below carries the page's one primary action (app-outcome).
+            PageTitle(title: steward.name, subtitle: steward.outcome)
+                .padding(.horizontal, AryaSize.pagePadding)
             FeatureRegistry.outcomeLine(model.featureContext())
                 .padding(.horizontal, AryaSize.pagePadding)
                 .padding(.top, AryaSpace.s3)
@@ -123,24 +120,6 @@ struct StewardPage: View {
                     minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.top, AryaSize.titleBarInset)
-    }
-
-    /// Orange "Review N approvals" when something waits on a person, else a quiet "Run now".
-    /// On Overview the approval itself is on the page with its own orange button, so the
-    /// header's link goes quiet to keep one primary action per screen (STYLE.md rule 3).
-    @ViewBuilder private var primaryAction: some View {
-        let pending = model.pendingApprovals(steward: steward.id)
-        if pending > 0 && model.navigation.tab == .overview {
-            Button(StewardPage.reviewTitle(pending)) { model.navigation.showApprovals() }
-                .buttonStyle(.aryaQuiet)
-        } else if pending > 0 {
-            Button(StewardPage.reviewTitle(pending)) { model.navigation.showApprovals() }
-                .buttonStyle(.aryaPrimary)
-        } else {
-            Button("Run now") { Task { await model.startRun() } }
-                .buttonStyle(.aryaQuiet)
-                .disabled(steward.status != .active)
-        }
     }
 
     static func reviewTitle(_ count: Int) -> String {
@@ -194,15 +173,19 @@ struct InspectorView: View {
                     Text(model.source.label).aryaText(AryaFont.mono, AryaColor.inkMuted)
                 }
                 section("Appearance") {
-                    Picker("Appearance", selection: $appearance) {
-                        Text("Dark").tag(AryaAppearance.dark.rawValue)
-                        Text("Light").tag(AryaAppearance.light.rawValue)
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .frame(width: 160)
-                    .onChange(of: appearance) { _, stored in
-                        AryaApp.apply(AryaAppearance(stored: stored))
+                    HStack(spacing: AryaSpace.s2) {
+                        ForEach(AryaAppearance.allCases, id: \.self) { choice in
+                            Button(choice.rawValue.capitalized) {
+                                appearance = choice.rawValue
+                                AryaApp.apply(choice)
+                            }
+                            .buttonStyle(.aryaTertiary)
+                            .foregroundStyle(
+                                appearance == choice.rawValue ? AryaColor.ink : AryaColor.inkFaint
+                            )
+                            .accessibilityAddTraits(
+                                appearance == choice.rawValue ? .isSelected : [])
+                        }
                     }
                 }
             }

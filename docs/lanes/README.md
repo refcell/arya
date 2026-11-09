@@ -52,3 +52,5 @@ lands. When you publish an interface another lane needs, say so in your log line
    other lanes). Put questions for the project lead under `## Questions` and move on.
 5. Repeat. When the backlog is empty, extend it with the next most valuable work toward the
    M3 end-to-end scenario and then M4, and keep going.
+6. UI lanes: Visual check = `just snapshot` PNGs in `.build/snapshots` (decision 0038). Never
+   launch the app window (`just app`, `just run-app`, `open`) on the user's machine.

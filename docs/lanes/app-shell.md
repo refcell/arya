@@ -5,7 +5,7 @@ Owns `Sources/AryaDesign`, `Sources/AryaApp/App`, `Sources/AryaApp/Shell`,
 
 Goal: **a calm, native macOS window that makes stewards, runs, and approvals easy to watch.**
 The design system from [STYLE.md](../STYLE.md) as tokens and components, the app entry point,
-window, rail, header, tab bar, approval queue placement, and the bundle that `just app` builds.
+window, rail, header, tab bar, approval queue placement, the app bundle, and `just snapshot`.
 Design: [ARCHITECTURE.md](../ARCHITECTURE.md#the-app), decision 0002.
 
 ## Backlog
@@ -152,3 +152,12 @@ M4:
   Overview so the inline Approve is the one orange element. Remaining in the Overview body
   (app-views): boxed tool cards, `auto` chips and "Ran", the charter status line, and the
   manual-run field shown inline.
+- 2026-11-09: chrome, one canvas, summary threads, four tabs, inspector, and a run page that
+  shows only the transcript under a breadcrumb landed (a0d8491). Decision 0035 became 0036.
+- 2026-11-09: decision 0038, Visual check = `just snapshot` PNGs (offscreen, no window).
+  `ScreenshotTests` became `SnapshotTests`; `just screenshots` became `just snapshot`.
+- Visual check (`just snapshot`, 9 states, dark and light): R1 pass, no title band; R2 pass, one
+  canvas with hairlines; R3 pass, the duplicate header "Review" button is gone (the outcome line
+  owns the one primary action) and Appearance is quiet text, not a blue segmented control; R4
+  pass, four tabs, threads titled by summary, a run shows only its transcript; R5 pass, sans
+  only. Open for app-views: ledger columns truncate (`run.a…event`, `1h…go`).
