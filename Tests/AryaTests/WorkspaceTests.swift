@@ -434,7 +434,12 @@ struct Opened {
     let approval = try #require(try await opened.workspace.approvals().first)
     #expect(approval.policyRule == "autonomy:act_low:medium")
     #expect(approval.risk == "medium")
-    #expect(approval.policyText == "Autonomy act low asks before medium-risk actions.")
+    #expect(
+        approval.policyText
+            == "This steward acts on low-risk actions only; this one is medium risk, "
+            + "so it asks you."
+    )
+    #expect(approval.change == nil)
     let detail = try #require(try await opened.workspace.run(run.id))
     #expect(detail.actions.first?.risk == "medium")
 }
@@ -456,4 +461,59 @@ struct Opened {
     await #expect(throws: WorkspaceError.notFound("st_none")) {
         try await workspace.risk(kind: "label", steward: "st_none")
     }
+}
+
+@Test func autonomySentencesNeverShowTokens() {
+    let reply = ProposedAction(id: "a1", kind: "reply", binding: "inbox")
+    func text(_ reason: String) -> String {
+        Workspace.policyText(reason, action: reply, charter: nil)
+    }
+    #expect(
+        text("autonomy:suggest:low")
+            == "This steward only suggests changes, so a person approves each action.")
+    #expect(text("autonomy:observe:low").hasPrefix("This steward only observes"))
+    #expect(
+        text("autonomy:act_medium:high")
+            == "This steward acts on low- and medium-risk actions only; this one is high risk, "
+            + "so it asks you.")
+    for reason in ["autonomy:suggest:low", "autonomy:bogus", "something_else", "default"] {
+        #expect(!text(reason).contains(":") && !text(reason).contains("_"))
+    }
+}
+
+@Test func labelApprovalsShowWhatChanges() async throws {
+    func labeled(_ label: String) -> JSONValue {
+        var result = liveResult
+        result[set: "actions"] = [
+            [
+                "id": "a1", "kind": "label", "binding": "inbox", "target": "inbox:MSG-9",
+                "params": ["label": .string(label)],
+            ]
+        ]
+        return result
+    }
+    var charter = try Charter.load(from: try inboxCharterJSON())
+    charter.policy = Policy()
+    charter.autonomy = .suggest
+    let opened = try await Opened([
+        FakeScript.Run(input: "New message MSG-9", result: labeled("billing")),
+        FakeScript.Run(input: "Again MSG-9", result: labeled("urgent")),
+    ])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let first = try #require(try await workspace.approvals().first)
+    #expect(first.change?.text == "label: none → billing")
+    #expect(first.source == "New message MSG-9")
+    #expect(first.policyText?.hasPrefix("This steward only suggests changes") == true)
+    _ = try await workspace.approve(first.id)
+
+    _ = try await workspace.startRun(steward: "st_inbox", input: "Again MSG-9")
+    let second = try #require(try await workspace.approvals().first)
+    #expect(
+        second.change
+            == .init(
+                field: "label", from: "billing", to: "urgent",
+                text: "label: billing → urgent"))
 }

@@ -180,3 +180,5 @@ M3:
   `knowledge(steward:) -> KnowledgeView`, sentences written in the facade; 50 tests.
 - 2026-11-09: `correct(run:expected:note:by:)` on eval's `Corrector.correct(run:)` and
   `expected(run:choice:)` from the run's recorded result; `whatIf(run:proposal:)`; 52 tests.
+- 2026-11-09: autonomy holds read as plain sentences (no tokens); `ApprovalSummary.change`
+  (`label: none → billing`, from the last executed value on the target); 54 tests.

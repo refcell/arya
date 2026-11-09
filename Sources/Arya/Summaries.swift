@@ -133,6 +133,16 @@ extension RunSummary {
 
 /// An item in the approval queue: a held action or a question from a run.
 public struct ApprovalSummary: Sendable, Hashable, Codable, Identifiable {
+    /// One field an action would change: the value it last had through arya (`nil` when arya
+    /// never set it) and the proposed one.
+    public struct Change: Sendable, Hashable, Codable {
+        public var field: String
+        public var from: String?
+        public var to: String
+        /// For example `label: none → billing`.
+        public var text: String
+    }
+
     /// What is being approved.
     public enum Kind: String, Sendable, Hashable, Codable {
         /// A proposed action held by policy.
@@ -184,6 +194,8 @@ public struct ApprovalSummary: Sendable, Hashable, Codable, Identifiable {
     public var params: String?
     /// The item the run worked on (the run's input text, for example the message it read).
     public var source: String?
+    /// What a non-reply action would change, for example `label: none → billing`.
+    public var change: Change?
     /// The policy verdict that held it, for example `default` or `rule:reply`.
     public var policyRule: String?
     /// That verdict in a person's words: the charter rule's `note`, else a sentence built from

@@ -205,13 +205,22 @@ public actor Workspace {
         let wanted = Set(approvals.map(\.run))
         var reasons: [String: String] = [:]
         var risks: [String: Risk] = [:]
+        var proposed: [String: ProposedAction] = [:]
+        var executed: [(seq: Int, action: ProposedAction)] = []
         try reader.forEach { event in
-            guard event.type == .actionProposed, let run = event.run?.rawValue,
-                wanted.contains(run)
-            else { return }
-            let body = try event.payload(as: ActionProposed.self)
-            reasons["\(run):\(body.action.id)"] = body.reason
-            risks["\(run):\(body.action.id)"] = body.risk
+            guard let run = event.run?.rawValue else { return }
+            if event.type == .actionProposed {
+                let body = try event.payload(as: ActionProposed.self)
+                proposed["\(run):\(body.action.id)"] = body.action
+                guard wanted.contains(run) else { return }
+                reasons["\(run):\(body.action.id)"] = body.reason
+                risks["\(run):\(body.action.id)"] = body.risk
+            } else if event.type == .actionExecuted {
+                let body = try event.payload(as: ActionExecuted.self)
+                if let action = proposed["\(run):\(body.action)"] {
+                    executed.append((Int(event.seq), action))
+                }
+            }
         }
         let actionIDs = try await approvalQueue.book().records
         let recorded = RecordedResults(try reader.events())
@@ -232,6 +241,7 @@ public actor Workspace {
                 out.risk =
                     risks["\(approval.run):\(action.id)"]?.rawValue ?? wire?.risk?.rawValue
                 out.why = wire?.why
+                out.change = Self.change(action, after: executed.map(\.action))
             }
             return out
         }
@@ -251,9 +261,9 @@ public actor Workspace {
         }
         if reason.hasPrefix("autonomy:") {
             let parts = reason.split(separator: ":").map(String.init)
-            let level = parts.count > 1 ? parts[1].replacingOccurrences(of: "_", with: " ") : ""
-            let risk = parts.count > 2 ? "\(parts[2])-risk " : ""
-            return "Autonomy \(level) asks before \(risk)actions."
+            let level = parts.count > 1 ? Autonomy(rawValue: parts[1]) : nil
+            let risk = parts.count > 2 ? Risk(rawValue: parts[2]) : nil
+            return autonomyText(level, risk: risk)
         }
         switch reason {
         case "default":
@@ -261,8 +271,56 @@ public actor Workspace {
         case "routine_default":
             return "A routine version needs approval until the charter names it."
         default:
-            return "Held for approval (\(reason))."
+            return "The steward's policy holds this action for a person."
         }
+    }
+
+    /// Why an autonomy level made an action wait, as a plain sentence.
+    static func autonomyText(_ level: Autonomy?, risk: Risk?) -> String {
+        let risky = risk.map { "this one is \($0.rawValue) risk" } ?? "this one may not be"
+        switch level {
+        case .observe:
+            return "This steward only observes, so it takes no action without a person."
+        case .suggest:
+            return "This steward only suggests changes, so a person approves each action."
+        case .actLow:
+            return "This steward acts on low-risk actions only; \(risky), so it asks you."
+        case .actMedium:
+            return "This steward acts on low- and medium-risk actions only; "
+                + (risk.map { "this one is \($0.rawValue) risk" } ?? "this one may be high risk")
+                + ", so it asks you."
+        case nil:
+            return "This steward's autonomy level holds this action for a person."
+        }
+    }
+
+    /// What an action would change: its scalar params against the same kind of action last
+    /// executed on the same target (`label: none → billing`). Nil for replies and messages,
+    /// whose content is the change, and for actions without scalar params.
+    static func change(_ action: ProposedAction, after executed: [ProposedAction])
+        -> ApprovalSummary.Change?
+    {
+        guard !["reply", "message", "comment", "send"].contains(action.kind),
+            let params = action.params?.objectValue
+        else { return nil }
+        func scalar(_ value: JSONValue?) -> String? {
+            switch value {
+            case .string(let text)?: text
+            case .int(let number)?: String(number)
+            case .double(let number)?: String(number)
+            case .bool(let flag)?: String(flag)
+            default: nil
+            }
+        }
+        guard let key = params.keys.sorted().first(where: { scalar(params[$0]) != nil }),
+            let to = scalar(params[key])
+        else { return nil }
+        let from = executed.last {
+            $0.kind == action.kind && $0.target == action.target
+                && scalar($0.params?.objectValue?[key]) != nil
+        }.flatMap { scalar($0.params?.objectValue?[key]) }
+        return .init(
+            field: key, from: from, to: to, text: "\(key): \(from ?? "none") → \(to)")
     }
 
     /// Grants a pending approval; an action then executes with the steward's live charter and
