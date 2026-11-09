@@ -18,8 +18,8 @@ with a native macOS app.
 <!-- App screenshot or GIF goes here once `just demo` lands (docs/ROADMAP.md, M3). -->
 
 > [!WARNING]
-> Pre-alpha. The design is written and the components are being built now. Nothing works end to
-> end yet.
+> Pre-alpha. The components are being built now. `just e2e` shows how far the end-to-end
+> scenario gets: each step reports ok or names the piece it is waiting for.
 
 ## Design
 
@@ -45,14 +45,14 @@ The full design is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 | Component | Path | Scope | State |
 | --- | --- | --- | --- |
-| Core | `Sources/AryaCore` | ids, ambient clock and randomness, charters, cases, canonical JSON | planned |
-| Ledger | `Sources/AryaLedger` | hash-chained event ledger, store, repair, verify, projections | planned |
-| Adapters | `Sources/AryaAdapters`, `Sources/AryaFakeAdapter`, `Sources/AryaExecAdapter` | protocol, stdio transport, fake, replay, and exec adapters, conformance | planned |
-| Runtime | `Sources/AryaRuntime`, `Sources/Arya` | stewards, triggers, run loop, policy, approvals, binding proxy, crews | planned |
-| Memory and routines | `Sources/AryaMemory` | notes with provenance, versioned routine library | planned |
-| Eval | `Sources/AryaEval` | replay, casebooks, rehearsal, scorers, proposals, gates, metrics | planned |
-| App | `Sources/AryaDesign`, `Sources/AryaApp` | design system, shell, run stream, approvals, ledger, rehearsals | planned |
-| CLI | `Sources/AryaCLI` | the `arya` command, examples, end-to-end scenario | planned |
+| Core | `Sources/AryaCore` | ids, ambient clock and randomness, charters, cases, canonical JSON | in progress: ids, `Ambient`, canonical JSON, `Charter`, `Case` |
+| Ledger | `Sources/AryaLedger` | hash-chained event ledger, store, repair, verify, projections | in progress |
+| Adapters | `Sources/AryaAdapters`, `Sources/AryaFakeAdapter`, `Sources/AryaExecAdapter` | protocol, stdio transport, fake, replay, and exec adapters, conformance | in progress: protocol, transport, fake adapter, conformance |
+| Runtime | `Sources/AryaRuntime`, `Sources/Arya` | stewards, triggers, run loop, policy, approvals, binding proxy, crews | in progress: lifecycle, policy, approvals, executor, `Workspace` API |
+| Memory and routines | `Sources/AryaMemory` | notes with provenance, versioned routine library | in progress: notes, retrieval, corrections, routine library |
+| Eval | `Sources/AryaEval` | replay, casebooks, rehearsal, scorers, proposals, gates, metrics | in progress: casebooks, scorers, corrections, readiness |
+| App | `Sources/AryaDesign`, `Sources/AryaApp` | design system, shell, run stream, approvals, ledger, rehearsals | in progress: tokens, components, run stream, approvals, ledger |
+| CLI | `Sources/AryaCLI`, `etc/examples` | the `arya` command, examples, end-to-end scenario | in progress: every M1 and M2 command parsed and wired; `just e2e` runs |
 
 Each area has a backlog with its decisions and progress log in [docs/lanes](docs/lanes). The plan
 is in [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -72,21 +72,24 @@ common commands; `just app` builds `Arya.app`.
 
 ## Usage
 
-Planned CLI (milestones M1 and M2 in [docs/ROADMAP.md](docs/ROADMAP.md)):
-
 ```sh
-arya init                                    # create an arya home
-arya steward create --charter triage.json    # define a steward from a charter
-arya casebook import triage past-issues.jsonl
-arya rehearse triage                         # what would it have done?
-arya correct triage case-0007 --choice bug   # correct one case
-arya ready triage                            # allow live triggers
-arya run triage                              # start a run now
-arya approvals                               # list held actions
-arya approve <approval>                      # approve one
-arya replay <run>                            # re-run deterministically, report divergence
-arya ledger verify                           # check the hash chain
+arya init                                            # create an arya home
+arya steward create --charter etc/examples/triage/charter.json
+arya casebook import st_triage etc/examples/triage/casebook.jsonl
+arya rehearse st_triage                              # what would it have done?
+arya correct st_triage case-0006 --choice billing    # correct one case
+arya ready st_triage                                 # allow live triggers
+arya run st_triage --input "New message MSG-201: Refund for a duplicate charge"
+arya approvals                                       # list held actions
+arya approve <approval>                              # approve one; it executes
+arya metrics st_triage                               # outcome metric series
+arya replay <run>                                    # re-run deterministically, report divergence
+arya ledger verify                                   # check the hash chain
 ```
+
+Every listing takes `--json`. The home defaults to `~/Library/Application Support/arya`;
+`--home <dir>` or `ARYA_HOME` picks another. `arya --help` lists all commands, and
+[etc/examples](etc/examples) describes the example steward used above.
 
 ## Testing
 
@@ -95,6 +98,11 @@ just test                 # all tests (Swift Testing)
 just test Ledger          # only tests matching "Ledger"
 just e2e                  # end-to-end scenario with the fake adapter
 ```
+
+`just e2e` defines the example steward in a temporary home, rehearses it, corrects a case, marks
+it ready, runs it live, approves the held reply, checks the ledger and metrics, replays the run,
+and verifies the ledger. It exits 0 when every step passes, 1 on a failure, and 2 while a step
+is still waiting on a component.
 
 Tests never touch the network or your real arya home: they use the fake adapter and a fixed
 ambient clock and id generator.
