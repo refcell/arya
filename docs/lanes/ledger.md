@@ -71,10 +71,11 @@ Next (lane-extended, in order):
 - [ ] (6) `system.checkpoint`: build, sign, check; `LedgerVerifier` anchoring with an
   `unanchored` issue and its report text.
 - [ ] (7) Projection seeding from a checkpoint's digests; then `compact` and `verify --archive`.
-- [ ] (5a, CEO priority for app parity) Keep full-ledger reads fast for the app's outcome,
-  recap, and activity views, which read weeks of events: extend the perf probe to 50,000
-  events, add a time-range read (`events(since: Timestamp)`) that skips segments by their
-  first line's `at`, and keep reads within the same per-event CPU budget as today.
+- [x] (5a, CEO priority for app parity) Fast long-range reads: `LineSieve` skips lines that
+  cannot match a `LedgerFilter` before hashing or parsing; `LedgerFilter.since`/`until`;
+  `events(since:)` skips segments by first-line `at`; typed `events(P.self, matching:)`.
+  50,000 events, debug, thread CPU: filtered scan 0.09 s (target 0.5 s), namespace 0.22 s,
+  last week (10,080) 0.19 s, full read 0.77 s. Probe: `perfFilteredScanOf50000EventsIsUnderTarget`.
 - [ ] (8) Use the `LedgerIndex` run spans to narrow `page(_:)` run queries when scans get slow.
 
 ## Decisions
@@ -143,6 +144,14 @@ Next (lane-extended, in order):
   differences: nesting past `maxDepth` (128) and any raw NUL byte are errors. The writer
   refuses payloads deeper than `maxDepth - 1` (`LedgerError.payloadTooDeep`) so every
   written line reads back; no existing writer comes near that depth.
+- Filtered reads go through `LineSieve`: per filter field, canonical-JSON needles
+  (`"steward":"…"`, `"type":"…"`, actor `{"actor":{"id":"…"`, `"kind":"…"}`) found with
+  `memmem`, plus the envelope `at` read from the first `"at":"`. Needles are necessary, never
+  sufficient: passing lines still open and match in full, so payload decoys only cost time.
+  Skipped lines are not hash-checked (verify is the integrity check); the first line after a
+  `seq` skip is always opened to keep the contiguity check. `since` skips a segment when the
+  next one's first `at` is before the bound, assuming `at` never steps back across a segment
+  boundary; segments read are compared line by line.
 - Perf probes measure thread CPU time, not wall time, so a loaded machine does not make them
   flaky. Hot loops in `JSONParser` and `LedgerLine` use index loops and plain byte compares:
   tests run debug builds, where range patterns and generic slice algorithms cost metadata
@@ -153,6 +162,8 @@ Next (lane-extended, in order):
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
+- 2026-11-09: (5a) done: sieved filtered reads, `since`/`until`, `events(since:)`, typed
+  reads; 50k filtered scan 0.09 s CPU. Read API offered in workspace.md Questions.
 - HANDOFF 2026-11-09 (second session, ended near auto-compaction): backlog (1)-(4) done and
   on main. Next is (5a) (app-parity read speed), then (5)-(8), all from the ARCHITECTURE.md checkpoint note. Notes:
   measure perf with thread CPU time (`ARYA_PERF=1 just test perf`); wall time is meaningless

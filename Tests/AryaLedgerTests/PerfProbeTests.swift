@@ -62,3 +62,51 @@ private func filledHome() throws -> TempHome {
         "PERF hash: \(format(hash)); parse: \(format(parse)); open: \(format(open)); "
             + "JSONDecoder: \(format(decoder)); 50 single appends: \(format(append))")
 }
+
+/// 50,000 events (weeks of history) over 8 stewards and 5 types, one minute apart, with a
+/// 300-byte payload each, in 4 MiB segments.
+private func weeksHome() throws -> (TempHome, Timestamp) {
+    let home = try TempHome()
+    let start = Timestamp(millis: 1_767_225_600_000)
+    let store = try LedgerStore(
+        home: home.url, ambient: .fixed(start: start, stepMillis: 60_000),
+        segmentLimitBytes: 4 << 20)
+    let stewards = (0..<8).map { StewardID(rawValue: "st_s\($0)")! }
+    let types: [EventType] = [
+        .runDecision, .runStarted, .approvalGranted, .systemStarted, "metric.recorded",
+    ]
+    let payload: JSONValue = ["text": .string(String(repeating: "x", count: 300))]
+    for batch in 0..<50 {
+        try store.append(
+            (0..<1000).map { index in
+                let n = batch * 1000 + index
+                return EventDraft(
+                    type: types[n % 5], actor: .system, steward: stewards[n % 8], payload: payload)
+            })
+    }
+    return (home, start)
+}
+
+/// Target from the ledger lane (5a): a filtered scan of 50,000 events under 0.5 s (debug).
+@Test(.enabled(if: perfEnabled)) func perfFilteredScanOf50000EventsIsUnderTarget() throws {
+    let (home, start) = try weeksHome()
+    defer { home.cleanup() }
+    let reader = LedgerReader(home: home.url)
+    let steward = StewardID(rawValue: "st_s3")!
+    var counts: [Int] = []
+    let filtered = try cpuSeconds {
+        counts.append(
+            try reader.events(LedgerFilter(steward: steward, types: [.runDecision])).count)
+    }
+    let typed = try cpuSeconds {
+        counts.append(try reader.events(LedgerFilter(namespaces: ["approval"])).count)
+    }
+    let lastWeek = start.adding(milliseconds: (50_000 - 10_080) * 60_000)
+    let since = try cpuSeconds { counts.append(try reader.events(since: lastWeek).count) }
+    let full = try cpuSeconds { counts.append(try reader.events().count) }
+    print(
+        "PERF 50k: filtered \(format(filtered)); namespace \(format(typed)); "
+            + "last week \(format(since)); full \(format(full)); counts \(counts)")
+    #expect(counts == [1250, 10_000, 10_080, 50_000])
+    #expect(filtered < 0.5)
+}

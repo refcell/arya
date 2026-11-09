@@ -11,10 +11,15 @@ public struct LedgerFilter: Hashable, Sendable {
     public var namespaces: Set<String>
     public var actorKind: Actor.Kind?
     public var actorID: String?
+    /// Events at or after this time.
+    public var since: Timestamp?
+    /// Events strictly before this time.
+    public var until: Timestamp?
 
     public init(
         steward: StewardID? = nil, run: RunID? = nil, types: Set<EventType> = [],
-        namespaces: Set<String> = [], actorKind: Actor.Kind? = nil, actorID: String? = nil
+        namespaces: Set<String> = [], actorKind: Actor.Kind? = nil, actorID: String? = nil,
+        since: Timestamp? = nil, until: Timestamp? = nil
     ) {
         self.steward = steward
         self.run = run
@@ -22,6 +27,8 @@ public struct LedgerFilter: Hashable, Sendable {
         self.namespaces = namespaces
         self.actorKind = actorKind
         self.actorID = actorID
+        self.since = since
+        self.until = until
     }
 
     public func matches(_ event: Event) -> Bool {
@@ -31,6 +38,8 @@ public struct LedgerFilter: Hashable, Sendable {
         if !namespaces.isEmpty, !namespaces.contains(String(event.type.namespace)) { return false }
         if let actorKind, event.actor.kind != actorKind { return false }
         if let actorID, event.actor.id != actorID { return false }
+        if let since, event.at < since { return false }
+        if let until, event.at >= until { return false }
         return true
     }
 }
@@ -51,8 +60,7 @@ extension LedgerReader {
         var events: [Event] = []
         var more = false
         do {
-            try forEach(from: after + 1) { event in
-                guard filter.matches(event) else { return }
+            try forEach(filter, from: after + 1) { event in
                 if events.count == limit {
                     more = true
                     throw StopScan()
@@ -71,17 +79,47 @@ extension LedgerReader {
         let limit = max(1, limit)
         var window: [Event] = []
         var dropped = false
-        try forEach { event in
-            if let before, event.seq >= before { return }
-            guard filter.matches(event) else { return }
-            window.append(event)
-            if window.count > limit {
-                window.removeFirst()
-                dropped = true
+        do {
+            try forEach(filter) { event in
+                if let before, event.seq >= before { throw StopScan() }
+                window.append(event)
+                if window.count > limit {
+                    window.removeFirst()
+                    dropped = true
+                }
             }
-        }
+        } catch is StopScan {}
         return LedgerPage(events: window, next: dropped ? window.first?.seq : nil)
     }
 }
 
 private struct StopScan: Error {}
+
+/// An event with its decoded payload.
+public struct TypedEvent<P: EventPayload>: Equatable, Sendable {
+    public var event: Event
+    public var payload: P
+
+    public init(event: Event, payload: P) {
+        self.event = event
+        self.payload = payload
+    }
+}
+
+extension LedgerReader {
+    /// Every event of payload type `P` matching `filter` with `seq >= from`, decoded. Lines
+    /// of other types are skipped before they are hashed or parsed, so a typed read over
+    /// weeks of history costs little more than finding its matches.
+    public func events<P: EventPayload>(
+        _ type: P.Type, matching filter: LedgerFilter = LedgerFilter(), from seq: Int64 = 1
+    ) throws -> [TypedEvent<P>] {
+        if !filter.types.isEmpty, !filter.types.contains(P.type) { return [] }
+        var typed = filter
+        typed.types = [P.type]
+        var out: [TypedEvent<P>] = []
+        try forEach(typed, from: seq) { event in
+            out.append(TypedEvent(event: event, payload: try event.payload(as: P.self)))
+        }
+        return out
+    }
+}

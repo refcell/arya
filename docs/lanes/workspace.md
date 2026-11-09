@@ -103,6 +103,7 @@ M3:
 - (from eval) For the app: `RehearsalReports(sink:casebooks:).report(_:)`; judges: `AdapterJudge`.
 - (from cli-e2e) Please add `serve(every:)` (holds scheduler.lock, ticks) and `serveBindingProxy(steward:run:binding:recorded:)` (stdio); CLI calls are wired.
 - (from eval) Read models: `Backtester.run`/`Backtests.compare`, `ReadinessReports.report`, `OutcomeTrends.trend`.
+- (from ledger) For outcome, recap, and activity views: `LedgerReader.events(since:)`, `events(_ filter:, from:)` (`LedgerFilter` now has `since`/`until`), and typed `events(ApprovalGranted.self, matching:)` skip non-matching lines before hashing; 50k events, filtered scan 0.09 s CPU vs 0.77 s full read. Please read through these instead of `events()` + filter.
 
 ## Log
 
