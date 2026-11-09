@@ -19,7 +19,7 @@ import Testing
         provenance: "From your correction to case case-0006.", time: "4 weeks ago",
         absoluteTime: "2026-10-12 09:00", run: "run_01XYZ")
     let line = KnowledgeText.provenance(note)
-    #expect(line == "From your correction to case case-0006 · 4 weeks ago")
+    #expect(line == "From your correction to case-0006 · 4 weeks ago")
     #expect(!line.contains("mem_") && !line.contains("run_"))
     #expect(KnowledgeText.shortVersion("sha256:1a2b3c4d5e6f") == "1a2b3c4d")
 }

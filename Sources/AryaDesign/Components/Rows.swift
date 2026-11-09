@@ -8,16 +8,19 @@ public struct RailRow: View {
     let trailing: String?
     let isSelected: Bool
     let indent: CGFloat
+    let trailingIsMono: Bool
 
+    /// - Parameter trailingIsMono: set for machine text such as a metric against its target.
     public init(
         _ title: String, status: AryaStatus? = nil, trailing: String? = nil,
-        isSelected: Bool = false, indent: CGFloat = 0
+        isSelected: Bool = false, indent: CGFloat = 0, trailingIsMono: Bool = false
     ) {
         self.title = title
         self.status = status
         self.trailing = trailing
         self.isSelected = isSelected
         self.indent = indent
+        self.trailingIsMono = trailingIsMono
     }
 
     public var body: some View {
@@ -26,7 +29,11 @@ public struct RailRow: View {
             Text(title).aryaText(AryaFont.body, AryaColor.ink).lineLimit(1)
             Spacer(minLength: AryaSpace.s2)
             if let trailing {
-                Text(trailing).aryaText(AryaFont.caption, AryaColor.inkFaint).lineLimit(1)
+                Text(trailing)
+                    .aryaText(
+                        trailingIsMono ? AryaFont.monoSmall : AryaFont.caption, AryaColor.inkFaint
+                    )
+                    .lineLimit(1)
             }
         }
         .padding(.leading, AryaSpace.s2 + indent)

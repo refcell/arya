@@ -196,3 +196,12 @@ M4:
   changes, so a person approves each action."; R1-R5 pass.
 - (to app-views) `PolicyText` gained the autonomy branch in `RunStreamModel.swift`; unknown
   reasons now read "The steward's policy holds this action for a person." instead of the token.
+- 2026-11-09: one time rule. `AryaTime.label` is relative under 24 h, then "Nov 8", in every view.
+  `FeatureTime` delegates to it, the stream gutter uses `AryaTime.clock`, and a test fails on any
+  date formatter in `Sources/AryaApp`. Knowledge shows "waiting" in the muted tone, reads
+  `case-0006`, and Retract calls workspace's `retract(memory:)`. The sidebar shows steward health
+  (`needsYou`, `onTrack`, `offTrack`, `paused` with a muted word) and the selected steward's
+  metric against its target; new snapshot state `stewards`.
+- Visual check (`just snapshot`, reseeded 3-steward demo): MSG-203 reads "Nov 8" on Overview,
+  sidebar, and Needs you; the plan line reads "Changed Nov 8". The sidebar shows paused muted,
+  needs-you orange, and `0.84 / 0.90` on the selected row. R1-R5 pass.

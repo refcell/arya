@@ -43,6 +43,12 @@ import Testing
             try page("run-approval") { $0.select(run: waiting.id, steward: steward.id) }
         }
         try page("needs-you") { $0.showApprovals() }
+        // The fleet in the sidebar: another steward selected, so every steward's dot, the
+        // paused word, and the selected one's metric against its target all show.
+        if let other = model.stewards.first(where: { $0.id != steward.id && $0.status == .active })
+        {
+            try page("stewards") { $0.select(steward: other.id) }
+        }
         try write(
             "needs-you-autonomy", scheme: scheme,
             render(RootView(model: await autonomyModel()), dark: dark))

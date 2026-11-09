@@ -69,16 +69,33 @@ struct RailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// The steward's metric series from the ledger, when the feature store has loaded it.
+    private func metric(_ steward: String) -> MetricSeries? {
+        guard case .loaded(let events) = model.featureStore?.state else { return nil }
+        return MetricSeries.build(events: events, steward: steward)
+    }
+
     @ViewBuilder private func stewardRows(_ steward: StewardSummary) -> some View {
         let runs = model.runs[steward.id] ?? []
         let isSelected = model.navigation.steward == steward.id
         Button {
             model.navigation.select(steward: steward.id)
         } label: {
+            let series = metric(steward.id)
             RailRow(
-                steward.name, status: StatusMapping.status(of: steward, runs: runs),
+                steward.name,
+                status: StatusMapping.health(
+                    of: steward, runs: runs, pending: model.pendingApprovals(steward: steward.id),
+                    onTrack: series?.meetsTarget),
+                trailing: steward.status == .paused
+                    ? "paused"
+                    : isSelected
+                        ? StatusMapping.metricSuffix(
+                            latest: series?.latest?.value, target: series?.definition.target)
+                        : nil,
                 isSelected: isSelected && model.navigation.run == nil
-                    && model.navigation.destination != .approvals)
+                    && model.navigation.destination != .approvals,
+                trailingIsMono: steward.status != .paused)
         }
         .buttonStyle(.plain)
         if isSelected {

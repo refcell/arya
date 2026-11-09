@@ -141,10 +141,9 @@ private struct RoutineRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                     DisclosureChevron(isExpanded: isExpanded)
                     Text(routine.name).aryaText(AryaFont.mono, AryaColor.ink)
-                    Text(routine.status)
-                        .aryaText(
-                            AryaFont.caption,
-                            routine.status == "waiting" ? AryaColor.accent : AryaColor.inkMuted)
+                    // Muted even when waiting: orange is only for the primary action and the
+                    // sidebar's Needs you marks.
+                    Text(routine.status).aryaText(AryaFont.caption, AryaColor.inkMuted)
                     Text(routine.summary)
                         .aryaText(AryaFont.caption, AryaColor.inkFaint)
                         .lineLimit(1)

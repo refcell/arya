@@ -1,4 +1,5 @@
 import Arya
+import AryaDesign
 import Foundation
 
 /// What the app reads and writes through the facade. `Workspace` conforms; the tests use an
@@ -107,8 +108,8 @@ extension Workspace: WorkspaceSource {
             _ = try await rejectProposal(id, reason: reason.isEmpty ? nil : reason, by: person)
         case .overrideProposal(let id, let reason):
             _ = try await overrideProposal(id, reason: reason, by: person)
-        case .retractMemory:
-            throw WorkspaceError.unavailable("retracting memory")
+        case .retractMemory(let note, let reason):
+            _ = try await retract(memory: note, reason: reason.isEmpty ? nil : reason, by: person)
         case .correctCase(let correction):
             _ = try await correct(
                 steward: correction.steward, case: correction.caseID,
@@ -162,11 +163,14 @@ extension Workspace: WorkspaceSource {
 
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge {
         let view = try await knowledge(steward: steward)
+        let now = Date()
         return FeatureKnowledge(
             notes: view.notes.map {
                 FeatureKnowledge.Note(
                     id: $0.note.id, text: $0.note.text, provenance: $0.provenance,
-                    time: $0.time.relative, absoluteTime: $0.time.absolute, run: $0.note.run)
+                    time: AryaTime.label($0.time.date, now: now),
+                    absoluteTime: AryaTime.absolute($0.time.date, timeZone: .current),
+                    run: $0.note.run)
             },
             routines: view.routines.map { item in
                 FeatureKnowledge.Routine(
@@ -174,7 +178,7 @@ extension Workspace: WorkspaceSource {
                     versions: item.versions.map {
                         FeatureKnowledge.Version(
                             version: $0.version, summary: $0.summary, approval: $0.approval,
-                            time: $0.time.relative)
+                            time: AryaTime.label($0.time.date, now: now))
                     },
                     isLive: item.routine.liveVersion != nil, pending: item.routine.pending)
             })

@@ -138,9 +138,10 @@ or id. The time right-aligned in `monoSmall`/`inkFaint` (`AryaTime` short style)
 
 ### Time
 
-Every time goes through `AryaTime`: relative under 24 hours, a date and clock time after.
-Short style for rows and cells (`now`, `4m`, `2h`, `Nov 8`); long style for prose (`just now`,
-`4m ago`, `2h ago`, `Nov 8, 14:27`); `AryaTime.clock` (`14:27`) for transcript gutters.
+Every time goes through `AryaTime`: relative under 24 hours, the date after. Short style for
+rows and cells (`now`, `4m`, `2h`, `Nov 8`); long style for prose (`just now`, `4m ago`,
+`2h ago`, `Nov 8`). Clock time (`AryaTime.clock`, `14:27`) only in transcript gutters; the full
+date and time (`AryaTime.absolute`) only in tooltips. Views never format dates themselves.
 
 ### Choices
 

@@ -108,3 +108,19 @@ import Testing
         #expect(fallback == .home(support.appendingPathComponent("arya", isDirectory: true)))
     }
 }
+
+@Test func stewardHealthPrefersPausedThenNeedsYou() {
+    func fixture(_ status: StewardSummary.Status) -> StewardSummary {
+        StewardSummary(
+            id: "st_triage", name: "Triage keeper", outcome: "Sorted queue", charterVersion: 1,
+            status: status, ready: true)
+    }
+    let steward = fixture(.active)
+    #expect(StatusMapping.health(of: steward, runs: [], pending: 1, onTrack: true) == .needsYou)
+    #expect(StatusMapping.health(of: steward, runs: [], pending: 0, onTrack: true) == .onTrack)
+    #expect(StatusMapping.health(of: steward, runs: [], pending: 0, onTrack: false) == .offTrack)
+    let paused = fixture(.paused)
+    #expect(StatusMapping.health(of: paused, runs: [], pending: 1, onTrack: false) == .paused)
+    #expect(StatusMapping.metricSuffix(latest: 0.96, target: 0.95) == "0.96 / 0.95")
+    #expect(StatusMapping.metricSuffix(latest: nil, target: 0.95) == nil)
+}

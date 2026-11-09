@@ -3,17 +3,28 @@ import Foundation
 /// The state of a steward, run, or step as the interface shows it: a dot paired with a word.
 public enum AryaStatus: String, CaseIterable, Sendable {
     case running, waiting, failed, done, idle, paused, denied, executed, passed
+    /// Steward health in the sidebar: something waits on a person, or the metric meets or
+    /// misses its target.
+    case needsYou, onTrack, offTrack
 
     /// The word shown beside the dot. Status is never color alone.
-    public var word: String { rawValue }
+    public var word: String {
+        switch self {
+        case .needsYou: "needs you"
+        case .onTrack: "on track"
+        case .offTrack: "off track"
+        default: rawValue
+        }
+    }
 
     /// The dot's color token. Only `running` is accented (the live indicator).
     public var dotToken: AryaColorToken {
         switch self {
         case .running: .accent
+        case .needsYou: .accentFill
         case .failed, .denied: .negative
-        case .done, .executed, .passed: .positive
-        case .waiting, .idle, .paused: .inkFaint
+        case .done, .executed, .passed, .onTrack: .positive
+        case .waiting, .idle, .paused, .offTrack: .inkFaint
         }
     }
 

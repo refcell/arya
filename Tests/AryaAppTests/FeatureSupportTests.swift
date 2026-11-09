@@ -25,7 +25,7 @@ import Testing
     #expect(FeatureTime.relative(now.addingTimeInterval(-30), now: now) == "just now")
     #expect(FeatureTime.relative(now.addingTimeInterval(-120), now: now) == "2m ago")
     #expect(FeatureTime.relative(now.addingTimeInterval(-7200), now: now) == "2h ago")
-    #expect(FeatureTime.relative(now.addingTimeInterval(-172_800), now: now) == "2d ago")
+    #expect(FeatureTime.relative(now.addingTimeInterval(-172_800), now: now) == "Jan 13")
     let utc = TimeZone(identifier: "UTC") ?? .current
     let epoch = Date(timeIntervalSince1970: 0)
     #expect(FeatureTime.absolute(epoch, timeZone: utc) == "1 Jan 1970, 00:00")
@@ -103,4 +103,26 @@ import Testing
         }
     }
     #expect(hits.isEmpty, "literal styles in feature views: \(hits)")
+}
+
+/// One time rule (STYLE.md Time): app code formats dates only through `AryaTime`.
+@Test func appCodeNeverFormatsDatesItself() throws {
+    let app = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        .appendingPathComponent("Sources/AryaApp")
+    let forbidden = [
+        "DateFormatter", ".formatted(", "RelativeDateTimeFormatter", "DateComponentsFormatter",
+        "Date.FormatStyle", ".time.relative", ".time.absolute",
+    ]
+    let files = FileManager.default.enumerator(at: app, includingPropertiesForKeys: nil)
+    var hits: [String] = []
+    while let url = files?.nextObject() as? URL {
+        guard url.pathExtension == "swift" else { continue }
+        let lines = try String(contentsOf: url, encoding: .utf8).split(
+            separator: "\n", omittingEmptySubsequences: false)
+        for (number, line) in lines.enumerated() where forbidden.contains(where: line.contains) {
+            hits.append("\(url.lastPathComponent):\(number + 1)")
+        }
+    }
+    #expect(hits.isEmpty, "date formatting outside AryaTime: \(hits)")
 }

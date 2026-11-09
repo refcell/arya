@@ -9,11 +9,7 @@ enum WorkMark: Hashable, Sendable {
 extension StreamStepText {
     /// "14:02:07", the step's wall-clock time in the given zone.
     static func clock(_ date: Date, timeZone: TimeZone = .current) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = timeZone
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.string(from: date)
+        AryaTime.clock(date, seconds: true, timeZone: timeZone)
     }
 
     /// The short uppercase tag of a conversation row ("decide", "think", "agent").

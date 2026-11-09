@@ -15,7 +15,7 @@ import Testing
         #expect(long(240) == "4m ago")
         #expect(long(7200) == "2h ago")
         #expect(long(86_399) == "23h ago")
-        #expect(long(86_400) == "Nov 8, 14:53")
+        #expect(long(86_400) == "Nov 8")
     }
 
     @Test func shortLabelsFitASidebarRow() {

@@ -1,23 +1,17 @@
+import AryaDesign
 import Foundation
 
 /// Time formatting for feature views. Takes `now` explicitly so output is deterministic.
 enum FeatureTime {
-    /// A relative time for lists: "just now", "2m ago", "3h ago", "5d ago".
+    /// The one time rule (`AryaTime.label`, STYLE.md Time): "just now", "2m ago", "3h ago",
+    /// then "Nov 8".
     static func relative(_ date: Date, now: Date) -> String {
-        let seconds = Int(now.timeIntervalSince(date))
-        if seconds < 60 { return "just now" }
-        if seconds < 3600 { return "\(seconds / 60)m ago" }
-        if seconds < 86_400 { return "\(seconds / 3600)h ago" }
-        return "\(seconds / 86_400)d ago"
+        AryaTime.label(date, now: now)
     }
 
     /// An absolute time for tooltips: "9 Nov 2026, 14:02".
     static func absolute(_ date: Date, timeZone: TimeZone = .current) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = timeZone
-        formatter.dateFormat = "d MMM yyyy, HH:mm"
-        return formatter.string(from: date)
+        AryaTime.absolute(date, timeZone: timeZone)
     }
 
     /// A short duration: "850 ms", "4.2 s", "3m 5s".

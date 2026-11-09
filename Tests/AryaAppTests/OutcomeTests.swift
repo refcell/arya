@@ -147,7 +147,7 @@ private func triage() -> OutcomeSnapshot {
             recap, seenAt: now.addingTimeInterval(-86_400), now: now, timeZone: utc))
     #expect(
         text
-            == "Since you looked Jan 14, 08:00: 1 run ended, 1 action taken. Waiting on you: "
+            == "Since you looked Jan 14: 1 run ended, 1 action taken. Waiting on you: "
             + "1 approval, 1 question, 2 proposals.")
     let quiet = OutcomeRecap(
         goal: "", lastRun: nil, runsSince: 0, actionsSince: [], pending: [], questions: 0,

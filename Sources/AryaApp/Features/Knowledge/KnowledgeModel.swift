@@ -1,8 +1,7 @@
 import Foundation
 
 /// The Knowledge screen as the workspace writes it: live notes with a provenance sentence, and
-/// routines with every version and its approval state. Times are already relative to the
-/// workspace clock, so seeded and replayed homes read correctly.
+/// routines with every version and its approval state. Times follow `AryaTime.label`.
 struct FeatureKnowledge: Hashable, Sendable {
     struct Note: Identifiable, Hashable, Sendable {
         /// The note id; shown only in the inspector, never in a row.
@@ -52,9 +51,10 @@ enum KnowledgeText {
 
     /// The muted line under a note: its provenance sentence and when.
     static func provenance(_ note: FeatureKnowledge.Note) -> String {
-        let sentence =
-            note.provenance.hasSuffix(".")
-            ? String(note.provenance.dropLast()) : note.provenance
+        var sentence = note.provenance
+        if sentence.hasSuffix(".") { sentence.removeLast() }
+        // The workspace writes "case case-0006"; the id already says it is a case.
+        sentence = sentence.replacingOccurrences(of: "case case-", with: "case-")
         return sentence.isEmpty ? note.time : "\(sentence) · \(note.time)"
     }
 }
