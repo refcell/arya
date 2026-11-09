@@ -23,9 +23,9 @@ M1:
 - [x] `Event` envelope and `Actor`; the write rule from decision 0012; golden test of one line.
 - [x] Segment store: `ledger/000001.jsonl`, rollover at 64 MiB (configurable for tests),
   per-append `flock` with tail re-read, `fsync`.
-- [ ] Reader: iterate all events in order, from a `seq`, and follow new appends (for `tail` and
+- [x] Reader: iterate all events in order, from a `seq`, and follow new appends (for `tail` and
   the app).
-- [ ] `verify`: chain, `seq` continuity, `prev` links, envelope schema; reports the first bad
+- [x] `verify`: chain, `seq` continuity, `prev` links, envelope schema; reports the first bad
   line. Test tampering with one byte in a middle segment.
 - [x] Torn-line repair on open: move bytes to a blob, truncate, append `system.repair`. Test by
   writing a partial line.
@@ -86,6 +86,11 @@ M3:
   refuses to write.
 - File errors are `LedgerIOError` with a file name only (never a full path), so messages are
   safe to show and log.
+- `LedgerReader` takes no lock and sees complete lines only (a final line without `\n` is
+  skipped). `events(from:)`/`forEach(from:)` skip whole segments by peeking at first lines.
+  `follow(after:interval:)` polls (200 ms default) and yields an `AsyncThrowingStream`; simple
+  and portable, and appends are rare. `LedgerVerifier.verify()` returns a value (`ok`, count,
+  head, first `Failure` with segment, line, offset, issue) rather than throwing on bad data.
 - `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
 
 ## Questions
