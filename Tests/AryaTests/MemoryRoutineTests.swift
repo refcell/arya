@@ -159,3 +159,39 @@ private func propose(_ opened: Opened, _ body: String, reason: String) async thr
     #expect(routine.versions.map(\.version) == [second, first])
     #expect(routine.versions.map(\.approval) == ["Waiting for approval", "Live"])
 }
+
+@Test func retractingANoteRemovesItFromKnowledgeAndRecall() async throws {
+    let opened = try await Opened()
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let ids = Ambient.fixed()
+    let note = try MemoryNote(
+        id: ids.newID(NoteID.self), text: "Card updates are billing",
+        provenance: MemoryProvenance(author: MemoryAuthor(kind: .human, id: "local")))
+    let kept = try MemoryNote(
+        id: ids.newID(NoteID.self), text: "Answer in English",
+        provenance: MemoryProvenance(author: MemoryAuthor(kind: .human, id: "local")))
+    try await append(workspace, MemoryEventType.added, MemoryAddedPayload(note: note))
+    try await append(workspace, MemoryEventType.added, MemoryAddedPayload(note: kept))
+
+    let retracted = try await workspace.retract(
+        memory: note.id.rawValue, reason: "Wrong team", by: "person:alex")
+
+    #expect(retracted.retracted)
+    #expect(retracted.text == "Card updates are billing")
+    #expect(try await workspace.memory(steward: "st_inbox").map(\.text) == ["Answer in English"])
+    let knowledge = try await workspace.knowledge(steward: "st_inbox")
+    #expect(knowledge.notes.map(\.note.text) == ["Answer in English"])
+    let recall = try MemoryProjection(ledger: try opened.workspace.reader.events())
+    #expect(recall.liveNotes(steward: steward).map(\.note.id) == [kept.id])
+    let event = try #require(try await workspace.ledger().last)
+    #expect(event.type == "memory.retracted")
+    #expect(event.actorKind == "human" && event.actorID == "person:alex")
+    #expect(event.payload.contains("Wrong team"))
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.retract(memory: note.id.rawValue)
+    }
+    await #expect(throws: WorkspaceError.notFound("note_missing")) {
+        try await workspace.retract(memory: "note_missing")
+    }
+}

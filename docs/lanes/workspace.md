@@ -187,3 +187,5 @@ M3:
   `expected(run:choice:)` from the run's recorded result; `whatIf(run:proposal:)`; 52 tests.
 - 2026-11-09: autonomy holds read as plain sentences (no tokens); `ApprovalSummary.change`
   (`label: none → billing`, from the last executed value on the target); 54 tests.
+- 2026-11-09: `retract(memory:reason:by:)` appends `memory.retracted` (person as actor); the
+  note leaves `memory`, `knowledge`, and recall; 56 tests.

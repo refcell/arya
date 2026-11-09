@@ -1,6 +1,7 @@
 import AryaCore
 import AryaLedger
 import AryaMemory
+import AryaRuntime
 import Foundation
 
 // Memory notes and routines, read from the ledger through `AryaMemory`'s projections, with
@@ -94,6 +95,38 @@ extension Workspace {
         return projection.allNotes(steward: id)
             .filter { includeRetracted || !$0.retracted }
             .map { MemorySummary($0.note, retracted: $0.retracted) }
+    }
+
+    /// Retracts a memory note (`memory.retracted`, with `person` as actor): it leaves
+    /// `memory(steward:)`, `knowledge(steward:)`, and what later runs recall. Returns the note
+    /// as retracted.
+    @discardableResult
+    public func retract(memory id: String, reason: String? = nil, by person: String = "local")
+        async throws -> MemorySummary
+    {
+        let events = try reader.events()
+        let projection = try MemoryProjection(ledger: events)
+        var steward: StewardID?
+        for event in events where event.type.rawValue == MemoryEventType.added {
+            guard let body = try? event.payload(as: MemoryAddedPayload.self),
+                body.note.id.rawValue == id
+            else { continue }
+            steward = event.steward
+        }
+        guard let steward,
+            let found = projection.allNotes(steward: steward).first(where: {
+                $0.note.note.id.rawValue == id
+            })
+        else { throw WorkspaceError.notFound(id) }
+        guard !found.retracted else { throw WorkspaceError.rejected("\(id) is already retracted") }
+        let payload = MemoryRetractedPayload(
+            note: found.note.note.id, reason: reason.flatMap { $0.isEmpty ? nil : $0 })
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: MemoryEventType.retracted, steward: steward, actor: .person(person),
+                payload: try CanonicalJSON.decode(
+                    JSONValue.self, from: try CanonicalJSON.encode(payload))))
+        return MemorySummary(found.note, retracted: true)
     }
 
     // MARK: Routines
