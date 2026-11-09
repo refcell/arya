@@ -74,23 +74,27 @@ private func stream(_ run: String = PreviewFixtures.finishedRun) -> RunStream {
 @Test func failuresAndAdapterNoiseProject() {
     var log = FeatureEventBuilder(start: FeatureTestClock.now)
     let adapter = FeatureActor(kind: .adapter, id: "fake")
-    log.add("run.started", run: "r", ["trigger": ["kind": "case"]])
-    log.add("run.adapter.event", run: "r", actor: adapter, ["event": ["kind": "tool_call"]])
+    log.add("run.started", run: "r", ["trigger": "case"])
+    log.add(
+        "run.adapter.event", run: "r", actor: adapter, ["direction": "in", "message": ["raw": "x"]])
     log.add(
         "run.adapter.event", run: "r", actor: adapter,
-        ["event": ["kind": "thinking", "text": "hm"]])
+        PreviewFixtures.wire(1, ["kind": "thinking", "text": "hm"]))
     log.add(
         "run.adapter.event", run: "r", actor: adapter,
-        ["event": ["kind": "error", "message": "slow"]])
-    log.add("run.tool.result", run: "r", ["id": "unknown"])
+        PreviewFixtures.wire(2, ["kind": "error", "message": "slow"]))
+    log.add(
+        "run.adapter.event", run: "r", actor: adapter,
+        PreviewFixtures.wire(3, ["kind": "tool_result", "id": "unknown"]))
     log.add("action.rejected", run: "r", ["action": "unknown"])
-    log.add("run.failed", run: "r", ["reason": "interrupted"])
+    log.add("run.failed", run: "r", ["reason": "interrupted", "detail": "adapter gone"])
     log.add("run.started", run: "other")
     let run = RunStream.build(events: log.events, run: "r")
-    #expect(run.status == .failed(reason: "interrupted"))
+    #expect(run.status == .failed(reason: "interrupted (adapter gone)"))
     #expect(
         run.steps.map { StreamStepText.title($0.kind) } == [
-            "Started by case trigger", "hm", "Error: slow", "Run failed: interrupted",
+            "Started by case trigger", "hm", "Error: slow",
+            "Run failed: interrupted (adapter gone)",
         ])
     let step = run.steps[1]
     #expect(
@@ -111,4 +115,32 @@ private func stream(_ run: String = PreviewFixtures.finishedRun) -> RunStream {
     #expect(StreamStepText.isRunning(.toolCall(call)) == false)
     #expect(RunStatus.running.aryaStatus == .running)
     #expect(RunStatus.failed(reason: "x").aryaStatus == .failed)
+}
+
+@Test func proxyToolRecordsReplaceAdapterToolNotifications() {
+    var log = FeatureEventBuilder(start: FeatureTestClock.now)
+    let adapter = FeatureActor(kind: .adapter, id: "fake")
+    log.add(
+        "run.adapter.event", run: "r", actor: adapter,
+        PreviewFixtures.wire(1, ["kind": "tool_call", "id": "t1", "tool": "tracker.get"]))
+    log.add("run.tool.call", run: "r", ["id": "t1", "tool": "tracker.get", "input": [:]])
+    log.add("run.tool.result", run: "r", ["id": "t1", "output": "ok", "isError": false])
+    let steps = RunStream.build(events: log.events, run: "r").steps
+    #expect(steps.count == 1)
+    guard case .toolCall(let call) = steps.first?.kind else {
+        Issue.record("not a tool call")
+        return
+    }
+    #expect(call.output == "ok")
+}
+
+@Test func proposedActionsCarryTheirPolicyRule() {
+    let run = RunStream.build(
+        events: PreviewFixtures.triage(now: FeatureTestClock.now), run: PreviewFixtures.finishedRun)
+    guard case .action(let label) = run.steps[4].kind else {
+        Issue.record("step 5 is not an action")
+        return
+    }
+    #expect(label.rule == "auto label")
+    #expect(label.summary == "Wants to label tracker:ISSUE-7.")
 }

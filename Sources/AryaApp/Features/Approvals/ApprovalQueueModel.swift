@@ -15,7 +15,7 @@ struct ApprovalItem: Identifiable, Hashable, Sendable {
     var decision: ApprovalDecision?
 
     /// The primary button label, naming the effect: "Approve and assign".
-    var approveLabel: String { "Approve and \(kind)" }
+    var approveLabel: String { kind == "question" ? "Approve" : "Approve and \(kind)" }
 }
 
 /// How a person (or time) answered an approval.
@@ -36,20 +36,16 @@ struct ApprovalQueue: Hashable, Sendable {
     var decided: [ApprovalItem]
 
     /// Projects approvals from the whole ledger, optionally for one steward.
+    /// `approval.requested` is `{approval, kind, action?: ProposedAction, question?, to}`.
     static func build(events: [FeatureEvent], steward: String? = nil) -> ApprovalQueue {
-        var actions: [String: FeatureEvent] = [:]
         var items: [String: ApprovalItem] = [:]
         var order: [String] = []
         for event in events where steward == nil || event.steward == steward {
             let p = event.payload
             switch event.type {
-            case "action.proposed":
-                actions[actionKey(event.run, p["id"]?.string ?? event.id)] = event
             case "approval.requested":
-                guard let id = p["id"]?.string else { continue }
-                let actionID = p["action"]?.string ?? ""
-                let proposed = actions[actionKey(event.run, actionID)]
-                items[id] = item(id: id, actionID: actionID, request: event, proposed: proposed)
+                guard let id = p["approval"]?.string else { continue }
+                items[id] = item(id: id, request: event)
                 order.append(id)
             case "approval.granted", "approval.denied", "approval.expired":
                 guard let id = p["approval"]?.string, items[id] != nil else { continue }
@@ -63,22 +59,22 @@ struct ApprovalQueue: Hashable, Sendable {
             decided: all.filter { $0.decision != nil }.reversed())
     }
 
-    private static func actionKey(_ run: String?, _ action: String) -> String {
-        "\(run ?? "")/\(action)"
-    }
-
-    private static func item(
-        id: String, actionID: String, request: FeatureEvent, proposed: FeatureEvent?
-    ) -> ApprovalItem {
-        let p = proposed?.payload ?? [:]
-        let kind = p["kind"]?.string ?? "action"
-        let target = p["target"]?.string ?? ""
+    private static func item(id: String, request: FeatureEvent) -> ApprovalItem {
+        let p = request.payload
+        if let question = p["question"]?.string, p["action"] == nil {
+            return ApprovalItem(
+                id: id, actionID: "", kind: "question", target: p["to"]?.string ?? "local",
+                summary: question, rationale: "", steward: request.steward, run: request.run,
+                requestedAt: request.at)
+        }
+        let action = p["action"] ?? [:]
+        let kind = action["kind"]?.string ?? "action"
+        let target = action["target"]?.string ?? ""
         return ApprovalItem(
-            id: id, actionID: actionID, kind: kind, target: target,
-            summary: request.payload["summary"]?.string ?? p["summary"]?.string
-                ?? "\(kind) \(target)",
-            rationale: p["rationale"]?.string ?? "", steward: request.steward, run: request.run,
-            requestedAt: request.at)
+            id: id, actionID: action["id"]?.string ?? "", kind: kind, target: target,
+            summary: ApprovalText.summary(kind: kind, target: target),
+            rationale: action["rationale"]?.string ?? "", steward: request.steward,
+            run: request.run, requestedAt: request.at)
     }
 
     private static func decision(_ event: FeatureEvent) -> ApprovalDecision {
@@ -89,7 +85,7 @@ struct ApprovalQueue: Hashable, Sendable {
         default: verdict = .expired
         }
         return ApprovalDecision(
-            verdict: verdict, actor: event.actor, reason: event.payload["reason"]?.string ?? "",
+            verdict: verdict, actor: event.actor, reason: event.payload["note"]?.string ?? "",
             at: event.at)
     }
 }

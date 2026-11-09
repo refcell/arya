@@ -35,14 +35,16 @@ M3 (start now against the app-shell stub workspace):
   `FeatureWrite`, `verify`, `changes`), and `PreviewWorkspace` with `PreviewFixtures` (a generic
   issue-triage steward). The facade will conform to the protocol, or the seam is deleted once
   it offers the same calls. Every write is attributed to `FeatureActor.localUser`.
-- Payload field names follow PROTOCOL.md where it defines them (`run/event`, `run/result`).
-  Where the ledger lane has not published payloads yet, views assume: `run.tool.call`
-  `{id, tool, input}`, `run.tool.result` `{id, output, isError}`, `action.proposed`
-  `{id, kind, target, policy, rationale, summary?}`, `approval.requested` `{id, action}`,
-  `approval.granted|denied` `{approval, reason?}`, `action.executed|failed|rejected`
-  `{action, output|error|rule}`. Projection code is the only place that reads them.
-- The stream shows tool calls from `run.tool.*` (the binding proxy's record) and skips adapter
-  `tool_call`/`tool_result` notifications, which would duplicate them.
+- Payloads follow the runtime's records (CEO decision): `run.started.trigger` is a string;
+  `run.adapter.event` is `{direction, message}` with the raw JSON-RPC line, and only
+  `run/event` notifications become steps; `action.proposed` is `{action: ProposedAction,
+  disposition, reason}`; `approval.requested` is `{approval, kind, action?, question?, to}`;
+  decisions are `{approval, note?}`; `action.executed|failed|rejected` are
+  `{action: id, approval?, output|error|reason}`; `run.finished|failed` are `RunEndPayload`.
+  The runtime's payload types are internal and the app imports only `Arya`, so the projection
+  code reads JSON; switch to typed payloads if the facade exports them.
+- The stream builds tool calls from the adapter's `tool_call`/`tool_result` notifications,
+  unless the run has `run.tool.call` events (the binding proxy's record), which then win.
 - `FeatureStore` is an `ObservableObject` (decision 0020 allows it); transient view state uses `@AryaState` (0021).
 - Views use AryaDesign tokens and components (`StepRow`, `StatusBadge`, `PolicyChip`,
   `CodeBlock`, `ApprovalCard`, `EmptyState`, `.aryaPrimary` and friends); a test fails if a
@@ -59,13 +61,10 @@ M3 (start now against the app-shell stub workspace):
 
 ## Questions
 
-- (from cli-e2e) `RunStreamModel` reads `approval.requested` as `{id, action: "<id>"}`, but the
-  runtime decision records `{approval, kind, action: {…ProposedAction}}`; the CLI's `RunDigest`
-  accepts both.
-
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,
   fixtures), interim components, `AryaAppTests` target (c0b8bcd).
 - 2026-11-09: approval queue and cards, inline in the stream (db99d35); switched to AryaDesign
   components (d20b497).
 - 2026-11-09: ledger table with filters, event detail, and verify (8d48473).
+- 2026-11-09: changes tab with gate results, accept, reject, override (c3960b2).

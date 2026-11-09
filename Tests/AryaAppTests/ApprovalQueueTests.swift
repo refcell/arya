@@ -9,12 +9,13 @@ private let now = FeatureTestClock.now
 private func twoPending() -> [FeatureEvent] {
     var log = FeatureEventBuilder(start: now.addingTimeInterval(-600))
     for (steward, n) in [("st_triage", 1), ("st_spend", 2)] {
+        let action: FeatureJSON = ["id": "a1", "kind": "comment", "target": "tracker:ISSUE-\(n)"]
         log.add(
             "action.proposed", steward: steward, run: "run_\(n)",
-            ["id": "a1", "kind": "comment", "target": "tracker:ISSUE-\(n)", "policy": "ask"])
+            ["action": action, "disposition": "ask", "reason": "default ask"])
         log.add(
             "approval.requested", steward: steward, run: "run_\(n)",
-            ["id": "ap_\(n)", "action": "a1"])
+            ["approval": "ap_\(n)", "kind": "action", "action": action, "to": "local"])
     }
     return log.events
 }
@@ -23,7 +24,8 @@ private func twoPending() -> [FeatureEvent] {
     let queue = ApprovalQueue.build(events: twoPending())
     #expect(queue.pending.map(\.id) == ["ap_1", "ap_2"])
     #expect(queue.pending[1].target == "tracker:ISSUE-2")
-    #expect(queue.pending[1].summary == "comment tracker:ISSUE-2")
+    #expect(queue.pending[1].summary == "Wants to comment tracker:ISSUE-2.")
+    #expect(queue.pending[1].actionID == "a1")
     #expect(queue.pending[1].approveLabel == "Approve and comment")
     #expect(queue.decided.isEmpty)
 }
@@ -71,10 +73,21 @@ private func twoPending() -> [FeatureEvent] {
     #expect(queue.decided.first?.decision?.verdict == .expired)
 }
 
+@Test func questionsQueueWithTheirText() {
+    var log = FeatureEventBuilder(start: now)
+    log.add(
+        "approval.requested", run: "run_q",
+        ["approval": "ap_q", "kind": "question", "question": "Which label fits?", "to": "local"])
+    let item = ApprovalQueue.build(events: log.events).pending[0]
+    #expect(item.kind == "question")
+    #expect(item.summary == "Which label fits?")
+    #expect(item.approveLabel == "Approve")
+}
+
 @Test func metaLineNamesStewardRunAndTime() {
     let item = ApprovalQueue.build(events: PreviewFixtures.triage(now: now)).pending[0]
     #expect(item.id == PreviewFixtures.pendingApproval)
-    #expect(item.summary == "Assign ISSUE-7 to person:alex")
+    #expect(item.summary == "Wants to assign tracker:ISSUE-7.")
     #expect(item.rationale == "Alex owns the login page.")
     let meta = ApprovalText.meta(item, now: item.requestedAt.addingTimeInterval(300))
     #expect(meta == "st_triage · run_0001 · 5m ago")

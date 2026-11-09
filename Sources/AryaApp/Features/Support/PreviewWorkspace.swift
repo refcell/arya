@@ -46,12 +46,15 @@ actor PreviewWorkspace: FeatureWorkspace {
             emit(request, "approval.granted", .localUser, ["approval": .string(approval)])
             emit(
                 request, "action.executed", FeatureActor(kind: .system, id: "arya"),
-                ["action": request.payload["action"] ?? .null, "output": "recorded"])
+                [
+                    "action": request.payload["action"]?["id"] ?? .null,
+                    "approval": .string(approval), "output": "recorded",
+                ])
         case .deny(let approval, let reason):
             let request = try pendingRequest(approval)
             emit(
                 request, "approval.denied", .localUser,
-                ["approval": .string(approval), "reason": .string(reason)])
+                ["approval": .string(approval), "note": .string(reason)])
         case .acceptProposal(let id):
             let created = try openProposal(id, gate: true)
             emit(created, "proposal.accepted", .localUser, ["proposal": .string(id)])
@@ -94,7 +97,7 @@ actor PreviewWorkspace: FeatureWorkspace {
     private func pendingRequest(_ approval: String) throws -> FeatureEvent {
         guard
             let request = log.first(where: {
-                $0.type == "approval.requested" && $0.payload["id"]?.string == approval
+                $0.type == "approval.requested" && $0.payload["approval"]?.string == approval
             })
         else { throw FeatureWriteError.unknownApproval(approval) }
         let decided = log.contains {

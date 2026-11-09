@@ -40,32 +40,47 @@ enum PreviewFixtures {
         log.add("steward.created", actor: human, ["name": "Issue triage", "version": 1])
         finished(&log, adapter: adapter)
         let live = liveRun
-        log.add("run.started", run: live, after: 1200, ["trigger": ["kind": "interval"]])
+        log.add("run.started", run: live, after: 1200, ["trigger": "interval"])
         proposals(&log)
         log.add(
             "run.adapter.event", run: live, actor: adapter,
-            ["event": ["kind": "status", "state": "working", "detail": "Reading new issues"]])
+            wire(1, ["kind": "status", "state": "working", "detail": "Reading new issues"]))
         log.add(
-            "run.tool.call", run: live, actor: adapter,
-            ["id": "t2", "tool": "tracker.search", "input": ["query": "is:open label:none"]])
+            "run.adapter.event", run: live, actor: adapter,
+            wire(
+                2,
+                [
+                    "kind": "tool_call", "id": "t2", "tool": "tracker.search",
+                    "input": ["query": "is:open label:none"],
+                ]))
         return log.events
     }
 
     private static func finished(_ log: inout FeatureEventBuilder, adapter: FeatureActor) {
         let run = finishedRun
-        log.add("run.started", run: run, after: 60, ["trigger": ["kind": "manual"]])
+        log.add("run.started", run: run, after: 60, ["trigger": "manual"])
         log.add(
             "run.adapter.event", run: run, actor: adapter,
-            ["event": ["kind": "message", "role": "assistant", "text": "Reading ISSUE-7."]])
+            ["direction": "out", "message": ["jsonrpc": "2.0", "id": 1, "method": "run/start"]])
         log.add(
-            "run.tool.call", run: run, actor: adapter,
-            ["id": "t1", "tool": "tracker.get", "input": ["id": "ISSUE-7"]])
+            "run.adapter.event", run: run, actor: adapter,
+            wire(1, ["kind": "message", "role": "assistant", "text": "Reading ISSUE-7."]))
         log.add(
-            "run.tool.result", run: run, actor: adapter, after: 1.2,
-            [
-                "id": "t1", "isError": false,
-                "output": ["title": "Login page times out", "labels": []],
-            ])
+            "run.adapter.event", run: run, actor: adapter,
+            wire(
+                2,
+                [
+                    "kind": "tool_call", "id": "t1", "tool": "tracker.get",
+                    "input": ["id": "ISSUE-7"],
+                ]))
+        log.add(
+            "run.adapter.event", run: run, actor: adapter, after: 1.2,
+            wire(
+                3,
+                [
+                    "kind": "tool_result", "id": "t1", "isError": false,
+                    "output": ["title": "Login page times out", "labels": []],
+                ]))
         log.add(
             "run.decision", run: run,
             [
@@ -109,25 +124,40 @@ enum PreviewFixtures {
             ])
     }
 
+    /// A recorded `run/event` notification, as the runtime stores it in `run.adapter.event`.
+    static func wire(_ seq: Int, _ event: FeatureJSON) -> FeatureJSON {
+        [
+            "direction": "in",
+            "message": [
+                "jsonrpc": "2.0", "method": "run/event",
+                "params": ["session": "s1", "seq": .number(Double(seq)), "event": event],
+            ],
+        ]
+    }
+
     private static func actions(_ log: inout FeatureEventBuilder, run: String) {
         let system = FeatureActor(kind: .system, id: "arya")
+        let label: FeatureJSON = [
+            "id": "a1", "kind": "label", "binding": "tracker", "target": "tracker:ISSUE-7",
+            "rationale": "Bugs get the bug label.",
+        ]
+        let assign: FeatureJSON = [
+            "id": "a2", "kind": "assign", "binding": "tracker", "target": "tracker:ISSUE-7",
+            "params": ["to": "person:alex"], "rationale": "Alex owns the login page.",
+        ]
         log.add(
-            "action.proposed", run: run,
-            [
-                "id": "a1", "kind": "label", "binding": "tracker", "target": "tracker:ISSUE-7",
-                "policy": "auto", "rationale": "Bugs get the bug label.",
-            ])
+            "action.proposed", run: run, actor: system,
+            ["action": label, "disposition": "auto", "reason": "auto label"])
         log.add(
             "action.executed", run: run, actor: system, ["action": "a1", "output": "labeled"])
         log.add(
-            "action.proposed", run: run,
-            [
-                "id": "a2", "kind": "assign", "binding": "tracker", "target": "tracker:ISSUE-7",
-                "policy": "ask", "summary": "Assign ISSUE-7 to person:alex",
-                "rationale": "Alex owns the login page.",
-            ])
+            "action.proposed", run: run, actor: system,
+            ["action": assign, "disposition": "ask", "reason": "default ask"])
         log.add(
-            "approval.requested", run: run, actor: system,
-            ["id": .string(pendingApproval), "action": "a2"])
+            "approval.requested", run: run,
+            [
+                "approval": .string(pendingApproval), "kind": "action", "action": assign,
+                "to": "local",
+            ])
     }
 }

@@ -45,6 +45,8 @@ struct ProposedActionStep: Hashable, Sendable {
     var summary: String
     var rationale: String
     var policy: String
+    /// The policy rule that classified the action, for example `deny close`.
+    var rule: String = ""
     var outcome: ActionOutcome
 }
 
@@ -78,11 +80,13 @@ struct RunStream: Hashable, Sendable {
     var steps: [StreamStep]
     var status: RunStatus
 
-    /// Projects one run's events into a stream. Events of other runs are ignored. Tool calls
-    /// come from `run.tool.call` and `run.tool.result` (the binding proxy's record), so adapter
-    /// `tool_call` and `tool_result` notifications are skipped as duplicates.
+    /// Projects one run's events into a stream. Events of other runs are ignored. Adapter
+    /// notifications come from `run.adapter.event`, which holds each raw JSON-RPC line. Tool
+    /// calls come from the adapter's `tool_call` and `tool_result` notifications, unless the
+    /// run has `run.tool.call` events (the binding proxy's record), which then win.
     static func build(events: [FeatureEvent], run: String) -> RunStream {
-        var projector = RunStreamProjector()
+        let proxied = events.contains { $0.run == run && $0.type == "run.tool.call" }
+        var projector = RunStreamProjector(proxiedTools: proxied)
         for event in events where event.run == run {
             projector.apply(event)
         }
@@ -106,6 +110,7 @@ struct RunStream: Hashable, Sendable {
 
 /// Folds events into steps, keeping indexes so later events update earlier steps.
 private struct RunStreamProjector {
+    var proxiedTools: Bool
     var steps: [StreamStep] = []
     var status: RunStatus = .running
     var steward: String?
@@ -119,16 +124,10 @@ private struct RunStreamProjector {
         let p = event.payload
         switch event.type {
         case "run.started":
-            add(event, .started(trigger: p["trigger"]?["kind"]?.string ?? "manual"))
+            add(event, .started(trigger: p["trigger"]?.string ?? "manual"))
         case "run.adapter.event": applyAdapter(event)
-        case "run.tool.call":
-            let call = p["id"]?.string ?? event.id
-            toolIndex[call] = steps.count
-            toolStart[call] = event.at
-            let step = ToolCallStep(
-                callID: call, tool: p["tool"]?.string ?? "tool", input: p["input"] ?? .null)
-            add(event, .toolCall(step))
-        case "run.tool.result": applyToolResult(event)
+        case "run.tool.call": applyToolCall(event, p)
+        case "run.tool.result": applyToolResult(event, p)
         case "run.decision":
             add(
                 event,
@@ -143,7 +142,8 @@ private struct RunStreamProjector {
             status = .finished(status: state, summary: summary)
             add(event, .finished(status: state, summary: summary))
         case "run.failed":
-            let reason = p["reason"]?.string ?? "unknown"
+            let detail = p["detail"]?.string.map { " (\($0))" } ?? ""
+            let reason = (p["reason"]?.string ?? "unknown") + detail
             status = .failed(reason: reason)
             add(event, .failed(reason: reason))
         default: applyOutcome(event)
@@ -154,9 +154,16 @@ private struct RunStreamProjector {
         steps.append(StreamStep(id: event.id, number: steps.count + 1, at: event.at, kind: kind))
     }
 
+    /// Reads a `run/event` notification out of the recorded JSON-RPC line; other lines
+    /// (requests, responses, `run/result`) are not steps.
     private mutating func applyAdapter(_ event: FeatureEvent) {
-        guard let inner = event.payload["event"] else { return }
+        let message = event.payload["message"]
+        guard message?["method"]?.string == "run/event",
+            let inner = message?["params"]?["event"]
+        else { return }
         switch inner["kind"]?.string {
+        case "tool_call" where !proxiedTools: applyToolCall(event, inner)
+        case "tool_result" where !proxiedTools: applyToolResult(event, inner)
         case "message":
             add(
                 event,
@@ -173,8 +180,16 @@ private struct RunStreamProjector {
         }
     }
 
-    private mutating func applyToolResult(_ event: FeatureEvent) {
-        let p = event.payload
+    private mutating func applyToolCall(_ event: FeatureEvent, _ p: FeatureJSON) {
+        let call = p["id"]?.string ?? event.id
+        toolIndex[call] = steps.count
+        toolStart[call] = event.at
+        let step = ToolCallStep(
+            callID: call, tool: p["tool"]?.string ?? "tool", input: p["input"] ?? .null)
+        add(event, .toolCall(step))
+    }
+
+    private mutating func applyToolResult(_ event: FeatureEvent, _ p: FeatureJSON) {
         guard let call = p["id"]?.string, let index = toolIndex[call],
             case .toolCall(var step) = steps[index].kind
         else { return }
@@ -186,15 +201,18 @@ private struct RunStreamProjector {
         steps[index].kind = .toolCall(step)
     }
 
+    /// `action.proposed` is `{action: ProposedAction, disposition, reason}`.
     private mutating func applyProposed(_ event: FeatureEvent) {
         let p = event.payload
-        let id = p["id"]?.string ?? event.id
-        let kind = p["kind"]?.string ?? "action"
-        let target = p["target"]?.string ?? ""
+        let action = p["action"] ?? [:]
+        let id = action["id"]?.string ?? event.id
+        let kind = action["kind"]?.string ?? "action"
+        let target = action["target"]?.string ?? ""
         let step = ProposedActionStep(
             actionID: id, kind: kind, target: target,
-            summary: p["summary"]?.string ?? "\(kind) \(target)",
-            rationale: p["rationale"]?.string ?? "", policy: p["policy"]?.string ?? "ask",
+            summary: ApprovalText.summary(kind: kind, target: target),
+            rationale: action["rationale"]?.string ?? "",
+            policy: p["disposition"]?.string ?? "ask", rule: p["reason"]?.string ?? "",
             outcome: .proposed)
         actionIndex[id] = steps.count
         add(event, .action(step))
@@ -204,7 +222,8 @@ private struct RunStreamProjector {
         let p = event.payload
         switch event.type {
         case "approval.requested":
-            guard let approval = p["id"]?.string, let action = p["action"]?.string else { return }
+            guard let approval = p["approval"]?.string, let action = p["action"]?["id"]?.string
+            else { return }
             approvalAction[approval] = action
             update(action, .awaitingApproval(approval: approval))
         case "approval.granted":
@@ -214,14 +233,14 @@ private struct RunStreamProjector {
         case "approval.denied", "approval.expired":
             guard let approval = p["approval"]?.string, let action = approvalAction[approval]
             else { return }
-            let reason = p["reason"]?.string ?? (event.type == "approval.expired" ? "expired" : "")
+            let reason = p["note"]?.string ?? (event.type == "approval.expired" ? "expired" : "")
             update(action, .denied(approval: approval, reason: reason))
         case "action.executed":
             update(p["action"]?.string, .executed(output: p["output"]?.compactOutput ?? ""))
         case "action.failed":
             update(p["action"]?.string, .failed(error: p["error"]?.string ?? "unknown error"))
         case "action.rejected":
-            update(p["action"]?.string, .rejected(rule: p["rule"]?.string ?? "policy: deny"))
+            update(p["action"]?.string, .rejected(rule: p["reason"]?.string ?? "policy: deny"))
         default: break
         }
     }

@@ -22,6 +22,11 @@ struct ApprovalItemCard: View {
 
 /// Text for approvals, kept apart from layout so it can be tested.
 enum ApprovalText {
+    /// The card's one-sentence summary of a held action: "Wants to assign tracker:ISSUE-7."
+    static func summary(kind: String, target: String) -> String {
+        target.isEmpty ? "Wants to \(kind)." : "Wants to \(kind) \(target)."
+    }
+
     /// "st_triage · run_0001 · 2m ago".
     static func meta(_ item: ApprovalItem, now: Date) -> String {
         [item.steward, item.run, FeatureTime.relative(item.requestedAt, now: now)]

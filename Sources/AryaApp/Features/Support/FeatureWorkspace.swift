@@ -4,6 +4,7 @@ import Foundation
 /// the local user; views never append raw events themselves.
 enum FeatureWrite: Hashable, Sendable {
     case approve(approval: String)
+    /// Denies an approval; `reason` is recorded as the decision's `note`.
     case deny(approval: String, reason: String)
     case acceptProposal(String)
     case rejectProposal(String, reason: String)
