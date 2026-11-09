@@ -36,11 +36,7 @@ enum FeatureRegistry {
             }
         case .improve:
             if let store = context.store, let steward = context.steward?.id {
-                stacked {
-                    RehearsalsView(store: store, steward: steward)
-                } second: {
-                    ChangesTab(store: store, steward: steward)
-                }
+                ImproveView(store: store, steward: steward)
             } else {
                 EmptyState(
                     "Nothing to improve yet.",

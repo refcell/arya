@@ -163,6 +163,13 @@ enum PreviewFixtures {
             [
                 "v": 1, "rehearsal": .string(rehearsal), "case": .string(failingCase),
                 "runs": ["run_r7"],
+                "results": [
+                    [
+                        "decisions": [["choice": "question"]],
+                        "actions": [["kind": "label", "target": "tracker:ISSUE-7"]],
+                        "summary": "asked for details", "priority": "low",
+                    ]
+                ],
                 "scores": [
                     [
                         "value": 0.5, "passed": false,

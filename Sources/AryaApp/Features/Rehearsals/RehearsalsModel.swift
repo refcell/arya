@@ -58,6 +58,9 @@ struct CaseResult: Identifiable, Hashable, Sendable {
     var scores: [SampleScore]
     var leak: Bool
     var corrections: [CorrectionRecord] = []
+    /// Each sample's result in the shape of `expected`; empty in events recorded before
+    /// results were kept, and `nil` where a sample's run failed.
+    var results: [FeatureJSON?] = []
 
     var passed: Bool { !leak && !scores.isEmpty && scores.allSatisfy(\.passed) }
     var meanValue: Double {
@@ -188,7 +191,10 @@ struct RehearsalList: Hashable, Sendable {
                     notes: score["notes"]?.strings ?? [])
             } ?? []
         let runs = p["runs"]?.array?.map(\.string) ?? []
-        return CaseResult(id: caseID, runs: runs, scores: scores, leak: p["leak"]?.bool ?? false)
+        let results = p["results"]?.array?.map { $0 == .null ? nil : $0 } ?? []
+        return CaseResult(
+            id: caseID, runs: runs, scores: scores, leak: p["leak"]?.bool ?? false,
+            results: results)
     }
 }
 
@@ -222,5 +228,93 @@ enum RehearsalsText {
     /// "Ready since 2m ago, marked by local".
     static func ready(_ mark: ReadyRecord, now: Date) -> String {
         "Ready since \(FeatureTime.relative(mark.at, now: now)), marked by \(mark.by.id)"
+    }
+}
+
+extension CaseOutcome {
+    /// "chose billing; label inbox:MSG-1, route inbox:MSG-1", or "nothing".
+    var text: String {
+        var parts: [String] = []
+        if !decisions.isEmpty { parts.append("chose " + decisions.joined(separator: ", ")) }
+        if !actions.isEmpty { parts.append(actions.joined(separator: ", ")) }
+        return parts.isEmpty ? "nothing" : parts.joined(separator: "; ")
+    }
+}
+
+/// A recorded result in a few words, the same rules as the evaluator's result text:
+/// decisions as their choices, actions as "kind target", other scalar fields as "key value";
+/// `summary` and structured fields are left out.
+enum ResultWords {
+    static func describe(_ result: FeatureJSON?) -> String {
+        guard let result else { return "no result" }
+        guard case .object(let members) = result else { return value(result) }
+        var parts: [String] = []
+        if let decisions = members["decisions"]?.array, !decisions.isEmpty {
+            parts.append("chose " + decisions.map(value).joined(separator: ", "))
+        }
+        if let actions = members["actions"]?.array, !actions.isEmpty {
+            parts.append(actions.map(value).joined(separator: ", "))
+        }
+        for key in members.keys.sorted() where !["decisions", "actions", "summary"].contains(key) {
+            guard let item = members[key] else { continue }
+            switch item {
+            case .string, .bool, .number: parts.append("\(key) \(value(item))")
+            default: continue
+            }
+        }
+        return parts.isEmpty ? "nothing" : parts.joined(separator: "; ")
+    }
+
+    static func value(_ json: FeatureJSON) -> String {
+        if let choice = json["choice"]?.string { return choice }
+        if let kind = json["kind"]?.string {
+            guard let target = json["target"]?.string, !target.isEmpty else { return kind }
+            return "\(kind) \(target)"
+        }
+        return json.string ?? json.compactText
+    }
+}
+
+/// Text for the Improve tab, kept apart from layout so it can be tested.
+enum ImproveText {
+    /// "8/8 passed · ready since 2m ago", "6/8 passed · 1 leak", or "Running, 2 of 8 scored".
+    static func summary(_ item: RehearsalItem, ready: ReadyRecord?, now: Date) -> String {
+        guard let totals = item.totals else {
+            return "Running, \(item.cases.count) of \(item.caseCount) scored"
+        }
+        var text = "\(totals.passed)/\(item.caseCount) passed"
+        if totals.leaks > 0 { text += " · \(totals.leaks) leak" + (totals.leaks == 1 ? "" : "s") }
+        if let ready { text += " · ready since \(FeatureTime.relative(ready.at, now: now))" }
+        return text
+    }
+
+    /// "charter v1 · casebook 1a2b3c", with "· for a proposal" when it rehearsed one.
+    static func meta(_ item: RehearsalItem) -> String {
+        var text = "charter v\(item.charterVersion) · casebook "
+        text += RoutinesText.shortVersion(item.casebook)
+        if item.proposal != nil { text += " · for a proposal" }
+        return text
+    }
+
+    /// What the case's first sample would have done: its recorded result, else what its run
+    /// recorded in the ledger.
+    static func wouldHaveDone(_ result: CaseResult, events: [FeatureEvent]) -> String {
+        if let recorded = result.results.compactMap({ $0 }).first {
+            return ResultWords.describe(recorded)
+        }
+        guard let run = result.firstRun else { return "no result" }
+        return CaseOutcome.actual(events: events, run: run).text
+    }
+
+    /// Scores add nothing when every case scored the same, so the column is hidden.
+    static func showsScores(_ item: RehearsalItem) -> Bool {
+        Set(item.cases.map(\.meanValue)).count > 1
+    }
+
+    /// "2h ago · 6/8 passed" for the history menu.
+    static func historyLabel(_ item: RehearsalItem, now: Date) -> String {
+        let when = FeatureTime.relative(item.startedAt, now: now)
+        guard let totals = item.totals else { return "\(when) · running" }
+        return "\(when) · \(totals.passed)/\(item.caseCount) passed"
     }
 }
