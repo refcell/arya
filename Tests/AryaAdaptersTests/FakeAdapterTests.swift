@@ -209,18 +209,21 @@ func requestParams(_ message: RPCMessage) -> JSONValue? {
 @Test func idleTimerPausesWhileAQuestionIsOpen() async throws {
     let script = Sample.script(
         FakeScript.Response(steps: [.ask(question: "Proceed?", to: nil)], result: [:]))
+    // The idle timer runs on a manual clock: each tick is one full idle window.
+    let clock = ManualClock()
     var timeouts = Sample.timeouts
-    // Long enough that the gap between the answer and the result never trips it under load.
-    timeouts.idle = .seconds(1)
-    let adapter = FakeAdapter(script: script, timeouts: timeouts)
+    timeouts.idle = .seconds(60)
+    let adapter = FakeAdapter(script: script, timeouts: timeouts, idleClock: clock)
     _ = try await adapter.start(Sample.start("x"))
     var updates: [AdapterUpdate] = []
     for await update in adapter.updates {
         updates.append(update)
         if case .ask(let id, _) = update {
-            // Hold the question open for three idle windows.
-            try await Task.sleep(for: .seconds(3))
-            try await adapter.answer(id, HostAskResult(answer: "yes"))
+            // Hold the question open for three idle windows; none may expire the run.
+            var ticks = 0
+            while ticks < 3, await clock.tick() { ticks += 1 }
+            #expect(ticks == 3, "the idle timer stopped while the question was open")
+            try? await adapter.answer(id, HostAskResult(answer: "yes"))
         }
         if update.isResult { break }
     }

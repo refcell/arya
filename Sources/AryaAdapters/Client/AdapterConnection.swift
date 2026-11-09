@@ -30,6 +30,21 @@ public struct ConnectionTimeouts: Sendable, Hashable {
     public static let standard = ConnectionTimeouts()
 }
 
+/// Sleeps for the idle timer. The system one waits in real time; tests inject one they
+/// advance by hand so idle behavior does not depend on machine load.
+public protocol SleepClock: Sendable {
+    func sleep(for duration: Duration) async throws
+}
+
+/// The real-time ``SleepClock``.
+public struct SystemSleepClock: SleepClock {
+    public init() {}
+
+    public func sleep(for duration: Duration) async throws {
+        try await Task.sleep(for: duration)
+    }
+}
+
 /// An ``Adapter`` over any ``AdapterTransport``: matches responses to requests by id, turns
 /// notifications and adapter requests into ``AdapterUpdate``s, records every line, and
 /// supervises the run (idle timeout, stop grace, termination).
@@ -38,6 +53,7 @@ public actor AdapterConnection: Adapter {
     private let continuation: AsyncStream<AdapterUpdate>.Continuation
     private let transport: any AdapterTransport
     private let timeouts: ConnectionTimeouts
+    private let idleClock: any SleepClock
 
     private enum Slot {
         case waiting(CheckedContinuation<Result<JSONValue, AdapterError>, Never>?)
@@ -57,10 +73,15 @@ public actor AdapterConnection: Adapter {
     private var supervisor: Task<Void, Never>?
     private var reader: Task<Void, Never>?
 
-    public init(transport: any AdapterTransport, timeouts: ConnectionTimeouts = .standard) {
+    /// - Parameter idleClock: what the idle timer sleeps on; the default is real time.
+    public init(
+        transport: any AdapterTransport, timeouts: ConnectionTimeouts = .standard,
+        idleClock: any SleepClock = SystemSleepClock()
+    ) {
         (updates, continuation) = AsyncStream.makeStream(bufferingPolicy: .unbounded)
         self.transport = transport
         self.timeouts = timeouts
+        self.idleClock = idleClock
     }
 
     /// Starts reading the transport. Called by every request; safe to call more than once.
@@ -295,10 +316,11 @@ public actor AdapterConnection: Adapter {
 
     private func superviseIdle(_ idle: Duration) {
         supervisor?.cancel()
+        let clock = idleClock
         supervisor = Task { [weak self] in
             var seen = await self?.activity ?? 0
             while !Task.isCancelled {
-                try? await Task.sleep(for: idle)
+                try? await clock.sleep(for: idle)
                 guard !Task.isCancelled, let self else { return }
                 let now = await self.activity
                 if now == seen, await self.openAsks.isEmpty {

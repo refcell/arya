@@ -119,6 +119,8 @@ M4:
   `Operation not permitted` and emits one `error` sentence with the first denied line; the run's
   status still follows the agent, so a harness probing a cache directory does not lose a valid
   result. macOS logs violations elsewhere, so stderr is the signal an adapter can see.
+- The idle timer sleeps on an injectable `SleepClock` (`AdapterConnection(idleClock:)`, also on
+  `FakeAdapter`); tests step it with a manual clock, so idle behavior never depends on load.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -148,3 +150,5 @@ M4:
   AryaAdaptersTests passed 5 of 5 runs under load average ~230.
 - 2026-11-09: plan/risk/why (63e1030); test hardening (fb94eff); shipping and high-risk refund
   triage messages, billing binding, fallback-never-a-message test (2292097).
+- 2026-11-09: OS sandbox for exec agents (a708516); idleTimerPausesWhileAQuestionIsOpen now
+  runs on a manual clock (a mutation that drops the pause fails it in 10 s instead of hanging).

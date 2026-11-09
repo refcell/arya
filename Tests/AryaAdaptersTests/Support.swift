@@ -79,3 +79,55 @@ extension AdapterUpdate {
         return nil
     }
 }
+
+/// A ``SleepClock`` advanced by hand. `tick()` waits until something is sleeping on it, then
+/// wakes it, so a test steps the idle timer exactly, whatever the machine load.
+actor ManualClock: SleepClock {
+    private var sleepers: [Int: CheckedContinuation<Void, any Error>] = [:]
+    private var nextID = 0
+    private var tickWaiters: [Int: CheckedContinuation<Void, Never>] = [:]
+
+    func sleep(for duration: Duration) async throws {
+        let id = nextID
+        nextID += 1
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                sleepers[id] = continuation
+                let waiters = tickWaiters.values
+                tickWaiters = [:]
+                for waiter in waiters { waiter.resume() }
+            }
+        } onCancel: {
+            Task { await self.cancel(id) }
+        }
+    }
+
+    /// Waits for a sleeper, then ends every current sleep. Returns `false` when nothing starts
+    /// sleeping within `limit` (the timer stopped, which the test then reports instead of
+    /// hanging); the limit only matters when something is already wrong.
+    func tick(waitingAtMost limit: Duration = .seconds(10)) async -> Bool {
+        if sleepers.isEmpty {
+            let id = nextID
+            nextID += 1
+            let timer = Task {
+                try? await Task.sleep(for: limit)
+                self.expireWaiter(id)
+            }
+            await withCheckedContinuation { tickWaiters[id] = $0 }
+            timer.cancel()
+        }
+        guard !sleepers.isEmpty else { return false }
+        let woken = sleepers.values
+        sleepers = [:]
+        for sleeper in woken { sleeper.resume() }
+        return true
+    }
+
+    private func expireWaiter(_ id: Int) {
+        tickWaiters.removeValue(forKey: id)?.resume()
+    }
+
+    private func cancel(_ id: Int) {
+        sleepers.removeValue(forKey: id)?.resume(throwing: CancellationError())
+    }
+}

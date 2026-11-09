@@ -9,11 +9,15 @@ public final class FakeAdapter: Adapter {
     /// The connection to the in-process server.
     public let connection: AdapterConnection
 
-    public init(script: FakeScript, timeouts: ConnectionTimeouts = .standard) {
+    public init(
+        script: FakeScript, timeouts: ConnectionTimeouts = .standard,
+        idleClock: any SleepClock = SystemSleepClock()
+    ) {
         let (transport, endpoint) = InMemoryPipe.make()
         let server = FakeAdapterServer(script: script, endpoint: endpoint)
         Task { await server.serve() }
-        connection = AdapterConnection(transport: transport, timeouts: timeouts)
+        connection = AdapterConnection(
+            transport: transport, timeouts: timeouts, idleClock: idleClock)
     }
 
     public var updates: AsyncStream<AdapterUpdate> { connection.updates }
