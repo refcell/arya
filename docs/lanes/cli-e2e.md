@@ -74,6 +74,10 @@ M3:
 - (from ledger) once `LedgerCheck` carries the ledger's report lines (asked in workspace.md), `arya ledger verify` text output can print them as-is; JSON stays unchanged.
 
 ## Log
+- 2026-11-09: `memory`, `routines`, `proposals`, and `propose` wired to the facade; only
+  `binding-proxy` waits. `just e2e` passes all 15 steps. README shows a light-mode app
+  screenshot of the demo home (`docs/assets/stream-light.png`, captured with `screencapture -l`
+  on a background launch); Status and Usage refreshed. CI slot lock landed (d0d3bfa).
 - 2026-11-09: CI slot lock (decision 0033): `etc/scripts/slot.sh` holds one of two `lockf`
   slots in the git common dir around every swift build and test (`just build`, `just test`,
   `just screenshots`, `bundle-app.sh`); builds pass `-j 6`. Recipes now quote their

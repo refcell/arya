@@ -124,6 +124,15 @@ enum Mapping {
         }
     }
 
+    /// A charter proposal; an open proposal is still rehearsing.
+    static func proposal(_ summary: ProposalSummary) -> ProposalRow {
+        ProposalRow(
+            id: summary.id, steward: summary.steward, kind: "charter",
+            state: ProposalState(rawValue: summary.status) ?? .rehearsing,
+            baseline: summary.verdict?.baselineMean, candidate: summary.verdict?.candidateMean,
+            regressions: summary.verdict?.regressions ?? [])
+    }
+
     static func replay(_ summary: ReplaySummary) -> ReplayReport {
         ReplayReport(
             run: summary.run, events: summary.events,

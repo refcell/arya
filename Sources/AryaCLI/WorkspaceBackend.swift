@@ -243,17 +243,61 @@ extension WorkspaceBackend {
     }
 
     func propose(steward: String, charterPath: String) async throws(CLIError) -> ProposalRow {
-        throw missing("propose")
+        let data: Data
+        do {
+            data = try Data(contentsOf: URL(fileURLWithPath: charterPath))
+        } catch {
+            throw .notFound("charter file \(charterPath)")
+        }
+        let workspace = try await open()
+        guard let live = try await call("steward", { try await workspace.steward(steward) }) else {
+            throw .notFound("steward \(steward)")
+        }
+        let summary = try await call("proposeCharter", rejection: { .invalidInput($0) }) {
+            try await workspace.proposeCharter(
+                steward: steward, charter: data, baseVersion: live.charterVersion)
+        }
+        return Mapping.proposal(summary)
     }
+
     func listProposals(steward: String?) async throws(CLIError) -> [ProposalRow] {
-        throw missing("proposals")
+        let workspace = try await open()
+        let ids: [String]
+        if let steward {
+            ids = [steward]
+        } else {
+            ids = try await call("stewards") { try await workspace.stewards() }.map(\.id)
+        }
+        var rows: [ProposalRow] = []
+        for id in ids {
+            rows += try await call("proposals") { try await workspace.proposals(steward: id) }
+                .map(Mapping.proposal)
+        }
+        return rows
     }
+
     func memory(steward: String, scope: MemoryScope) async throws(CLIError) -> [MemoryRow] {
-        throw missing("memory")
+        let workspace = try await open()
+        let notes = try await call("memory") {
+            try await workspace.memory(steward: steward, includeRetracted: scope == .all)
+        }
+        return notes.map {
+            MemoryRow(
+                id: $0.id, text: $0.text, tags: $0.tags, author: $0.author, run: $0.run,
+                retracted: $0.retracted)
+        }
     }
+
     func routines(steward: String) async throws(CLIError) -> [RoutineRow] {
-        throw missing("routines")
+        let workspace = try await open()
+        let rows = try await call("routines") { try await workspace.routines(steward: steward) }
+        return rows.map {
+            RoutineRow(
+                name: $0.name, language: $0.language, liveVersion: $0.liveVersion,
+                versions: $0.versions)
+        }
     }
+
     func replay(run: String) async throws(CLIError) -> ReplayReport {
         let workspace = try await open()
         let summary = try await call("replay") { try await workspace.replay(run: run) }

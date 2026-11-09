@@ -219,3 +219,27 @@ private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
     #expect(report.divergences.map(\.seq) == [7, 9])
     #expect(report.divergences[0].replayed == "\"bug\"")
 }
+
+@Test func proposalsMapStatusAndVerdict() throws {
+    let open = try decode(
+        ProposalSummary.self,
+        """
+        {"id":"pr_1","steward":"st_triage","baseVersion":1,"candidateVersion":2,
+         "author":"human:local","status":"open","acceptable":false}
+        """)
+    let failed = try decode(
+        ProposalSummary.self,
+        """
+        {"id":"pr_2","steward":"st_triage","baseVersion":1,"candidateVersion":2,
+         "author":"human:local","status":"failed","acceptable":false,
+         "verdict":{"passed":false,"baselineMean":0.9,"candidateMean":0.7,
+                    "regressions":["case-0003"],"reason":"regressed"}}
+        """)
+    #expect(Mapping.proposal(open).state == .rehearsing)
+    #expect(Mapping.proposal(open).regressions.isEmpty)
+    let row = Mapping.proposal(failed)
+    #expect(row.state == .failed)
+    #expect(row.baseline == 0.9)
+    #expect(row.candidate == 0.7)
+    #expect(row.regressions == ["case-0003"])
+}

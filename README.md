@@ -6,6 +6,8 @@
 [![Status](https://img.shields.io/badge/status-pre--alpha-orange?style=for-the-badge)](#status)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 
+![The arya app showing a triage steward's run: two actions ran, a reply waits for approval](docs/assets/stream-light.png)
+
 arya runs persistent AI agents, called stewards, that each own an outcome instead of a task. You
 give a steward an outcome, a success metric, and guardrails, connect it to your systems (through
 MCP) and to people, and rehearse it against past work to see what it would have done. You correct
@@ -47,12 +49,12 @@ The full design is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | --- | --- | --- | --- |
 | Core | `Sources/AryaCore` | ids, ambient clock and randomness, charters, cases, canonical JSON | in progress: ids, `Ambient`, canonical JSON, `Charter`, `Case` |
 | Ledger | `Sources/AryaLedger` | hash-chained event ledger, store, repair, verify, projections | in progress |
-| Adapters | `Sources/AryaAdapters`, `Sources/AryaFakeAdapter`, `Sources/AryaExecAdapter` | protocol, stdio transport, fake, replay, and exec adapters, conformance | in progress: protocol, transport, fake adapter, conformance |
-| Runtime | `Sources/AryaRuntime`, `Sources/Arya` | stewards, triggers, run loop, policy, approvals, binding proxy, crews | in progress: lifecycle, policy, approvals, executor, `Workspace` API |
-| Memory and routines | `Sources/AryaMemory` | notes with provenance, versioned routine library | in progress: notes, retrieval, corrections, routine library |
-| Eval | `Sources/AryaEval` | replay, casebooks, rehearsal, scorers, proposals, gates, metrics | in progress: casebooks, scorers, corrections, readiness |
-| App | `Sources/AryaDesign`, `Sources/AryaApp` | design system, shell, run stream, approvals, ledger, rehearsals | in progress: tokens, components, run stream, approvals, ledger |
-| CLI | `Sources/AryaCLI`, `etc/examples` | the `arya` command, examples, end-to-end scenario | in progress: M1 and most M2 commands work; `just e2e` passes 14 of 15 steps (replay pending); `just demo` |
+| Adapters | `Sources/AryaAdapters`, `Sources/AryaFakeAdapter`, `Sources/AryaExecAdapter` | protocol, stdio transport, fake, replay, and exec adapters, conformance | in progress: protocol, transport, fake, replay, and exec adapters, conformance, example profiles |
+| Runtime | `Sources/AryaRuntime`, `Sources/Arya` | stewards, triggers, run loop, policy, approvals, binding proxy, crews | in progress: lifecycle, policy, approvals, crews, routines, binding proxy, `Workspace` API |
+| Memory and routines | `Sources/AryaMemory` | notes with provenance, versioned routine library | in progress: notes, retrieval, corrections, routine library and gates |
+| Eval | `Sources/AryaEval` | replay, casebooks, rehearsal, scorers, proposals, gates, metrics | in progress: casebooks, rehearsal, corrections, readiness, proposals, gates, metrics, replay |
+| App | `Sources/AryaDesign`, `Sources/AryaApp` | design system, shell, run stream, approvals, ledger, rehearsals | in progress: shell, run stream, approvals, ledger, charter editor, metric chart, rehearse and replay controls |
+| CLI | `Sources/AryaCLI`, `etc/examples` | the `arya` command, examples, end-to-end scenario | in progress: M1 and M2 commands except `binding-proxy`; `just e2e` passes all 15 steps; `just demo` |
 
 Each area has a backlog with its decisions and progress log in [docs/lanes](docs/lanes). The plan
 is in [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -83,6 +85,9 @@ arya run st_triage --input "New message MSG-201: Refund for a duplicate charge"
 arya approvals                                       # list held actions
 arya approve <approval>                              # approve one; it executes
 arya metrics st_triage                               # outcome metric series
+arya memory st_triage                                # what it has learned, with provenance
+arya propose st_triage --charter draft.json          # a gated charter change
+arya run show <run>                                  # decisions and each action's outcome
 arya replay <run>                                    # re-run deterministically, report divergence
 arya ledger verify                                   # check the hash chain
 ```

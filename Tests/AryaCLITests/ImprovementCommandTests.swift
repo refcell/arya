@@ -95,8 +95,9 @@ import Testing
     defer { try? FileManager.default.removeItem(at: home) }
     let capture = Capture()
     let status = await CLI.run(
-        ["--home", home.path, "memory", "st_triage"], context: testContext,
+        ["--home", home.path, "binding-proxy", "--run", "run_1", "--binding", "inbox"],
+        context: testContext,
         output: capture.output, backend: { WorkspaceBackend(home: $0) })
     #expect(status == .unavailable)
-    #expect(capture.errText.contains("Workspace.memory"))
+    #expect(capture.errText.contains("Workspace.bindingProxy"))
 }
