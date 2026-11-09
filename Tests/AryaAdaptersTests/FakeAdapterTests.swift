@@ -71,9 +71,8 @@ import Testing
 }
 
 @Test func unmatchedInputAndStartErrorsFail() async throws {
-    let script = FakeScript(runs: [
-        FakeScript.Run(
-            input: "boom", startError: RPCError(code: -32004, message: "harness crashed"))
+    let script = FakeScript(responses: [
+        "boom": FakeScript.Response(startError: RPCError(code: -32004, message: "harness crashed"))
     ])
     for text in ["boom", "no such input"] {
         let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
@@ -115,9 +114,9 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 }
 
 @Test func hostAskRoundTrips() async throws {
-    let script = FakeScript(runs: [
-        FakeScript.Run(steps: [.ask(question: "Assign to Alex?", to: "person:alex")], result: [:])
-    ])
+    let script = Sample.script(
+        FakeScript.Response(
+            steps: [.ask(question: "Assign to Alex?", to: "person:alex")], result: [:]))
     let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
     _ = try await adapter.start(Sample.start("anything"))
     var answered: [RunEventParams] = []
@@ -134,7 +133,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 }
 
 @Test func sendAndTranscript() async throws {
-    let script = FakeScript(runs: [FakeScript.Run(steps: [.hang])])
+    let script = Sample.script(FakeScript.Response(steps: [.hang]))
     let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
     let session = try await adapter.start(Sample.start("x")).session
     try await adapter.send(RunSendParams(session: session, message: HumanMessage(text: "Use bug.")))
@@ -146,9 +145,9 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 }
 
 @Test func crashEndsTheConnectionWithoutAResult() async throws {
-    let script = FakeScript(runs: [
-        FakeScript.Run(steps: [.event(RunEvent(.thinking(text: "hm"))), .crash(exitCode: 3)])
-    ])
+    let script = Sample.script(
+        FakeScript.Response(
+            events: [RunEvent(.thinking(text: "hm"))], steps: [.crash(exitCode: 3)]))
     let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
     let session = try await adapter.start(Sample.start("x")).session
     let updates = await collect(adapter)
@@ -160,7 +159,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 }
 
 @Test func nonJSONStdoutIsAProtocolError() async throws {
-    let script = FakeScript(runs: [FakeScript.Run(steps: [.stdout("hello, not json")])])
+    let script = Sample.script(FakeScript.Response(steps: [.stdout("hello, not json")]))
     let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
     _ = try await adapter.start(Sample.start("x"))
     let updates = await collect(adapter, until: \.isResult)
@@ -176,7 +175,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 }
 
 @Test func idleTimeoutStopsTheRun() async throws {
-    let script = FakeScript(runs: [FakeScript.Run(steps: [.hang])])
+    let script = Sample.script(FakeScript.Response(steps: [.hang]))
     var timeouts = Sample.fast
     timeouts.idle = .milliseconds(100)
     let adapter = FakeAdapter(script: script, timeouts: timeouts)
@@ -189,7 +188,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 }
 
 @Test func adapterIgnoringStopIsTerminated() async throws {
-    let script = FakeScript(runs: [FakeScript.Run(steps: [.hang], ignoreStop: true)])
+    let script = Sample.script(FakeScript.Response(steps: [.hang], ignoreStop: true))
     var timeouts = Sample.fast
     timeouts.idle = .milliseconds(100)
     let adapter = FakeAdapter(script: script, timeouts: timeouts)

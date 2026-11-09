@@ -3,43 +3,114 @@ import Foundation
 
 /// A script for the fake adapter: what to stream and return for each run input.
 ///
-/// The format is documented in docs/PROTOCOL.md ("Fake adapter scripts"). A run whose
-/// `input.text` equals a run's `input` uses that run; otherwise the run without `input` is the
-/// default; with neither, `run/start` fails with `-32004`.
+/// The format is documented in docs/PROTOCOL.md ("Fake adapter scripts"). `responses` maps the
+/// exact `run/start.input.text` to a response; other inputs get `default`; with neither,
+/// `run/start` fails with `-32004`. The equivalent list form `runs` (entries with an optional
+/// `input`) is read too; when both name an input, `responses` wins.
 public struct FakeScript: Sendable, Hashable, Codable {
     public var v: Int
     public var adapter: PeerInfo
     public var capabilities: Capabilities
-    public var runs: [Run]
+    public var responses: [String: Response]
+    public var defaultResponse: Response?
+
+    public static let defaultAdapter = PeerInfo(name: "fake", version: "0.1.0")
 
     public static let defaultCapabilities = Capabilities(
         effort: ["low", "medium", "high"], send: true, cost: true, transcript: true,
         tools: .none, sandbox: .workdir)
 
     public init(
-        adapter: PeerInfo = PeerInfo(name: "fake", version: "0.1.0"),
-        capabilities: Capabilities = FakeScript.defaultCapabilities, runs: [Run]
+        adapter: PeerInfo = FakeScript.defaultAdapter,
+        capabilities: Capabilities = FakeScript.defaultCapabilities,
+        responses: [String: Response] = [:], defaultResponse: Response? = nil
     ) {
         self.v = 1
         self.adapter = adapter
         self.capabilities = capabilities
-        self.runs = runs
+        self.responses = responses
+        self.defaultResponse = defaultResponse
     }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         v = try c.decodeIfPresent(Int.self, forKey: .v) ?? 1
-        adapter =
-            try c.decodeIfPresent(PeerInfo.self, forKey: .adapter)
-            ?? PeerInfo(name: "fake", version: "0.1.0")
+        adapter = try c.decodeIfPresent(PeerInfo.self, forKey: .adapter) ?? Self.defaultAdapter
         capabilities =
             try c.decodeIfPresent(Capabilities.self, forKey: .capabilities)
             ?? Self.defaultCapabilities
-        runs = try c.decode([Run].self, forKey: .runs)
+        responses = try c.decodeIfPresent([String: Response].self, forKey: .responses) ?? [:]
+        defaultResponse = try c.decodeIfPresent(Response.self, forKey: .defaultResponse)
+        // The list form: each run carries its `input`; the run without one is the default.
+        for run in try c.decodeIfPresent([ListedRun].self, forKey: .runs) ?? [] {
+            if let input = run.input {
+                responses[input] = responses[input] ?? run.response
+            } else {
+                defaultResponse = defaultResponse ?? run.response
+            }
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(v, forKey: .v)
+        try c.encode(adapter, forKey: .adapter)
+        try c.encode(capabilities, forKey: .capabilities)
+        try c.encode(responses, forKey: .responses)
+        try c.encodeIfPresent(defaultResponse, forKey: .defaultResponse)
+    }
+
+    /// One entry of the list form `runs`: a response plus the input it answers.
+    private struct ListedRun: Decodable {
+        var input: String?
+        var response: Response
+
+        enum CodingKeys: String, CodingKey { case input }
+
+        init(from decoder: any Decoder) throws {
+            input = try decoder.container(keyedBy: CodingKeys.self)
+                .decodeIfPresent(String.self, forKey: .input)
+            response = try Response(from: decoder)
+        }
     }
 
     enum CodingKeys: String, CodingKey {
-        case v, adapter, capabilities, runs
+        case v, adapter, capabilities, responses, runs
+        case defaultResponse = "default"
+    }
+
+    /// A script in the list form: each run answers its `input`; the run without one is the
+    /// default. When two runs name the same input, the first wins.
+    public init(
+        adapter: PeerInfo = FakeScript.defaultAdapter,
+        capabilities: Capabilities = FakeScript.defaultCapabilities, runs: [Run]
+    ) {
+        self.init(adapter: adapter, capabilities: capabilities)
+        for run in runs {
+            if let input = run.input {
+                responses[input] = responses[input] ?? run.response
+            } else {
+                defaultResponse = defaultResponse ?? run.response
+            }
+        }
+    }
+
+    /// One run of the list form: a response and the input it answers.
+    public struct Run: Sendable, Hashable {
+        /// The `input.text` this run answers; `nil` makes it the default.
+        public var input: String?
+        public var response: Response
+
+        public init(
+            input: String? = nil, steps: [Step] = [], status: RunStatus = .completed,
+            result: JSONValue? = nil, cost: CostResult = CostResult(),
+            startError: RPCError? = nil, ignoreStop: Bool = false
+        ) {
+            self.input = input
+            self.response = Response(
+                steps: steps, status: status, result: result, cost: cost,
+                startError: startError, ignoreStop: ignoreStop)
+        }
     }
 
     /// Reads a script file.
@@ -47,15 +118,17 @@ public struct FakeScript: Sendable, Hashable, Codable {
         try CanonicalJSON.decode(FakeScript.self, from: try Data(contentsOf: url))
     }
 
-    /// The run for `text`: an exact `input` match first, then the default run.
-    public func run(for text: String) -> Run? {
-        runs.first { $0.input == text } ?? runs.first { $0.input == nil }
+    /// The response for `text`: its exact entry, else the default.
+    public func response(for text: String) -> Response? {
+        responses[text] ?? defaultResponse
     }
 
-    /// What the fake adapter does for one run input.
-    public struct Run: Sendable, Hashable, Codable {
-        /// The `input.text` this run answers; `nil` makes it the default.
-        public var input: String?
+    /// What the fake adapter does for one run input. Only `events`, `status`, and `result`
+    /// are needed for ordinary scripts; the other fields script failures and timing.
+    public struct Response: Sendable, Hashable, Codable {
+        /// Events emitted first, in order (`seq` is assigned by the adapter).
+        public var events: [RunEvent]
+        /// Steps run after `events`.
         public var steps: [Step]
         public var status: RunStatus
         /// The `run/result` result; `nil` sends no result field.
@@ -67,11 +140,11 @@ public struct FakeScript: Sendable, Hashable, Codable {
         public var ignoreStop: Bool
 
         public init(
-            input: String? = nil, steps: [Step] = [], status: RunStatus = .completed,
+            events: [RunEvent] = [], steps: [Step] = [], status: RunStatus = .completed,
             result: JSONValue? = nil, cost: CostResult = CostResult(),
             startError: RPCError? = nil, ignoreStop: Bool = false
         ) {
-            self.input = input
+            self.events = events
             self.steps = steps
             self.status = status
             self.result = result
@@ -82,7 +155,7 @@ public struct FakeScript: Sendable, Hashable, Codable {
 
         public init(from decoder: any Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            input = try c.decodeIfPresent(String.self, forKey: .input)
+            events = try c.decodeIfPresent([RunEvent].self, forKey: .events) ?? []
             steps = try c.decodeIfPresent([Step].self, forKey: .steps) ?? []
             status = try c.decodeIfPresent(RunStatus.self, forKey: .status) ?? .completed
             result = try c.decodeIfPresent(JSONValue.self, forKey: .result)
@@ -92,8 +165,11 @@ public struct FakeScript: Sendable, Hashable, Codable {
         }
 
         enum CodingKeys: String, CodingKey {
-            case input, steps, status, result, cost, startError, ignoreStop
+            case events, steps, status, result, cost, startError, ignoreStop
         }
+
+        /// `events` followed by `steps`, as the adapter performs them.
+        var allSteps: [Step] { events.map { .event($0) } + steps }
     }
 
     /// One scripted step. Exactly one key is set per step on the wire.

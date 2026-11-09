@@ -235,63 +235,17 @@ public actor AdapterConnection: Adapter {
     }
 
     private func handleLine(_ line: Data) async {
-        let message: RPCMessage
-        do {
-            message = try LineCodec.decode(line)
-        } catch {
-            continuation.yield(.wire(WireRecord(direction: .received, line: line, message: nil)))
-            continuation.yield(.protocolError(error))
-            return
-        }
+        let (message, meaning) = Interpretation.of(line: line)
         continuation.yield(.wire(WireRecord(direction: .received, line: line, message: message)))
-        switch message {
-        case .response(let response):
+        if meaning.isResult {
+            resultSeen = true
+            supervisor?.cancel()
+        }
+        for update in meaning.updates { continuation.yield(update) }
+        if let response = meaning.response {
             resolve(response.id, response.outcome.mapError { .rpc($0) })
-        case .notification(let notification):
-            handleNotification(notification)
-        case .request(let request):
-            await handleRequest(request)
         }
-    }
-
-    private func handleNotification(_ notification: RPCNotification) {
-        let params = notification.params ?? .null
-        do {
-            switch notification.method {
-            case RPCMethod.runEvent:
-                continuation.yield(.event(try params.decode(RunEventParams.self)))
-            case RPCMethod.runResult:
-                let result = try params.decode(RunResultParams.self)
-                resultSeen = true
-                supervisor?.cancel()
-                continuation.yield(.result(result))
-            default:
-                break
-            }
-        } catch {
-            continuation.yield(
-                .protocolError(
-                    RPCError(
-                        code: RPCErrorCode.invalidParams,
-                        message: "invalid \(notification.method) params: \(error)")))
-        }
-    }
-
-    private func handleRequest(_ request: RPCRequest) async {
-        guard request.method == RPCMethod.hostAsk else {
-            let error = RPCError(
-                code: RPCErrorCode.methodNotFound, message: "unknown method \(request.method)")
-            try? await write(.response(RPCResponse(id: request.id, error: error)))
-            return
-        }
-        do {
-            let params = try (request.params ?? .null).decode(HostAskParams.self)
-            continuation.yield(.ask(id: request.id, params))
-        } catch {
-            let rpcError = RPCError(code: RPCErrorCode.invalidParams, message: "\(error)")
-            continuation.yield(.protocolError(rpcError))
-            try? await write(.response(RPCResponse(id: request.id, error: rpcError)))
-        }
+        if let reply = meaning.reply { try? await write(.response(reply)) }
     }
 
     private func finish(_ status: AdapterExit) {

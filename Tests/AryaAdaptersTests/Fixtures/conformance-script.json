@@ -1,8 +1,8 @@
 {"v":1,
  "adapter":{"name":"fake","version":"0.1.0"},
- "runs":[
-  {"steps":[
-    {"event":{"kind":"status","state":"working","detail":"starting"}},
+ "default":{
+   "events":[{"kind":"status","state":"working","detail":"starting"}],
+   "steps":[
     {"sleepMs":100},
     {"event":{"kind":"message","role":"assistant","text":"Looking at the input."}},
     {"sleepMs":100},
@@ -10,5 +10,4 @@
     {"event":{"kind":"tool_result","id":"t1","output":{"items":[]},"isError":false}},
     {"sleepMs":100}],
    "status":"completed",
-   "result":{"summary":"Nothing to do.","decisions":[],"actions":[]}}
- ]}
+   "result":{"summary":"Nothing to do.","decisions":[],"actions":[]}}}

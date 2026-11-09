@@ -59,6 +59,10 @@ M4:
   not only timeouts, so a person's stop cannot hang a run.
 - `AdapterCommand.environment` is the child's complete environment, passed by the caller;
   names without `/` are resolved on its `PATH` through `/usr/bin/env`.
+- Fake adapter scripts use the cli-e2e format (`responses` keyed by input text, `default`) as
+  decided by the project lead; failure and timing controls (`steps`, `cost`, `startError`,
+  `ignoreStop`) are optional additions to a response. The list form `runs`, which the triage
+  example adopted before the decision, is read as an equivalent so neither lane has to churn.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -69,6 +73,8 @@ M4:
   fail with `timeout` instead of the question expiring. Proposed default: pause the idle timer
   while any `host/ask` is outstanding; the runtime already expires the question at the run's
   timeout and answers `null`.
-
-
 ## Log
+- 2026-11-09: protocol types, JSON-RPC messages, golden tests (dc550be)
+- 2026-11-09: `Adapter`, `AdapterConnection`, `ProcessTransport`, `FakeAdapter`,
+  `arya-fake-adapter`, conformance suite (bd040dc). Runtime: construct `FakeAdapter(script:)`
+  or `AdapterConnection.launch(_:)` and record every `.wire` update.

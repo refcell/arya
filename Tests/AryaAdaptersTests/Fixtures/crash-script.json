@@ -1,1 +1,1 @@
-{"v":1,"runs":[{"steps":[{"event":{"kind":"thinking","text":"about to fail"}},{"crash":{"exitCode":3}}]}]}
+{"v":1,"default":{"events":[{"kind":"thinking","text":"about to fail"}],"steps":[{"crash":{"exitCode":3}}]}}

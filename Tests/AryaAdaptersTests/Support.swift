@@ -20,15 +20,19 @@ enum Sample {
     ]
 
     /// A script with one matched run that streams two events and completes.
-    static let script = FakeScript(runs: [
-        FakeScript.Run(
-            input: "triage ISSUE-1",
-            steps: [
-                .event(RunEvent(.status(state: "working", detail: nil))),
-                .event(RunEvent(.message(role: "assistant", text: "It is a bug."))),
+    static let script = FakeScript(responses: [
+        "triage ISSUE-1": FakeScript.Response(
+            events: [
+                RunEvent(.status(state: "working", detail: nil)),
+                RunEvent(.message(role: "assistant", text: "It is a bug.")),
             ],
             result: result, cost: CostResult(inputTokens: 10, outputTokens: 5, costMicros: 42))
     ])
+
+    /// A script whose default response is `response`.
+    static func script(_ response: FakeScript.Response) -> FakeScript {
+        FakeScript(defaultResponse: response)
+    }
 
     static let fast = ConnectionTimeouts(
         request: .seconds(5), stopGrace: .milliseconds(200), killGrace: .milliseconds(200),

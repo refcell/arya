@@ -206,44 +206,53 @@ in its profile (`adapters.json`), so charters never name models.
   "args":{"low":["-p"],"medium":["-p"],"high":["-p"]},"mcpConfig":"none"}}}
 ```
 
-## Fake adapter scripts
+### Fake adapter scripts
 
 `arya-fake-adapter --script <file>` and the in-process `FakeAdapter` run the same server from a
-JSON script. `run/start` picks the run whose `input` equals `input.text`, else the run without
-`input`; with neither it fails with `-32004`. The session id is `fake-<run>`.
+JSON script. `responses` maps the exact `run/start.input.text` to a response; other inputs get
+`default`; with neither, `run/start` fails with `-32004`. The session id is `fake-<run>`.
 
 ```json
-{"v":1,"adapter":{"name":"fake","version":"0.1.0"},
- "capabilities":{"effort":["low","medium","high"],"send":true,"cost":true,"transcript":true,
-                 "tools":"none","sandbox":"workdir"},
- "runs":[
-  {"input":"New issue: login page times out",
-   "steps":[{"event":{"kind":"message","role":"assistant","text":"Looking."}},
-            {"sleepMs":50},
-            {"ask":{"question":"Assign to Alex?","to":"person:alex"}}],
-   "status":"completed",
-   "result":{"summary":"Labeled ISSUE-7.","decisions":[{"id":"d1","choice":"bug"}]},
-   "cost":{"inputTokens":120,"outputTokens":40,"costMicros":900}},
-  {"steps":[{"crash":{"exitCode":3}}]}]}
+{"v":1,
+ "responses":{
+   "New message MSG-101: Charged twice":{
+     "events":[{"kind":"status","state":"working","detail":"reading the message"},
+               {"kind":"message","role":"assistant","text":"This looks like billing."}],
+     "status":"completed",
+     "result":{"summary":"Labeled MSG-101 as billing.","decisions":[{"id":"d1","choice":"billing"}],
+               "actions":[],"measurements":[]}}},
+ "default":{"events":[],"status":"completed","result":{"summary":"Nothing to do."}}}
 ```
 
-`adapter` and `capabilities` are optional (the defaults are shown). Per run, every field but
-`steps` is optional: `status` defaults to `completed`, `result` to none, `cost` to zeros.
-`startError` (`{"code":…,"message":…}`) makes `run/start` fail; `ignoreStop: true` acknowledges
-`run/stop` without sending `run/result`, to test termination. Steps run in order, each with one
-key:
+`events` are `run/event` payloads without `seq` (the adapter numbers them; `at` is optional);
+`status` (default `completed`) and `result` become the `run/result` notification. Everything
+else is optional:
+
+| field | meaning |
+| --- | --- |
+| `adapter` | `initialize` adapter info, default `{"name":"fake","version":"0.1.0"}` |
+| `capabilities` | `initialize` capabilities, default all of `send`, `cost`, `transcript`, tools `none`, sandbox `workdir` |
+| response `cost` | the `run/cost` result, default zeros |
+| response `startError` | `{"code":…,"message":…}`: `run/start` fails with it |
+| response `ignoreStop` | `true`: `run/stop` is acknowledged but no `run/result` follows |
+| response `steps` | performed after `events`, in order, one key each (below) |
 
 | step | effect |
 | --- | --- |
-| `event` | emit a `run/event` with the next `seq` |
+| `event` | emit a `run/event` |
 | `sleepMs` | wait that many milliseconds |
-| `ask` | send `host/ask`, wait, then emit the answer as a `message` event with role `human` |
+| `ask` | send `host/ask` (`question`, optional `to`), wait, then emit the answer as a `message` event with role `human` |
 | `stdout` | write the text as one raw stdout line (a protocol error) |
 | `crash` | exit with `exitCode` without a `run/result` |
 | `hang` | produce nothing until `run/stop` |
 
-After the last step the adapter sends `run/result`. `run/send` emits the message as a `message`
-event, and `run/stop` ends the run with `status: "stopped"`.
+`run/send` emits the message as a `message` event, and `run/stop` ends the run with
+`status: "stopped"`.
+
+The list form `"runs":[{"input":"…", …response fields…}, …]` is equivalent: each run answers
+its `input`, and the run without `input` is the default. When both forms name an input,
+`responses` wins. `etc/examples/triage/fake-script.json` is a complete example in the list
+form.
 
 ## Host behavior
 

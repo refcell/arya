@@ -10,7 +10,7 @@ public actor FakeAdapterServer {
     private let endpoint: any AdapterEndpoint
 
     private var session: String?
-    private var run: FakeScript.Run?
+    private var run: FakeScript.Response?
     private var runTask: Task<Void, Never>?
     private var events: [RunEvent] = []
     private var resultSent = false
@@ -106,8 +106,9 @@ public actor FakeAdapterServer {
             throw RPCError(code: RPCErrorCode.busy, message: "busy: this process already has a run")
         }
         let request = try params.decode(RunStartParams.self)
-        guard let match = script.run(for: request.input.text) else {
-            throw RPCError(code: RPCErrorCode.harnessFailure, message: "no script run for input")
+        guard let match = script.response(for: request.input.text) else {
+            throw RPCError(
+                code: RPCErrorCode.harnessFailure, message: "no script response for input")
         }
         if let error = match.startError { throw error }
         session = "fake-\(request.run)"
@@ -163,8 +164,8 @@ public actor FakeAdapterServer {
         runTask = Task { await self.perform(run) }
     }
 
-    private func perform(_ run: FakeScript.Run) async {
-        for step in run.steps {
+    private func perform(_ run: FakeScript.Response) async {
+        for step in run.allSteps {
             if Task.isCancelled || closed { return }
             switch step {
             case .event(let event):

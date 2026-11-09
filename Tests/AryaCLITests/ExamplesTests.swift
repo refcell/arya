@@ -123,8 +123,8 @@ private func bindingActions(_ charter: Object) -> [String: [String]] {
     #expect(charter.policy.decision(forAction: "delete") == .deny)
     #expect(charter.policy.decision(forAction: "archive") == .ask)
     let script = try FakeScript.load(from: triage.appendingPathComponent("fake-script.json"))
-    #expect(script.run(for: "New message MSG-201: Refund for a duplicate charge") != nil)
-    #expect(script.run(for: "anything else") != nil)
+    #expect(script.response(for: "New message MSG-201: Refund for a duplicate charge") != nil)
+    #expect(script.response(for: "anything else") != nil)
     let text = try String(
         contentsOf: triage.appendingPathComponent("casebook.jsonl"), encoding: .utf8)
     for line in text.split(separator: "\n") {
