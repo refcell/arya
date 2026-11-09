@@ -35,8 +35,10 @@ M3 (integration toward the end-to-end scenario):
   flags.
 - [x] Blob store adoption: conform the ledger's blob store to `RoutineBlobStore` and drop the
   stub once `AryaLedger` ships it.
-- [ ] Facade read models for the app's Memory and Routines views (provenance line, history,
-  diff between any two versions) once the runtime publishes the facade's memory API.
+- [x] Read models for the app's Memory and Routines views: `RoutineLibrary.overview`, `diff`
+  between any two stored versions, `MemoryProvenance.line`, `RoutineVersion.shortVersion`.
+- [ ] Facade memory API with the workspace lane: `memory(steward:scope:)`, `retract`,
+  `routines(steward:)`, `routineHistory`, `routineDiff` over the home's ledger and blobs.
 - [x] Replay check helper: given a recorded `run.started.memory`, recompute the snapshot from
   the projection at that `seq` and report a divergence.
 
@@ -128,3 +130,4 @@ M3 (integration toward the end-to-end scenario):
 - 2026-11-09: routine proposals, `RoutineGatekeeper`, decision 0025 landed (77bd06a).
 - 2026-11-09: run memory intake, `RunPreparation.context`, `allNotes` landed (d7bc2f0).
 - 2026-11-09: fixed the runtime.md reference to decision 0025 (ef53890).
+- 2026-11-09: ledger `BlobStore` adopted as `RoutineBlobStore`; `MemoryReplay.check` (5570258).
