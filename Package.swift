@@ -47,5 +47,7 @@ let package = Package(
         .testTarget(name: "AryaTests", dependencies: ["Arya"]),
         .testTarget(name: "AryaDesignTests", dependencies: ["AryaDesign"]),
         .testTarget(name: "AryaCLITests", dependencies: ["AryaCLI"]),
+        // Tests the app's feature view models; executable targets are testable on macOS.
+        .testTarget(name: "AryaAppTests", dependencies: ["AryaApp"]),
     ]
 )
