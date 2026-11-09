@@ -5,7 +5,7 @@ import Testing
 @testable import AryaAdapters
 
 @Test func fakeAdapterRunsAScriptedRun() async throws {
-    let adapter = FakeAdapter(script: Sample.script, timeouts: Sample.fast)
+    let adapter = FakeAdapter(script: Sample.script, timeouts: Sample.timeouts)
     let hello = try await adapter.initialize(InitializeParams(client: Sample.client))
     #expect(hello.capabilities == FakeScript.defaultCapabilities)
     let started = try await adapter.start(Sample.start("triage ISSUE-1"))
@@ -24,7 +24,7 @@ import Testing
 }
 
 @Test func everyMessageIsRecordedInOrder() async throws {
-    let adapter = FakeAdapter(script: Sample.script, timeouts: Sample.fast)
+    let adapter = FakeAdapter(script: Sample.script, timeouts: Sample.timeouts)
     _ = try await adapter.initialize(InitializeParams(client: Sample.client))
     _ = try await adapter.start(Sample.start("triage ISSUE-1"))
     var updates = await collect(adapter, until: \.isResult)
@@ -48,7 +48,7 @@ import Testing
 }
 
 @Test func secondRunOnOneProcessIsBusy() async throws {
-    let adapter = FakeAdapter(script: Sample.script, timeouts: Sample.fast)
+    let adapter = FakeAdapter(script: Sample.script, timeouts: Sample.timeouts)
     _ = try await adapter.start(Sample.start("triage ISSUE-1"))
     await #expect(
         throws: AdapterError.rpc(
@@ -59,7 +59,7 @@ import Testing
 }
 
 @Test func unsupportedProtocolIsRejected() async throws {
-    let adapter = FakeAdapter(script: Sample.script, timeouts: Sample.fast)
+    let adapter = FakeAdapter(script: Sample.script, timeouts: Sample.timeouts)
     do {
         _ = try await adapter.initialize(
             InitializeParams(protocolVersion: 99, client: Sample.client))
@@ -75,7 +75,7 @@ import Testing
         "boom": FakeScript.Response(startError: RPCError(code: -32004, message: "harness crashed"))
     ])
     for text in ["boom", "no such input"] {
-        let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
+        let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
         do {
             _ = try await adapter.start(Sample.start(text))
             Issue.record("expected -32004")
@@ -89,7 +89,7 @@ import Testing
 @Test func unknownSessionAndMissingCapability() async throws {
     var script = Sample.script
     script.capabilities.send = false
-    let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
+    let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
     _ = try await adapter.start(Sample.start("triage ISSUE-1"))
     let codes = [
         await code { try await adapter.cost(SessionParams(session: "nope")) },
@@ -117,7 +117,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
     let script = Sample.script(
         FakeScript.Response(
             steps: [.ask(question: "Assign to Alex?", to: "person:alex")], result: [:]))
-    let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
+    let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
     _ = try await adapter.start(Sample.start("anything"))
     var answered: [RunEventParams] = []
     for await update in adapter.updates {
@@ -134,7 +134,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 
 @Test func sendAndTranscript() async throws {
     let script = Sample.script(FakeScript.Response(steps: [.hang]))
-    let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
+    let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
     let session = try await adapter.start(Sample.start("x")).session
     try await adapter.send(RunSendParams(session: session, message: HumanMessage(text: "Use bug.")))
     let transcript = try await adapter.transcript(SessionParams(session: session))
@@ -148,7 +148,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
     let script = Sample.script(
         FakeScript.Response(
             events: [RunEvent(.thinking(text: "hm"))], steps: [.crash(exitCode: 3)]))
-    let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
+    let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
     let session = try await adapter.start(Sample.start("x")).session
     let updates = await collect(adapter)
     #expect(updates.compactMap(\.result).isEmpty)
@@ -160,7 +160,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 
 @Test func nonJSONStdoutIsAProtocolError() async throws {
     let script = Sample.script(FakeScript.Response(steps: [.stdout("hello, not json")]))
-    let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
+    let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
     _ = try await adapter.start(Sample.start("x"))
     let updates = await collect(adapter, until: \.isResult)
     let errors = updates.compactMap { update -> RPCError? in
@@ -176,7 +176,7 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 
 @Test func idleTimeoutStopsTheRun() async throws {
     let script = Sample.script(FakeScript.Response(steps: [.hang]))
-    var timeouts = Sample.fast
+    var timeouts = Sample.timeouts
     timeouts.idle = .milliseconds(100)
     let adapter = FakeAdapter(script: script, timeouts: timeouts)
     _ = try await adapter.start(Sample.start("x"))
@@ -189,8 +189,10 @@ func code(_ body: () async throws -> some Any) async -> Int? {
 
 @Test func adapterIgnoringStopIsTerminated() async throws {
     let script = Sample.script(FakeScript.Response(steps: [.hang], ignoreStop: true))
-    var timeouts = Sample.fast
+    var timeouts = Sample.timeouts
     timeouts.idle = .milliseconds(100)
+    // Escalation is the point here; the outcome (SIGTERM) does not depend on timing.
+    timeouts.stopGrace = .milliseconds(200)
     let adapter = FakeAdapter(script: script, timeouts: timeouts)
     _ = try await adapter.start(Sample.start("x"))
     let updates = await collect(adapter)
@@ -207,16 +209,17 @@ func requestParams(_ message: RPCMessage) -> JSONValue? {
 @Test func idleTimerPausesWhileAQuestionIsOpen() async throws {
     let script = Sample.script(
         FakeScript.Response(steps: [.ask(question: "Proceed?", to: nil)], result: [:]))
-    var timeouts = Sample.fast
-    timeouts.idle = .milliseconds(50)
+    var timeouts = Sample.timeouts
+    // Long enough that the gap between the answer and the result never trips it under load.
+    timeouts.idle = .seconds(1)
     let adapter = FakeAdapter(script: script, timeouts: timeouts)
     _ = try await adapter.start(Sample.start("x"))
     var updates: [AdapterUpdate] = []
     for await update in adapter.updates {
         updates.append(update)
         if case .ask(let id, _) = update {
-            // Answer well after the idle timeout would have fired.
-            try await Task.sleep(for: .milliseconds(250))
+            // Hold the question open for three idle windows.
+            try await Task.sleep(for: .seconds(3))
             try await adapter.answer(id, HostAskResult(answer: "yes"))
         }
         if update.isResult { break }

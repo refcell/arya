@@ -100,6 +100,10 @@ M4:
 - `ProcessTransport.write` queues the line on a serial stdin queue and returns, so a peer that
   stops reading cannot block the connection actor or its request timeouts; a failed write is
   not thrown because `.ended` reports the dead peer.
+- Tests use generous timeouts (`Sample.timeouts`: request 30 s, stop grace 10 s, kill 5 s,
+  exit 10 s) and wait on signals (a `ready` line, the result) rather than sleeps; only tests
+  about escalation shorten the one grace they exercise, and they assert the outcome, not time.
+  `ProcessTransport` waits 5 s (was 1 s) after exit for end-of-file so a slow reader drains.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -124,3 +128,6 @@ M4:
 - 2026-11-09: example profiles (07db438), bounded reads and exec cleanup (5f18ae2), jsonl cost
   (52bdc83), conformance over fake and exec plus `just conformance` (3d88e82),
   `ReplayAdapter(ledgerPayloads:exit:)` (21f7c6c), `stream-json` parsing (cd5b17e).
+- 2026-11-09: `codex-json` parsing (dd2bf06), exec prompt off the server loop (604802b),
+  queued stdin writes (65c2170). Hardened timing-sensitive tests for machine load;
+  AryaAdaptersTests passed 5 of 5 runs under load average ~230.

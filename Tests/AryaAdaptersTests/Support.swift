@@ -34,9 +34,11 @@ enum Sample {
         FakeScript(defaultResponse: response)
     }
 
-    static let fast = ConnectionTimeouts(
-        request: .seconds(5), stopGrace: .milliseconds(200), killGrace: .milliseconds(200),
-        exitGrace: .milliseconds(500))
+    /// Generous timeouts so a loaded machine never turns a slow but correct peer into a
+    /// timeout or a SIGTERM. Tests about escalation shorten the one grace they exercise.
+    static let timeouts = ConnectionTimeouts(
+        request: .seconds(30), stopGrace: .seconds(10), killGrace: .seconds(5),
+        exitGrace: .seconds(10))
 }
 
 /// Collects updates from an adapter until `.exited` or until `stop` returns true.

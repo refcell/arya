@@ -71,8 +71,10 @@ import Testing
     let command = AdapterCommand(
         executable: "sh", arguments: ["-c", "exec sleep 30"],
         environment: ["PATH": "/usr/bin:/bin"])
-    var timeouts = Sample.fast
+    var timeouts = Sample.timeouts
     timeouts.request = .milliseconds(300)
+    // The adapter never exits on its own; shorten the wait before shutdown escalates.
+    timeouts.exitGrace = .milliseconds(200)
     let adapter = try AdapterUnderTest.launch(command, timeouts: timeouts)
     let big: JSONValue = ["blob": .string(String(repeating: "x", count: 1 << 20))]
     await #expect(throws: AdapterError.requestTimedOut(method: "run/huge")) {

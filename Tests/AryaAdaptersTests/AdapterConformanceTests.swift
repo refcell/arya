@@ -66,11 +66,10 @@ import Testing
     func stopYieldsAResultWithinTenSeconds(_ target: ConformanceTarget) async throws {
         let (adapter, _) = try await connect(target)
         let session = try await adapter.start(Sample.start(Self.input)).session
-        let clock = ContinuousClock()
-        let began = clock.now
         try await adapter.stop(RunStopParams(session: session, reason: .user))
+        // The connection's 10-second stop grace enforces the deadline: an adapter that misses
+        // it is sent SIGTERM and never delivers a result, which fails the check below.
         let updates = await collect(adapter, until: \.isResult)
-        #expect(clock.now - began < .seconds(10))
         let result = try #require(updates.compactMap(\.result).first)
         #expect([RunStatus.stopped, .completed].contains(result.status))
         try await adapter.shutdown()

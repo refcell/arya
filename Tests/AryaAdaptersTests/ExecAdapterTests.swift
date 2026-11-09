@@ -51,7 +51,7 @@ func execRun(_ agent: FakeAgent, _ profile: AdapterProfile, schema: JSONValue? =
     let server = ExecAdapterServer(
         profile: profile, environment: ["PATH": "/usr/bin:/bin"], endpoint: endpoint)
     Task { await server.serve() }
-    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.timeouts)
     _ = try await adapter.initialize(InitializeParams(client: Sample.client))
     _ = try await adapter.start(agent.start(schema: schema))
     let updates = await collect(adapter, until: \.isResult)
@@ -143,7 +143,7 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
     let server = ExecAdapterServer(
         profile: agent.profile(), environment: ["PATH": "/usr/bin:/bin"], endpoint: endpoint)
     Task { await server.serve() }
-    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.timeouts)
     let session = try await adapter.start(agent.start()).session
     try await adapter.stop(RunStopParams(session: session, reason: .user))
     let updates = await collect(adapter, until: \.isResult)
@@ -161,7 +161,7 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
             .path,
         arguments: ["--profile", "agent", "--profiles", profiles.path],
         environment: ["PATH": "/usr/bin:/bin"])
-    let adapter = try AdapterUnderTest.launch(command, timeouts: Sample.fast)
+    let adapter = try AdapterUnderTest.launch(command, timeouts: Sample.timeouts)
     let hello = try await adapter.initialize(InitializeParams(client: Sample.client))
     #expect(hello.adapter.name == "exec")
     #expect(hello.capabilities.tools == .none)
@@ -190,7 +190,7 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
         profile: agent.profile(parse: .jsonl), environment: ["PATH": "/usr/bin:/bin"],
         endpoint: endpoint)
     Task { await server.serve() }
-    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.timeouts)
     let hello = try await adapter.initialize(InitializeParams(client: Sample.client))
     #expect(hello.capabilities.cost)
     let session = try await adapter.start(agent.start()).session
@@ -208,7 +208,7 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
         profile: agent.profile(parse: .streamJSON), environment: ["PATH": "/usr/bin:/bin"],
         endpoint: endpoint)
     Task { await server.serve() }
-    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.timeouts)
     let hello = try await adapter.initialize(InitializeParams(client: Sample.client))
     #expect(hello.capabilities.cost)
     let session = try await adapter.start(agent.start()).session
@@ -232,7 +232,7 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
         profile: agent.profile(parse: .codexJSON), environment: ["PATH": "/usr/bin:/bin"],
         endpoint: endpoint)
     Task { await server.serve() }
-    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.timeouts)
     _ = try await adapter.initialize(InitializeParams(client: Sample.client))
     let session = try await adapter.start(agent.start()).session
     let updates = await collect(adapter, until: \.isResult)
@@ -273,7 +273,7 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
     let server = ExecAdapterServer(
         profile: agent.profile(), environment: ["PATH": "/usr/bin:/bin"], endpoint: endpoint)
     Task { await server.serve() }
-    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.timeouts)
     var start = agent.start()
     start.instructions = String(repeating: "x", count: 256 * 1024)
     let session = try await adapter.start(start).session

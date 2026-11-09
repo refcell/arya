@@ -54,6 +54,8 @@ public final class ProcessTransport: AdapterTransport {
     /// Writes to stdin run here, so a peer that stops reading cannot block the caller (or the
     /// actor calling it, and with it the request timeouts); terminating the peer ends the write.
     private let stdinQueue = DispatchQueue(label: "arya.adapter.stdin")
+    /// How long after the process exits to wait for stdout and stderr to reach end-of-file.
+    static let endOfFileWaitSeconds = 5
     private let state = Locked(ProcessState())
 
     private struct ProcessState {
@@ -153,8 +155,10 @@ public final class ProcessTransport: AdapterTransport {
         state.withLock { $0.exit = exit }
         endIfDone()
         // A grandchild that inherited stdout can keep it open after the adapter exits; stop
-        // waiting for end-of-file after a short delay so the exit is still reported.
-        DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(1)) { [weak self] in
+        // waiting for end-of-file after a delay so the exit is still reported. The delay is
+        // long enough that a slow reader on a loaded machine still drains what was written.
+        let delay = DispatchTimeInterval.seconds(Self.endOfFileWaitSeconds)
+        DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [weak self] in
             self?.state.withLock { $0.stderrDone = true }
             self?.readStdout(Data())
         }

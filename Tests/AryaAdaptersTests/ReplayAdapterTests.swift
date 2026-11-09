@@ -30,7 +30,7 @@ func drive(_ adapter: any Adapter, input: String = "triage ISSUE-1") async throw
 
 /// Replaying a live session with the same calls publishes the same updates, in order.
 @discardableResult
-func expectReplayMatches(_ script: FakeScript, timeouts: ConnectionTimeouts = Sample.fast)
+func expectReplayMatches(_ script: FakeScript, timeouts: ConnectionTimeouts = Sample.timeouts)
     async throws -> [AdapterUpdate]
 {
     let live = FakeAdapter(script: script, timeouts: timeouts)
@@ -60,8 +60,8 @@ func expectReplayMatches(_ script: FakeScript, timeouts: ConnectionTimeouts = Sa
 }
 
 @Test func replayReproducesAnIdleTimeout() async throws {
-    var timeouts = Sample.fast
-    timeouts.idle = .milliseconds(50)
+    var timeouts = Sample.timeouts
+    timeouts.idle = .milliseconds(500)
     let updates = try await expectReplayMatches(
         Sample.script(FakeScript.Response(steps: [.hang])), timeouts: timeouts)
     #expect(updates.contains(.timedOut))
@@ -69,7 +69,7 @@ func expectReplayMatches(_ script: FakeScript, timeouts: ConnectionTimeouts = Sa
 }
 
 @Test func replayRebuildsRecordsFromBytes() async throws {
-    let recorded = try await drive(FakeAdapter(script: Sample.script, timeouts: Sample.fast))
+    let recorded = try await drive(FakeAdapter(script: Sample.script, timeouts: Sample.timeouts))
     let stored = recorded.compactMap(\.wire).map { record in
         WireRecord(direction: record.direction, source: record.source, line: record.line)
     }
@@ -78,7 +78,7 @@ func expectReplayMatches(_ script: FakeScript, timeouts: ConnectionTimeouts = Sa
 }
 
 @Test func replayFailsLoudlyOnDivergence() async throws {
-    let recorded = try await drive(FakeAdapter(script: Sample.script, timeouts: Sample.fast))
+    let recorded = try await drive(FakeAdapter(script: Sample.script, timeouts: Sample.timeouts))
     let replay = ReplayAdapter(records: recorded.compactMap(\.wire), exit: .exited(0))
     _ = try await replay.initialize(InitializeParams(client: Sample.client))
     do {
@@ -99,8 +99,8 @@ func expectReplayMatches(_ script: FakeScript, timeouts: ConnectionTimeouts = Sa
 }
 
 @Test func replayRunsFromLedgerPayloads() async throws {
-    var timeouts = Sample.fast
-    timeouts.idle = .milliseconds(50)
+    var timeouts = Sample.timeouts
+    timeouts.idle = .milliseconds(500)
     let script = Sample.script(FakeScript.Response(steps: [.stdout("not json"), .hang]))
     let recorded = try await drive(FakeAdapter(script: script, timeouts: timeouts))
     let payloads = recorded.compactMap(\.wire).map(\.ledgerPayload)

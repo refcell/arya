@@ -22,7 +22,7 @@ let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     }
     #expect(!inputs.isEmpty)
     for (index, text) in inputs.enumerated() {
-        let adapter = FakeAdapter(script: script, timeouts: Sample.fast)
+        let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
         _ = try await adapter.start(Sample.start(text, run: "run_\(index)"))
         let updates = await collect(adapter, until: \.isResult)
         let result = try #require(updates.compactMap(\.result).first)
