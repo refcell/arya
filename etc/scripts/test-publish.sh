@@ -3,11 +3,16 @@
 # and another lane's clone that pushes first. A stub `just` records what publish runs and
 # "formats" by rewriting `fmt-me.swift`. Commits follow your git signing settings, so the
 # pushes pass the same hooks as real ones. Run with `just test-scripts`.
+#
+#   test-publish.sh [SCENARIO]   all scenarios, or one: code, docs-only, dirty, fmt, race,
+#                                conflict, lock (`just e2e` runs docs-only)
 set -euo pipefail
 publish="$(cd "$(dirname "$0")" && pwd)/publish.sh"
 root=$(mktemp -d "${TMPDIR:-/tmp}/arya-test-publish.XXXXXX")
 trap 'rm -rf "$root"' EXIT
 failures=0
+only=${1:-}
+want() { [ -z "$only" ] || [ "$only" = "$1" ]; }
 
 check() { # check DESCRIPTION COMMAND...: report one expectation
   if "${@:2}"; then
@@ -56,67 +61,87 @@ fails() { ! publish; }
 not_ran() { ! ran "$1"; }
 origin_lacks() { ! origin_has "$1"; }
 
-echo "publish: a code change runs the full check and pushes"
-fresh
-echo three >>"$root/lane/code.swift" && commit lane "feat: three"
-check "exits 0" publish
-check "pushed" origin_has "feat: three"
-check "ran just ci" ran ci
+if want code; then
+  echo "publish: a code change runs the full check and pushes"
+  fresh
+  echo three >>"$root/lane/code.swift" && commit lane "feat: three"
+  check "exits 0" publish
+  check "pushed" origin_has "feat: three"
+  check "ran just ci" ran ci
 
-echo "publish: a docs-only change skips the build"
-fresh
-echo more >>"$root/lane/docs/x.md" && commit lane "docs: more"
-check "exits 0" publish
-check "pushed" origin_has "docs: more"
-check "ran just tidy" ran tidy
-check "did not run just ci" not_ran ci
+fi
 
-echo "publish: a dirty tree fails early and is left alone"
-fresh
-echo three >>"$root/lane/code.swift" && commit lane "feat: three"
-echo wip >>"$root/lane/code.swift"
-check "exits non-zero" fails
-check "says why" said "uncommitted changes"
-check "keeps the edit" grep -q wip "$root/lane/code.swift"
-check "pushed nothing" origin_lacks "feat: three"
+if want docs-only; then
+  echo "publish: a docs-only change skips the build"
+  fresh
+  echo more >>"$root/lane/docs/x.md" && commit lane "docs: more"
+  check "exits 0" publish
+  check "pushed" origin_has "docs: more"
+  check "ran just tidy" ran tidy
+  check "did not run just ci" not_ran ci
 
-echo "publish: formatting from just fmt is committed on its own"
-fresh
-printf 'let   formatted=1\n' >"$root/lane/fmt-me.swift" && commit lane "feat: add fmt-me"
-check "exits 0" publish
-check "pushed the change" origin_has "feat: add fmt-me"
-check "pushed a format commit" origin_has "style: apply swift format"
-check "tree is clean" clean
+fi
 
-echo "publish: a push race rebases and pushes both sides"
-fresh
-echo three >>"$root/lane/code.swift" && commit lane "feat: three"
-echo other >"$root/other/other.swift" && commit other "feat: other"
-(cd "$root/other" && git push -q origin HEAD:main)
-check "exits 0" publish
-check "kept the other lane's commit" origin_has "feat: other"
-check "pushed ours" origin_has "feat: three"
+if want dirty; then
+  echo "publish: a dirty tree fails early and is left alone"
+  fresh
+  echo three >>"$root/lane/code.swift" && commit lane "feat: three"
+  echo wip >>"$root/lane/code.swift"
+  check "exits non-zero" fails
+  check "says why" said "uncommitted changes"
+  check "keeps the edit" grep -q wip "$root/lane/code.swift"
+  check "pushed nothing" origin_lacks "feat: three"
 
-echo "publish: a rebase conflict aborts and leaves the branch as it was"
-fresh
-sed -i.bak 's/two/mine/' "$root/lane/code.swift" && rm "$root/lane/code.swift.bak"
-commit lane "feat: mine"
-before=$(cd "$root/lane" && git rev-parse HEAD)
-sed -i.bak 's/two/theirs/' "$root/other/code.swift" && rm "$root/other/code.swift.bak"
-commit other "feat: theirs" && (cd "$root/other" && git push -q origin HEAD:main)
-check "exits non-zero" fails
-check "names the file" said "rebase conflict in code.swift"
-check "no rebase in progress" not_rebasing
-check "tree is clean" clean
-check "branch unchanged" test "$(cd "$root/lane" && git rev-parse HEAD)" = "$before"
+fi
 
-echo "publish: a stale index.lock is removed"
-fresh
-echo three >>"$root/lane/code.swift" && commit lane "feat: three"
-: >"$root/lane/.git/index.lock"
-check "exits 0" publish
-check "says it removed the lock" said "removed a stale"
-check "pushed" origin_has "feat: three"
+if want fmt; then
+  echo "publish: formatting from just fmt is committed on its own"
+  fresh
+  printf 'let   formatted=1\n' >"$root/lane/fmt-me.swift" && commit lane "feat: add fmt-me"
+  check "exits 0" publish
+  check "pushed the change" origin_has "feat: add fmt-me"
+  check "pushed a format commit" origin_has "style: apply swift format"
+  check "tree is clean" clean
+
+fi
+
+if want race; then
+  echo "publish: a push race rebases and pushes both sides"
+  fresh
+  echo three >>"$root/lane/code.swift" && commit lane "feat: three"
+  echo other >"$root/other/other.swift" && commit other "feat: other"
+  (cd "$root/other" && git push -q origin HEAD:main)
+  check "exits 0" publish
+  check "kept the other lane's commit" origin_has "feat: other"
+  check "pushed ours" origin_has "feat: three"
+
+fi
+
+if want conflict; then
+  echo "publish: a rebase conflict aborts and leaves the branch as it was"
+  fresh
+  sed -i.bak 's/two/mine/' "$root/lane/code.swift" && rm "$root/lane/code.swift.bak"
+  commit lane "feat: mine"
+  before=$(cd "$root/lane" && git rev-parse HEAD)
+  sed -i.bak 's/two/theirs/' "$root/other/code.swift" && rm "$root/other/code.swift.bak"
+  commit other "feat: theirs" && (cd "$root/other" && git push -q origin HEAD:main)
+  check "exits non-zero" fails
+  check "names the file" said "rebase conflict in code.swift"
+  check "no rebase in progress" not_rebasing
+  check "tree is clean" clean
+  check "branch unchanged" test "$(cd "$root/lane" && git rev-parse HEAD)" = "$before"
+
+fi
+
+if want lock; then
+  echo "publish: a stale index.lock is removed"
+  fresh
+  echo three >>"$root/lane/code.swift" && commit lane "feat: three"
+  : >"$root/lane/.git/index.lock"
+  check "exits 0" publish
+  check "says it removed the lock" said "removed a stale"
+  check "pushed" origin_has "feat: three"
+fi
 
 if [ "$failures" -gt 0 ]; then
   echo "test-publish: $failures failed"

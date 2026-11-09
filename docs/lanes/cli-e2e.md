@@ -29,7 +29,9 @@ M2:
   run, approve, replay with zero divergence, `ledger verify`; non-zero exit on any failure.
 
 M3:
-- [ ] Extend `just e2e` with the app's facade calls used by the views.
+- [x] Extend `just e2e` with the app's facade calls used by the views: 33 steps in about 30 s
+  (fleet, pause and resume, policy and autonomy holds, deny, gated proposal, run correction,
+  retract, docs-only publish).
 - [x] `just demo`: seed a demo home from `etc/examples` and open the app on it.
 - [x] README: replace the placeholder with a screenshot and GIF of the demo, update the Status
   table and Usage as commands land.
@@ -108,6 +110,9 @@ M4:
   bindings; the app page is covered by `ConnectionsCatalogTests` and the `connections` snapshot.
 
 ## Log
+- 2026-11-09: `arya run correct` (a run becomes a case and a memory), `arya retract`, and
+  `heldBy`/`heldBecause` on `arya approvals`; `just e2e` grows to 33 steps (about 30 s), with
+  `test-publish.sh docs-only` as its publish step; ROADMAP M3.5 refreshed.
 - 2026-11-09: decided the zero-time id question myself (ledger lane paused): fixed in
   `Ambient` (ids before the first clock reading carry the start time, with a core test); the
   CLI's extra clock read is gone, and `clockedRunIDsSortByTime` still guards it.

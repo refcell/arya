@@ -2,14 +2,18 @@
 # End-to-end scenario (docs/ROADMAP.md, M3) with the fake adapter and a temporary home:
 # define a steward from etc/examples/triage, rehearse it on its casebook, correct one case,
 # mark it ready, run it live, approve the held action, check the ledger and metrics, replay
-# the run with zero divergence, and verify the ledger. Run with `just e2e`.
+# the run with zero divergence; then a fleet of three stewards (etc/examples/refunds and a
+# digest steward at `suggest` autonomy) with pause and resume, a policy hold and an autonomy
+# hold, deny and approve, a gated charter proposal that leaves the live steward ready, a run
+# correction that becomes a case and a memory, a retract, the docs-only publish path
+# (etc/scripts/test-publish.sh docs-only), and verify the ledger. Run with `just e2e`.
 #
 #   e2e.sh           run the scenario; the temporary home is deleted afterwards
 #   e2e.sh --keep    keep the temporary home and print its path
 #
 # Each step prints ok, PENDING (the command or the piece behind it is not built yet: exit 69
 # or an unknown command), or FAIL. Steps belong to groups (setup, rehearsal, live, metrics,
-# replay);
+# replay, fleet, holds, improve, publish);
 # a step runs only while its own group and the groups it needs are ok, and is skipped
 # otherwise, so the live run is exercised even while rehearsal is pending.
 # Exit status: 0 all ok, 1 a step failed, 2 a step is pending.
@@ -123,11 +127,61 @@ check_metric_event() {
 check_metrics() { expect metric "$(get 0.metric)" routed_within_1h && expect points "$(get 0.points)" 1; }
 check_replay() { expect divergences "$(get divergences)" 0; }
 check_verify() { expect ok "$(get ok)" true; }
+check_refunds() { expect id "$(get summary.id)" st_refunds; }
+check_digest() { expect id "$(get summary.id)" st_digest; }
+check_fleet() { expect stewards "$(grep -c '"charterVersion"' "$out")" 3; }
+check_paused() { expect state "$(get summary.state)" paused; }
+check_resumed() { expect state "$(get summary.state)" draft; }
+check_policy_hold() {
+  expect "reply" "$(get actions.1.disposition)" held || return 1
+  refund_approval=$(get actions.1.approval)
+}
+check_autonomy_hold() {
+  expect "post" "$(get actions.0.disposition)" held || return 1
+  digest_approval=$(get actions.0.approval)
+}
+check_hold_reasons() {
+  expect "refund reply held by" "$(get 0.heldBy)" rule:reply &&
+    expect "digest post held by" "$(get 1.heldBy | cut -d: -f1-2)" autonomy:suggest &&
+    [ -n "$(get 1.heldBecause)" ]
+}
+check_denied() { expect state "$(get state)" denied; }
+check_proposal() { expect state "$(get state)" failed && expect regression "$(get regressions.0)" case-0005; }
+check_still_ready() {
+  expect state "$(get summary.state)" ready && expect version "$(get summary.charterVersion)" 1
+}
+check_run_corrected() {
+  expect case "$(get case)" "run-${run_id:-}" || return 1
+  memory_id=$(get memory)
+  [ -n "$memory_id" ] || { echo "    no memory note"; return 1; }
+}
+check_new_case() { expect "cases in the newest casebook" "$(get 0.cases)" 9; }
+check_remembered() { grep -q "\"${memory_id:-none}\"" "$out" || { echo "    $memory_id not in memory"; return 1; }; }
+check_retracted() { expect retracted "$(get retracted)" true; }
+check_forgotten() { ! grep -q "\"${memory_id:-none}\"" "$out" || { echo "    $memory_id still recalled"; return 1; }; }
+
+# script_step NAME GROUP COMMAND...: a step that runs a script instead of the CLI.
+script_step() {
+  local name=$1 group=$2
+  shift 2
+  n=$((n + 1))
+  if "$@" >"$work/script.log" 2>&1; then
+    printf '  %2d  %-36s ok\n' "$n" "$name"
+  else
+    printf '  %2d  %-36s FAIL\n' "$n" "$name"
+    sed 's/^/    /' "$work/script.log"
+    groups_bad="$groups_bad$group "
+    state=fail
+  fi
+}
 
 # Copy the example adapter profile into the home with absolute paths for this build.
 install_profile() {
   sed -e "s|\"arya-fake-adapter\"|\"$bin/arya-fake-adapter\"|" \
-    -e "s|\"$example/|\"$PWD/$example/|g" "$example/adapters.json" >"$home/adapters.json"
+    -e "s|\"etc/examples/|\"$PWD/etc/examples/|g" "$example/adapters.json" >"$home/adapters.json"
+  # The digest steward at `suggest` autonomy: every action waits for a person.
+  cp etc/examples/digest/charter.json "$work/digest.json"
+  plutil -insert autonomy -string suggest "$work/digest.json"
 }
 
 echo "e2e: scenario (home: temporary)"
@@ -152,6 +206,32 @@ step "the run recorded its metric" metrics live check_metric_event \
   ledger tail --count 200 --steward st_triage
 step "metric series updated" metrics live check_metrics metrics st_triage
 step "replay the run: zero divergence" replay live check_replay replay "${run_id:-unknown}"
+step "create the refund follow-up steward" fleet setup check_refunds \
+  steward create --charter etc/examples/refunds/charter.json
+step "create the digest steward (suggest)" fleet setup check_digest \
+  steward create --charter "$work/digest.json"
+step "the fleet lists three stewards" fleet setup check_fleet steward list
+step "pause the refund steward" fleet setup check_paused steward pause st_refunds
+step "resume it" fleet setup check_resumed steward resume st_refunds
+step "refund reply: held by policy" holds fleet check_policy_hold \
+  run st_refunds --input "Refund approved for ORDER-1043"
+step "digest post: held by autonomy" holds fleet check_autonomy_hold \
+  run st_digest --input "Weekly digest 1"
+step "approvals explain each hold" holds fleet check_hold_reasons approvals
+step "deny the refund reply" holds fleet check_denied deny "${refund_approval:-unknown}" \
+  --note "billing already wrote"
+step "approve the digest post" holds fleet check_approved approve "${digest_approval:-unknown}"
+step "propose charter v2: the gate fails" improve live check_proposal \
+  propose st_triage --charter "$example/charter-v2.json"
+step "the live charter stays ready (v1)" improve live check_still_ready steward show st_triage
+step "correct the live run" improve live check_run_corrected run correct "${run_id:-unknown}" \
+  --choice refunds --note "Duplicate-charge refunds go to the refunds queue."
+step "the run became a case" improve live check_new_case casebook list --steward st_triage
+step "the note became a memory" improve live check_remembered memory st_triage
+step "retract the note" improve live check_retracted retract "${memory_id:-unknown}" \
+  --reason "Billing owns refunds."
+step "later runs no longer recall it" improve live check_forgotten memory st_triage
+script_step "docs-only publish skips the build" publish etc/scripts/test-publish.sh docs-only
 step "verify the ledger" setup - check_verify ledger verify
 
 case "$state" in
