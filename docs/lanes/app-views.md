@@ -23,6 +23,19 @@ M3 (start now against the app-shell stub workspace):
   creates a proposal, never an in-place edit.
 - [x] Empty, loading, and error states for every view.
 
+M3, extended (toward `just e2e` driven from the app):
+- [x] Changes tab holds the metric chart and the charter editor entry (app-shell routed the
+  other tabs in 78c9c17).
+- [ ] Run now: start a manual run with an input from the Stream tab (`FeatureWrite.startRun`).
+- [ ] Rehearse: start a rehearsal of the live charter on its casebook from the Rehearsals tab.
+- [ ] Replay: replay a finished run from the Stream tab and show the divergence report.
+- [ ] Steward overview: charter version, readiness, last run, and open approvals at a glance.
+
+M4:
+- [ ] Inbox: questions addressed to person bindings, answered with text, in one list.
+- [ ] Binding detail in tool calls and actions: which binding served each call (live MCP).
+- [ ] Routine action results in the stream, with the sandbox verdict when it blocked a call.
+
 ## Decisions
 
 - Approval cards appear in the queue (all stewards, or one) and inline in the run stream for
@@ -104,3 +117,5 @@ M3 (start now against the app-shell stub workspace):
 - 2026-11-09: routines view with history and version diff (1c91228).
 - 2026-11-09: rehearsals view with case review, corrections, and Mark ready (95a77e5).
 - 2026-11-09: outcome metric chart against the charter target (857ad11).
+
+- 2026-11-09: charter editor that saves changes as proposals (7451fa6).

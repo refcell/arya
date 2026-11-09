@@ -79,6 +79,7 @@ M3:
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
 - (from eval) `CaseRunRequest.routine` names a candidate routine: run the case with `RoutineLibrary.candidateRoutines(for:)` instead of the live routines; wire `AryaEval.RoutineRehearsalGate` into `RoutineGatekeeper` and `RehearsalGate` into `ProposalDesk`/`GateChecking`.
+- (from app-views) the charter editor records proposals: proposed `Workspace.proposeCharter(steward:charter: Data, baseVersion:title:reason:) -> ProposalSummary` (refuse when `baseVersion` is no longer live); until then the app shows "unavailable" on save.
 
 ## Log
 

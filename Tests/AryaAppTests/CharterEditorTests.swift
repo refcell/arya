@@ -47,8 +47,15 @@ private let charter = PreviewFixtures.charter
             "Every binding needs an id.", "Every policy rule needs an action.",
             "The metric target must be a number.", "The outcome is empty.",
         ])
-    draft.triggers = [TriggerDraft(key: draft.makeKey(), kind: "interval", everySeconds: 10)]
-    #expect(draft.issues.contains("Interval triggers run at most once a minute."))
+    draft.triggers = [TriggerDraft(key: draft.makeKey(), kind: "interval", everySeconds: 0)]
+    #expect(draft.issues.contains("Interval triggers need at least one second between runs."))
+    draft.bindings[1].channel = ""
+    draft.bindings[0].command = ""
+    draft.policyRules[0] = PolicyRuleDraft(
+        key: 99, action: "label", decision: "auto", binding: "chat")
+    #expect(draft.issues.contains("Person binding tracker needs a channel."))
+    #expect(draft.issues.contains("Binding tracker needs a server command."))
+    #expect(draft.issues.contains("Policy rule label names unknown binding chat."))
 }
 
 @Test func personBindingsDropServerFieldsAndBlankGuardrailsVanish() {
@@ -59,8 +66,22 @@ private let charter = PreviewFixtures.charter
     let tracker = draft.charter["bindings"]?.array?.first
     #expect(tracker?["channel"] == "inbox")
     #expect(tracker?["read"] == nil)
-    #expect(tracker?["args"] == [])
+    #expect(tracker?["args"] == nil)
     #expect(draft.charter["guardrails"]?.strings.count == 2)
+}
+
+@Test func ruleBindingsAndMessageSendersSurviveEdits() {
+    guard case .object(var members) = charter else { return }
+    members["policy"] = [
+        "default": "ask", "rules": [["action": "label", "binding": "tracker", "decision": "auto"]],
+    ]
+    members["triggers"] = [["kind": "message", "from": "person:alex"]]
+    let json = FeatureJSON.object(members)
+    var draft = CharterDraft(charter: json)
+    #expect(draft.charter["policy"] == json["policy"])
+    #expect(draft.charter["triggers"] == json["triggers"])
+    draft.triggers[0].kind = "manual"
+    #expect(draft.charter["triggers"] == [["kind": "manual"]])
 }
 
 @Test func liveCharterIsTheLatestVersion() throws {

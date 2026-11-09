@@ -18,8 +18,8 @@ enum FeatureRegistry {
                     guidance: "A run starts when a routine fires or you start one by hand.")
             }
         case .changes:
-            if let store = context.store {
-                ChangesView(store: store, steward: context.steward?.id)
+            if let store = context.store, let steward = context.steward?.id {
+                ChangesTab(store: store, steward: steward)
             } else {
                 EmptyState(
                     "No changes proposed.", guidance: "Proposals to the charter appear here.")

@@ -28,6 +28,8 @@ struct PolicyRuleDraft: Hashable, Sendable, Identifiable {
     var id: Int { key }
     var action: String
     var decision: String
+    /// Limits the rule to one binding; nil matches any.
+    var binding: String? = nil
 }
 
 /// An editable copy of a charter. Saving turns it back into charter JSON for a proposal;
@@ -48,7 +50,7 @@ struct CharterDraft: Hashable, Sendable {
     private var nextKey: Int
 
     static let decisions = ["auto", "ask", "deny"]
-    static let triggerKinds = ["interval", "manual", "calendar", "message"]
+    static let triggerKinds = ["interval", "manual", "message"]
     static let bindingKinds = ["mcp", "person"]
 
     init(charter: FeatureJSON) {
@@ -71,7 +73,7 @@ struct CharterDraft: Hashable, Sendable {
         policyRules = (charter["policy"]?["rules"]?.array ?? []).map { rule in
             PolicyRuleDraft(
                 key: next(), action: rule["action"]?.string ?? "",
-                decision: rule["decision"]?.string ?? "ask")
+                decision: rule["decision"]?.string ?? "ask", binding: rule["binding"]?.string)
         }
         effort = charter["effort"]?.string ?? "medium"
         nextKey = key + 1
@@ -103,12 +105,24 @@ struct CharterDraft: Hashable, Sendable {
         }
         let ids = bindings.map { trimmed($0.id) }
         if ids.contains("") { out.append("Every binding needs an id.") }
+        for binding in bindings where !trimmed(binding.id).isEmpty {
+            if binding.kind == "person", trimmed(binding.channel).isEmpty {
+                out.append("Person binding \(trimmed(binding.id)) needs a channel.")
+            } else if binding.kind == "mcp", trimmed(binding.command).isEmpty {
+                out.append("Binding \(trimmed(binding.id)) needs a server command.")
+            }
+        }
         for id in Set(ids) where !id.isEmpty && ids.filter({ $0 == id }).count > 1 {
             out.append("Binding id \(id) is used twice.")
         }
         if triggers.isEmpty { out.append("Add at least one trigger, such as manual.") }
-        for trigger in triggers where trigger.kind == "interval" && trigger.everySeconds < 60 {
-            out.append("Interval triggers run at most once a minute.")
+        if triggers.contains(where: { $0.kind == "interval" && $0.everySeconds < 1 }) {
+            out.append("Interval triggers need at least one second between runs.")
+        }
+        for rule in policyRules {
+            if let binding = rule.binding, !ids.contains(binding) {
+                out.append("Policy rule \(trimmed(rule.action)) names unknown binding \(binding).")
+            }
         }
         // A rule may name an action no binding offers: `close: deny` guards against one.
         if policyRules.contains(where: { trimmed($0.action).isEmpty }) {
@@ -136,8 +150,12 @@ struct CharterDraft: Hashable, Sendable {
         out["policy"] = [
             "default": .string(policyDefault),
             "rules": .array(
-                policyRules.map {
-                    ["action": .string(trimmed($0.action)), "decision": .string($0.decision)]
+                policyRules.map { rule in
+                    var out: [String: FeatureJSON] = [
+                        "action": .string(trimmed(rule.action)), "decision": .string(rule.decision),
+                    ]
+                    out["binding"] = rule.binding.map(FeatureJSON.string)
+                    return .object(out)
                 }),
         ]
         out["effort"] = .string(effort)
@@ -198,6 +216,7 @@ struct CharterDraft: Hashable, Sendable {
         out["id"] = .string(binding.id.trimmingCharacters(in: .whitespaces))
         out["kind"] = .string(binding.kind)
         if binding.kind == "person" {
+            out["args"] = nil
             out["channel"] = .string(binding.channel)
         } else {
             out["command"] = .string(binding.command)
@@ -213,6 +232,7 @@ struct CharterDraft: Hashable, Sendable {
         if trigger.kind == "interval" {
             out["everySeconds"] = .number(Double(trigger.everySeconds))
         }
+        if trigger.kind != "message" { out["from"] = nil }
         return .object(out)
     }
 }
