@@ -359,7 +359,8 @@ extension ProposedAction {
     public init(_ action: RunResult.Action) {
         self.init(
             id: action.id, kind: action.kind, binding: action.binding, target: action.target,
-            params: action.params, rationale: action.rationale)
+            params: action.params, rationale: action.rationale,
+            risk: action.risk.flatMap { Risk(rawValue: $0.rawValue) })
     }
 }
 

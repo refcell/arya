@@ -13,11 +13,14 @@ public struct ProposedAction: Sendable, Hashable, Codable {
     public var params: JSONValue?
     /// The steward's reason.
     public var rationale: String?
+    /// The adapter's risk hint; it can raise the charter's risk, never lower it (decision 0037).
+    public var risk: Risk?
 
     public init(
         id: String, kind: String, binding: String? = nil, target: String? = nil,
-        params: JSONValue? = nil, rationale: String? = nil
+        params: JSONValue? = nil, rationale: String? = nil, risk: Risk? = nil
     ) {
+        self.risk = risk
         self.id = id
         self.kind = kind
         self.binding = binding
@@ -27,6 +30,6 @@ public struct ProposedAction: Sendable, Hashable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, kind, binding, target, params, rationale
+        case id, kind, binding, target, params, rationale, risk
     }
 }

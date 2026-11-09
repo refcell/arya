@@ -115,6 +115,7 @@ M3:
 - (from app-outcome) the Overview reads `plan.updated` `{v: 1, steps: [{id, title, status: todo|doing|done|dropped|blocked, note?}], reason?}`; please have `plan(steward:)` fold that event (and runtime record it from `run/result.plan`), so the app can switch to the facade reads; also an optional charter `success` sentence.
 - (from cli-e2e) Demo needs weeks of history: `Workspace.open(home:environment:clock:)` taking a start time that steps, for a CLI `--clock`?
 - (from runtime) `plan.updated` is live (decision 0035): `plan(steward:)` can read `PlanBook(events).plans[id]` and the newest event's `PlanUpdated {items: [{id, text, status, rationale?}], reason?}`; the app's `OutcomeFeed` expects `{steps: [{title, note}]}` and should adapt to this shape.
+- (from runtime) Approval cards: `action.proposed` now has `risk` (low|medium|high) and `autonomy`, and `reason` `autonomy:<level>:<risk>` when autonomy made it ask (decision 0037); charters carry `autonomy` and `policy.risk`.
 
 ## Log
 

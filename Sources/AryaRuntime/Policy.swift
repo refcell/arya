@@ -42,12 +42,15 @@ public struct PolicyAction: Sendable, Hashable {
     public var routineName: String?
     /// For `routine`: the routine's live version, `nil` when it has none.
     public var routineVersion: String?
+    /// The adapter's risk hint.
+    public var riskHint: Risk?
 
     /// Creates a policy view of an action.
     public init(
         kind: String, binding: String?, routineName: String? = nil,
-        routineVersion: String? = nil
+        routineVersion: String? = nil, riskHint: Risk? = nil
     ) {
+        self.riskHint = riskHint
         self.kind = kind
         self.binding = binding
         self.routineName = routineName
@@ -59,13 +62,23 @@ public struct PolicyAction: Sendable, Hashable {
 public struct PolicyVerdict: Sendable, Hashable {
     /// The disposition.
     public var disposition: ActionDisposition
-    /// A short, stable explanation, for example `rule:label` or `default`.
+    /// A short, stable explanation, for example `rule:label`, `default`, or
+    /// `autonomy:act_low:medium`.
     public var reason: String
+    /// The resolved risk, when the steward has an autonomy level.
+    public var risk: Risk?
+    /// The autonomy level that shaped the verdict.
+    public var autonomy: Autonomy?
 
     /// Creates a verdict.
-    public init(disposition: ActionDisposition, reason: String) {
+    public init(
+        disposition: ActionDisposition, reason: String, risk: Risk? = nil,
+        autonomy: Autonomy? = nil
+    ) {
         self.disposition = disposition
         self.reason = reason
+        self.risk = risk
+        self.autonomy = autonomy
     }
 }
 
@@ -81,6 +94,10 @@ public struct ActionPolicy: Sendable, Hashable {
     public var rules: [PolicyRule]
     /// For each binding id, the action kinds arya may execute through it.
     public var bindingActions: [String: Set<String>]
+    /// The steward's autonomy level; nil keeps the rules and default alone.
+    public var autonomy: Autonomy?
+    /// Risk levels in charter order.
+    public var riskRules: [RiskRule] = []
 
     /// Creates a policy. `defaultDisposition` is `ask` when omitted.
     public init(
@@ -98,6 +115,66 @@ public struct ActionPolicy: Sendable, Hashable {
     /// (arya could not carry it out); then the first matching rule (kind, and binding when the
     /// rule names one); then the default.
     public func classify(_ action: PolicyAction) -> PolicyVerdict {
+        let base = classifyByRules(action)
+        guard let autonomy else { return base }
+        return Self.limit(base, by: autonomy, risk: risk(of: action))
+    }
+
+    /// The risk of an action (decision 0037): the most specific `policy.risk` entry (action
+    /// and binding, then action, then binding alone; first listed among equals), `medium`
+    /// when none matches, raised (never lowered) by the adapter's hint.
+    public func risk(of action: PolicyAction) -> Risk {
+        let name =
+            action.kind == Self.routineKind ? action.routineName.map { "routine:\($0)" } : nil
+        let kinds = Set([action.kind] + (name.map { [$0] } ?? []))
+        let both = riskRules.first {
+            $0.action.map(kinds.contains) == true && $0.binding != nil
+                && $0.binding == action.binding
+        }
+        let byAction = riskRules.first {
+            $0.action.map(kinds.contains) == true && $0.binding == nil
+        }
+        let byBinding = riskRules.first {
+            $0.action == nil && $0.binding != nil && $0.binding == action.binding
+        }
+        let charter = (both ?? byAction ?? byBinding)?.level ?? .medium
+        return max(charter, action.riskHint ?? .low)
+    }
+
+    /// What `autonomy` allows for `risk`.
+    public static func allowed(_ autonomy: Autonomy, risk: Risk) -> ActionDisposition {
+        switch autonomy {
+        case .observe: .deny
+        case .suggest: .ask
+        case .actLow: risk == .low ? .auto : .ask
+        case .actMedium: risk == .high ? .ask : .auto
+        }
+    }
+
+    /// A rule may only tighten what autonomy allows; with no rule, autonomy decides (except an
+    /// unlisted routine, which still asks).
+    static func limit(_ base: PolicyVerdict, by autonomy: Autonomy, risk: Risk) -> PolicyVerdict {
+        func verdict(_ disposition: ActionDisposition, _ reason: String) -> PolicyVerdict {
+            PolicyVerdict(disposition: disposition, reason: reason, risk: risk, autonomy: autonomy)
+        }
+        if base.disposition == .deny { return verdict(.deny, base.reason) }
+        let allowed = allowed(autonomy, risk: risk)
+        let label = "autonomy:\(autonomy.rawValue):\(risk.rawValue)"
+        let ruled = base.reason.hasPrefix("rule:") || base.reason == "routine_default"
+        guard ruled else { return verdict(allowed, label) }
+        return strictness(allowed) > strictness(base.disposition)
+            ? verdict(allowed, label) : verdict(base.disposition, base.reason)
+    }
+
+    private static func strictness(_ disposition: ActionDisposition) -> Int {
+        switch disposition {
+        case .auto: 0
+        case .ask: 1
+        case .deny: 2
+        }
+    }
+
+    private func classifyByRules(_ action: PolicyAction) -> PolicyVerdict {
         if action.kind == Self.routineKind { return classifyRoutine(action) }
         if let refusal = structuralRefusal(action) {
             return PolicyVerdict(disposition: .deny, reason: refusal)
@@ -153,5 +230,7 @@ extension ActionPolicy {
             bindingActions: Dictionary(
                 charter.bindings.map { ($0.id, Set($0.actions)) },
                 uniquingKeysWith: { first, _ in first }))
+        autonomy = charter.autonomy
+        riskRules = charter.policy.risk
     }
 }

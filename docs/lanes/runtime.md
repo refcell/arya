@@ -183,6 +183,10 @@ M4:
   pending approvals once to an `ApprovalNotifier`. `deliver` forwards message triggers.
 - Plans (decision 0035): `PlanBook.plan(in: RunResult)` maps adapters' `plan` steps;
   `PlanBook` projects the current plan per steward from `plan.updated {items, reason?}`.
+- Risk and autonomy (decision 0037): `ActionPolicy(charter:)` reads `charter.autonomy` and
+  `policy.risk`; `PolicyVerdict` carries `risk` and `autonomy`, written onto
+  `action.proposed`. Small additive edits in `AryaCore` (types, charter and policy fields,
+  `ProposedAction.risk`) and `AryaLedger` (`ActionProposed.risk/autonomy`).
 
 ## Questions
 
@@ -230,3 +234,4 @@ M4:
 - 2026-11-09: `BindingActionExecutor` for MCP and person bindings
 - 2026-11-09: `RuntimeService` (serve loop) with approval announcements
 - 2026-11-09: steward plans: `plan.updated`, `PlanBook`, plan in instructions (decision 0035)
+- 2026-11-09: risk levels and per-steward autonomy on charters and proposals (decision 0037)

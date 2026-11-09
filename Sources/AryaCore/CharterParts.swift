@@ -148,10 +148,13 @@ public struct Policy: Hashable, Sendable, Codable {
 
     public var `default`: PolicyDecision
     public var rules: [Rule]
+    /// Risk levels by action kind, routine, or binding (decision 0037); omitted when empty.
+    public var risk: [RiskRule]
 
-    public init(default: PolicyDecision = .ask, rules: [Rule] = []) {
+    public init(default: PolicyDecision = .ask, rules: [Rule] = [], risk: [RiskRule] = []) {
         self.default = `default`
         self.rules = rules
+        self.risk = risk
     }
 
     /// The decision for an action of `kind` through `binding`. A binding-specific rule beats
@@ -164,12 +167,20 @@ public struct Policy: Hashable, Sendable, Codable {
         return matching.first(where: { $0.binding == nil })?.decision ?? self.default
     }
 
-    private enum CodingKeys: String, CodingKey { case `default`, rules }
+    private enum CodingKeys: String, CodingKey { case `default`, rules, risk }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.default = try c.decodeIfPresent(PolicyDecision.self, forKey: .default) ?? .ask
         rules = try c.decodeIfPresent([Rule].self, forKey: .rules) ?? []
+        risk = try c.decodeIfPresent([RiskRule].self, forKey: .risk) ?? []
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(self.default, forKey: .default)
+        try c.encode(rules, forKey: .rules)
+        if !risk.isEmpty { try c.encode(risk, forKey: .risk) }
     }
 }
 

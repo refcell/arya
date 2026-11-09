@@ -21,6 +21,8 @@ public struct Charter: Hashable, Sendable, Codable {
     public var limits: Limits
     public var scorer: ScorerSpec
     public var gate: GateConfig
+    /// How far the steward may act on its own; nil keeps the policy alone (decision 0037).
+    public var autonomy: Autonomy?
 
     public init(
         id: StewardID, name: String, outcome: String, metric: Metric,
@@ -48,7 +50,7 @@ public struct Charter: Hashable, Sendable, Codable {
 
     private enum CodingKeys: String, CodingKey {
         case v, id, name, outcome, metric, guardrails, bindings, triggers, policy, adapter
-        case effort, crew, limits, scorer, gate
+        case effort, crew, limits, scorer, gate, autonomy
     }
 
     public init(from decoder: any Decoder) throws {
@@ -68,6 +70,7 @@ public struct Charter: Hashable, Sendable, Codable {
         limits = try c.decodeIfPresent(Limits.self, forKey: .limits) ?? Limits()
         scorer = try c.decode(ScorerSpec.self, forKey: .scorer)
         gate = try c.decodeIfPresent(GateConfig.self, forKey: .gate) ?? GateConfig()
+        autonomy = try c.decodeIfPresent(Autonomy.self, forKey: .autonomy)
     }
 
     /// Decodes and validates a charter document.

@@ -26,7 +26,7 @@ extension ProposedAction {
         let name = kind == ActionPolicy.routineKind ? params?["name"]?.stringValue : nil
         return PolicyAction(
             kind: kind, binding: binding, routineName: name,
-            routineVersion: name.flatMap { routines[$0] })
+            routineVersion: name.flatMap { routines[$0] }, riskHint: risk)
     }
 }
 

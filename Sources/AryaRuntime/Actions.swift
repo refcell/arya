@@ -116,7 +116,8 @@ public struct ActionDispatcher: Sendable {
             try await append(
                 ActionEventType.proposed, charter.id, run, .steward(charter.id),
                 ActionProposed(
-                    action: action, disposition: verdict.disposition, reason: verdict.reason))
+                    action: action, disposition: verdict.disposition, reason: verdict.reason,
+                    risk: verdict.risk, autonomy: verdict.autonomy))
             var disposal = ActionDisposal(action: action, verdict: verdict)
             switch verdict.disposition {
             case .auto:
@@ -149,7 +150,8 @@ public struct ActionDispatcher: Sendable {
             try await append(
                 ActionEventType.proposed, charter.id, run, .steward(charter.id),
                 ActionProposed(
-                    action: action, disposition: verdict.disposition, reason: verdict.reason))
+                    action: action, disposition: verdict.disposition, reason: verdict.reason,
+                    risk: verdict.risk, autonomy: verdict.autonomy))
             disposals.append(ActionDisposal(action: action, verdict: verdict))
         }
         return disposals

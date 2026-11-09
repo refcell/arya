@@ -318,3 +318,19 @@ monospace for machine text, with small uppercase labels and no serif; spacing is
 grid. The app opens dark whatever the system setting; Light is a setting. Why: the app had grown
 boxed, banded, and repetitive; one canvas with type-driven structure carries the same
 functionality with far less noise.
+
+### 0037 — 2026-11-09 — Actions carry risk; stewards have an autonomy level
+
+A charter may set `autonomy`: `observe` (actions are recorded and refused), `suggest` (every
+action asks), `act_low` (low-risk actions run, others ask), or `act_medium` (low and medium
+run, high asks). Without it the policy alone decides, as before. An action's risk comes from
+the charter's `policy.risk` entries `{action?, binding?, level}`, where `action` is a kind or
+`routine:<name>`: the most specific entry wins (action and binding, then action, then binding),
+`medium` when none matches, and the adapter's `risk` hint can raise it but never lower it.
+With autonomy set, structural refusals and deny rules stay deny; with no matching rule,
+autonomy decides; a matching rule can only tighten what autonomy allows; an unlisted routine
+still asks (0032). `action.proposed` records `risk` and `autonomy`, and its `reason` is
+`autonomy:<level>:<risk>` when autonomy decided, so an approval card can say why it asked.
+`Risk`, `Autonomy`, and `RiskRule` live in `AryaCore`; the new fields are omitted when unset,
+so existing charters and lines encode byte for byte as before. Why: a steward that owns an
+outcome should act on safe steps by itself and ask only where the risk warrants it.

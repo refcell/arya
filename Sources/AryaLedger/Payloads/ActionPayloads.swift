@@ -9,14 +9,23 @@ public struct ActionProposed: EventPayload {
     public var disposition: PolicyDecision
     /// The classifier's reason, for example `rule:label` or `not_allowed:tracker.close`.
     public var reason: String
+    /// The action's resolved risk, when the steward has an autonomy level (decision 0037).
+    public var risk: Risk?
+    /// The steward's autonomy level that shaped the disposition (decision 0037).
+    public var autonomy: Autonomy?
 
-    public init(action: ProposedAction, disposition: PolicyDecision, reason: String) {
+    public init(
+        action: ProposedAction, disposition: PolicyDecision, reason: String, risk: Risk? = nil,
+        autonomy: Autonomy? = nil
+    ) {
         self.action = action
         self.disposition = disposition
         self.reason = reason
+        self.risk = risk
+        self.autonomy = autonomy
     }
 
-    enum CodingKeys: String, CodingKey { case action, disposition, reason }
+    enum CodingKeys: String, CodingKey { case action, disposition, reason, risk, autonomy }
 }
 
 /// `action.executed`: the executor's output, a recorded input for replay.
