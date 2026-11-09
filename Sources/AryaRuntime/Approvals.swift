@@ -1,4 +1,5 @@
 import AryaCore
+import AryaLedger
 
 // The approval queue (ARCHITECTURE.md "Runs", step 4). An `ask` action or a `host/ask` question
 // becomes `approval.requested`; a person grants or denies it, or it expires. The queue's state
@@ -7,13 +8,13 @@ import AryaCore
 /// Ledger event types the approval queue writes.
 public enum ApprovalEventType {
     /// An action or question is waiting for a person.
-    public static let requested = "approval.requested"
+    public static let requested = EventType.approvalRequested.rawValue
     /// A person granted (or answered) it.
-    public static let granted = "approval.granted"
+    public static let granted = EventType.approvalGranted.rawValue
     /// A person denied it.
-    public static let denied = "approval.denied"
+    public static let denied = EventType.approvalDenied.rawValue
     /// Nobody decided before it expired.
-    public static let expired = "approval.expired"
+    public static let expired = EventType.approvalExpired.rawValue
 }
 
 extension ProposedAction {
@@ -75,28 +76,6 @@ public enum ApprovalError: Error, Equatable, Sendable {
     case alreadyDecided(ApprovalID, ApprovalStatus)
 }
 
-struct ApprovalRequestedPayload: Codable, Hashable {
-    var approval: ApprovalID
-    var kind: String
-    var action: ProposedAction?
-    var question: String?
-    var to: String
-    var expiresAt: Timestamp?
-
-    enum CodingKeys: String, CodingKey {
-        case approval, kind, action, question, to, expiresAt
-    }
-}
-
-struct ApprovalDecisionPayload: Codable, Hashable {
-    var approval: ApprovalID
-    var note: String?
-
-    enum CodingKeys: String, CodingKey {
-        case approval, note
-    }
-}
-
 /// Folds approval events into records.
 public struct ApprovalBook: Sendable {
     /// Records by id.
@@ -133,7 +112,7 @@ public struct ApprovalBook: Sendable {
     }
 
     private mutating func applyRequest(_ event: RuntimeEvent) throws {
-        let body = try Payload.decode(ApprovalRequestedPayload.self, event.payload)
+        let body = try Payload.decode(ApprovalRequested.self, event.payload)
         guard let steward = event.draft.steward, let run = event.draft.run else { return }
         let subject: ApprovalSubject =
             if let action = body.action { .action(action) } else { .question(body.question ?? "") }
@@ -144,7 +123,7 @@ public struct ApprovalBook: Sendable {
     }
 
     private mutating func applyDecision(_ event: RuntimeEvent, _ status: ApprovalStatus) throws {
-        let body = try Payload.decode(ApprovalDecisionPayload.self, event.payload)
+        let body = try Payload.decode(ApprovalGranted.self, event.payload)
         guard var record = records[body.approval], record.status == .pending else { return }
         record.status = status
         record.note = body.note
@@ -176,14 +155,12 @@ public struct ApprovalQueue: Sendable {
         expiresAt: Timestamp? = nil
     ) async throws -> ApprovalRecord {
         let id = ambient.newID(ApprovalID.self)
-        let payload: ApprovalRequestedPayload =
+        let payload: ApprovalRequested =
             switch subject {
             case .action(let action):
-                ApprovalRequestedPayload(
-                    approval: id, kind: "action", action: action, to: to, expiresAt: expiresAt)
+                ApprovalRequested(approval: id, action: action, to: to, expiresAt: expiresAt)
             case .question(let text):
-                ApprovalRequestedPayload(
-                    approval: id, kind: "question", question: text, to: to, expiresAt: expiresAt)
+                ApprovalRequested(approval: id, question: text, to: to, expiresAt: expiresAt)
             }
         let event = try await sink.append(
             RuntimeEventDraft(
@@ -233,7 +210,7 @@ public struct ApprovalQueue: Sendable {
         _ = try await sink.append(
             RuntimeEventDraft(
                 type: type, steward: record.steward, run: record.run, actor: actor,
-                payload: try Payload.encode(ApprovalDecisionPayload(approval: id, note: note))))
+                payload: try Payload.encode(ApprovalGranted(approval: id, note: note))))
         // A concurrent decision by another process may have landed first; the book keeps the
         // first decision, so report what the ledger now says.
         return try ApprovalBook(try await sink.events(from: record.seq)).records[id] ?? record

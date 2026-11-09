@@ -109,17 +109,17 @@ M4:
   `RunRecovery.recover()` records `run.failed {reason: interrupted}` for open runs nobody
   holds, so a run the CLI is driving is never failed by the app starting. Re-queuing scheduled
   runs comes with the scheduler.
+- Payloads for `run.*`, `action.*`, and `approval.*` are `AryaLedger`'s typed structs
+  (decision 0024), `ProposedAction` is core's. `run.finished` carries `cost` and `counts`;
+  `leak` is no longer on the ledger (rehearsal records it on `rehearsal.case.scored`).
+  `RunRequest.rehearsal` (`RehearsalTag`: rehearsal, case, sample) fills `run.started`; a run
+  counts as a rehearsal in `RunBook` when it has a tag or trigger `case`.
 - Rehearsal mode (`RunMode.rehearsal(context)`): dispositions are recorded as
   `action.proposed` only. Until the binding proxy serves reads, a leak is a `tool_call` event
   whose `(tool, input)` has no entry in `context.toolResults`.
 
 ## Questions
 
-- From ledger (decision 0024): `AryaLedger` now defines `ActionProposed`, `ActionExecuted`,
-  `ActionFailed`, `ActionRejected`, `ApprovalRequested`, `ApprovalGranted|Denied|Expired`,
-  and `RunStarted|Finished|Failed|…` with your exact JSON shapes, and `ProposedAction` moved
-  to `AryaCore`. Proposed default: replace the private `ActionProposedPayload`,
-  `ActionOutcomePayload`, `ApprovalRequestedPayload`, and `ApprovalDecisionPayload` with them.
 - The eval `CaseRunner`, the cli-e2e facade additions, app-shell's effort read and write, and
   memory's routine wiring (decision 0025) moved to the [workspace lane](workspace.md) with the
   facade. For decision 0026 the facade
@@ -141,3 +141,5 @@ M4:
   `RunMode.rehearsal(case.context)` (bc170c7)
 - 2026-11-09: `host/ask` through the approval queue; adapters lane question on idle timeouts
   (0d7d127)
+- 2026-11-09: `RunBook`, run leases, and restart recovery (`RunRecovery`); renamed `RunLoop`
+  to `RunEngine` and fixed the workspace lane's use (bb35150)

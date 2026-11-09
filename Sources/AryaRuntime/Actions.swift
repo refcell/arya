@@ -1,4 +1,5 @@
 import AryaCore
+import AryaLedger
 
 // Agents propose, arya disposes (decision 0005). The dispatcher records every proposed action,
 // classifies it with the charter's policy, and then executes it (`auto`), queues it for a
@@ -8,13 +9,13 @@ import AryaCore
 /// Ledger event types for actions.
 public enum ActionEventType {
     /// A run proposed an action; carries its disposition.
-    public static let proposed = "action.proposed"
+    public static let proposed = EventType.actionProposed.rawValue
     /// arya carried the action out.
-    public static let executed = "action.executed"
+    public static let executed = EventType.actionExecuted.rawValue
     /// Carrying the action out failed.
-    public static let failed = "action.failed"
+    public static let failed = EventType.actionFailed.rawValue
     /// Policy or a person refused the action.
-    public static let rejected = "action.rejected"
+    public static let rejected = EventType.actionRejected.rawValue
 }
 
 /// One action to carry out.
@@ -76,28 +77,6 @@ public actor RecordingExecutor: ActionExecutor {
     }
 }
 
-struct ActionProposedPayload: Codable, Hashable {
-    var action: ProposedAction
-    var disposition: PolicyDecision
-    var reason: String
-
-    enum CodingKeys: String, CodingKey {
-        case action, disposition, reason
-    }
-}
-
-struct ActionOutcomePayload: Codable, Hashable {
-    var action: String
-    var approval: ApprovalID?
-    var output: JSONValue?
-    var error: String?
-    var reason: String?
-
-    enum CodingKeys: String, CodingKey {
-        case action, approval, output, error, reason
-    }
-}
-
 /// The disposition of one proposed action, as the dispatcher recorded it.
 public struct ActionDisposal: Sendable, Hashable {
     /// The action.
@@ -134,7 +113,7 @@ public struct ActionDispatcher: Sendable {
             let verdict = policy.classify(action.policyAction)
             try await append(
                 ActionEventType.proposed, charter.id, run, .steward(charter.id),
-                ActionProposedPayload(
+                ActionProposed(
                     action: action, disposition: verdict.disposition, reason: verdict.reason))
             var disposal = ActionDisposal(action: action, verdict: verdict)
             switch verdict.disposition {
@@ -165,7 +144,7 @@ public struct ActionDispatcher: Sendable {
             let verdict = policy.classify(action.policyAction)
             try await append(
                 ActionEventType.proposed, charter.id, run, .steward(charter.id),
-                ActionProposedPayload(
+                ActionProposed(
                     action: action, disposition: verdict.disposition, reason: verdict.reason))
             disposals.append(ActionDisposal(action: action, verdict: verdict))
         }
@@ -195,20 +174,19 @@ public struct ActionDispatcher: Sendable {
 
     private func execute(_ request: ExecutionRequest) async throws -> ExecutionOutcome {
         let outcome = await executor.execute(request)
-        let payload: ActionOutcomePayload
-        let type: String
         switch outcome {
         case .succeeded(let output):
-            type = ActionEventType.executed
-            payload = ActionOutcomePayload(
-                action: request.action.id, approval: request.approval, output: output)
+            try await append(
+                ActionEventType.executed, request.steward, request.run, .system,
+                ActionExecuted(
+                    action: request.action.id, approval: request.approval, output: output))
         case .failed(let error, let output):
-            type = ActionEventType.failed
-            payload = ActionOutcomePayload(
-                action: request.action.id, approval: request.approval, output: output,
-                error: error)
+            try await append(
+                ActionEventType.failed, request.steward, request.run, .system,
+                ActionFailed(
+                    action: request.action.id, approval: request.approval, output: output,
+                    error: error))
         }
-        try await append(type, request.steward, request.run, .system, payload)
         return outcome
     }
 
@@ -218,7 +196,7 @@ public struct ActionDispatcher: Sendable {
     ) async throws {
         try await append(
             ActionEventType.rejected, steward, run, .system,
-            ActionOutcomePayload(action: action, approval: approval, reason: reason))
+            ActionRejected(action: action, approval: approval, reason: reason))
     }
 
     private func append(

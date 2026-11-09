@@ -1,5 +1,6 @@
 import AryaAdapters
 import AryaCore
+import AryaLedger
 import Foundation
 
 // The run loop (ARCHITECTURE.md "Runs"): a trigger becomes `run.started`, a fresh adapter
@@ -10,15 +11,15 @@ import Foundation
 /// Ledger event types for runs.
 public enum RunEventType {
     /// A run began; carries everything it will see.
-    public static let started = "run.started"
+    public static let started = EventType.runStarted.rawValue
     /// One JSON-RPC line between arya and the adapter.
-    public static let adapterEvent = "run.adapter.event"
+    public static let adapterEvent = EventType.runAdapterEvent.rawValue
     /// One decision from `run/result`.
-    public static let decision = "run.decision"
+    public static let decision = EventType.runDecision.rawValue
     /// The run ended normally.
-    public static let finished = "run.finished"
+    public static let finished = EventType.runFinished.rawValue
     /// The run failed.
-    public static let failed = "run.failed"
+    public static let failed = EventType.runFailed.rawValue
 }
 
 /// Whether a run may touch the world.
@@ -44,6 +45,8 @@ public struct RunRequest: Sendable, Hashable {
     public var parent: RunID?
     /// A charter to run instead of the live one (a proposal under rehearsal), if any.
     public var charter: Charter?
+    /// The rehearsal, case, and 1-based sample a rehearsal run belongs to, if any.
+    public var rehearsal: RehearsalTag?
 
     /// Creates a request.
     public init(
@@ -58,9 +61,37 @@ public struct RunRequest: Sendable, Hashable {
         self.charter = charter
     }
 
+    /// Creates a request.
+    public init(
+        steward: StewardID, input: RunInput, mode: RunMode, actor: RuntimeActor,
+        parent: RunID?, charter: Charter?, rehearsal: RehearsalTag?
+    ) {
+        self.init(
+            steward: steward, input: input, mode: mode, actor: actor, parent: parent,
+            charter: charter)
+        self.rehearsal = rehearsal
+    }
+
     /// A manual live run started by the local user.
     public static func manual(_ steward: StewardID, text: String) -> RunRequest {
         RunRequest(steward: steward, input: .init(kind: .manual, text: text))
+    }
+}
+
+/// Which rehearsal, case, and sample a run belongs to.
+public struct RehearsalTag: Sendable, Hashable {
+    /// The rehearsal.
+    public var rehearsal: RehearsalID
+    /// The case.
+    public var caseID: CaseID
+    /// 1-based sample number.
+    public var sample: Int
+
+    /// Creates a tag.
+    public init(rehearsal: RehearsalID, caseID: CaseID, sample: Int) {
+        self.rehearsal = rehearsal
+        self.caseID = caseID
+        self.sample = sample
     }
 }
 
@@ -142,50 +173,18 @@ public struct RunEngine: Sendable {
         _ run: RunID, _ request: RunRequest, _ charter: Charter, _ version: Int,
         _ instructions: String
     ) async throws {
-        let payload = RunStartedPayload(
-            trigger: request.input.kind.rawValue, input: request.input, parent: request.parent,
-            charterVersion: version, adapter: charter.adapter, effort: charter.effort.rawValue,
-            instructions: instructions, memory: [], routines: [],
-            rehearsal: request.mode != .live)
+        let input = request.input
+        let payload = RunStarted(
+            input: RunInputRecord(
+                kind: RunTriggerKind(rawValue: input.kind.rawValue) ?? .manual, text: input.text,
+                attachments: input.attachments.isEmpty ? nil : input.attachments),
+            charterVersion: version, adapter: charter.adapter, effort: charter.effort,
+            instructions: instructions, limits: charter.limits, parent: request.parent,
+            rehearsal: request.rehearsal?.rehearsal, caseID: request.rehearsal?.caseID,
+            sample: request.rehearsal?.sample)
         _ = try await sink.append(
             RuntimeEventDraft(
                 type: RunEventType.started, steward: request.steward, run: run,
                 actor: request.actor, payload: try Payload.encode(payload)))
-    }
-}
-
-struct RunStartedPayload: Codable, Hashable {
-    var trigger: String
-    var input: RunInput
-    var parent: RunID?
-    /// The live charter version, or 0 for a candidate charter under rehearsal.
-    var charterVersion: Int
-    var adapter: String
-    var effort: String
-    var instructions: String
-    /// Memory note ids in the snapshot (filled once memory retrieval is wired).
-    var memory: [String]
-    /// Live routine versions (filled once routines are wired).
-    var routines: [String]
-    var rehearsal: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case trigger, input, parent, charterVersion, adapter, effort, instructions, memory
-        case routines, rehearsal
-    }
-}
-
-struct RunEndPayload: Codable, Hashable {
-    var status: String?
-    var reason: String?
-    var detail: String?
-    var summary: String?
-    var costMicros: Int64
-    var decisions: Int
-    var actions: Int
-    var leak: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case status, reason, detail, summary, costMicros, decisions, actions, leak
     }
 }

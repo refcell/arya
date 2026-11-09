@@ -1,5 +1,6 @@
 import AryaAdapters
 import AryaCore
+import AryaLedger
 import Foundation
 import Testing
 
@@ -87,10 +88,9 @@ private struct Rig {
     let sink = MemoryEventSink(ambient: .fixed())
     let leases = MemoryRunLeases()
     let run = RunID(unchecked: "run_live")
-    let payload = RunStartedPayload(
-        trigger: "manual", input: RunInput(kind: .manual, text: "x"), parent: nil,
-        charterVersion: 1, adapter: "fake", effort: "medium", instructions: "", memory: [],
-        routines: [], rehearsal: false)
+    let payload = RunStarted(
+        input: RunInputRecord(kind: .manual, text: "x"), charterVersion: 1, adapter: "fake",
+        effort: .medium, instructions: "", limits: Limits())
     _ = try await sink.append(
         RuntimeEventDraft(
             type: RunEventType.started, steward: StewardID(unchecked: "st_triage"), run: run,

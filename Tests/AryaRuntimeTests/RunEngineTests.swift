@@ -87,11 +87,11 @@ struct RunHarness {
     let started = try #require(try await harness.last("run.started"))
     #expect(started.draft.actor == .localUser)
     #expect(started.payload.objectValue?["charterVersion"] == 1)
-    #expect(started.payload.objectValue?["trigger"] == "manual")
+    #expect(started.payload.objectValue?["input"]?.objectValue?["kind"] == "manual")
     let instructions = started.payload.objectValue?["instructions"]?.stringValue ?? ""
     #expect(instructions.hasPrefix("You are Issue triage"))
     let finished = try #require(try await harness.last("run.finished"))
-    #expect(finished.payload.objectValue?["costMicros"] == 1234)
+    #expect(finished.payload.objectValue?["cost"]?.objectValue?["costMicros"] == 1234)
     #expect(finished.payload.objectValue?["status"] == "completed")
     #expect(await harness.executor.requests.map(\.action.id) == ["a1"])
 }
@@ -158,8 +158,8 @@ struct RunHarness {
             "action.proposed", "run.finished",
         ])
     #expect(await harness.executor.requests.isEmpty)
-    let started = try await harness.last("run.started")
-    #expect(started?.payload.objectValue?["rehearsal"] == true)
+    let book = try RunBook(try await harness.sink.events(from: 1))
+    #expect(book.records[outcome.run]?.rehearsal == false)
 }
 
 @Test func answeredToolCallIsNoLeak() async throws {

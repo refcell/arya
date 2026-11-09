@@ -1,4 +1,5 @@
 import AryaCore
+import AryaLedger
 import Foundation
 
 // Runs as projected from the ledger, and restart recovery (ARCHITECTURE.md "Durability"). A
@@ -77,23 +78,30 @@ public struct RunBook: Sendable {
         switch event.type {
         case RunEventType.started:
             guard let steward = event.draft.steward, records[id] == nil else { return }
-            let body = try Payload.decode(RunStartedPayload.self, event.payload)
+            let body = try Payload.decode(RunStarted.self, event.payload)
             order.append(id)
             records[id] = RunRecord(
-                id: id, steward: steward, parent: body.parent, trigger: body.trigger,
+                id: id, steward: steward, parent: body.parent, trigger: body.input.kind.rawValue,
                 input: body.input.text, charterVersion: body.charterVersion,
-                rehearsal: body.rehearsal, status: .running, startedAt: event.at, costMicros: 0,
-                actions: 0)
-        case RunEventType.finished, RunEventType.failed:
+                rehearsal: body.rehearsal != nil || body.input.kind == .case, status: .running,
+                startedAt: event.at, costMicros: 0, actions: 0)
+        case RunEventType.finished:
             guard var record = records[id], record.status == .running else { return }
-            let body = try Payload.decode(RunEndPayload.self, event.payload)
-            record.status = event.type == RunEventType.finished ? .finished : .failed
-            record.endStatus = body.status
-            record.failureReason = body.reason
+            let body = try Payload.decode(RunFinished.self, event.payload)
+            record.status = .finished
+            record.endStatus = body.status.rawValue
             record.summary = body.summary
             record.endedAt = event.at
-            record.costMicros = body.costMicros
-            record.actions = body.actions
+            record.costMicros = body.cost.costMicros
+            record.actions = body.counts.actions
+            records[id] = record
+        case RunEventType.failed:
+            guard var record = records[id], record.status == .running else { return }
+            let body = try Payload.decode(RunFailed.self, event.payload)
+            record.status = .failed
+            record.failureReason = body.reason
+            record.endedAt = event.at
+            record.costMicros = body.cost?.costMicros ?? 0
             records[id] = record
         default:
             return
@@ -224,9 +232,8 @@ public struct RunRecovery: Sendable {
         let open = try RunBook(try await sink.events(from: 1)).open
         var interrupted: [RunRecord] = []
         for record in open where !leases.isHeld(record.id) {
-            let payload = RunEndPayload(
-                reason: RunFailureReason.interrupted.rawValue, detail: "its process is gone",
-                costMicros: 0, decisions: 0, actions: 0, leak: false)
+            let payload = RunFailed(
+                reason: RunFailureReason.interrupted.rawValue, detail: "its process is gone")
             _ = try await sink.append(
                 RuntimeEventDraft(
                     type: RunEventType.failed, steward: record.steward, run: record.id,

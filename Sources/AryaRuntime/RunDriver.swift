@@ -1,5 +1,6 @@
 import AryaAdapters
 import AryaCore
+import AryaLedger
 import Foundation
 
 /// Drives one run: handshake, streaming, result, dispositions, and the closing event.
@@ -27,13 +28,13 @@ final class RunDriver: @unchecked Sendable {
         do {
             adapter = try await loop.adapters.makeAdapter(for: charter, run: run)
         } catch {
-            return try await fail(.adapterExited, detail: "launch: \(error)", cost: 0)
+            return try await fail(.adapterExited, detail: "launch: \(error)", cost: nil)
         }
         var updates = adapter.updates.makeAsyncIterator()
         if let failure = await handshake(adapter) {
             try? await adapter.shutdown()
             try await drain(&updates)
-            return try await fail(failure.0, detail: failure.1, cost: 0)
+            return try await fail(failure.0, detail: failure.1, cost: nil)
         }
         try transition(.adapterStarted)
         return try await stream(adapter, &updates)
@@ -97,10 +98,10 @@ final class RunDriver: @unchecked Sendable {
             case .timedOut:
                 return try await abandon(adapter, &updates, .timeout, "no message in time")
             case .exited(let exit):
-                return try await fail(.adapterExited, detail: "\(exit)", cost: 0)
+                return try await fail(.adapterExited, detail: "\(exit)", cost: nil)
             }
         }
-        return try await fail(.adapterExited, detail: "update stream ended", cost: 0)
+        return try await fail(.adapterExited, detail: "update stream ended", cost: nil)
     }
 
     /// Puts a `host/ask` question in the approval queue and waits until a person answers it
@@ -135,13 +136,15 @@ final class RunDriver: @unchecked Sendable {
     }
 
     private func recordWire(_ record: WireRecord) async throws {
-        let message: JSONValue =
-            (try? CanonicalJSON.decode(JSONValue.self, from: record.line))
-            ?? ["raw": .string(String(decoding: record.line, as: UTF8.self))]
-        let payload: JSONValue = [
-            "direction": .string(record.direction.rawValue), "message": message,
-        ]
-        try await append(RunEventType.adapterEvent, .adapter(run), payload)
+        let direction: RunAdapterEvent.Direction = record.direction == .sent ? .sent : .received
+        let payload =
+            if let message = try? CanonicalJSON.decode(JSONValue.self, from: record.line) {
+                RunAdapterEvent(direction: direction, message: message)
+            } else {
+                RunAdapterEvent(
+                    direction: direction, raw: String(decoding: record.line, as: UTF8.self))
+            }
+        try await append(RunEventType.adapterEvent, .adapter(run), try Payload.encode(payload))
     }
 
     // MARK: Ending
@@ -160,15 +163,22 @@ final class RunDriver: @unchecked Sendable {
         let end: RunEndStatus = params.status == .stopped ? .stopped : .completed
         try transition(.resultReceived(end))
         for decision in result.decisions {
+            let recorded = RecordedDecision(
+                id: decision.id, choice: decision.choice, rationale: decision.rationale)
             try await append(
-                RunEventType.decision, .steward(charter.id), try Payload.encode(decision))
+                RunEventType.decision, .steward(charter.id),
+                try Payload.encode(RunDecision(decision: recorded)))
         }
         let actions = result.actions.map(ProposedAction.init)
         let disposals = try await dispose(actions)
         try transition(.dispositionsRecorded)
-        let payload = RunEndPayload(
-            status: end.rawValue, summary: result.summary, costMicros: cost,
-            decisions: result.decisions.count, actions: actions.count, leak: leak)
+        let counts = RunCounts(
+            decisions: result.decisions.count, actions: actions.count,
+            delegations: result.delegations.count, memories: result.memories.count,
+            routines: result.routines.count, measurements: result.measurements.count)
+        let payload = RunFinished(
+            status: end == .stopped ? .stopped : .completed, summary: result.summary,
+            cost: cost ?? RunCost(), counts: counts)
         try await append(RunEventType.finished, .system, try Payload.encode(payload))
         return RunOutcome(run: run, phase: phase, result: result, disposals: disposals, leak: leak)
     }
@@ -185,10 +195,12 @@ final class RunDriver: @unchecked Sendable {
     /// Asks for the cost, shuts the adapter down, and records the remaining wire lines.
     private func closeAdapter(
         _ adapter: any Adapter, _ updates: inout AsyncStream<AdapterUpdate>.Iterator
-    ) async -> Int64 {
-        var cost: Int64 = 0
+    ) async -> RunCost? {
+        var cost: RunCost?
         if let session, let answer = try? await adapter.cost(SessionParams(session: session)) {
-            cost = answer.costMicros
+            cost = RunCost(
+                inputTokens: answer.inputTokens, outputTokens: answer.outputTokens,
+                costMicros: answer.costMicros)
         }
         try? await adapter.shutdown()
         try? await drain(&updates)
@@ -201,16 +213,14 @@ final class RunDriver: @unchecked Sendable {
     ) async throws -> RunOutcome {
         try? await adapter.shutdown()
         try? await drain(&updates)
-        return try await fail(reason, detail: detail, cost: 0)
+        return try await fail(reason, detail: detail, cost: nil)
     }
 
-    private func fail(_ reason: RunFailureReason, detail: String, cost: Int64) async throws
+    private func fail(_ reason: RunFailureReason, detail: String, cost: RunCost?) async throws
         -> RunOutcome
     {
         try transition(.fail(reason))
-        let payload = RunEndPayload(
-            reason: reason.rawValue, detail: detail, costMicros: cost, decisions: 0, actions: 0,
-            leak: leak)
+        let payload = RunFailed(reason: reason.rawValue, detail: detail, cost: cost)
         try await append(RunEventType.failed, .system, try Payload.encode(payload))
         return RunOutcome(run: run, phase: phase, result: nil, disposals: [], leak: leak)
     }
