@@ -10,7 +10,7 @@ corrections, readiness, proposals, gates, and outcome metrics over time. Design:
 ## Backlog
 
 M1:
-- [ ] Interfaces only, so other lanes can compile against them: `Replayer`, `Rehearser`,
+- [x] Interfaces only, so other lanes can compile against them: `Replayer`, `Rehearser`,
   `Scorer`, `Gate` (conforming to `GateChecking`), with stub implementations.
 
 M2:
@@ -33,6 +33,12 @@ Later:
 - [ ] Judge-adapter scorer (an adapter scores a result against the expected one).
 
 ## Decisions
+
+- Until `AryaCore` publishes ids, `Case`, a JSON value, and `GateChecking`, eval uses plain
+  string ids, its own `EvalValue`, and `EvalGateChecking` (prefixed so modules importing both
+  never see an ambiguous name). Each is replaced when the core type lands.
+- Stubs fail safe: replay and rehearsal throw `notImplemented`, the stub scorer fails every case,
+  and the stub gate refuses every proposal.
 
 ## Questions
 
