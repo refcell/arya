@@ -35,6 +35,7 @@ public struct RailRow: View {
         .background(isSelected ? AryaColor.selection : .clear)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+        .accessibilityValue(status?.word ?? "")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

@@ -67,10 +67,13 @@ public struct TextTab<ID: Hashable>: Identifiable {
 /// selected tab is `ink` with a 2 pt `ink` underline flush with the hairline.
 public struct TextTabBar<ID: Hashable>: View {
     let tabs: [TextTab<ID>]
+    let inset: CGFloat
     @Binding var selection: ID
 
-    public init(tabs: [TextTab<ID>], selection: Binding<ID>) {
+    /// - Parameter inset: leading inset of the tabs; the hairline still runs edge to edge.
+    public init(tabs: [TextTab<ID>], selection: Binding<ID>, inset: CGFloat = 0) {
         self.tabs = tabs
+        self.inset = inset
         self._selection = selection
     }
 
@@ -81,6 +84,7 @@ public struct TextTabBar<ID: Hashable>: View {
             }
             Spacer(minLength: 0)
         }
+        .padding(.leading, inset)
         .frame(height: AryaSize.tabBarHeight, alignment: .bottom)
         .aryaHairline(edge: .bottom)
     }
@@ -105,6 +109,7 @@ struct TextTabButton<ID: Hashable>: View {
                     .fill(isSelected ? AryaColor.ink : .clear)
                     .frame(height: AryaSize.tabUnderline)
             }
+            .fixedSize(horizontal: true, vertical: false)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

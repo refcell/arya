@@ -1,0 +1,78 @@
+import Arya
+import AryaDesign
+import SwiftUI
+
+/// The left rail: stewards with their runs nested under the selected one, then approvals.
+struct RailView: View {
+    let model: AppModel
+    /// The fixed "now" used for relative times, so a render is a pure function of its inputs.
+    let now: Date
+
+    var body: some View {
+        ScrollView { content }
+            .background(AryaColor.surface)
+    }
+
+    /// The rail's rows without the scroll view (renders offscreen for tests).
+    var content: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            RailGroupLabel("Stewards").padding(.bottom, AryaSpace.s1)
+            ForEach(model.stewards) { steward in
+                stewardRows(steward)
+            }
+            RailGroupLabel("Approvals")
+                .padding(.top, AryaSpace.s5)
+                .padding(.bottom, AryaSpace.s1)
+            approvalsRow
+        }
+        .padding(.top, AryaSpace.s4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder private func stewardRows(_ steward: StewardSummary) -> some View {
+        let runs = model.runs[steward.id] ?? []
+        let isSelected = model.navigation.steward == steward.id
+        Button {
+            model.navigation.select(steward: steward.id)
+        } label: {
+            RailRow(
+                steward.name, status: StatusMapping.status(of: steward, runs: runs),
+                isSelected: isSelected && model.navigation.run == nil)
+        }
+        .buttonStyle(.plain)
+        if isSelected {
+            ForEach(runs.prefix(5)) { run in
+                Button {
+                    model.navigation.select(run: run.id, steward: steward.id)
+                } label: {
+                    RailRow(
+                        run.id.replacingOccurrences(of: "_", with: " "),
+                        status: StatusMapping.status(of: run),
+                        trailing: AryaTime.relative(run.startedAt, now: now),
+                        isSelected: model.navigation.run == run.id, indent: AryaSpace.s4)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var approvalsRow: some View {
+        Button {
+            model.navigation.showApprovals()
+        } label: {
+            HStack {
+                Text("Queue").aryaText(AryaFont.body, AryaColor.ink)
+                Spacer()
+                CountLabel(
+                    model.pendingApprovalCount, style: AryaFont.bodyStrong,
+                    color: AryaColor.accent)
+            }
+            .padding(.horizontal, AryaSpace.s3)
+            .frame(height: AryaSize.railRowHeight)
+            .background(model.navigation.destination == .approvals ? AryaColor.selection : .clear)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Approvals, \(model.pendingApprovalCount) pending")
+    }
+}

@@ -111,6 +111,9 @@ M4:
   (proposed `run(_ id:) -> RunDetail`), and the M2 calls behind `casebook import`, `rehearse`,
   `correct`, `ready`, `metrics`, and `replay`. Until then `arya run` reads the run's ledger
   entries.
+- (from app-shell) The app's header effort selector needs a facade read of each steward's
+  charter effort and a write that records it (or a proposal). Until then the app shows
+  `medium` and reports the write as unavailable.
 
 ## Log
 
