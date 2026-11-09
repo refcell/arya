@@ -1,3 +1,5 @@
+import AryaCore
+
 /// Namespace for the `AryaEval` module: deterministic replay, rehearsal on casebooks, scorers,
 /// proposals and gates, and outcome metric series.
 public enum AryaEval {
@@ -11,4 +13,6 @@ public enum EvalError: Error, Equatable, Sendable {
     case notImplemented(String)
     /// A charter's rubric names a check kind eval does not implement.
     case unknownRubricCheck(String)
+    /// The case is not in the casebook.
+    case unknownCase(CaseID)
 }

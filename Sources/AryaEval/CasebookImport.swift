@@ -10,17 +10,22 @@ public struct CasebookImported: Hashable, Sendable, Codable {
     /// Blob holding the normalized casebook (equal to `version`, the content hash).
     public var blob: String
     public var cases: Int
+    /// The version this one was derived from by a correction, if any.
+    public var correctedFrom: String?
 
-    public init(name: String, version: String, blob: String, cases: Int) {
+    public init(
+        name: String, version: String, blob: String, cases: Int, correctedFrom: String? = nil
+    ) {
         self.v = 1
         self.name = name
         self.version = version
         self.blob = blob
         self.cases = cases
+        self.correctedFrom = correctedFrom
     }
 
     enum CodingKeys: String, CodingKey {
-        case v, name, version, blob, cases
+        case v, name, version, blob, cases, correctedFrom
     }
 }
 
@@ -46,13 +51,22 @@ public struct CasebookImporter: Sendable {
     public func importCasebook(
         name: String, data: Data, steward: StewardID?, actor: RuntimeActor = .localUser
     ) async throws -> (Casebook, CasebookImported) {
-        let book = try Casebook.parse(name: name, data: data)
+        try await record(try Casebook.parse(name: name, data: data), steward: steward, actor: actor)
+    }
+
+    /// Stores and records an already parsed casebook.
+    @discardableResult
+    public func record(
+        _ book: Casebook, steward: StewardID?, actor: RuntimeActor, correctedFrom: String? = nil
+    ) async throws -> (Casebook, CasebookImported) {
+        let name = book.name
         let blob = try await blobs.putBlob(try book.normalizedData())
         let payload = CasebookImported(
-            name: name, version: book.version, blob: blob, cases: book.cases.count)
+            name: name, version: book.version, blob: blob, cases: book.cases.count,
+            correctedFrom: correctedFrom)
         _ = try await sink.append(
             RuntimeEventDraft(
-                type: "casebook.imported", steward: steward, actor: actor,
+                type: EvalEventType.casebookImported, steward: steward, actor: actor,
                 payload: try CanonicalJSON.jsonValue(payload)))
         return (book, payload)
     }

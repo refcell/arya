@@ -65,7 +65,7 @@ public struct CasebookRehearser: Rehearser {
         let book = try await casebooks.casebook(version: request.casebookVersion)
         let id = ambient.newID(RehearsalID.self)
         try await record(
-            "rehearsal.started", request.steward,
+            EvalEventType.rehearsalStarted, request.steward,
             RehearsalStartedPayload(
                 rehearsal: id, charterVersion: request.charterVersion,
                 casebookVersion: book.version, cases: book.cases.count,
@@ -85,14 +85,14 @@ public struct CasebookRehearser: Rehearser {
                 caseID: item.id, samples: slice.map(\.score), leak: slice.contains { $0.leak })
             outcomes.append(outcome)
             try await record(
-                "rehearsal.case.scored", request.steward,
+                EvalEventType.rehearsalCaseScored, request.steward,
                 RehearsalCaseScoredPayload(
                     rehearsal: id, caseID: item.id, runs: slice.map(\.run),
                     scores: outcome.samples, leak: outcome.leak))
         }
         let result = RehearsalResult(id: id, request: request, outcomes: outcomes)
         try await record(
-            "rehearsal.finished", request.steward,
+            EvalEventType.rehearsalFinished, request.steward,
             RehearsalFinishedPayload(
                 rehearsal: id, meanScore: GateRule.mean(result),
                 passed: outcomes.filter(GateRule.alwaysPassed).count,

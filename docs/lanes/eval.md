@@ -23,7 +23,7 @@ M2:
   executed, `leak` detection, `rehearsal.*` events, parallelism bounded and deterministic in
   ordering. Orchestration landed (`CasebookRehearser`); waiting on the runtime's `CaseRunner`.
 - [x] Scorers: exact match on chosen fields; rubric scorer (weighted checks on result fields).
-- [ ] Corrections (`case.corrected`) and readiness (`steward.ready`).
+- [x] Corrections (`case.corrected`) and readiness (`steward.ready`).
 - [ ] Proposals and gates: baseline lookup, samples, tolerance, per-case regression rule,
   override event. Table-driven gate tests.
 - [ ] Metric series from `metric.recorded`, action outcomes, and approval rates; per-steward
@@ -57,6 +57,13 @@ Later:
   `CasebookSource`. Events (actor `system`) are recorded after all runs finish, in case-id order, so ledger
   order never depends on completion order. A runner error scores that sample 0 with a note; a
   leak scores 0 and marks the case. `rehearsal.*` payloads live in `AryaEval`, as memory's do.
+- Corrections: `Corrector` records `case.corrected` and a `memory.added` note (built with
+  `MemoryCorrections.note`, pointing at the correction event), both with the person as actor.
+  A new expected result produces a new casebook version, recorded as `casebook.imported` with
+  `correctedFrom`; baselines on the old version no longer apply, by design.
+- Readiness: `Readiness.markReady` records `steward.ready` (the runtime's event type, which its
+  projection reads) with a person as actor and the reviewed rehearsal, casebook version, and
+  mean score as evidence. It does not require a rehearsal: the person decides.
 
 ## Questions
 
@@ -67,3 +74,4 @@ Later:
 - 2026-11-09: casebook format, content-hash versions, import via `EvalRecorder` (6ee26b3)
 - 2026-11-09: eval adopts core `JSONValue`, `CanonicalJSON`, typed ids (c824b64)
 - 2026-11-09: `CasebookRehearser` with bounded parallelism and `rehearsal.*` events (1a41c45)
+- 2026-11-09: eval uses core `Case`, `GateChecking`, `ScorerSpec`, runtime `EventSink` (028a9f8)
