@@ -20,6 +20,8 @@ final class AppModel {
     /// The feature views' event store, when this workspace provides one.
     let featureStore: FeatureStore?
     var navigation = NavigationState()
+    /// The New steward flow's starting answers while its sheet is open.
+    var stewardSheet: NewStewardDraft?
     private(set) var stewards: [StewardSummary] = []
     /// Runs by steward id, newest first.
     private(set) var runs: [String: [RunSummary]] = [:]

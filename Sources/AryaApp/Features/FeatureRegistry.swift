@@ -13,7 +13,8 @@ enum FeatureRegistry {
             if let store = context.store, let steward = context.steward?.id {
                 OverviewTab(
                     store: store, steward: steward,
-                    openRun: { run in context.model.navigation.select(run: run, steward: steward) })
+                    openRun: { run in context.model.navigation.select(run: run, steward: steward) },
+                    rehearse: { context.model.navigation.tab = .rehearsals })
             } else {
                 EmptyState(
                     "No overview yet.", guidance: "A steward's plan and activity appear here.")
@@ -75,6 +76,30 @@ enum FeatureRegistry {
                 review: { context.model.navigation.showApprovals() },
                 runNow: { Task { await context.model.startRun() } })
         }
+    }
+
+    /// The New steward sheet, started from `model.stewardSheet`; lands on the new steward.
+    @ViewBuilder
+    static func newSteward(_ context: FeatureContext) -> some View {
+        let model = context.model
+        if let store = context.store {
+            NewStewardSheet(
+                store: store, draft: model.stewardSheet ?? NewStewardDraft(),
+                created: { id in
+                    model.stewardSheet = nil
+                    model.navigation.select(steward: id)
+                    Task { await model.refresh() }
+                },
+                cancel: { model.stewardSheet = nil })
+        }
+    }
+
+    /// The first-launch screen when the home has no stewards.
+    static func firstLaunch(_ context: FeatureContext) -> some View {
+        let model = context.model
+        return FirstLaunchView(
+            newSteward: { model.stewardSheet = NewStewardDraft() },
+            openDemo: { model.stewardSheet = .example })
     }
 
     /// Questions to person bindings across all stewards, for the rail's inbox entry.

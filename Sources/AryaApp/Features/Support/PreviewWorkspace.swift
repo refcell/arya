@@ -103,6 +103,10 @@ actor PreviewWorkspace: FeatureWorkspace {
                 steward: steward, run: run, "run.started", .localUser,
                 ["trigger": "manual", "input": .string(input)])
         case .rehearse(let steward, let casebook): rehearse(steward: steward, casebook: casebook)
+        case .createSteward(let draft):
+            emit(
+                steward: draft.id, run: nil, "steward.created", .localUser,
+                ["charter": NewStewardPreview.charter(draft), "version": 1])
         case .answer(let approval, let text):
             let answer = text.trimmingCharacters(in: .whitespacesAndNewlines)
             if answer.isEmpty { throw FeatureWriteError.answerEmpty }

@@ -170,3 +170,22 @@ private func triage() -> OutcomeSnapshot {
     #expect(!OutcomeRuns.isRehearsal(["trigger": "manual", "input": ["kind": "manual"]]))
     #expect(!OutcomeRuns.isRehearsal(["rehearsal": false, "trigger": "interval"]))
 }
+
+@Test func planStepsReadTheProtocolShape() throws {
+    var log = FeatureEventBuilder(start: now)
+    log.add(
+        "plan.updated",
+        [
+            "v": 1,
+            "steps": [
+                ["id": "p1", "text": "Read the inbox", "status": "done"],
+                ["id": "p2", "text": "Reply", "status": "in_progress", "rationale": "drafted"],
+                ["id": "p3", "text": "Close", "status": "skipped"],
+                ["id": "p4", "text": "Escalate", "status": "pending"],
+            ],
+        ])
+    let plan = try #require(OutcomePlan.build(events: log.events, steward: steward))
+    #expect(plan.steps.map(\.status) == [.done, .doing, .dropped, .todo])
+    #expect(plan.steps[1].note == "drafted")
+    #expect(plan.activeCount == 3)
+}

@@ -23,6 +23,13 @@ struct MainPane: View {
         .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .clipped()
         .background(AryaColor.canvas)
+        .sheet(isPresented: stewardSheet) { FeatureRegistry.newSteward(model.featureContext()) }
+    }
+
+    private var stewardSheet: Binding<Bool> {
+        Binding(
+            get: { model.stewardSheet != nil },
+            set: { if !$0 { model.stewardSheet = nil } })
     }
 
     @ViewBuilder private var content: some View {
@@ -34,11 +41,7 @@ struct MainPane: View {
                 StewardPane(model: model, steward: steward)
             }
         case nil:
-            if model.loaded {
-                EmptyState(
-                    "No stewards yet.",
-                    guidance: "Create one with arya steward create and it appears here.")
-            }
+            if model.loaded { FeatureRegistry.firstLaunch(model.featureContext()) }
         }
     }
 }

@@ -16,11 +16,11 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 - [x] Outcome line component above the tabs: KPI in large mono against its target,
   sparkline, status pill, and the pane's one primary action (Review N approvals, else a quiet
   Run now). `FeatureRegistry.outcomeLine(context)`; app-shell owns its final placement.
-- [ ] New steward sheet on the same canvas, one question group per step (Outcome → Metric
+- [x] New steward sheet on the same canvas, one question group per step (Outcome → Metric
   and target → Guardrails and sign-off → Connections → Schedule), one primary Continue,
   advanced fields behind disclosure; inline validation; creates through the facade's
   `createSteward(StewardDraft)`; lands on the Overview with "Rehearse on past work" next.
-- [ ] First-launch empty state: one sentence, an orange New steward, a quiet Open demo.
+- [x] First-launch empty state: one sentence, an orange New steward, a quiet Open demo.
 - [ ] Switch reads to the facade's `outcome`, `plan`, `recap`, `activity` and eval's `OutcomeTrends`,
   `ReadinessReports` once `plan`
   returns real items; delete the event projections each replaces.
@@ -39,19 +39,33 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 - Status: on track when the latest daily value meets the target in its direction; at risk
   when it falls short by at most 5% of the target; otherwise off track; no target or no
   readings say so.
-- Plans are read from `plan.updated` `{v: 1, steps: [{id, title, status: todo | doing | done
-  | dropped | blocked, note?}], reason?}` (actor: the steward, run optional), proposed to the
-  workspace and runtime lanes. Step changes are diffed against the previous plan by title.
+- Plans are read from `plan.updated` `{v: 1, steps, reason?}` (actor: the steward, run
+  optional), proposed to the workspace and runtime lanes. Steps take the protocol's
+  `PlanStep` (`text`, `rationale`, `pending | in_progress | done | skipped | blocked`) or the
+  fixtures' (`title`, `note`, `todo | doing | done | dropped | blocked`). An action's reason
+  is its `why`, else its `rationale`, else the disposition reason. Step changes are diffed against the previous plan by title.
 - Risk shows only when `action.proposed` carries `risk` (or `action.risk`); nothing is
   inferred from the policy.
 - Recap uses the newest seq the person saw on that steward's Overview, kept in user
   defaults (`arya.outcome.lastSeen.<steward>`); the facade keeps no per-person state. The
   recap paragraph shows only for a returning person when something happened or waits.
 - Selecting another steward opens its Overview (replaces "keep the tab" from app-shell).
+- app-outcome owns `OutcomeLine` (CEO); app-shell keeps only the header slot that places it.
+- New steward: lists are one item per line or comma separated (no JSON). Automatic and
+  sign-off action kinds become `auto` and `ask` rules and are offered by the first system;
+  "never" kinds become `deny` rules. The app computes the id (`st_` and the facade's slug) so
+  it can land on the new steward. Opened from Steward > New Steward… (⇧⌘N; ⌘N stays New
+  Window) and the first-launch screen. Open demo opens the sheet filled with the generic
+  support-inbox example, since the app cannot seed a demo home itself.
+- A steward that is not ready shows "Not ready: … Rehearse on past work" at the top of its
+  Overview, which opens rehearsals.
 - `AryaFont.metric` (mono 28/32, medium) added to AryaDesign for the KPI; proposed to
   app-shell for STYLE.md.
 
 ## Questions
+
+- Should Open demo seed a real demo home (casebook, rehearsals, runs) from the app? Today it
+  fills the New steward sheet with the example; seeding needs a facade call.
 
 ## Log
 
@@ -60,3 +74,5 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   empty (no `plan.updated` yet), Recent one line each with why; no boxes. Rehearsal case
   runs no longer leak into Recent or the overview's last run. Top bar, serif title, effort
   in header, and seven tabs remain app-shell's.
+- 2026-11-09: New steward sheet (five steps, structured create), first-launch screen, plan
+  steps in the protocol's shape, `why` as the action reason.

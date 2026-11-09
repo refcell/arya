@@ -1,3 +1,4 @@
+import Arya
 import Foundation
 
 /// A write the app asks the workspace to record. Each one becomes ledger events attributed to
@@ -25,6 +26,8 @@ enum FeatureWrite: Hashable, Sendable {
     case rehearse(steward: String, casebook: String?)
     /// Answers a question; recorded as `approval.granted` with the answer as its `note`.
     case answer(approval: String, text: String)
+    /// Creates a steward from the New steward flow (`steward.created`, version 1).
+    case createSteward(StewardDraft)
 }
 
 /// The result of replaying a run from the ledger alone.

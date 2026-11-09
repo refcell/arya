@@ -41,6 +41,8 @@ struct OverviewTab: View {
     let steward: String
     /// Opens a run's transcript.
     let openRun: (String) -> Void
+    /// Opens rehearsals, the next step for a steward that is not ready.
+    let rehearse: () -> Void
     /// The seq the person had seen before this visit; read once per steward.
     @AryaState private var lastSeen: Int?
     @AryaState private var visited: String?
@@ -78,6 +80,13 @@ struct OverviewTab: View {
         let seenAt = lastSeen.flatMap { seq in events.last { $0.seq <= seq }?.at }
         return ScrollView {
             VStack(alignment: .leading, spacing: AryaSpace.s5) {
+                if case .notReady(let reason) = snapshot.state.readiness {
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                        Text("Not ready: \(reason).").aryaText(AryaFont.body, AryaColor.inkMuted)
+                        Button("Rehearse on past work", action: rehearse)
+                            .buttonStyle(.aryaTertiary)
+                    }
+                }
                 if let recap = OutcomeRecapText.paragraph(
                     snapshot.recap, seenAt: seenAt, now: store.now)
                 {

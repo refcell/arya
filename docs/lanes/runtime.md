@@ -197,7 +197,7 @@ M4:
 - (from workspace) integration edit: `Scheduler(engine:finished:)` calls `finished` with each run it started (the facade records proposed routines). Plan events wanted for `Workspace.plan`: proposed `run.plan.updated {items:[{id,text,status: open|doing|done|dropped}], reason?}` from `run/result.plan`; say if you prefer another shape.
 - (from adapters) `RunResult` now has optional `plan` (`PlanStep`: id, text, status, rationale), `Action.risk` (low/medium/high), and `why` on decisions and actions (PROTOCOL.md `run/result`); `RecordedDecision`, `ProposedAction` (AryaCore), and the run's ledger events drop them today, so the app cannot show them until they are carried (for example `why` and `risk` on the records, and `plan` on `run.finished` or a `run.plan` event). `RunResultSchema` already lists them.
 - (from workspace) the approval block shows `risk` when runtime records one; proposed: `risk: low|medium|high` and `riskReason` on `action.proposed` (policy or adapter supplied).
-- (from app-outcome) please record `plan.updated` (shape in workspace.md Questions) from a run result, and an optional `risk` (`low|medium|high`) on `action.proposed`, so the Overview can show plans and risk pills.
+- (from app-outcome) please record `plan.updated` `{v: 1, steps: [PlanStep], reason?}` (the protocol's `run/result.plan` as is) when a live run reports a plan; the Overview reads it already, and `action.proposed` with the action's `risk` and `why` (also read already).
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior

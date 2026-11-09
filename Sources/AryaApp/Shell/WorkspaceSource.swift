@@ -100,6 +100,8 @@ extension Workspace: WorkspaceSource {
         case .answer(let approval, let text):
             // A person binding's answer to a question approves it with the answer as the note.
             _ = try await approve(approval, note: text)
+        case .createSteward(let draft):
+            _ = try await createSteward(draft)
         }
     }
 

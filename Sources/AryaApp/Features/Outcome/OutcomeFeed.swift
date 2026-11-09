@@ -54,13 +54,24 @@ struct OutcomePlan: Hashable, Sendable {
             removed: previous.map(\.title).filter { !now.contains($0) })
     }
 
+    /// Steps in the adapter protocol's shape (`text`, `rationale`, `pending | in_progress |
+    /// done | skipped | blocked`) or the app's (`title`, `note`, `todo | doing | ...`).
     private static func parse(_ payload: FeatureJSON) -> [Step] {
         (payload["steps"]?.array ?? []).enumerated().compactMap { index, step in
-            guard let title = step["title"]?.string else { return nil }
+            guard let title = step["text"]?.string ?? step["title"]?.string else { return nil }
             return Step(
                 id: step["id"]?.string ?? "s\(index + 1)", title: title,
-                status: StepStatus(rawValue: step["status"]?.string ?? "todo") ?? .todo,
-                note: step["note"]?.string)
+                status: status(step["status"]?.string),
+                note: step["rationale"]?.string ?? step["note"]?.string)
+        }
+    }
+
+    static func status(_ word: String?) -> StepStatus {
+        switch word {
+        case "pending": .todo
+        case "in_progress": .doing
+        case "skipped": .dropped
+        default: word.flatMap(StepStatus.init(rawValue:)) ?? .todo
         }
     }
 }
@@ -147,7 +158,9 @@ enum OutcomeActivityFeed {
             return nil
         }
         let disposition = event.payload["disposition"]?.string
-        let reason = action?["rationale"]?.string ?? event.payload["reason"]?.string ?? ""
+        let reason =
+            action?["why"]?.string ?? action?["rationale"]?.string
+            ?? event.payload["reason"]?.string ?? ""
         return OutcomeActivity(
             run: run, action: id, kind: kind, target: action?["target"]?.string,
             reason: reason, policy: disposition.flatMap(AryaPolicy.init(rawValue:)),

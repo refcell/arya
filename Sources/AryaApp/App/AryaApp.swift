@@ -75,6 +75,9 @@ struct AryaCommands: Commands {
             Divider()
         }
         CommandMenu("Steward") {
+            Button("New Steward…") { session.model?.stewardSheet = NewStewardDraft() }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .disabled(session.model == nil)
             let steward = session.model?.selectedSteward
             Button("Start Run") { Task { await session.model?.startRun() } }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
