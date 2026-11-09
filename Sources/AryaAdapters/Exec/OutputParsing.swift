@@ -32,6 +32,9 @@ public enum ExecOutput {
         case result(JSONValue)
         /// An object that is a valid ``RunEvent``.
         case event(RunEvent)
+        /// An object with a `cost` key holding token and micro-dollar totals so far; the last
+        /// one answers `run/cost`.
+        case cost(CostResult)
         /// Anything else: not JSON, not an object, or an unknown shape. Kept as text.
         case other(String)
     }
@@ -43,6 +46,9 @@ public enum ExecOutput {
             case .object(let members) = value
         else { return .other(line) }
         if let result = members["result"] { return .result(result) }
+        if let cost = members["cost"], let totals = try? cost.decode(CostResult.self) {
+            return .cost(totals)
+        }
         if members["kind"]?.stringValue != nil,
             let event = try? CanonicalJSON.decode(RunEvent.self, from: data)
         {

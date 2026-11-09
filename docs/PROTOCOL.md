@@ -233,19 +233,21 @@ An `adapter` profile runs `command` with `args[effort]`. An `exec` profile runs
 ### Exec adapter
 
 `arya-exec-adapter --profile <name> --profiles <adapters.json>` serves one run by starting the
-profile's agent in `workdir` with the profile's environment. The prompt is the instructions,
-then `Input (<kind>):` and the input text, any attachments as JSON, and a closing paragraph that
-asks for the result in the profile's output form, including `resultSchema` when given. With
-`mcpConfig: "file"` it first writes `workdir/.arya-mcp.json` (`{"mcpServers":{"<name>":
-{"command":…,"args":[…]}}}`, one entry per `run/start.tools` item). It sends a `status` event
-when the agent starts; `jsonl` lines that are run events are forwarded as they arrive, and with
-`text` the whole output becomes one `message` event at exit. The run is `completed` when the
-agent exits 0 with a result that matches `resultSchema`; otherwise it is `failed` with an
-`error` event saying why (the result, if any, is still sent). `run/stop` terminates the agent
-and the run ends `stopped`. Capabilities: `effort` lists the efforts in `args`, `send` and
-`cost` are false, `tools` is `mcp` for `mcpConfig: "file"`, and `sandbox` comes from the profile.
-The agent's stderr is forwarded to the adapter's stderr. Only the last 8 MiB of output is kept for parsing, and
-`.arya-mcp.json` is deleted when the run ends.
+profile's agent in `workdir` with the profile's environment. The prompt is the instructions, then
+`Input (<kind>):` and the input text, any attachments as JSON, and a closing paragraph that asks for
+the result in the profile's output form, including `resultSchema` when given. With `mcpConfig:
+"file"` it first writes `workdir/.arya-mcp.json` (`{"mcpServers":{"<name>":
+{"command":…,"args":[…]}}}`, one entry per `run/start.tools` item). It sends a `status` event when
+the agent starts; `jsonl` lines that are run events are forwarded as they arrive, and with `text`
+the whole output becomes one `message` event at exit. A `jsonl` line
+`{"cost":{"inputTokens":…,"outputTokens":…,"costMicros":…}}` (running totals; absent fields are
+zero) sets the `run/cost` answer, so `jsonl` profiles report `cost: true`. The run is `completed`
+when the agent exits 0 with a result that matches `resultSchema`; otherwise it is `failed` with an
+`error` event saying why (the result, if any, is still sent). `run/stop` terminates the agent and
+the run ends `stopped`. Capabilities: `effort` lists the efforts in `args`, `send` is false, `cost`
+is true for `jsonl`, `tools` is `mcp` for `mcpConfig: "file"`, and `sandbox` comes from the profile.
+The agent's stderr is forwarded to the adapter's stderr. Only the last 8 MiB of output is kept for
+parsing, and `.arya-mcp.json` is deleted when the run ends.
 
 ### Fake adapter scripts
 
@@ -300,12 +302,12 @@ form.
 arya's client (`AdapterConnection` in `AryaAdapters`) enforces the timing rules above: a request
 fails after 30 seconds without a response; after `run/stop`, sent by a person or by the idle
 timeout, the adapter has 10 seconds to send `run/result` before SIGTERM and, 5 seconds later,
-SIGKILL; after `shutdown` it has 5 seconds to exit. The idle timer pauses while a `host/ask`
-request is unanswered; the runtime expires the question at the run's timeout instead. A stdout line that is not a JSON-RPC message
-is recorded as received and reported as a protocol error; the runtime decides whether it fails
-the run. A request from the adapter other than `host/ask` gets `-32601`. A stdout line over 8 MiB is cut at
-8 MiB (the rest up to the next newline is dropped), so it is recorded cut and fails as a
-protocol error.
+SIGKILL; after `shutdown` it has 5 seconds to exit. The idle timer pauses while a `host/ask` request
+is unanswered; the runtime expires the question at the run's timeout instead. A stdout line that is
+not a JSON-RPC message is recorded as received and reported as a protocol error; the runtime decides
+whether it fails the run. A request from the adapter other than `host/ask` gets `-32601`. A stdout
+line over 8 MiB is cut at 8 MiB (the rest up to the next newline is dropped), so it is recorded cut
+and fails as a protocol error.
 
 ## Replay
 

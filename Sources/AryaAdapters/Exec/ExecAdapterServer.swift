@@ -5,9 +5,9 @@ import Foundation
 /// ``AdapterProfile`` and turns its output into `run/event` and `run/result`.
 ///
 /// The agent runs in `run/start.workdir` with the prompt on stdin or as the last argument.
-/// `jsonl` output streams events as it arrives; `text` output is reported as one `message`
-/// event when the agent exits. The result is checked against `resultSchema`; a missing or
-/// non-matching result, or a non-zero exit, makes the run `failed`.
+/// `jsonl` output streams events and cost totals as it arrives; `text` output is reported as
+/// one `message` event when the agent exits. The result is checked against `resultSchema`; a
+/// missing or non-matching result, or a non-zero exit, makes the run `failed`.
 public actor ExecAdapterServer {
     private let profile: AdapterProfile
     private let environment: [String: String]
@@ -22,6 +22,7 @@ public actor ExecAdapterServer {
     private var outputBytes = 0
     private var mcpConfigFile: URL?
     private var lastResult: JSONValue?
+    private var cost = CostResult()
     private var stopRequested = false
     private var resultSent = false
     private var closed = false
@@ -48,7 +49,8 @@ public actor ExecAdapterServer {
     /// The capabilities this profile reports.
     public nonisolated var capabilities: Capabilities {
         Capabilities(
-            effort: profile.supportedEfforts, send: false, cost: false, transcript: true,
+            effort: profile.supportedEfforts, send: false, cost: profile.parse == .jsonl,
+            transcript: true,
             tools: profile.mcpConfig == .file ? .mcp : .none, sandbox: profile.sandbox)
     }
 
@@ -100,7 +102,7 @@ public actor ExecAdapterServer {
             return try JSONValue(encoding: TranscriptResult(events: events))
         case RPCMethod.runCost:
             try checkSession(try params.decode(SessionParams.self).session)
-            return try JSONValue(encoding: CostResult())
+            return try JSONValue(encoding: cost)
         case RPCMethod.runSend:
             throw RPCError(code: RPCErrorCode.capabilityNotSupported, message: "send unsupported")
         case RPCMethod.shutdown:
@@ -193,6 +195,7 @@ public actor ExecAdapterServer {
         switch ExecOutput.parse(jsonLine: line) {
         case .result(let value): lastResult = value
         case .event(let event): await emit(event)
+        case .cost(let totals): cost = totals
         case .other: break
         }
     }

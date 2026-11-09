@@ -177,3 +177,25 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
     try await adapter.shutdown()
     #expect(await adapter.waitForExit() == .exited(0))
 }
+
+@Test func jsonlCostLinesAnswerRunCost() async throws {
+    let agent = try FakeAgent(
+        """
+        echo '{"cost":{"inputTokens":10,"outputTokens":2,"costMicros":30}}'
+        echo '{"cost":{"inputTokens":25,"outputTokens":9,"costMicros":80}}'
+        echo '{"result":{"summary":"ok"}}'
+        """)
+    let (transport, endpoint) = InMemoryPipe.make()
+    let server = ExecAdapterServer(
+        profile: agent.profile(parse: .jsonl), environment: ["PATH": "/usr/bin:/bin"],
+        endpoint: endpoint)
+    Task { await server.serve() }
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    let hello = try await adapter.initialize(InitializeParams(client: Sample.client))
+    #expect(hello.capabilities.cost)
+    let session = try await adapter.start(agent.start()).session
+    _ = await collect(adapter, until: \.isResult)
+    let cost = try await adapter.cost(SessionParams(session: session))
+    #expect(cost == CostResult(inputTokens: 25, outputTokens: 9, costMicros: 80))
+    try await adapter.shutdown()
+}

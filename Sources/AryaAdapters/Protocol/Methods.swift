@@ -301,6 +301,14 @@ public struct CostResult: Sendable, Hashable, Codable {
         self.costMicros = costMicros
     }
 
+    /// Absent totals decode as zero.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        inputTokens = try c.decodeIfPresent(Int64.self, forKey: .inputTokens) ?? 0
+        outputTokens = try c.decodeIfPresent(Int64.self, forKey: .outputTokens) ?? 0
+        costMicros = try c.decodeIfPresent(Int64.self, forKey: .costMicros) ?? 0
+    }
+
     enum CodingKeys: String, CodingKey {
         case inputTokens, outputTokens, costMicros
     }

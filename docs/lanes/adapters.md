@@ -39,7 +39,7 @@ M4:
   into `workdir` from `run/start.tools`; `sandbox` capability reported honestly.
 - [x] Bounded reads: cap a stdout line (default 8 MiB) and the exec adapter's kept output, so
   a runaway adapter or agent cannot exhaust memory; an over-long line is a protocol error.
-- [ ] Real cost for exec profiles: a `jsonl` line `{"cost":{"inputTokens":…,…}}` sets the
+- [x] Real cost for exec profiles: a `jsonl` line `{"cost":{"inputTokens":…,…}}` sets the
   `run/cost` answer, and the profile then reports `cost: true`.
 - [ ] Run the conformance suite against the exec adapter (a shell agent) as well as the fake
   one, and add a `just conformance` recipe for `ARYA_ADAPTER_CMD`.

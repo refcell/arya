@@ -34,6 +34,9 @@ func noUsableJSONBlock(_ text: String) {
     #expect(
         ExecOutput.parse(jsonLine: #"{"kind":"thinking","text":"hm"}"#)
             == .event(RunEvent(.thinking(text: "hm"))))
+    #expect(
+        ExecOutput.parse(jsonLine: #"{"cost":{"costMicros":5}}"#)
+            == .cost(CostResult(costMicros: 5)))
     #expect(ExecOutput.parse(jsonLine: "plain text") == .other("plain text"))
     #expect(ExecOutput.parse(jsonLine: "[1,2]") == .other("[1,2]"))
     #expect(ExecOutput.parse(jsonLine: #"{"kind":"message"}"#) == .other(#"{"kind":"message"}"#))
