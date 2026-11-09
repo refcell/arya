@@ -35,6 +35,12 @@ M3:
 
 ## Decisions
 
+- `just e2e` (`etc/scripts/e2e.sh`) runs every M3 step through the CLI against a temporary home
+  and prints ok, PENDING (exit 69 or an unknown command), or FAIL per step; later steps are
+  skipped. Exit 0 all ok, 1 failed, 2 pending. Checks read `--json` output with `plutil`, so the
+  script needs nothing beyond macOS. Planned JSON for M2 commands: `rehearse` ->
+  `{passed, total, failed:[caseId]}`, `correct` -> `{case}`, `casebook import` -> `{cases}`,
+  `metrics` -> `[{metric, points}]`, `replay` -> `{divergences:[...]}`.
 - `etc/examples/triage` is a support inbox triage steward (CEO request). The scripted steward
   misses only `case-0006`, which the e2e scenario corrects; `ExamplesTests` pins this.
 - The CLI talks to an arya home only through `CLIBackend` (`Sources/AryaCLI/Backend.swift`), which
@@ -52,5 +58,6 @@ M3:
 ## Questions
 
 ## Log
+- 2026-11-09: support inbox triage example, casebook, fake script (7646ccc)
 - 2026-11-09: argument parser, command table, help, text and `--json` output, `CLIBackend`
   with `PendingBackend` (6b4ff5c)

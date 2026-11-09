@@ -45,9 +45,9 @@ app:
 run-app: app
     open .build/Arya.app
 
-# End-to-end tests (placeholder until the e2e lane fills it in)
-e2e:
-    @echo "e2e: not yet"
+# End-to-end scenario with the fake adapter and a temporary home (`just e2e --keep` keeps it)
+e2e *args:
+    etc/scripts/e2e.sh {{ args }}
 
 # Everything CI runs
 ci: tidy build test
