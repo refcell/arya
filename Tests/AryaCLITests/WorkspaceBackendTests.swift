@@ -149,3 +149,57 @@ private func entry(_ seq: Int, _ type: String, _ payload: String) -> LedgerEntry
     #expect(broken.firstBreak == VerifyReport.Break(seq: 3, reason: "gap"))
     #expect(Mapping.verify(LedgerCheck(ok: true, events: 5)).firstBreak == nil)
 }
+
+/// Decodes a facade read model; dates are seconds since 2001 (Foundation's default).
+private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
+    try JSONDecoder().decode(T.self, from: Data(json.utf8))
+}
+
+@Test func metricSeriesPutTheCharterMetricFirst() throws {
+    let summary = try decode(
+        MetricSeriesSummary.self,
+        """
+        {"steward":"st_triage","metric":"routed_within_1h","unit":"ratio","direction":"up",
+         "target":0.95,"windowSeconds":86400,"windows":[
+          {"start":0,"means":{"routed_within_1h":1,"latency":3},"counts":{},"executed":2,
+           "failed":0,"rejected":0,"granted":1,"denied":0,"expired":0},
+          {"start":86400,"means":{},"counts":{},"executed":0,"failed":0,"rejected":0,
+           "granted":0,"denied":0,"expired":0}]}
+        """)
+    let series = Mapping.series(summary)
+    #expect(series.map(\.metric) == ["routed_within_1h", "latency"])
+    #expect(series[0].points == [MetricPoint(at: "2001-01-01T00:00:00.000Z", value: 1)])
+    #expect(series[0].unit == "ratio")
+    #expect(series[0].target == 0.95)
+    #expect(series[1].unit == nil)
+}
+
+@Test func runDetailBecomesARunReport() throws {
+    let detail = try decode(
+        RunDetail.self,
+        """
+        {"run":{"id":"run_1","steward":"st_triage","trigger":"manual","charterVersion":1,
+                "status":"finished","endStatus":"completed","summary":"routed",
+                "startedAt":0,"costMicros":0,"actionsProposed":2},
+         "input":"hello","decisions":[{"id":"d1","choice":"billing"}],
+         "actions":[
+          {"id":"a1","kind":"label","target":"inbox:M","policy":"auto","policyReason":"rule",
+           "disposition":"executed","approval":"ap_x"},
+          {"id":"a2","kind":"reply","policy":"ask","policyReason":"rule",
+           "disposition":"held","approval":"ap_1"}]}
+        """)
+    let report = Mapping.report(detail)
+    #expect(report.decisions == ["billing"])
+    #expect(report.actions.map(\.disposition) == [.executed, .held])
+    #expect(report.actions.map(\.approval) == [nil, "ap_1"])
+    #expect(report.actions[1].target == "-")
+    #expect(report.summary == "routed")
+}
+
+@Test func runShowParsesAndRenders() async {
+    let backend = FakeBackend()
+    let (status, capture) = await runCLI(["run", "show", "run_1"], backend: backend)
+    #expect(status == .ok)
+    #expect(backend.calls.first == "show run run_1")
+    #expect(capture.out.first == "run run_1 (st_triage) completed")
+}

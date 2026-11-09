@@ -95,8 +95,8 @@ import Testing
     defer { try? FileManager.default.removeItem(at: home) }
     let capture = Capture()
     let status = await CLI.run(
-        ["--home", home.path, "rehearse", "st_triage"], context: testContext,
+        ["--home", home.path, "replay", "run_1"], context: testContext,
         output: capture.output, backend: { WorkspaceBackend(home: $0) })
     #expect(status == .unavailable)
-    #expect(capture.errText.contains("Workspace.rehearse"))
+    #expect(capture.errText.contains("Workspace.replay"))
 }

@@ -23,13 +23,15 @@ M2:
 - [ ] `arya replay`, `arya casebook import|list`, `arya rehearse`, `arya correct`, `arya ready`,
   `arya propose`, `arya proposals`, `arya metrics`, `arya memory`, `arya routines`,
   `arya binding-proxy`. Parsed, rendered (text and `--json`, `ImprovementModels.swift`), and
-  tested; `WorkspaceBackend` reports each as waiting on its facade call (workspace lane).
+  tested. Wired to the facade: `casebook import|list`, `rehearse`, `correct`, `ready`,
+  `metrics`, and `run show`; `replay`, `propose`, `proposals`, `memory`, `routines`, and
+  `binding-proxy` report the facade call they wait for (workspace lane).
 - [ ] `just e2e` (CLI only, fake adapter, temporary home): create, rehearse, correct, ready,
   run, approve, replay with zero divergence, `ledger verify`; non-zero exit on any failure.
 
 M3:
 - [ ] Extend `just e2e` with the app's facade calls used by the views.
-- [ ] `just demo`: seed a demo home from `etc/examples` and open the app on it.
+- [x] `just demo`: seed a demo home from `etc/examples` and open the app on it.
 - [ ] README: replace the placeholder with a screenshot and GIF of the demo, update the Status
   table and Usage as commands land.
 - [x] `etc/scripts/tidy.sh` upkeep: line length, formatting, secret patterns, zero
@@ -69,8 +71,28 @@ M3:
   `just app-preview` at it.
 
 ## Log
+- 2026-11-09: casebook, rehearse, correct, ready, metrics, and `run show` wired to the facade;
+  `arya run` and `steward show` use `run(_:)` and `charter(_:)`. `just e2e`: 14 of 15 ok.
+  ```
+   1  init a home                          ok
+   2  create the triage steward            ok
+   3  import the casebook                  ok
+   4  rehearse: 7 of 8 pass                ok
+   5  correct case-0006                    ok
+   6  rehearse again: 8 of 8 pass          ok
+   7  mark the steward ready               ok
+   8  run live on a new message            ok
+   9  the reply waits for approval         ok
+  10  approve the reply                    ok
+  11  the approved reply executed          ok
+  12  the run recorded its metric          ok
+  13  metric series updated                ok
+  14  replay the run: zero divergence      PENDING  Workspace.replay (workspace lane)
+  15  verify the ledger                    ok
+  ```
+- 2026-11-09: `just demo` seeds `.build/demo-home` from the example and opens the app (08541c0)
 - 2026-11-09: e2e in dependency groups; steps 1-2 and 8-11 and 15 pass on the real facade;
-  `arya run` reads nested `run.decision` payloads
+  `arya run` reads nested `run.decision` payloads (5087332)
 - 2026-11-09: `just publish <TestFilter>` (d3f06eb) (etc/scripts/publish.sh) implements decision 0029
 - 2026-11-09: faster `just ci` (one `--build-tests` build, parallel lint), decision 0029,
   AGENTS.md publish rule; unavailable messages point at the workspace lane (ee69024)

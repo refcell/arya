@@ -72,6 +72,58 @@ enum Mapping {
             decisions: digest.decisions, actions: digest.actions)
     }
 
+    /// A run report from the facade's run detail.
+    static func report(_ detail: RunDetail) -> RunReport {
+        let base = report(detail.run, entries: [], approvals: [])
+        let actions = detail.actions.map { action in
+            let disposition: ActionDisposition =
+                switch action.disposition {
+                case .proposed: .proposed
+                case .held: .held
+                case .executed: .executed
+                case .failed: .failed
+                case .rejected: .rejected
+                }
+            return ActionOutcome(
+                id: action.id, kind: action.kind, target: action.target ?? "-",
+                disposition: disposition, approval: disposition == .held ? action.approval : nil)
+        }
+        return RunReport(
+            run: base.run, steward: base.steward, status: base.status, summary: base.summary,
+            decisions: detail.decisions.map(\.choice), actions: actions)
+    }
+
+    static func casebook(_ summary: CasebookSummary) -> CasebookRow {
+        CasebookRow(
+            name: summary.name, steward: summary.steward, version: summary.version,
+            cases: summary.cases)
+    }
+
+    static func rehearsal(_ summary: RehearsalSummary) -> RehearsalReport {
+        RehearsalReport(
+            rehearsal: summary.id, steward: summary.steward, casebook: summary.casebook,
+            passed: summary.passed, total: summary.total, score: summary.meanScore,
+            failed: summary.failed,
+            cases: summary.cases.map {
+                RehearsedCase(id: $0.id, passed: $0.passed, score: $0.score, leak: $0.leak)
+            })
+    }
+
+    /// One series per metric: the charter's metric first, then any others by name. A point is
+    /// a window's mean; windows without a value for the metric are left out.
+    static func series(_ summary: MetricSeriesSummary) -> [MetricSeries] {
+        let names = Set(summary.windows.flatMap(\.means.keys)).subtracting([summary.metric])
+        return ([summary.metric] + names.sorted()).map { name in
+            let points = summary.windows.compactMap { window in
+                window.means[name].map { MetricPoint(at: timestamp(window.start), value: $0) }
+            }
+            let isCharter = name == summary.metric
+            return MetricSeries(
+                metric: name, unit: isCharter ? summary.unit : nil,
+                target: isCharter ? summary.target : nil, points: points)
+        }
+    }
+
     /// RFC 3339 UTC with milliseconds, the ledger's time format.
     static func timestamp(_ date: Date) -> String {
         let millis = Int64((date.timeIntervalSince1970 * 1000).rounded(.down))

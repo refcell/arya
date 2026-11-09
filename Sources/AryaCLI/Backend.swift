@@ -59,6 +59,7 @@ protocol CLIBackend: ImprovementBackend {
     func listStewards() async throws(CLIError) -> [StewardRow]
     func showSteward(_ id: String) async throws(CLIError) -> StewardDetail
     func startRun(steward: String, input: String?) async throws(CLIError) -> RunReport
+    func showRun(_ id: String) async throws(CLIError) -> RunReport
     func listApprovals(steward: String?, scope: ApprovalScope) async throws(CLIError)
         -> [ApprovalRow]
     func decide(approval: String, decision: ApprovalDecision, note: String?)

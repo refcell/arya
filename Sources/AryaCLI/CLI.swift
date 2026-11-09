@@ -69,6 +69,9 @@ enum CLI {
                 steward: try invocation.positional("steward"), input: invocation.values["input"])
             try output.emit(report, json: json, text: TextRender.run)
             if report.status != "completed" { throw .failed("run \(report.run) \(report.status)") }
+        case .runShow:
+            let report = try await backend.showRun(try invocation.positional("run"))
+            try output.emit(report, json: json, text: TextRender.run)
         case .approvals:
             let scope: ApprovalScope = invocation.flags.contains("all") ? .all : .pending
             let approvals = try await backend.listApprovals(

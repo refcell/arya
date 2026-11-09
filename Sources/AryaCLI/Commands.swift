@@ -5,6 +5,7 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case stewardList = "steward list"
     case stewardShow = "steward show"
     case run
+    case runShow = "run show"
     case approvals
     case approve
     case deny
@@ -88,6 +89,9 @@ enum CommandTable {
                         name: "input", kind: .value(placeholder: "text"),
                         help: "input text for the run (default: none)")
                 ]),
+            CommandSpec(
+                id: .runShow, summary: "Show a run's decisions and what happened to each action",
+                positionals: [PositionalSpec(name: "run", help: "run id")]),
             CommandSpec(
                 id: .approvals, summary: "List actions held for approval",
                 options: [

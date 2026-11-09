@@ -75,6 +75,10 @@ final class FakeBackend: CLIBackend, @unchecked Sendable {
                     approval: "ap_1"),
             ])
     }
+    func showRun(_ id: String) async throws(CLIError) -> RunReport {
+        record("show run \(id)")
+        return try await startRun(steward: "st_triage", input: nil)
+    }
     func listApprovals(steward: String?, scope: ApprovalScope) async throws(CLIError)
         -> [ApprovalRow]
     {

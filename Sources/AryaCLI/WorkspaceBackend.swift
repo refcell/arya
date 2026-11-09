@@ -55,13 +55,33 @@ struct WorkspaceBackend: CLIBackend {
         let summary = Mapping.steward(
             steward, pendingApprovals: approvals.filter { $0.steward == id }.count,
             lastRun: runs.first?.id)
-        return Mapping.detail(summary, outcome: steward.outcome, charter: nil)
+        let charter = await optional { try await workspace.charter(id) }
+        return Mapping.detail(
+            summary, outcome: steward.outcome, charter: charter.flatMap(CharterDigest.init(json:)))
     }
 
     func startRun(steward: String, input: String?) async throws(CLIError) -> RunReport {
         let workspace = try await open()
         let run = try await call("startRun") {
             try await workspace.startRun(steward: steward, input: input ?? "")
+        }
+        return try await report(run, workspace: workspace)
+    }
+
+    func showRun(_ id: String) async throws(CLIError) -> RunReport {
+        let workspace = try await open()
+        guard let detail = try await call("run", { try await workspace.run(id) }) else {
+            throw .notFound("run \(id)")
+        }
+        return Mapping.report(detail)
+    }
+
+    /// The run's detail from the facade, or a report read from its ledger entries.
+    private func report(_ run: RunSummary, workspace: Workspace) async throws(CLIError)
+        -> RunReport
+    {
+        if let detail = await optional({ try await workspace.run(run.id) }), let detail {
+            return Mapping.report(detail)
         }
         let entries = await optional { try await workspace.ledger() } ?? []
         let approvals = await optional { try await workspace.approvals(includeDecided: true) } ?? []
@@ -131,8 +151,8 @@ private func optional<T>(_ body: () async throws -> T) async -> T? {
     try? await body()
 }
 
-// The improvement loop. The facade does not expose these calls yet (workspace lane, M2); each
-// names the call it will use so `just e2e` reports exactly what is missing.
+// The improvement loop. Calls the facade does not expose yet name the call they will use, so
+// `just e2e` reports exactly what is missing.
 extension WorkspaceBackend {
     private func missing(_ call: String) -> CLIError {
         .unavailable("Workspace.\(call) (workspace lane)")
@@ -140,27 +160,93 @@ extension WorkspaceBackend {
 
     func importCasebook(steward: String, path: String, name: String?) async throws(CLIError)
         -> CasebookRow
-    { throw missing("importCasebook") }
+    {
+        let url = URL(fileURLWithPath: path)
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            throw .notFound("casebook file \(path)")
+        }
+        let name = name ?? url.deletingPathExtension().lastPathComponent
+        let workspace = try await open()
+        let summary = try await call("importCasebook", rejection: { .invalidInput($0) }) {
+            try await workspace.importCasebook(steward: steward, data: data, name: name)
+        }
+        return Mapping.casebook(summary)
+    }
+
     func listCasebooks(steward: String?) async throws(CLIError) -> [CasebookRow] {
-        throw missing("casebooks")
+        let workspace = try await open()
+        let rows = try await call("casebooks") { try await workspace.casebooks(steward: steward) }
+        return rows.map(Mapping.casebook)
     }
+
     func rehearse(steward: String, casebook: String?) async throws(CLIError) -> RehearsalReport {
-        throw missing("rehearse")
+        let workspace = try await open()
+        var version: String?
+        if let casebook {
+            let books = try await call("casebooks") {
+                try await workspace.casebooks(steward: steward)
+            }
+            guard
+                let match = books.first(where: {
+                    $0.name == casebook || $0.version.hasPrefix(casebook)
+                })
+            else { throw .notFound("casebook \(casebook) for \(steward)") }
+            version = match.version
+        }
+        let summary = try await call("rehearse") {
+            try await workspace.rehearse(steward: steward, casebook: version)
+        }
+        return Mapping.rehearsal(summary)
     }
-    func correct(steward: String, case: String, choice: String?, note: String?)
+
+    func correct(steward: String, case caseID: String, choice: String?, note: String?)
         async throws(CLIError) -> CorrectionReport
-    { throw missing("correct") }
-    func markReady(steward: String) async throws(CLIError) -> StewardDetail {
-        throw missing("markReady")
+    {
+        let workspace = try await open()
+        var expected: Data?
+        if let choice {
+            expected = try await call("expected") {
+                try await workspace.expected(steward: steward, case: caseID, choice: choice)
+            }
+        }
+        let summary = try await call("correct", rejection: { .invalidInput($0) }) {
+            try await workspace.correct(
+                steward: steward, case: caseID, expected: expected, note: note)
+        }
+        return CorrectionReport(
+            steward: summary.steward, case: summary.caseID, choice: choice, note: note,
+            memory: summary.note)
     }
+
+    func markReady(steward: String) async throws(CLIError) -> StewardDetail {
+        let workspace = try await open()
+        let summary = try await call("markReady") {
+            try await workspace.markReady(steward: steward)
+        }
+        let charter = await optional { try await workspace.charter(steward) }
+        let approvals = await optional { try await workspace.approvals() } ?? []
+        let runs = await optional { try await workspace.runs(steward: steward) } ?? []
+        let row = Mapping.steward(
+            summary, pendingApprovals: approvals.filter { $0.steward == steward }.count,
+            lastRun: runs.first?.id)
+        return Mapping.detail(
+            row, outcome: summary.outcome, charter: charter.flatMap(CharterDigest.init(json:)))
+    }
+
+    func metrics(steward: String, metric: String?) async throws(CLIError) -> [MetricSeries] {
+        let workspace = try await open()
+        let summary = try await call("metrics") { try await workspace.metrics(steward: steward) }
+        return Mapping.series(summary).filter { metric == nil || $0.metric == metric }
+    }
+
     func propose(steward: String, charterPath: String) async throws(CLIError) -> ProposalRow {
         throw missing("propose")
     }
     func listProposals(steward: String?) async throws(CLIError) -> [ProposalRow] {
         throw missing("proposals")
-    }
-    func metrics(steward: String, metric: String?) async throws(CLIError) -> [MetricSeries] {
-        throw missing("metrics")
     }
     func memory(steward: String, scope: MemoryScope) async throws(CLIError) -> [MemoryRow] {
         throw missing("memory")
