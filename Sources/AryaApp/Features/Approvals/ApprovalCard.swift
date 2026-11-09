@@ -6,8 +6,21 @@ struct ApprovalItemCard: View {
     var item: ApprovalItem
     var now: Date
     var decide: (FeatureWrite) -> Void
+    /// When set, a `routine` action shows the routine version it would run.
+    var store: FeatureStore? = nil
 
     var body: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s2) {
+            card
+            if item.kind == "routine", let store, case .loaded(let events) = store.state,
+                let subject = RoutineApprovalSubject.find(events: events, approval: item.id)
+            {
+                RoutineApprovalDetail(store: store, subject: subject)
+            }
+        }
+    }
+
+    private var card: some View {
         ApprovalCard(
             action: "\(item.kind) \(item.target)", summary: item.summary,
             rationale: item.rationale, context: ApprovalText.meta(item, now: now),

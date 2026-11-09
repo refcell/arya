@@ -44,7 +44,7 @@ struct RunStreamView: View {
     }
 
     private func context(_ stream: RunStream) -> StepContext {
-        StepContext(steward: stream.steward, run: stream.run) { write in
+        StepContext(steward: stream.steward, run: stream.run, store: store) { write in
             Task { await store.perform(write) }
         }
     }
@@ -54,6 +54,7 @@ struct RunStreamView: View {
 struct StepContext {
     var steward: String?
     var run: String
+    var store: FeatureStore? = nil
     var decide: (FeatureWrite) -> Void
 }
 
@@ -251,7 +252,7 @@ private struct StepBody: View {
             if case .awaitingApproval(let approval) = action.outcome {
                 ApprovalItemCard(
                     item: StreamStepText.approval(action, approval, step: step, context: context),
-                    now: now, decide: context.decide)
+                    now: now, decide: context.decide, store: context.store)
             } else {
                 actionBody(action)
             }

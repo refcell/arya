@@ -36,9 +36,9 @@ M4:
 - [x] Binding detail in tool calls and actions: which binding served each call (live MCP).
 - [x] Routine action results in the stream: exit, signal, or timeout, and stdout and stderr.
 - [ ] Sandbox verdict on routine results once the runtime records one (decision 0031, M4).
-- [ ] Routine approvals show the routine body for the exact version asked about (decision
+- [x] Routine approvals show the routine body for the exact version asked about (decision
   0032), with a diff against the previously approved version.
-- [ ] "Always allow this version" on a routine approval: proposes a charter change adding the
+- [x] "Always allow this version" on a routine approval: proposes a charter change adding the
   `routine:<name>@<version>` auto rule (through the charter editor's proposal path).
 
 ## Decisions
@@ -114,6 +114,11 @@ M4:
   `note`, the shape the runtime's grant records; declining is a deny. `FeatureRegistry.inbox`
   is ready for app-shell's rail entry. The steward overview leaves out rehearsal case runs.
 
+- A routine approval's version is the routine's live version just before the run's
+  `run.started` (how the runtime resolves it, decision 0032); "previously approved" is the last
+  other version of that routine whose approval was granted. "Always allow this version" is a
+  charter proposal adding `routine:<name>@<version>: auto`, hidden once the charter has it.
+
 ## Questions
 - (from app-shell) `FeatureRegistry` now routes Changes, Ledger, Memory, Routines, and
   Rehearsals to your views when a store is wired; metric chart placement is yours. Changes
@@ -138,3 +143,4 @@ M4:
 - 2026-11-09: charter editor that saves changes as proposals (7451fa6).
 - 2026-11-09: Changes tab hosts the metric chart and charter editor (06dcbbb).
 - 2026-11-09: run now, replay, and rehearse controls (4ab0e07).
+\n- 2026-11-09: inbox, steward overview, and binding detail (acdb4fc).\n

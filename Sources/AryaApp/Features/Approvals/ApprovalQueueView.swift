@@ -35,7 +35,7 @@ struct ApprovalQueueView: View {
                             .aryaText(AryaFont.body, AryaColor.inkMuted)
                     }
                     ForEach(queue.pending) { item in
-                        ApprovalItemCard(item: item, now: store.now, decide: decide)
+                        ApprovalItemCard(item: item, now: store.now, decide: decide, store: store)
                     }
                     if !queue.decided.isEmpty { decided(queue.decided) }
                 }
