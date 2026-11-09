@@ -16,6 +16,10 @@ public struct ServiceTick: Sendable, Hashable {
     public var scheduled: [StewardID]
     /// Approvals newly announced to the notifier.
     public var announced: [ApprovalID]
+    /// Messages posted from relay bindings.
+    public var relayed: Int = 0
+    /// Relays that failed this tick, as `<steward>/<binding>: <error>`; the next tick retries.
+    public var relayErrors: [String] = []
 }
 
 /// The long-running side of arya (`arya serve`, M4): the one process holding `scheduler.lock`.
@@ -26,14 +30,21 @@ public actor RuntimeService {
     private let scheduler: Scheduler
     private let recovery: RunRecovery
     private let notifier: (any ApprovalNotifier)?
+    private let relays: (@Sendable (CharterBinding) async throws -> any ToolUpstream)?
     private var announced: Set<ApprovalID> = []
 
-    /// Creates a service. `recovery` must share `engine`'s leases.
-    public init(engine: RunEngine, recovery: RunRecovery, notifier: (any ApprovalNotifier)? = nil) {
+    /// Creates a service. `recovery` must share `engine`'s leases. With `relays`, each tick
+    /// pulls messages from every relay binding (decision 0042) of stewards that take live
+    /// triggers, connecting with it (for example `BindingActionExecutor.spawn`).
+    public init(
+        engine: RunEngine, recovery: RunRecovery, notifier: (any ApprovalNotifier)? = nil,
+        relays: (@Sendable (CharterBinding) async throws -> any ToolUpstream)? = nil
+    ) {
         self.engine = engine
         self.scheduler = Scheduler(engine: engine)
         self.recovery = recovery
         self.notifier = notifier
+        self.relays = relays
     }
 
     /// Fails runs whose process is gone; scheduled ones are re-queued by the next tick.
@@ -47,12 +58,34 @@ public actor RuntimeService {
     public func tick(now: Timestamp) async throws -> ServiceTick {
         let expired = try await engine.approvals.expireDue(now: now).map(\.id)
         let scheduled = try await scheduler.tick(now: now)
+        let (relayed, relayErrors) = try await pullRelays()
         let fresh = try await engine.approvals.book().pending.filter {
             !announced.contains($0.id)
         }
         announced.formUnion(fresh.map(\.id))
         if let notifier, !fresh.isEmpty { await notifier.pending(fresh) }
-        return ServiceTick(expired: expired, scheduled: scheduled, announced: fresh.map(\.id))
+        return ServiceTick(
+            expired: expired, scheduled: scheduled, announced: fresh.map(\.id), relayed: relayed,
+            relayErrors: relayErrors)
+    }
+
+    private func pullRelays() async throws -> (Int, [String]) {
+        guard let relays else { return (0, []) }
+        var relayed = 0
+        var errors: [String] = []
+        for steward in try await StewardLifecycle(sink: engine.sink).book().all
+        where steward.takesLiveTriggers {
+            let ids = Set(steward.charter.bindings.compactMap { $0.kind == .person ? $0.via : nil })
+            for id in ids.sorted() {
+                do {
+                    relayed += try await inbox.pull(id, steward: steward.id, connect: relays)
+                        .receipts.count
+                } catch {
+                    errors.append("\(steward.id.rawValue)/\(id): \(error)")
+                }
+            }
+        }
+        return (relayed, errors)
     }
 
     /// Delivers a message trigger (see `Scheduler.deliver`).
