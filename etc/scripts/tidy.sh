@@ -129,6 +129,23 @@ scan_text ${files[@]+"${files[@]}"}
 report "files that must never be committed" "$(git ls-files -c \
   | grep -E '(^|/)\.env(\..*)?$|^\.pi/|^\.claude/' || true)"
 
+# 6b. CI is staged in etc/ci; the push credential cannot write workflows.
+report "workflow files (stage CI in etc/ci instead)" "$(git ls-files -c \
+  | grep -E '^\.github/workflows/' || true)"
+
+# 6c. CLAUDE.md is a byte-identical copy of AGENTS.md.
+if [ -f AGENTS.md ] && ! cmp -s AGENTS.md CLAUDE.md; then
+  echo "tidy: CLAUDE.md differs from AGENTS.md; run \`cp AGENTS.md CLAUDE.md\`"
+  fail=1
+fi
+
+# 6d. Shell scripts parse.
+for f in ${files[@]+"${files[@]}"}; do
+  case "$f" in
+    *.sh) bash -n "$f" 2>/dev/null || report "shell syntax error" "$f" ;;
+  esac
+done
+
 # 7. No package dependencies.
 if [ -f Package.swift ] && grep -qE '\.package[[:space:]]*\(' Package.swift; then
   echo "tidy: Package.swift must have no package dependencies"

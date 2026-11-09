@@ -32,7 +32,7 @@ M3:
 - [ ] `just demo`: seed a demo home from `etc/examples` and open the app on it.
 - [ ] README: replace the placeholder with a screenshot and GIF of the demo, update the Status
   table and Usage as commands land.
-- [ ] `etc/scripts/tidy.sh` upkeep: line length, formatting, secret patterns, zero
+- [x] `etc/scripts/tidy.sh` upkeep: line length, formatting, secret patterns, zero
   dependencies, `CLAUDE.md` identical to `AGENTS.md`.
 
 ## Decisions
@@ -69,8 +69,10 @@ M3:
   `casebook import`, `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
 
 ## Log
+- 2026-11-09: tidy checks `CLAUDE.md` = `AGENTS.md`, shell syntax, no workflow files
+- 2026-11-09: README status, usage, and e2e description (260de38)
 - 2026-11-09: example script moved to the adapters lane's `runs`/`steps` format, checked with
-  `FakeScript.load`
+  `FakeScript.load` (1600165)
 - 2026-11-09: M2 commands parsed and rendered, waiting on facade calls (ac81054)
 - 2026-11-09: `WorkspaceBackend` over the facade replaces `PendingBackend`; `arya init` works
   (c9871fc)
