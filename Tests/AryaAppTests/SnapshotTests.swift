@@ -52,8 +52,8 @@ import Testing
         model.navigation = NavigationState()
         model.navigation.select(steward: steward.id)
         let sheet = FeatureRegistry.newSteward(model.featureContext())
-            .frame(width: 560, height: 640)
-            .frame(width: Self.size.width, height: Self.size.height)
+            .frame(width: 560, height: 640, alignment: .top)
+            .frame(width: Self.size.width, height: Self.size.height, alignment: .top)
             .background(AryaColor.canvas)
         try write("new-steward", scheme: scheme, render(sheet, dark: dark))
         // Steps 2-5 of the flow, filled with the example (app-outcome).
@@ -62,8 +62,8 @@ import Testing
                 let page = NewStewardSheet(
                     store: store, draft: .example, step: step, created: { _ in }, cancel: {}
                 )
-                .frame(width: 560, height: 640)
-                .frame(width: Self.size.width, height: Self.size.height)
+                .frame(width: 560, height: 640, alignment: .top)
+                .frame(width: Self.size.width, height: Self.size.height, alignment: .top)
                 .background(AryaColor.canvas)
                 try write(
                     "new-steward-\(step.rawValue + 1)", scheme: scheme, render(page, dark: dark))

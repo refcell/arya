@@ -15,13 +15,12 @@ import Testing
     draft.target = "most"
     #expect(draft.problems(.metric) == ["The target must be a number, like 0.95."])
     draft.target = "0.95"
-    draft.automatic = "label, reply"
-    draft.signOff = "reply"
-    #expect(draft.problems(.guardrails) == ["reply cannot be automatic and need sign-off."])
-    draft.automatic = "label"
-    draft.systems = "inbox-mcp"
-    #expect(draft.problems(.connections).count == 1)
-    draft.systems = "inbox: inbox-mcp --stdio"
+    draft.customCommand = "tracker-mcp"
+    #expect(draft.problems(.connections) == ["Name the custom connection."])
+    draft.customID = "tracker"
+    draft.people = [.init(id: 0, name: "Alex"), .init(id: 1, name: "alex")]
+    #expect(draft.problems(.connections) == ["Each person needs a different name."])
+    draft.people.removeLast()
     draft.everyMinutes = "soon"
     #expect(draft.problems(.schedule).count == 1)
     draft.everyMinutes = ""
@@ -41,12 +40,43 @@ import Testing
     let inbox = try #require(draft.bindings.first)
     #expect(inbox.kind == "mcp")
     #expect(inbox.command == "inbox-mcp")
-    #expect(inbox.actions == ["label", "route", "reply"])
+    #expect(inbox.actions == ["label", "route", "reply", "close"])
     #expect(draft.bindings.last?.id == "person:alex")
     #expect(draft.bindings.last?.channel == "inbox")
     #expect(draft.triggers.map(\.kind) == ["manual", "interval", "message"])
     #expect(draft.triggers[1].everySeconds == 1800)
     #expect(NewStewardDraft.slug("  Spend -- Watch!") == "spend_watch")
+}
+
+@Test func signOffDefaultsFollowAutonomyUntilPicked() {
+    var draft = NewStewardDraft()
+    draft.connections = [
+        .init(id: "inbox", command: "inbox-mcp", actions: ["label", "reply", "refund"], isOn: true)
+    ]
+    #expect(draft.actionKinds.filter(draft.needsSignOff) == ["label", "reply", "refund"])
+    draft.autonomy = .auto
+    #expect(draft.actionKinds.filter(draft.needsSignOff) == ["refund"])
+    draft.setSignOff("reply", true)
+    #expect(draft.actionKinds.filter(draft.needsSignOff) == ["reply", "refund"])
+    draft.setNever("refund", true)
+    #expect(draft.stewardDraft().rules.map(\.decision) == ["auto", "ask", "deny"])
+}
+
+@Test func theCatalogOffersWhatTheWorkspaceKnows() {
+    var log = FeatureEventBuilder(start: FeatureTestClock.now)
+    let bindings: FeatureJSON = [
+        ["id": "inbox", "kind": "mcp", "command": "inbox-mcp", "actions": ["label", "reply"]],
+        ["id": "person:sam", "kind": "person", "channel": "chat"],
+    ]
+    log.add("steward.created", steward: "st_a", ["charter": ["id": "st_a", "bindings": bindings]])
+    let catalog = NewStewardCatalog(events: log.events)
+    #expect(catalog.connections.map(\.id) == ["inbox"])
+    #expect(catalog.connections.first?.actions == ["label", "reply"])
+    #expect(catalog.connections.first { $0.id == "inbox" }?.isOn == false)
+    var draft = NewStewardDraft()
+    draft.adopt(catalog)
+    #expect(draft.connections.count == catalog.connections.count)
+    #expect(draft.channels == ["inbox", "email", "chat"])
 }
 
 @Test func theFacadeCreatesTheStewardFromTheAnswers() async throws {

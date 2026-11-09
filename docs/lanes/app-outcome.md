@@ -44,6 +44,13 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   day and the last dozen are 0.80; cli-e2e is asked for backdated history.
 - Times use `AryaTime.label` (short in row gutters, long in prose); the recap reads "Since
   you looked 21m ago: …". No local formatters.
+- New steward steps never ask for config syntax. Connections come before guardrails so
+  sign-off can list the actions the chosen connections offer. Connections are known bindings
+  from other stewards' charters, switched on (a custom command sits behind Advanced). People
+  are a name and a channel picker per row with a quiet "+ Add person". Sign-off is a checklist
+  of action kinds with each one's risk (as runs recorded it, else a cautious default by kind)
+  and a default from autonomy: asking first checks everything, acting on its own checks only
+  high risk. "Never allowed" is a second checklist behind Advanced. Every kind becomes a rule.
 - The New steward sheet uses no system accent: `NewStewardChoice` (drawn like
   `EffortSelector`) and `NewStewardCheck` replace segmented pickers and the checkbox.
 - Status: on track when the latest daily value meets the target in its direction; at risk
@@ -99,3 +106,7 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   in `just snapshot` (`new-steward-2…5`) with ink controls in place of system blue, and Effort
   is labeled once. Visual check (offscreen `just snapshot`): overview, new-steward 1-5 dark and
   light pass the 5 requirements.
+- 2026-11-09: New steward steps 3-5 rebuilt with real controls (connection toggles, people
+  rows with channel picker, sign-off checklist with risk), a drawn ink checkbox, and content
+  top-aligned with the footer right under it. Visual check (offscreen `just snapshot`):
+  new-steward 1-5 dark and light pass the 5 requirements; no config syntax outside Advanced.

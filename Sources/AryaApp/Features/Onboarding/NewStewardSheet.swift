@@ -23,6 +23,8 @@ struct NewStewardSheet: View {
         self.store = store
         self.created = created
         self.cancel = cancel
+        var draft = draft
+        draft.adopt(NewStewardCatalog(events: store.events))
         _draft = AryaState(initialValue: draft)
         _step = AryaState(initialValue: step)
     }
@@ -39,12 +41,11 @@ struct NewStewardSheet: View {
             }
             NewStewardFields(step: step, draft: $draft, advanced: $advanced)
             problems
-            Spacer(minLength: 0)
-            footer
+            footer.padding(.top, AryaSpace.s2)
         }
         .padding(AryaSpace.s5)
-        .frame(width: AryaSize.readingWidth)
-        .frame(minHeight: AryaSize.newStewardHeight)
+        .frame(width: AryaSize.readingWidth, alignment: .topLeading)
+        .frame(minHeight: AryaSize.newStewardHeight, alignment: .top)
         .background(AryaColor.canvas)
     }
 
@@ -153,28 +154,109 @@ struct NewStewardFields: View {
         }
         labeled("By default it should") {
             NewStewardChoice(
-                selection: $draft.autonomy,
+                selection: Binding(
+                    get: { draft.autonomy },
+                    set: {
+                        draft.autonomy = $0
+                        draft.signOff = nil
+                    }),
                 options: NewStewardDraft.Autonomy.allCases.map { ($0, $0.label) })
         }
-        labeled("Always needs your sign-off (actions, comma separated)") {
-            CharterTextField(placeholder: "reply, assign", text: $draft.signOff, mono: true)
-        }
-        disclosure {
-            labeled("Low-risk actions it takes on its own") {
-                CharterTextField(placeholder: "label, route", text: $draft.automatic, mono: true)
+        labeled("Needs your sign-off") {
+            if draft.actionKinds.isEmpty {
+                Text("Turn on a connection to choose which of its actions need you.")
+                    .aryaText(AryaFont.caption, AryaColor.inkFaint)
             }
-            labeled("Actions it may never take") {
-                CharterTextField(placeholder: "close", text: $draft.never, mono: true)
+            ForEach(draft.actionKinds, id: \.self) { kind in
+                HStack(spacing: AryaSpace.s3) {
+                    NewStewardCheck(
+                        kind,
+                        isOn: Binding(
+                            get: { draft.needsSignOff(kind) },
+                            set: { draft.setSignOff(kind, $0) }),
+                        mono: true
+                    )
+                    .disabled(draft.never.contains(kind))
+                    Text("\(draft.risk(kind)) risk")
+                        .aryaText(AryaFont.caption, riskColor(draft.risk(kind)))
+                    Spacer()
+                    Text(rowState(kind)).aryaText(AryaFont.caption, AryaColor.inkFaint)
+                }
+                .frame(minHeight: AryaSize.controlHeight)
+            }
+        }
+        if !draft.actionKinds.isEmpty {
+            disclosure {
+                labeled("Never allowed") {
+                    ForEach(draft.actionKinds, id: \.self) { kind in
+                        NewStewardCheck(
+                            kind,
+                            isOn: Binding(
+                                get: { draft.never.contains(kind) },
+                                set: { draft.setNever(kind, $0) }),
+                            mono: true
+                        )
+                        .frame(minHeight: AryaSize.controlHeight)
+                    }
+                }
             }
         }
     }
 
+    private func rowState(_ kind: String) -> String {
+        if draft.never.contains(kind) { return "never" }
+        return draft.needsSignOff(kind) ? "asks you" : "on its own"
+    }
+
+    private func riskColor(_ risk: String) -> Color {
+        risk == "high" ? AryaColor.ink : AryaColor.inkFaint
+    }
+
     @ViewBuilder private var connections: some View {
-        labeled("Systems (one per line, id: command)") {
-            CharterTextField(placeholder: "inbox: inbox-mcp", text: $draft.systems, mono: true)
+        labeled("Systems") {
+            if draft.connections.isEmpty {
+                Text("No systems yet. Add one under Advanced.")
+                    .aryaText(AryaFont.caption, AryaColor.inkFaint)
+            }
+            ForEach($draft.connections) { $connection in
+                HStack(spacing: AryaSpace.s3) {
+                    NewStewardCheck(connection.id, isOn: $connection.isOn, mono: true)
+                    Text(connection.actions.joined(separator: " · "))
+                        .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                        .lineLimit(1)
+                }
+                .frame(minHeight: AryaSize.controlHeight)
+            }
         }
-        labeled("People (one per line)") {
-            CharterTextField(placeholder: "person:alex inbox", text: $draft.people, mono: true)
+        labeled("People") {
+            ForEach($draft.people) { $person in
+                HStack(spacing: AryaSpace.s3) {
+                    CharterTextField(placeholder: "Name", text: $person.name)
+                    NewStewardChoice(
+                        selection: $person.channel, options: draft.channels.map { ($0, $0) })
+                }
+            }
+            Button {
+                draft.addPerson()
+            } label: {
+                Text("+ Add person").aryaText(AryaFont.caption, AryaColor.inkMuted)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Add person")
+        }
+        disclosure {
+            labeled("Add connection: a name and the command that serves it") {
+                HStack(spacing: AryaSpace.s3) {
+                    CharterTextField(placeholder: "tracker", text: $draft.customID, mono: true)
+                        .frame(width: AryaSize.newStewardNumberWidth * 2)
+                    CharterTextField(
+                        placeholder: "tracker-mcp --stdio", text: $draft.customCommand, mono: true)
+                }
+            }
+            labeled("Actions it offers") {
+                CharterTextField(
+                    placeholder: "comment, assign", text: $draft.customActions, mono: true)
+            }
         }
     }
 
@@ -241,6 +323,7 @@ struct FirstLaunchView: View {
 extension AryaSize {
     static let newStewardHeight: CGFloat = 420
     static let newStewardNumberWidth: CGFloat = 96
+    static let newStewardCheck: CGFloat = 16
 }
 
 /// A quiet segmented choice drawn like `EffortSelector` (ink fill for the selection), so the
@@ -286,14 +369,16 @@ struct NewStewardChoice<Value: Hashable>: View {
     }
 }
 
-/// A checkbox in ink: a mono mark and a label, no system accent color.
+/// A checkbox in ink: a drawn box with a check and a label, no system accent color.
 struct NewStewardCheck: View {
     let title: String
     @Binding var isOn: Bool
+    var mono = false
 
-    init(_ title: String, isOn: Binding<Bool>) {
+    init(_ title: String, isOn: Binding<Bool>, mono: Bool = false) {
         self.title = title
         self._isOn = isOn
+        self.mono = mono
     }
 
     var body: some View {
@@ -301,13 +386,24 @@ struct NewStewardCheck: View {
             isOn.toggle()
         } label: {
             HStack(spacing: AryaSpace.s2) {
-                Text(isOn ? "[x]" : "[ ]").aryaText(AryaFont.mono, AryaColor.ink)
-                Text(title).aryaText(AryaFont.body, AryaColor.ink)
+                ZStack {
+                    RoundedRectangle(cornerRadius: AryaRadius.small)
+                        .fill(isOn ? AryaColor.ink : .clear)
+                    RoundedRectangle(cornerRadius: AryaRadius.small)
+                        .strokeBorder(isOn ? AryaColor.ink : AryaColor.ruleStrong, lineWidth: 1)
+                    if isOn {
+                        Image(systemName: "checkmark")
+                            .aryaText(AryaFont.monoSmall, AryaColor.canvas)
+                    }
+                }
+                .frame(width: AryaSize.newStewardCheck, height: AryaSize.newStewardCheck)
+                Text(title).aryaText(mono ? AryaFont.mono : AryaFont.body, AryaColor.ink)
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
-        .accessibilityAddTraits(isOn ? .isSelected : [])
+        .accessibilityValue(isOn ? "on" : "off")
+        .accessibilityAddTraits(.isButton)
     }
 }

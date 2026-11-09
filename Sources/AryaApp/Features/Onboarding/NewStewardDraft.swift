@@ -1,12 +1,14 @@
 import Arya
 import Foundation
 
-/// The New steward flow's answers, as the person types them. Lists are one item per line so
-/// nobody writes JSON. `stewardDraft()` turns them into the facade's `StewardDraft`.
+/// The New steward flow's answers. Connections, people, and sign-off are picked with controls,
+/// never typed as config; guardrails are one per line. `stewardDraft()` turns the answers into
+/// the facade's `StewardDraft`.
 struct NewStewardDraft: Hashable, Sendable {
     /// The flow's steps, one question group each.
     enum Step: Int, CaseIterable, Hashable, Sendable {
-        case outcome, metric, guardrails, connections, schedule
+        /// Connections come before guardrails so sign-off can list the actions they offer.
+        case outcome, metric, connections, guardrails, schedule
 
         var title: String {
             switch self {
@@ -42,6 +44,30 @@ struct NewStewardDraft: Hashable, Sendable {
         var label: String { self == .ask ? "Ask before acting" : "Act on its own" }
     }
 
+    /// A system the steward can work in: a known binding to switch on, or a custom command.
+    struct Connection: Hashable, Sendable, Identifiable {
+        var id: String
+        var command: String
+        var args: [String] = []
+        var read: [String] = []
+        var actions: [String] = []
+        var isOn = false
+
+        var binding: StewardDraft.Binding {
+            StewardDraft.Binding(
+                id: id, kind: "mcp", command: command, args: args, read: read, actions: actions)
+        }
+    }
+
+    /// A person the steward works with: a name and how to reach them.
+    struct Person: Hashable, Sendable, Identifiable {
+        var id: Int
+        var name = ""
+        var channel = "inbox"
+
+        var bindingID: String { "person:" + NewStewardDraft.slug(name) }
+    }
+
     var name = ""
     var outcome = ""
     var metric = ""
@@ -51,16 +77,21 @@ struct NewStewardDraft: Hashable, Sendable {
     /// One guardrail per line: what it must never do.
     var guardrails = ""
     var autonomy = Autonomy.ask
-    /// Action kinds it may take on its own, comma separated (`label, comment`).
-    var automatic = ""
-    /// Action kinds that always need sign-off.
-    var signOff = ""
+    /// Action kinds the person picked as needing sign-off; `nil` follows the autonomy default.
+    var signOff: Set<String>?
     /// Action kinds it may never take.
-    var never = ""
-    /// One system per line: `id: command args`.
-    var systems = ""
-    /// One person per line: `person:alex` or `person:alex email`.
-    var people = ""
+    var never: Set<String> = []
+    /// Known connections to switch on.
+    var connections: [Connection] = []
+    /// A custom connection (Advanced): its id, command line, and the actions it offers.
+    var customID = ""
+    var customCommand = ""
+    var customActions = ""
+    var people: [Person] = [Person(id: 0)]
+    /// Channels offered for people.
+    var channels = ["inbox", "email", "chat"]
+    /// Risk by action kind, as runs recorded it.
+    var risks: [String: String] = [:]
     /// Minutes between scheduled wakes; empty or 0 means only when asked.
     var everyMinutes = "15"
     var wakesOnMessage = true
@@ -86,11 +117,18 @@ struct NewStewardDraft: Hashable, Sendable {
             }
             return out
         case .guardrails:
-            let both = Set(Self.list(automatic)).intersection(Self.list(signOff)).sorted()
-            if both.isEmpty { return [] }
-            return ["\(both.joined(separator: ", ")) cannot be automatic and need sign-off."]
+            return []
         case .connections:
-            return systemLines().compactMap(\.problem) + personLines().compactMap(\.problem)
+            var out: [String] = []
+            if !customCommand.trimmed.isEmpty, customID.trimmed.isEmpty {
+                out.append("Name the custom connection.")
+            }
+            if !customID.trimmed.isEmpty, customCommand.trimmed.isEmpty {
+                out.append("Give the custom connection a command to run.")
+            }
+            let ids = namedPeople.map(\.bindingID)
+            if Set(ids).count < ids.count { out.append("Each person needs a different name.") }
+            return out
         case .schedule:
             let minutes = everyMinutes.trimmed
             if !minutes.isEmpty, Int(minutes).map({ $0 >= 0 }) != true {
@@ -103,16 +141,82 @@ struct NewStewardDraft: Hashable, Sendable {
     /// Whether every step is complete.
     var isComplete: Bool { Step.allCases.allSatisfy { problems($0).isEmpty } }
 
-    /// The facade's structured draft. Every automatic or sign-off action kind is offered by
-    /// the first system, since the person did not split them per system.
+    /// Switched-on connections, the custom one last.
+    var chosenConnections: [Connection] {
+        var out = connections.filter(\.isOn)
+        if !customID.trimmed.isEmpty, !customCommand.trimmed.isEmpty {
+            let words = customCommand.split(separator: " ").map(String.init)
+            out.append(
+                Connection(
+                    id: customID.trimmed, command: words[0], args: Array(words.dropFirst()),
+                    actions: Self.list(customActions), isOn: true))
+        }
+        return out
+    }
+
+    var namedPeople: [Person] { people.filter { !$0.name.trimmed.isEmpty } }
+
+    /// The action kinds the chosen connections offer, in order.
+    var actionKinds: [String] { Self.unique(chosenConnections.flatMap(\.actions)) }
+
+    /// `low`, `medium`, or `high`: as runs recorded it, else a cautious default by kind.
+    func risk(_ kind: String) -> String {
+        if let recorded = risks[kind] { return recorded }
+        switch kind {
+        case "label", "tag", "comment", "route", "search", "get", "read": return "low"
+        case "reply", "send", "assign", "update", "create": return "medium"
+        default: return "high"
+        }
+    }
+
+    /// Whether `kind` waits for a person: as picked, else everything when asking first, and
+    /// only high-risk actions when acting on its own.
+    func needsSignOff(_ kind: String) -> Bool {
+        if never.contains(kind) { return false }
+        if let signOff { return signOff.contains(kind) }
+        return autonomy == .ask || risk(kind) == "high"
+    }
+
+    mutating func setSignOff(_ kind: String, _ on: Bool) {
+        var picked = signOff ?? Set(actionKinds.filter(needsSignOff))
+        if on { picked.insert(kind) } else { picked.remove(kind) }
+        signOff = picked
+        if on { never.remove(kind) }
+    }
+
+    mutating func setNever(_ kind: String, _ on: Bool) {
+        if on { never.insert(kind) } else { never.remove(kind) }
+    }
+
+    mutating func addPerson() {
+        people.append(Person(id: (people.map(\.id).max() ?? -1) + 1, channel: channels[0]))
+    }
+
+    /// Adds what the workspace already knows: connections other stewards use (off), the
+    /// channels people are reached on, and recorded risks.
+    mutating func adopt(_ catalog: NewStewardCatalog) {
+        for known in catalog.connections where !connections.contains(where: { $0.id == known.id }) {
+            connections.append(known)
+        }
+        channels = Self.unique(channels + catalog.channels)
+        risks.merge(catalog.risks) { mine, _ in mine }
+    }
+
+    /// The facade's structured draft. Each connection offers its own actions; every action
+    /// kind gets a rule: never → deny, sign-off → ask, else auto.
     func stewardDraft() -> StewardDraft {
-        let actions = Self.unique(Self.list(automatic) + Self.list(signOff))
-        var bindings = systemLines().compactMap(\.binding)
-        if !bindings.isEmpty { bindings[0].actions = actions }
-        bindings += personLines().compactMap(\.binding)
-        var rules = Self.list(automatic).map { StewardDraft.Rule(action: $0, decision: "auto") }
-        rules += Self.list(signOff).map { StewardDraft.Rule(action: $0, decision: "ask") }
-        rules += Self.list(never).map { StewardDraft.Rule(action: $0, decision: "deny") }
+        var bindings = chosenConnections.map(\.binding)
+        bindings += namedPeople.map {
+            StewardDraft.Binding(id: $0.bindingID, kind: "person", channel: $0.channel)
+        }
+        var rules = actionKinds.map { kind in
+            StewardDraft.Rule(
+                action: kind,
+                decision: never.contains(kind) ? "deny" : needsSignOff(kind) ? "ask" : "auto")
+        }
+        rules += never.subtracting(actionKinds).sorted().map {
+            StewardDraft.Rule(action: $0, decision: "deny")
+        }
         var triggers: [StewardDraft.Trigger] = [StewardDraft.Trigger(kind: "manual")]
         if let minutes = Int(everyMinutes.trimmed), minutes > 0 {
             triggers.append(StewardDraft.Trigger(kind: "interval", everySeconds: minutes * 60))
@@ -125,39 +229,6 @@ struct NewStewardDraft: Hashable, Sendable {
             bindings: bindings, effort: effort, triggers: triggers, adapter: adapter.trimmed)
     }
 
-    /// A parsed line of the systems or people list.
-    struct Line: Hashable, Sendable {
-        var binding: StewardDraft.Binding?
-        var problem: String?
-    }
-
-    func systemLines() -> [Line] {
-        Self.lines(systems).map { line in
-            let parts = line.split(separator: ":", maxSplits: 1).map(String.init)
-            let words = (parts.count == 2 ? parts[1] : "").split(separator: " ").map(String.init)
-            guard parts.count == 2, let command = words.first, !parts[0].trimmed.isEmpty else {
-                return Line(problem: "Write each system as `id: command`, not `\(line)`.")
-            }
-            return Line(
-                binding: StewardDraft.Binding(
-                    id: parts[0].trimmed, kind: "mcp", command: command,
-                    args: Array(words.dropFirst())))
-        }
-    }
-
-    func personLines() -> [Line] {
-        Self.lines(people).map { line in
-            let words = line.split(separator: " ").map(String.init)
-            guard let first = words.first, words.count <= 2 else {
-                return Line(problem: "Write each person as `person:alex` and a channel.")
-            }
-            let id = first.hasPrefix("person:") ? first : "person:\(first)"
-            return Line(
-                binding: StewardDraft.Binding(
-                    id: id, kind: "person", channel: words.count == 2 ? words[1] : "inbox"))
-        }
-    }
-
     /// A filled-in example: the generic support-inbox steward the demo home uses.
     static let example = NewStewardDraft(
         name: "Support inbox triage",
@@ -166,8 +237,13 @@ struct NewStewardDraft: Hashable, Sendable {
             + "within one hour.",
         metric: "routed_within_1h", unit: "ratio", target: "0.95", direction: "up",
         guardrails: "Never close a conversation.\nNever promise a refund.",
-        autonomy: .ask, automatic: "label, route", signOff: "reply", never: "close",
-        systems: "inbox: inbox-mcp", people: "person:alex inbox", everyMinutes: "15",
+        autonomy: .ask, signOff: ["reply"], never: ["close"],
+        connections: [
+            Connection(
+                id: "inbox", command: "inbox-mcp", read: ["search", "get"],
+                actions: ["label", "route", "reply", "close"], isOn: true)
+        ],
+        people: [Person(id: 0, name: "alex", channel: "inbox")], everyMinutes: "15",
         wakesOnMessage: true, effort: "medium", adapter: "default")
 
     static func lines(_ text: String) -> [String] {
@@ -196,6 +272,45 @@ struct NewStewardDraft: Hashable, Sendable {
         }
         while out.last == "_" { out.removeLast() }
         return out.isEmpty ? "steward" : out
+    }
+}
+
+/// What the workspace already knows that the New steward flow can offer: connections other
+/// stewards use, the channels people are reached on, and the risk runs recorded per action.
+struct NewStewardCatalog: Hashable, Sendable {
+    var connections: [NewStewardDraft.Connection] = []
+    var channels: [String] = []
+    var risks: [String: String] = [:]
+
+    init(events: [FeatureEvent]) {
+        var byID: [String: NewStewardDraft.Connection] = [:]
+        var order: [String] = []
+        for event in events where event.type == "steward.created" || event.type == "steward.updated"
+        {
+            for binding in event.payload["charter"]?["bindings"]?.array ?? [] {
+                guard let id = binding["id"]?.string else { continue }
+                if binding["kind"]?.string == "person" {
+                    if let channel = binding["channel"]?.string { channels.append(channel) }
+                    continue
+                }
+                guard let command = binding["command"]?.string else { continue }
+                if byID[id] == nil { order.append(id) }
+                byID[id] = NewStewardDraft.Connection(
+                    id: id, command: command,
+                    args: binding["args"]?.array?.compactMap(\.string) ?? [],
+                    read: binding["read"]?.array?.compactMap(\.string) ?? [],
+                    actions: binding["actions"]?.array?.compactMap(\.string) ?? [])
+            }
+        }
+        connections = order.compactMap { byID[$0] }
+        channels = NewStewardDraft.unique(channels)
+        for actions in OutcomeActivityFeed.recordedActions(events).values {
+            for action in actions.values {
+                if let kind = action["kind"]?.string, let risk = action["risk"]?.string {
+                    risks[kind] = risk
+                }
+            }
+        }
     }
 }
 
