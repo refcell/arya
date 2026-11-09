@@ -1,0 +1,20 @@
+# Staged GitHub Actions workflow. See etc/ci/README.md to enable it.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install just
+        run: brew install just
+      - name: Toolchain
+        run: swift --version
+      - name: just ci
+        run: just ci

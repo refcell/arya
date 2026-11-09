@@ -1,0 +1,11 @@
+.build/
+.swiftpm/
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+.DS_Store
+# Local agent and environment files must never be committed.
+.env
+.env.*
+.pi/
+.claude/
