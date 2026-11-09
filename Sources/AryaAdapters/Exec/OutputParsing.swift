@@ -1,0 +1,142 @@
+import AryaCore
+import Foundation
+
+/// Extracts results and events from a command-line agent's output (exec profiles).
+public enum ExecOutput {
+    /// `text` parsing: the content of the last fenced block whose info string is `json`,
+    /// decoded. `nil` when there is no such block or it is not valid JSON.
+    public static func lastJSONBlock(in text: String) -> JSONValue? {
+        var current: [Substring]?
+        var last: [Substring]?
+        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if current == nil {
+                if trimmed.hasPrefix("```"), trimmed.dropFirst(3).lowercased() == "json" {
+                    current = []
+                }
+            } else if trimmed == "```" {
+                last = current
+                current = nil
+            } else {
+                current?.append(line)
+            }
+        }
+        guard let block = last else { return nil }
+        let data = Data(block.joined(separator: "\n").utf8)
+        return try? CanonicalJSON.decode(JSONValue.self, from: data)
+    }
+
+    /// What one `jsonl` output line means.
+    public enum JSONLine: Sendable, Hashable {
+        /// An object with a `result` key; the last one is the run's result.
+        case result(JSONValue)
+        /// An object that is a valid ``RunEvent``.
+        case event(RunEvent)
+        /// Anything else: not JSON, not an object, or an unknown shape. Kept as text.
+        case other(String)
+    }
+
+    /// `jsonl` parsing of one line.
+    public static func parse(jsonLine line: String) -> JSONLine {
+        let data = Data(line.utf8)
+        guard let value = try? CanonicalJSON.decode(JSONValue.self, from: data),
+            case .object(let members) = value
+        else { return .other(line) }
+        if let result = members["result"] { return .result(result) }
+        if members["kind"]?.stringValue != nil,
+            let event = try? CanonicalJSON.decode(RunEvent.self, from: data)
+        {
+            return .event(event)
+        }
+        return .other(line)
+    }
+}
+
+/// A small JSON Schema checker for `run/start.resultSchema`: `type` (including lists of
+/// types), `properties`, `required`, `additionalProperties: false`, `items`, `enum`, `const`,
+/// `minItems`, and `maxItems`. Other keywords are ignored, so a schema using them is checked
+/// only as far as these go.
+public enum ResultSchema {
+    /// The first place `value` breaks `schema`, as `<path>: <problem>`, or `nil` when it fits.
+    public static func violation(of schema: JSONValue, by value: JSONValue, at path: String = "$")
+        -> String?
+    {
+        guard case .object(let rules) = schema else { return nil }
+        if let problem = typeViolation(rules["type"], value, path) { return problem }
+        if let allowed = rules["enum"]?.arrayValue, !allowed.contains(value) {
+            return "\(path): not one of the allowed values"
+        }
+        if let constant = rules["const"], constant != value {
+            return "\(path): does not equal the constant"
+        }
+        switch value {
+        case .object(let members): return objectViolation(rules, members, path)
+        case .array(let items): return arrayViolation(rules, items, path)
+        default: return nil
+        }
+    }
+
+    private static func typeViolation(_ type: JSONValue?, _ value: JSONValue, _ path: String)
+        -> String?
+    {
+        let names: [String]
+        switch type {
+        case .string(let name)?: names = [name]
+        case .array(let list)?: names = list.compactMap(\.stringValue)
+        default: return nil
+        }
+        if names.contains(where: { matches(value, type: $0) }) { return nil }
+        return "\(path): expected \(names.joined(separator: " or "))"
+    }
+
+    private static func matches(_ value: JSONValue, type: String) -> Bool {
+        switch (type, value) {
+        case ("null", .null), ("boolean", .bool), ("string", .string), ("array", .array),
+            ("object", .object), ("integer", .int), ("number", .int), ("number", .double):
+            return true
+        case ("integer", .double(let number)):
+            return number.rounded() == number
+        default:
+            return false
+        }
+    }
+
+    private static func objectViolation(
+        _ rules: [String: JSONValue], _ members: [String: JSONValue], _ path: String
+    ) -> String? {
+        for name in rules["required"]?.arrayValue?.compactMap(\.stringValue) ?? []
+        where members[name] == nil {
+            return "\(path): missing required \(name)"
+        }
+        let properties = rules["properties"]?.objectValue ?? [:]
+        for name in members.keys.sorted() {
+            guard let member = members[name] else { continue }
+            if let schema = properties[name] {
+                if let problem = violation(of: schema, by: member, at: "\(path).\(name)") {
+                    return problem
+                }
+            } else if rules["additionalProperties"] == .bool(false) {
+                return "\(path): unexpected property \(name)"
+            }
+        }
+        return nil
+    }
+
+    private static func arrayViolation(
+        _ rules: [String: JSONValue], _ items: [JSONValue], _ path: String
+    ) -> String? {
+        if let min = rules["minItems"]?.intValue, items.count < min {
+            return "\(path): fewer than \(min) items"
+        }
+        if let max = rules["maxItems"]?.intValue, items.count > max {
+            return "\(path): more than \(max) items"
+        }
+        guard let schema = rules["items"] else { return nil }
+        for (index, item) in items.enumerated() {
+            if let problem = violation(of: schema, by: item, at: "\(path)[\(index)]") {
+                return problem
+            }
+        }
+        return nil
+    }
+}

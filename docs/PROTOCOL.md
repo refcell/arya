@@ -225,6 +225,22 @@ An `adapter` profile runs `command` with `args[effort]`. An `exec` profile runs
 `run/start.effort`. Unknown effort keys, an empty command, and `mcpConfig: "file"` without a
 `{mcpConfig}` argument are rejected when the file is loaded.
 
+### Exec adapter
+
+`arya-exec-adapter --profile <name> --profiles <adapters.json>` serves one run by starting the
+profile's agent in `workdir` with the profile's environment. The prompt is the instructions,
+then `Input (<kind>):` and the input text, any attachments as JSON, and a closing paragraph that
+asks for the result in the profile's output form, including `resultSchema` when given. With
+`mcpConfig: "file"` it first writes `workdir/.arya-mcp.json` (`{"mcpServers":{"<name>":
+{"command":…,"args":[…]}}}`, one entry per `run/start.tools` item). It sends a `status` event
+when the agent starts; `jsonl` lines that are run events are forwarded as they arrive, and with
+`text` the whole output becomes one `message` event at exit. The run is `completed` when the
+agent exits 0 with a result that matches `resultSchema`; otherwise it is `failed` with an
+`error` event saying why (the result, if any, is still sent). `run/stop` terminates the agent
+and the run ends `stopped`. Capabilities: `effort` lists the efforts in `args`, `send` and
+`cost` are false, `tools` is `mcp` for `mcpConfig: "file"`, and `sandbox` comes from the profile.
+The agent's stderr is forwarded to the adapter's stderr.
+
 ### Fake adapter scripts
 
 `arya-fake-adapter --script <file>` and the in-process `FakeAdapter` run the same server from a
