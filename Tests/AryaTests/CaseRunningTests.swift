@@ -1,6 +1,8 @@
 import AryaAdapters
 import AryaCore
 import AryaEval
+import AryaLedger
+import AryaMemory
 import AryaRuntime
 import Testing
 
@@ -158,4 +160,36 @@ struct OneCasebook: CasebookSource {
 
 @Test func failedRunScoresAgainstAnEmptyResult() throws {
     #expect(try RuntimeCaseRunner.shape(nil) == .object([:]))
+}
+
+@Test func routineCandidateReplacesTheLiveVersionInARehearsal() async throws {
+    let harness = CaseHarness([inboxRun("MSG-1", "billing"), inboxRun("MSG-1", "billing")])
+    let charter = inboxCharter()
+    try await StewardLifecycle(sink: harness.sink).create(charter)
+    let live = try RoutineSource(name: "tag-billing", language: .sh, content: "echo v1\n")
+    let next = try RoutineSource(name: "tag-billing", language: .sh, content: "echo v2\n")
+    for draft in [
+        try EventDraft(RoutineProposedPayload(source: live), actor: .system, steward: charter.id),
+        try EventDraft(
+            RoutinePromotedPayload(name: "tag-billing", version: live.version), actor: .system,
+            steward: charter.id),
+        try EventDraft(RoutineProposedPayload(source: next), actor: .system, steward: charter.id),
+    ] {
+        _ = try await harness.sink.append(RuntimeEventDraft(draft))
+    }
+    let book = try Casebook(name: "inbox", cases: [inboxCase("case-1", "MSG-1", "billing")])
+
+    for (candidate, expected) in [
+        (nil, live.version),
+        (RoutineCandidate(name: "tag-billing", version: next.version), next.version),
+    ] {
+        let request = RehearsalRequest(
+            steward: charter.id, charterVersion: 1, casebookVersion: book.version,
+            routine: candidate)
+        _ = try await harness.rehearser(book).rehearse(request, charter: charter)
+        let start = try await harness.sink.events(from: 1).last {
+            $0.type == RunEventType.started
+        }
+        #expect(start?.payload["routines"] == ["tag-billing": .string(expected)])
+    }
 }

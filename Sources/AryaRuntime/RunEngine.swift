@@ -32,6 +32,17 @@ public enum RunMode: Sendable, Hashable {
     case rehearsal(CaseContext)
 }
 
+/// A proposed routine version a rehearsal runs with.
+public struct CandidateRoutine: Sendable, Hashable {
+    public var name: String
+    public var version: String
+
+    public init(name: String, version: String) {
+        self.name = name
+        self.version = version
+    }
+}
+
 /// What to run.
 public struct RunRequest: Sendable, Hashable {
     /// The steward.
@@ -48,6 +59,9 @@ public struct RunRequest: Sendable, Hashable {
     public var charter: Charter?
     /// The rehearsal, case, and 1-based sample a rehearsal run belongs to, if any.
     public var rehearsal: RehearsalTag?
+    /// A routine version to run in place of the live version of its name (or added, for a new
+    /// name): a routine proposal under rehearsal.
+    public var routine: CandidateRoutine?
 
     /// Creates a request.
     public init(
@@ -182,7 +196,7 @@ public struct RunEngine: Sendable {
         defer { lease.release() }
         let context = try MemoryView(try await sink.events(from: 1)).context(
             steward: request.steward, input: request.input.text,
-            caseID: request.rehearsal?.caseID)
+            caseID: request.rehearsal?.caseID, candidate: request.routine)
         let instructions = InstructionComposer.compose(
             InstructionInputs(charter: charter, context: context))
         try await recordStart(run, request, charter, version, instructions, context)

@@ -37,11 +37,23 @@ struct MemoryView {
         routines = try RoutineLibrary(events: records.filter { $0.type.hasPrefix("routine.") })
     }
 
-    /// The memory context of a run of `steward` on `input`.
-    func context(steward: StewardID, input: String, caseID: CaseID?) -> RunMemoryContext {
-        RunPreparation.context(
+    /// The memory context of a run of `steward` on `input`, with `candidate` in place of the
+    /// live version of its name when given (an unknown candidate version leaves the live set).
+    func context(
+        steward: StewardID, input: String, caseID: CaseID?, candidate: CandidateRoutine? = nil
+    ) -> RunMemoryContext {
+        var context = RunPreparation.context(
             steward: steward, inputText: input, caseID: caseID, memory: memory,
             routines: routines)
+        if let candidate,
+            let found = routines.version(
+                steward: steward, name: candidate.name, version: candidate.version)
+        {
+            context.routines = (context.routines.filter { $0.name != candidate.name } + [found])
+                .sorted { $0.name < $1.name }
+            context.routineVersions[candidate.name] = candidate.version
+        }
+        return context
     }
 }
 

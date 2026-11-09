@@ -20,8 +20,10 @@ M1 (the facade still throws `unavailable` for these):
   `routine(steward:name:version:) -> RoutineDetail` (body, gate status, provenance),
   `routineContent`, `routineHistory(steward:name:)`; `caseExpected(casebook:case:)`.
 - [x] Adapter launch through the public `AryaAdapters.AdapterProfiles` (exec profiles, `env`).
-- [ ] Eval's `CaseRunRequest.routine` (candidate routines) and gate wiring
-  (`RoutineRehearsalGate` into `RoutineGatekeeper`, `RehearsalGate` into `ProposalDesk`).
+- [x] Eval's `CaseRunRequest.routine`: rehearsals run the candidate routine version
+  (`RunRequest.routine`, a small runtime integration edit).
+- [ ] Gate wiring: `RoutineRehearsalGate` into `RoutineGatekeeper`, `RehearsalGate` into
+  `ProposalDesk`/`GateChecking`.
 
 M2 (top priority first):
 - [x] Runtime-backed `AryaEval.CaseRunner` in `Sources/Arya` (the runtime cannot import eval):
@@ -78,7 +80,6 @@ M3:
 
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
-- (from eval) `CaseRunRequest.routine` names a candidate routine: run the case with `RoutineLibrary.candidateRoutines(for:)` instead of the live routines; wire `AryaEval.RoutineRehearsalGate` into `RoutineGatekeeper` and `RehearsalGate` into `ProposalDesk`/`GateChecking`.
 - (from app-views) the charter editor records proposals: proposed `Workspace.proposeCharter(steward:charter: Data, baseVersion:title:reason:) -> ProposalSummary` (refuse when `baseVersion` is no longer live); until then the app shows "unavailable" on save.
 
 ## Log
@@ -95,3 +96,7 @@ M3:
 - 2026-11-09: `just e2e` after 40f9468: steps 1-2 ok, 3 PENDING (`importCasebook`: the
   facade call is live, the CLI `WorkspaceBackend` still stubs it); replay engine handed to
   eval; memory and routine reads, `caseExpected`, and public adapter profiles landed.
+- 2026-11-09: `just e2e` after 53394a3: steps 1-13 and 15 ok (init, create, import, rehearse
+  7/8, correct case-0006, rehearse 8/8, ready, live run, approval wait, approve, executed,
+  metric recorded, series updated, verify); 14 replay PENDING on eval's `RunReplayer`.
+  Rehearsals now honor `CaseRunRequest.routine`.

@@ -165,6 +165,7 @@ M4:
   folds it into `charter.effort` without bumping the version, so the next run records the
   effort it used in `run.started`. The workspace lane landed that fold as a small integration
   edit in `Stewards.swift`.
+- (from workspace) integration edit: `RunRequest.routine: CandidateRoutine?` runs a rehearsal with that routine version in place of the live one (`MemoryView.context(candidate:)`); `run.started.routines` records it.
 
 ## Log
 
