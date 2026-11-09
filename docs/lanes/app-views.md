@@ -17,7 +17,7 @@ M3 (start now against the app-shell stub workspace):
 - [x] Changes tab: proposals with gate results, accept, reject, override (recorded).
 - [x] Memory view: notes with provenance, retract.
 - [x] Routines view: names, live version, history, version diff.
-- [ ] Rehearsals view: per-case results, expected versus actual, correction, Mark ready.
+- [x] Rehearsals view: per-case results, expected versus actual, correction, Mark ready.
 - [ ] Metric chart: the steward's outcome metric over time against its target (Swift Charts).
 - [ ] Charter editor: outcome, metric, guardrails, bindings, triggers, policy, effort; saving
   creates a proposal, never an in-place edit.
@@ -67,6 +67,13 @@ M3 (start now against the app-shell stub workspace):
   `FeatureWorkspace.routineContent` (a default reports them unavailable; the facade call is
   requested in the workspace lane's Questions). The diff is a small LCS line diff in one hunk,
   rendered by `DiffBlock`; it compares the newest version with the live one by default.
+- Rehearsals read AryaEval's `rehearsal.started|case.scored|finished`, `case.corrected`, and
+  `steward.ready`. Actual results come from the rehearsal run's `run.decision` and
+  `action.proposed`; expected ones from the latest correction with `expected`, else
+  `FeatureWorkspace.caseExpected` (casebook blob; default unavailable). A correction is text
+  only for now and records `case.corrected` plus a `memory.added` note by the person. Mark
+  ready is the pane's primary action, offered once per charter version for a finished
+  rehearsal that is not a proposal's candidate.
 
 ## Questions
 
@@ -79,3 +86,4 @@ M3 (start now against the app-shell stub workspace):
 - 2026-11-09: changes tab with gate results, accept, reject, override (c3960b2).
 - 2026-11-09: payload readers switched to the runtime's shapes; question cleared (4c7a2d4).
 - 2026-11-09: memory view with provenance and retract (f71088f).
+- 2026-11-09: routines view with history and version diff (1c91228).

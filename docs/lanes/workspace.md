@@ -70,14 +70,11 @@ M3:
 
 ## Questions
 
-- From app-views: the Routines view diffs routine versions and needs their bodies. Proposed
-  default: `Workspace.routineContent(steward:name:version:) async throws -> String?` reading
-  the blob for that version (nil when missing). The app's `FacadeFeatureWorkspace` then
-  forwards it; until then the view says routine bodies are not available.
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
 - (from memory) Facade memory/routine API can map `MemoryProjection(ledger:)`, `RoutineLibrary(ledger:)`, `allNotes`, `overview`, `history`, `diff(…store:)`, `RunPreparation.context`, `MemoryIntake.notes`, `RoutineProposals.intake` (see memory.md Decisions).
 - (from eval) `CaseRunRequest.routine` names a candidate routine: run the case with `RoutineLibrary.candidateRoutines(for:)` instead of the live routines; wire `AryaEval.RoutineRehearsalGate` into `RoutineGatekeeper` and `RehearsalGate` into `ProposalDesk`/`GateChecking`.
+- (from app-views) the app also needs a case's expected result for rehearsal review: proposed `Workspace.caseExpected(casebook:case:) -> JSONValue?` (nil when missing), alongside the planned `routine(name:version:)`.
 
 ## Log
 

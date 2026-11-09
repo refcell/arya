@@ -9,21 +9,33 @@ actor PreviewWorkspace: FeatureWorkspace {
     private var nextID = 1
     private var broken: (seq: Int, reason: String)?
     private var routines: [String: String]
+    private var expected: [String: FeatureJSON]
     private var subscribers: [Int: AsyncStream<Void>.Continuation] = [:]
     private var nextSubscriber = 0
 
     /// - Parameter routines: routine bodies keyed by version.
-    init(events: [FeatureEvent], now: Date, routines: [String: String] = [:]) {
+    /// - Parameters:
+    ///   - routines: routine bodies keyed by version.
+    ///   - expected: expected case results keyed by `casebook/case`.
+    init(
+        events: [FeatureEvent], now: Date, routines: [String: String] = [:],
+        expected: [String: FeatureJSON] = [:]
+    ) {
         log = events
         clock = now
         self.routines = routines
+        self.expected = expected
     }
 
     /// The fixture workspace used by previews and the stub app.
     static func triage(now: Date) -> PreviewWorkspace {
         PreviewWorkspace(
             events: PreviewFixtures.triage(now: now), now: now,
-            routines: PreviewFixtures.routineBodies)
+            routines: PreviewFixtures.routineBodies, expected: PreviewFixtures.expectedResults)
+    }
+
+    func caseExpected(casebook: String, caseID: String) -> FeatureJSON? {
+        expected["\(casebook)/\(caseID)"]
     }
 
     func routineContent(steward: String, name: String, version: String) -> String? {
@@ -82,6 +94,14 @@ actor PreviewWorkspace: FeatureWorkspace {
             emit(
                 added, "memory.retracted", .localUser,
                 ["v": 1, "note": .string(note), "reason": .string(reason)])
+        case .correctCase(let correction): try correct(correction)
+        case .markReady(let steward, let version, let rehearsal):
+            var payload: FeatureJSON = ["v": 1, "charterVersion": .number(Double(version))]
+            if let rehearsal, case .object(var members) = payload {
+                members["rehearsal"] = .string(rehearsal)
+                payload = .object(members)
+            }
+            emit(steward: steward, run: nil, "steward.ready", .localUser, payload)
         }
         notify()
         return Array(log[start...])
@@ -158,15 +178,43 @@ actor PreviewWorkspace: FeatureWorkspace {
         return added
     }
 
+    /// `case.corrected` plus the memory note a correction becomes, both by the person.
+    private func correct(_ c: CaseCorrection) throws {
+        let text = c.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty { throw FeatureWriteError.correctionEmpty }
+        var payload: [String: FeatureJSON] = [
+            "v": 1, "casebook": .string(c.casebook), "case": .string(c.caseID),
+            "text": .string(text),
+        ]
+        payload["expected"] = c.expected
+        payload["rehearsal"] = c.rehearsal.map(FeatureJSON.string)
+        payload["run"] = c.run.map(FeatureJSON.string)
+        emit(steward: c.steward, run: nil, "case.corrected", .localUser, .object(payload))
+        let note: FeatureJSON = [
+            "id": .string("note_w\(nextID)"), "text": .string(text), "tags": ["correction"],
+            "provenance": [
+                "case": .string(c.caseID), "event": .string("ev_w\(nextID - 1)"),
+                "author": ["kind": "human", "id": "local"],
+            ],
+        ]
+        emit(steward: c.steward, run: nil, "memory.added", .localUser, ["v": 1, "note": note])
+    }
+
     private func emit(
         _ cause: FeatureEvent, _ type: String, _ actor: FeatureActor, _ payload: FeatureJSON
+    ) {
+        emit(steward: cause.steward, run: cause.run, type, actor, payload)
+    }
+
+    private func emit(
+        steward: String?, run: String?, _ type: String, _ actor: FeatureActor,
+        _ payload: FeatureJSON
     ) {
         clock = clock.addingTimeInterval(1)
         log.append(
             FeatureEvent(
-                seq: (log.last?.seq ?? 0) + 1, id: "ev_w\(nextID)", at: clock,
-                steward: cause.steward, run: cause.run, actor: actor, type: type,
-                payload: payload))
+                seq: (log.last?.seq ?? 0) + 1, id: "ev_w\(nextID)", at: clock, steward: steward,
+                run: run, actor: actor, type: type, payload: payload))
         nextID += 1
     }
 }

@@ -37,6 +37,21 @@ enum PreviewFixtures {
     static let routineName = "label-duplicates"
     static let routineV1 = "sha256:1a2b3c"
     static let routineV2 = "sha256:4d5e6f"
+    static let rehearsal = "rh_0001"
+    static let casebook = "sha256:cb0001"
+    static let failingCase = "case-0007"
+
+    /// Expected results by `casebook/case`, standing in for the casebook blob.
+    static let expectedResults: [String: FeatureJSON] = [
+        "\(casebook)/case-0003": [
+            "decisions": [["choice": "question"]],
+            "actions": [["kind": "label", "target": "tracker:ISSUE-3"]],
+        ],
+        "\(casebook)/\(failingCase)": [
+            "decisions": [["choice": "bug"]],
+            "actions": [["kind": "label", "target": "tracker:ISSUE-7"]],
+        ],
+    ]
 
     /// Routine bodies by version, standing in for the blob store.
     static let routineBodies: [String: String] = [
@@ -58,6 +73,7 @@ enum PreviewFixtures {
         proposals(&log)
         memory(&log)
         routines(&log)
+        rehearsal(&log)
         log.add(
             "run.adapter.event", run: live, actor: adapter,
             wire(1, ["kind": "status", "state": "working", "detail": "Reading new issues"]))
@@ -108,6 +124,62 @@ enum PreviewFixtures {
         log.add(
             "run.finished", run: run,
             ["status": "completed", "summary": "Labeled ISSUE-7 and asked to assign it."])
+    }
+
+    /// A rehearsal of charter v1 on three cases: one pass, one miss, one leak.
+    private static func rehearsal(_ log: inout FeatureEventBuilder) {
+        let system = FeatureActor(kind: .system, id: "arya")
+        log.add(
+            "rehearsal.started", actor: .localUser, after: 30,
+            [
+                "v": 1, "rehearsal": .string(rehearsal), "charterVersion": 1,
+                "casebookVersion": .string(casebook), "cases": 3, "samples": 1,
+            ])
+        rehearsalRun(&log, run: "run_r3", choice: "question", target: "tracker:ISSUE-3")
+        log.add(
+            "rehearsal.case.scored", actor: system,
+            [
+                "v": 1, "rehearsal": .string(rehearsal), "case": "case-0003", "runs": ["run_r3"],
+                "scores": [["value": 1, "passed": true, "notes": []]], "leak": false,
+            ])
+        rehearsalRun(&log, run: "run_r7", choice: "question", target: "tracker:ISSUE-7")
+        log.add(
+            "rehearsal.case.scored", actor: system,
+            [
+                "v": 1, "rehearsal": .string(rehearsal), "case": .string(failingCase),
+                "runs": ["run_r7"],
+                "scores": [
+                    [
+                        "value": 0.5, "passed": false,
+                        "notes": ["decisions.choice: expected bug, got question"],
+                    ]
+                ],
+                "leak": false,
+            ])
+        log.add(
+            "rehearsal.case.scored", actor: system,
+            [
+                "v": 1, "rehearsal": .string(rehearsal), "case": "case-0009", "runs": [nil],
+                "scores": [["value": 0, "passed": false, "notes": ["unanswered tool read"]]],
+                "leak": true,
+            ])
+        log.add(
+            "rehearsal.finished", actor: system,
+            ["v": 1, "rehearsal": .string(rehearsal), "meanScore": 0.5, "passed": 1, "leaks": 1])
+    }
+
+    private static func rehearsalRun(
+        _ log: inout FeatureEventBuilder, run: String, choice: String, target: String
+    ) {
+        log.add("run.started", run: run, ["trigger": "case", "rehearsal": true])
+        log.add("run.decision", run: run, ["id": "d1", "choice": .string(choice)])
+        log.add(
+            "action.proposed", run: run,
+            [
+                "action": ["id": "a1", "kind": "label", "target": .string(target)],
+                "disposition": "auto", "reason": "auto label",
+            ])
+        log.add("run.finished", run: run, ["status": "completed", "summary": ""])
     }
 
     private static func routines(_ log: inout FeatureEventBuilder) {

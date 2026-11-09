@@ -12,6 +12,22 @@ enum FeatureWrite: Hashable, Sendable {
     case overrideProposal(String, reason: String)
     /// Hides a memory note from future runs (`memory.retracted`).
     case retractMemory(note: String, reason: String)
+    /// Records a person's correction of a rehearsed case (`case.corrected`), optionally with a
+    /// new expected result, and keeps it as a memory note attributed to the person.
+    case correctCase(CaseCorrection)
+    /// Marks a steward ready for live triggers after reviewing a rehearsal (`steward.ready`).
+    case markReady(steward: String, charterVersion: Int, rehearsal: String?)
+}
+
+/// A correction of one rehearsed case.
+struct CaseCorrection: Hashable, Sendable {
+    var steward: String
+    var casebook: String
+    var caseID: String
+    var text: String
+    var expected: FeatureJSON?
+    var rehearsal: String?
+    var run: String?
 }
 
 /// The result of checking the ledger's hash chain.
@@ -32,6 +48,8 @@ protocol FeatureWorkspace: Sendable {
     func verify() async throws -> FeatureVerifyResult
     /// The body of one routine version (a content-addressed blob), or nil if it is missing.
     func routineContent(steward: String, name: String, version: String) async throws -> String?
+    /// The expected result of one case in a casebook version, or nil if it is missing.
+    func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON?
     /// Yields once whenever new events may be available.
     func changes() -> AsyncStream<Void>
 }
@@ -40,6 +58,11 @@ extension FeatureWorkspace {
     /// Workspaces without a blob read report that routine bodies are not available yet.
     func routineContent(steward: String, name: String, version: String) async throws -> String? {
         throw FeatureReadError.unavailable("routine bodies")
+    }
+
+    /// Workspaces without a casebook read report that expected results are not available yet.
+    func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON? {
+        throw FeatureReadError.unavailable("expected results")
     }
 }
 
@@ -59,4 +82,5 @@ enum FeatureWriteError: Error, Hashable, Sendable {
     case gatePassed(String)
     case unknownNote(String)
     case alreadyRetracted(String)
+    case correctionEmpty
 }

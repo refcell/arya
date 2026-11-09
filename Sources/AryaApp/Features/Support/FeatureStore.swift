@@ -96,6 +96,8 @@ final class FeatureStore: ObservableObject {
             return "Proposal \(id) passed its gate; accept it instead of overriding."
         case FeatureReadError.unavailable(let what):
             return "This workspace cannot show \(what) yet."
+        case FeatureWriteError.correctionEmpty:
+            return "Write what the steward should have done, then record the correction."
         case FeatureWriteError.unknownNote(let id):
             return "Memory note \(id) no longer exists. Reload memory and try again."
         case FeatureWriteError.alreadyRetracted(let id):
