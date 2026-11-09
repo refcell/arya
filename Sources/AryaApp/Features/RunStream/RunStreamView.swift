@@ -9,11 +9,11 @@ struct RunStreamView: View {
     var body: some View {
         switch store.state {
         case .loading:
-            FeatureEmptyState(title: "Loading the run.", guidance: "Reading the ledger.")
+            EmptyState("Loading the run.", guidance: "Reading the ledger.")
         case .failed(let message):
-            FeatureEmptyState(
-                title: "The run could not be loaded.", guidance: message,
-                actionTitle: "Retry", action: { Task { await store.reload() } })
+            EmptyState(
+                "The run could not be loaded.", guidance: message, actionTitle: "Retry",
+                action: { Task { await store.reload() } })
         case .loaded(let events):
             content(RunStream.build(events: events, run: run))
         }
@@ -22,13 +22,13 @@ struct RunStreamView: View {
     @ViewBuilder
     private func content(_ stream: RunStream) -> some View {
         if stream.steps.isEmpty {
-            FeatureEmptyState(
-                title: "No steps yet.",
+            EmptyState(
+                "No steps yet.",
                 guidance: "Steps appear here as the run reads, decides, and proposes.")
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: AryaSpace.s4) {
-                    RunStatusLine(status: stream.status)
+                    StatusLine(status: stream.status)
                     FeatureWriteErrorLine(store: store)
                     ForEach(stream.steps) { step in
                         StreamStepRow(step: step, now: store.now, context: context(stream))
@@ -42,10 +42,8 @@ struct RunStreamView: View {
             .background(AryaColor.canvas)
         }
     }
-}
 
-extension RunStreamView {
-    fileprivate func context(_ stream: RunStream) -> StepContext {
+    private func context(_ stream: RunStream) -> StepContext {
         StepContext(steward: stream.steward, run: stream.run) { write in
             Task { await store.perform(write) }
         }
@@ -59,27 +57,28 @@ struct StepContext {
     var decide: (FeatureWrite) -> Void
 }
 
-/// The run's status as a dot and a word.
-struct RunStatusLine: View {
+extension RunStatus {
+    /// The design-system status shown as a dot and a word.
+    var aryaStatus: AryaStatus {
+        switch self {
+        case .running: return .running
+        case .finished: return .done
+        case .failed: return .failed
+        }
+    }
+}
+
+private struct StatusLine: View {
     var status: RunStatus
 
     var body: some View {
         HStack(spacing: AryaSpace.s2) {
-            FeatureDot(color: color)
-            Text(status.word).aryaText(AryaFont.caption).foregroundStyle(AryaColor.inkMuted)
+            StatusBadge(status.aryaStatus)
             if case .finished(_, let summary) = status, !summary.isEmpty {
-                Text(summary).aryaText(AryaFont.caption).foregroundStyle(AryaColor.inkFaint)
+                Text(summary).aryaText(AryaFont.caption, AryaColor.inkFaint)
             }
         }
         .accessibilityElement(children: .combine)
-    }
-
-    private var color: Color {
-        switch status {
-        case .running: return AryaColor.accent
-        case .finished: return AryaColor.positive
-        case .failed: return AryaColor.negative
-        }
     }
 }
 
@@ -90,22 +89,14 @@ struct StreamStepRow: View {
     var context: StepContext
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
-            Text(String(format: "%02d", step.number))
-                .aryaText(AryaFont.monoSmall)
-                .foregroundStyle(AryaColor.inkFaint)
-                .frame(width: AryaSize.stepGutter, alignment: .leading)
-            VStack(alignment: .leading, spacing: AryaSpace.s2) {
-                HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                    StepTitle(kind: step.kind)
-                    Spacer(minLength: AryaSpace.s3)
-                    Text(FeatureTime.relative(step.at, now: now))
-                        .aryaText(AryaFont.caption)
-                        .foregroundStyle(AryaColor.inkFaint)
-                        .help(FeatureTime.absolute(step.at))
-                }
-                StepBody(step: step, now: now, context: context)
-            }
+        StepRow(
+            sequence: step.number, time: FeatureTime.relative(step.at, now: now),
+            absoluteTime: FeatureTime.absolute(step.at),
+            isRunning: StreamStepText.isRunning(step.kind)
+        ) {
+            StepTitle(kind: step.kind)
+        } detail: {
+            StepBody(step: step, now: now, context: context)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(StreamStepText.spoken(step, now: now))
@@ -164,6 +155,20 @@ enum StreamStepText {
             run: context.run, requestedAt: step.at)
     }
 
+    /// Whether the step is still in progress: a tool call without its result.
+    static func isRunning(_ kind: StreamStep.Kind) -> Bool {
+        if case .toolCall(let call) = kind { return call.output == nil }
+        return false
+    }
+
+    /// "ok · 1.2 s", "failed · 850 ms", or "running" for a tool call.
+    static func toolCaption(_ call: ToolCallStep) -> String {
+        guard call.output != nil else { return "running" }
+        let status = call.isError ? "failed" : "ok"
+        guard let seconds = call.durationSeconds else { return status }
+        return "\(status) · \(FeatureTime.duration(seconds))"
+    }
+
     /// The VoiceOver label: "Step 4, decision, bug, 2m ago".
     static func spoken(_ step: StreamStep, now: Date) -> String {
         let parts = [
@@ -180,7 +185,7 @@ private struct StepTitle: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
             if let label = StreamStepText.label(kind) {
-                Text(label).aryaText(AryaFont.caption).foregroundStyle(AryaColor.inkFaint)
+                Text(label).aryaText(AryaFont.caption, AryaColor.inkFaint)
             }
             title
         }
@@ -189,13 +194,11 @@ private struct StepTitle: View {
     @ViewBuilder private var title: some View {
         let text = StreamStepText.title(kind)
         switch kind {
-        case .toolCall, .action: Text(text).aryaText(AryaFont.mono).foregroundStyle(AryaColor.ink)
-        case .decision: Text(text).aryaText(AryaFont.heading).foregroundStyle(AryaColor.ink)
-        case .error, .failed:
-            Text(text).aryaText(AryaFont.bodyStrong).foregroundStyle(AryaColor.negative)
-        case .thinking, .status:
-            Text(text).aryaText(AryaFont.body).foregroundStyle(AryaColor.inkMuted)
-        default: Text(text).aryaText(AryaFont.bodyStrong).foregroundStyle(AryaColor.ink)
+        case .toolCall, .action: Text(text).aryaText(AryaFont.mono, AryaColor.ink)
+        case .decision: Text(text).aryaText(AryaFont.heading, AryaColor.ink)
+        case .error, .failed: Text(text).aryaText(AryaFont.bodyStrong, AryaColor.negative)
+        case .thinking, .status: Text(text).aryaText(AryaFont.body, AryaColor.inkMuted)
+        default: Text(text).aryaText(AryaFont.bodyStrong, AryaColor.ink)
         }
     }
 }
@@ -214,15 +217,13 @@ private struct StepBody: View {
                 if !alternatives.isEmpty {
                     muted("Also considered: " + alternatives.joined(separator: ", "))
                 }
-                Text(id).aryaText(AryaFont.monoSmall).foregroundStyle(AryaColor.inkFaint)
+                Text(id).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             }
         case .action(let action):
             if case .awaitingApproval(let approval) = action.outcome {
-                let item = StreamStepText.approval(action, approval, step: step, context: context)
-                ApprovalCard(
-                    item: item, now: now,
-                    onApprove: { context.decide(.approve(approval: approval)) },
-                    onDeny: { context.decide(.deny(approval: approval, reason: "")) })
+                ApprovalItemCard(
+                    item: StreamStepText.approval(action, approval, step: step, context: context),
+                    now: now, decide: context.decide)
             } else {
                 actionBody(action)
             }
@@ -235,23 +236,21 @@ private struct StepBody: View {
             HStack(spacing: AryaSpace.s2) {
                 muted(action.rationale)
                 Spacer(minLength: AryaSpace.s2)
-                PolicyChip(policy: action.policy)
+                if let policy = AryaPolicy(rawValue: action.policy) { PolicyChip(policy) }
             }
             Text(StreamStepText.outcome(action.outcome))
-                .aryaText(AryaFont.caption)
-                .foregroundStyle(outcomeColor(action.outcome))
+                .aryaText(AryaFont.caption, outcomeColor(action.outcome))
         }
     }
 
     private func muted(_ text: String) -> some View {
-        Text(text).aryaText(AryaFont.body).foregroundStyle(AryaColor.inkMuted).lineLimit(3)
+        Text(text).aryaText(AryaFont.body, AryaColor.inkMuted).lineLimit(3)
     }
 
     private func outcomeColor(_ outcome: ActionOutcome) -> Color {
         switch outcome {
         case .executed: return AryaColor.positive
         case .failed, .rejected, .denied: return AryaColor.negative
-        case .awaitingApproval: return AryaColor.accent
         default: return AryaColor.inkFaint
         }
     }
@@ -261,23 +260,14 @@ private struct ToolCallBody: View {
     var call: ToolCallStep
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s2) {
-            DisclosureGroup {
-                VStack(alignment: .leading, spacing: AryaSpace.s2) {
-                    FeatureCodeBlock(text: call.input.compactText)
-                    if let output = call.output { FeatureCodeBlock(text: output.compactText) }
-                }
-            } label: {
-                Text(caption).aryaText(AryaFont.caption)
-                    .foregroundStyle(call.isError ? AryaColor.negative : AryaColor.inkFaint)
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: AryaSpace.s2) {
+                CodeBlock(call.input.compactText)
+                if let output = call.output { CodeBlock(output.compactText) }
             }
+        } label: {
+            Text(StreamStepText.toolCaption(call))
+                .aryaText(AryaFont.caption, call.isError ? AryaColor.negative : AryaColor.inkFaint)
         }
-    }
-
-    private var caption: String {
-        guard call.output != nil else { return "running" }
-        let status = call.isError ? "failed" : "ok"
-        guard let seconds = call.durationSeconds else { return status }
-        return "\(status) · \(FeatureTime.duration(seconds))"
     }
 }

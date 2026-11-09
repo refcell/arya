@@ -10,10 +10,10 @@ struct ApprovalQueueView: View {
     var body: some View {
         switch store.state {
         case .loading:
-            FeatureEmptyState(title: "Loading approvals.", guidance: "Reading the ledger.")
+            EmptyState("Loading approvals.", guidance: "Reading the ledger.")
         case .failed(let message):
-            FeatureEmptyState(
-                title: "Approvals could not be loaded.", guidance: message,
+            EmptyState(
+                "Approvals could not be loaded.", guidance: message,
                 actionTitle: "Retry", action: { Task { await store.reload() } })
         case .loaded(let events):
             content(ApprovalQueue.build(events: events, steward: steward))
@@ -23,8 +23,8 @@ struct ApprovalQueueView: View {
     @ViewBuilder
     private func content(_ queue: ApprovalQueue) -> some View {
         if queue.pending.isEmpty && queue.decided.isEmpty {
-            FeatureEmptyState(
-                title: "Nothing to approve.",
+            EmptyState(
+                "Nothing to approve.",
                 guidance: "When a steward asks before acting, its request waits here.")
         } else {
             ScrollView {
@@ -35,10 +35,7 @@ struct ApprovalQueueView: View {
                             .aryaText(AryaFont.body, AryaColor.inkMuted)
                     }
                     ForEach(queue.pending) { item in
-                        ApprovalCard(
-                            item: item, now: store.now,
-                            onApprove: { decide(.approve(approval: item.id)) },
-                            onDeny: { decide(.deny(approval: item.id, reason: "")) })
+                        ApprovalItemCard(item: item, now: store.now, decide: decide)
                     }
                     if !queue.decided.isEmpty { decided(queue.decided) }
                 }
@@ -81,7 +78,7 @@ struct FeatureWriteErrorLine: View {
                 Text(message).aryaText(AryaFont.body, AryaColor.negative)
                 Spacer(minLength: AryaSpace.s3)
                 Button("Dismiss") { store.dismissWriteError() }
-                    .buttonStyle(FeatureTertiaryButtonStyle())
+                    .buttonStyle(.aryaTertiary)
             }
         }
     }

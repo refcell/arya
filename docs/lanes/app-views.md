@@ -44,9 +44,9 @@ M3 (start now against the app-shell stub workspace):
 - The stream shows tool calls from `run.tool.*` (the binding proxy's record) and skips adapter
   `tool_call`/`tool_result` notifications, which would duplicate them.
 - `FeatureStore` is an `ObservableObject` (decision 0020 allows it); transient view state uses `@AryaState` (0021).
-- Interim components (`FeatureChip`, `PolicyChip`, `FeatureCodeBlock`, `FeatureEmptyState`,
-  button styles) live in `Features/Support` until AryaDesign ships components; a test fails if
-  a feature file uses a literal color, font, or small size.
+- Views use AryaDesign tokens and components (`StepRow`, `StatusBadge`, `PolicyChip`,
+  `CodeBlock`, `ApprovalCard`, `EmptyState`, `.aryaPrimary` and friends); a test fails if a
+  feature file uses a literal color, font, or small size.
 
 ## Questions
 

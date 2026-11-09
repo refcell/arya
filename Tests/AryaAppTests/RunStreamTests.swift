@@ -97,3 +97,18 @@ private func stream(_ run: String = PreviewFixtures.finishedRun) -> RunStream {
         StreamStepText.spoken(step, now: step.at.addingTimeInterval(120))
             == "Step 2, thinking, hm, 2m ago")
 }
+
+@Test func toolCallCaptionsAndRunningState() {
+    var call = ToolCallStep(callID: "t1", tool: "tracker.get", input: [:])
+    #expect(StreamStepText.toolCaption(call) == "running")
+    #expect(StreamStepText.isRunning(.toolCall(call)))
+    call.output = "ok"
+    call.durationSeconds = 1.25
+    #expect(StreamStepText.toolCaption(call) == "ok · 1.2 s")
+    call.isError = true
+    call.durationSeconds = nil
+    #expect(StreamStepText.toolCaption(call) == "failed")
+    #expect(StreamStepText.isRunning(.toolCall(call)) == false)
+    #expect(RunStatus.running.aryaStatus == .running)
+    #expect(RunStatus.failed(reason: "x").aryaStatus == .failed)
+}

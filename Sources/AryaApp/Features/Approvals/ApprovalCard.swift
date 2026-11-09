@@ -1,43 +1,22 @@
 import AryaDesign
 import SwiftUI
 
-/// The one place the interface asks for a person: an action waiting for approve or deny.
-struct ApprovalCard: View {
+/// An approval item as the design system's approval card, recording the person's answer.
+struct ApprovalItemCard: View {
     var item: ApprovalItem
     var now: Date
-    var onApprove: () -> Void
-    var onDeny: () -> Void
+    var decide: (FeatureWrite) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s2) {
-            Text("\(item.kind) \(item.target)").aryaText(AryaFont.mono, AryaColor.ink)
-            Text(item.summary).aryaText(AryaFont.bodyStrong, AryaColor.ink)
-            if !item.rationale.isEmpty {
-                Text(item.rationale).aryaText(AryaFont.body, AryaColor.inkMuted)
-            }
-            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
-                Text(ApprovalText.meta(item, now: now))
-                    .aryaText(AryaFont.caption, AryaColor.inkFaint)
-                    .help(FeatureTime.absolute(item.requestedAt))
-                Spacer(minLength: AryaSpace.s3)
-                Button("Deny", action: onDeny)
-                    .buttonStyle(FeatureSecondaryButtonStyle())
-                    .keyboardShortcut(.cancelAction)
-                Button(item.approveLabel, action: onApprove)
-                    .buttonStyle(FeaturePrimaryButtonStyle())
-            }
-        }
-        .padding(AryaSpace.s4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AryaColor.accentWash)
-        .overlay(alignment: .leading) {
-            Rectangle().fill(AryaColor.accent).frame(width: AryaSize.approvalEdge)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: AryaRadius.medium))
-        .accessibilityElement(children: .contain)
+        ApprovalCard(
+            action: "\(item.kind) \(item.target)", summary: item.summary,
+            rationale: item.rationale, context: ApprovalText.meta(item, now: now),
+            approveLabel: item.approveLabel,
+            onDeny: { decide(.deny(approval: item.id, reason: "")) },
+            onApprove: { decide(.approve(approval: item.id)) }
+        )
+        .help(FeatureTime.absolute(item.requestedAt))
         .accessibilityLabel("Approval, \(item.summary)")
-        .accessibilityAction(named: Text(item.approveLabel), onApprove)
-        .accessibilityAction(named: Text("Deny"), onDeny)
     }
 }
 
