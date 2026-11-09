@@ -128,6 +128,11 @@ M4:
 - (from cli-e2e) Return-to-approve granted a demo approval on window activation; use Cmd-Return?
 - (from app-shell) The app no longer has a preview mode, so `PreviewWorkspace` and
   `PreviewFixtures` are used only by tests; move them into `Tests/AryaAppTests` when convenient.
+- (from app-shell) Style pass on the demo home (`just screenshots`), both schemes: the Stream
+  Decision step shows no choice in its heading (STYLE.md: choice in the heading, reasoning
+  folded); the Ledger filter bar is wider than the pane at 1120 pt (Actor clips) and the time
+  column truncates to "jus…now"; Rehearsals truncates "Rehearse ag…"; approval cards and Memory
+  show full run ids where a short form fits.
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

@@ -18,7 +18,10 @@ struct MainPane: View {
             }
             content
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // A wide feature view (the ledger table) must not widen the window and push the rail
+        // off screen: the pane takes the space left and clips what does not fit.
+        .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .clipped()
         .background(AryaColor.canvas)
     }
 
@@ -50,7 +53,8 @@ struct StewardPane: View {
             HeaderView(model: model, steward: steward)
             TextTabBar(tabs: tabs, selection: tabBinding, inset: AryaSpace.s5)
             FeatureRegistry.view(for: model.navigation.tab, context: model.featureContext())
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(
+                    minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 

@@ -41,7 +41,7 @@ M3, extended (toward the end-to-end scenario and `just demo`):
 - [x] One preview source: the app has no preview mode; `just demo` seeds a real home,
   `just screenshots` renders it, and the shell's fake lives in tests (`FakeWorkspaceSource`).
 - [x] README screenshot: `docs/assets/app.png` via `just readme-screenshot`.
-- [ ] Style-fidelity pass: every tab in both schemes against STYLE.md, section by section.
+- [x] Style-fidelity pass: every tab in both schemes against STYLE.md, section by section.
 - [ ] Scheduler login-item toggle and a menu bar status item with the pending count.
 - [x] Steward menu: Start Run (⇧⌘R), Pause, Resume through the facade.
 
@@ -121,3 +121,6 @@ M4:
 - 2026-11-09: every steward tab routed to app-views' views; screenshots per tab (78c9c17).
 - 2026-11-09: Steward menu (Start Run, Pause, Resume) through the facade (8258cb7).
 - 2026-11-09: `just publish` quotes its filter (6406b7f).
+- 2026-11-09: style pass on the demo home, every tab, both schemes. Shell fixes: rail runs read
+  "run 14" instead of raw ids; a wide feature view no longer widens the window and clips the
+  rail (main pane takes `minWidth: 0` and clips). Feature-view findings sent to app-views.
