@@ -107,7 +107,27 @@ final class FeatureStore: ObservableObject {
         case FeatureWriteError.alreadyRetracted(let id):
             return "Memory note \(id) was already retracted."
         default:
-            return "Could not read the workspace: \(error.localizedDescription)"
+            return sentence(error)
         }
+    }
+
+    /// An error the seam does not know, as one plain sentence: its own description when it
+    /// has one (the facade's errors say what failed), never an enum's localized placeholder.
+    nonisolated static func sentence(_ error: any Error) -> String {
+        let text: String
+        if let described = error as? CustomStringConvertible, !(type(of: error) is NSError.Type) {
+            text = described.description
+        } else {
+            let localized =
+                (error as NSError).localizedFailureReason
+                ?? (error as NSError).localizedDescription
+            text =
+                localized.contains("error 0") || localized.contains("couldn’t be completed")
+                ? "Something went wrong (\(String(describing: type(of: error))))" : localized
+        }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = trimmed.first else { return "Something went wrong." }
+        let capitalized = first.uppercased() + trimmed.dropFirst()
+        return capitalized.hasSuffix(".") ? capitalized : capitalized + "."
     }
 }

@@ -64,3 +64,17 @@ private func reply() -> ProposedActionStep {
         json.prettyText == "{\n  \"a\": \"x\",\n  \"b\": [\n    1,\n    2\n  ],\n  \"c\": {}\n}")
     #expect(FeatureJSON.string("plain").prettyText == "plain")
 }
+
+private enum DescribedError: Error, CustomStringConvertible {
+    case refused
+    var description: String { "steward st_triage is paused" }
+}
+
+private enum PlainError: Error { case failed }
+
+@Test func unknownErrorsReadAsOneSentence() {
+    #expect(FeatureStore.describe(DescribedError.refused) == "Steward st_triage is paused.")
+    let plain = FeatureStore.describe(PlainError.failed)
+    #expect(!plain.contains("error 0"))
+    #expect(plain.hasSuffix("."))
+}
