@@ -13,7 +13,7 @@ Design: [ARCHITECTURE.md](../ARCHITECTURE.md#the-app), decision 0002.
 M3 (start now against a stub `Workspace`; switch to the real one when runtime lands):
 - [x] `AryaDesign` tokens: colors (light and dark), type scale, spacing, radii, from STYLE.md;
   tests that every token resolves in both appearances.
-- [ ] Components: buttons, badges for run and approval states, list rows, cards, empty states,
+- [x] Components: buttons, badges for run and approval states, list rows, cards, empty states,
   code and diff blocks, the effort selector.
 - [ ] App entry: `@main` app, one window, menu commands, opening `$ARYA_HOME` (or a home chosen
   at launch) through the facade.
@@ -34,6 +34,14 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
   Text size scales through the `aryaTextScale` environment value.
 - Fixed sizes from STYLE.md live in `AryaSize` so feature views never write literal sizes.
 
+- AryaDesign has no module dependencies, so it carries presentational enums (`AryaStatus`,
+  `AryaPolicy`, `AryaEffort`); the app maps core types onto them.
+- Components so far: button styles (`.aryaPrimary`, `.aryaSecondary`, `.aryaTertiary`),
+  `StatusDot`, `StatusBadge`, `Chip`, `PolicyChip`, `CountLabel`, `RailRow`, `RailGroupLabel`,
+  `StepRow`, `TableRowFrame`, `ApprovalCard`, `EmptyState`, `CodeBlock`, `DiffBlock`,
+  `EffortSelector`, `TextTabBar`, `AryaTime` (relative and absolute times).
+- Diffs stay monochrome; only the `+` and `-` marks use `positive` and `negative` text.
+
 ## Questions
 
 - From memory: `AryaDesignTests` crashed intermittently (signal 6/11) when AppKit color and
@@ -41,3 +49,4 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
   on the main actor.
 
 ## Log
+- 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

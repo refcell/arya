@@ -134,3 +134,11 @@ app models on macOS 14; `ObservableObject` with `@Published` remains acceptable.
 there is no `actool`, so color tokens are dynamic `NSColor`s defined in `AryaDesign` code that
 resolve paper, ink, and Increase Contrast values from the effective appearance. Why: the app
 must build with SwiftPM and the command-line tools only (0001, 0002).
+
+### 0021 — 2026-11-09 — Write `@AryaState`, not `@State`
+
+Extends 0020. The SDK declares a `State()` macro alongside the `State` property wrapper, and
+`@State` resolves to the macro, which does not compile without its plugin. `AryaDesign` exports
+`typealias AryaState<Value> = SwiftUI.State<Value>`; app code writes
+`@AryaState private var isOpen = false`. `@Environment`, `@Binding`, `@FocusState`, and
+`@Observable` are unaffected. Why: same toolchain constraint as 0020, with the smallest fix.
