@@ -17,7 +17,7 @@ M1:
   (`steward.charter.updated`, version + 1), pause, retire.
 - [x] Instruction composer: charter outcome, metric, guardrails, memory snapshot, live routines,
   result schema; deterministic output with a golden test.
-- [ ] Run loop with the `FakeAdapter`: `run.started` (versions and snapshot), adapter events,
+- [x] Run loop with the `FakeAdapter`: `run.started` (versions and snapshot), adapter events,
   `run/result` parsing, `run.decision`, `action.proposed`, `run.finished`, failures with
   reasons (`adapter_exited`, `timeout`, `invalid_result`, `budget`).
 - [x] Policy: classify each action as `auto`, `ask`, or `deny` with `policy.default` = `ask`;
@@ -86,6 +86,18 @@ M4:
   Executors never throw; failures are outcomes so they are always recorded. A granted action
   executes with the steward's live charter binding; denied or expired approvals record
   `action.rejected` with reason `approval_denied` / `approval_expired`.
+- Run loop: `run.started {trigger, input, parent?, charterVersion, adapter, effort,
+  instructions, memory, routines, rehearsal}` (actor: whoever started it), every JSON-RPC line
+  as `run.adapter.event {direction, message}` (actor: adapter, id = run id; a non-JSON line is
+  stored as `{raw}`), one `run.decision` per decision (the decision object), dispositions,
+  then `run.finished {status, summary, costMicros, decisions, actions, leak}` or `run.failed
+  {reason, detail, costMicros, leak}` (actor: system). `run/cost` is asked after the result
+  and before `shutdown`. Protocol errors are recorded through the wire and otherwise ignored.
+  `run.tools` is empty until the binding proxy lands (M2). `host/ask` is answered `null` until
+  its backlog item lands. `charterVersion` 0 means a candidate charter under rehearsal.
+- Rehearsal mode (`RunMode.rehearsal(context)`): dispositions are recorded as
+  `action.proposed` only. Until the binding proxy serves reads, a leak is a `tool_call` event
+  whose `(tool, input)` has no entry in `context.toolResults`.
 
 ## Questions
 
@@ -107,3 +119,4 @@ M4:
   `Sources/Arya` (0d5c02b)
 - 2026-11-09: `EventSink` seam with an in-memory double and the approval queue (9d8e381)
 - 2026-11-09: steward lifecycle on core `Charter`; decision 0022 (19215d3)
+- 2026-11-09: action executor protocol, `RecordingExecutor`, and `ActionDispatcher` (ce6ab45)

@@ -154,6 +154,24 @@ public struct ActionDispatcher: Sendable {
         return disposals
     }
 
+    /// Records `action.proposed` with its disposition for each action and nothing else: no
+    /// execution, no approval, no rejection. Used by rehearsal (decision 0015).
+    public func recordOnly(
+        _ actions: [ProposedAction], charter: Charter, run: RunID
+    ) async throws -> [ActionDisposal] {
+        let policy = ActionPolicy(charter: charter)
+        var disposals: [ActionDisposal] = []
+        for action in actions {
+            let verdict = policy.classify(action.policyAction)
+            try await append(
+                ActionEventType.proposed, charter.id, run, .steward(charter.id),
+                ActionProposedPayload(
+                    action: action, disposition: verdict.disposition, reason: verdict.reason))
+            disposals.append(ActionDisposal(action: action, verdict: verdict))
+        }
+        return disposals
+    }
+
     /// Carries out the action of a granted approval, using the steward's live charter.
     public func executeGranted(_ record: ApprovalRecord, charter: Charter) async throws
         -> ExecutionOutcome
