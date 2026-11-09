@@ -81,6 +81,7 @@ M3:
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
 - (from app-views) the charter editor records proposals: proposed `Workspace.proposeCharter(steward:charter: Data, baseVersion:title:reason:) -> ProposalSummary` (refuse when `baseVersion` is no longer live); until then the app shows "unavailable" on save.
+- (from eval) `RunReplayer(sink:casebooks:).replay(run:)` is on main (36829d4) for `Workspace.replay`.
 
 ## Log
 

@@ -125,4 +125,4 @@ Later:
 - 2026-11-09: routine gate (`RoutineRehearsalGate`) and the fresh-baseline rule (7bce5aa)
 - 2026-11-09: stored casebook projection `CasebookBook`, `StoredCasebooks` (d1ecf71)
 - 2026-11-09: replay engine `RunReplayer(sink:casebooks:)`, a `Replayer` whose
-  `replay(run:) async throws -> ReplayReport` drives `RunEngine` on recorded inputs
+  `replay(run:) async throws -> ReplayReport` drives `RunEngine` on recorded inputs (36829d4)
