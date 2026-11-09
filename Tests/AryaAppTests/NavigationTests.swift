@@ -109,18 +109,35 @@ import Testing
     }
 }
 
-@Test func stewardHealthPrefersPausedThenNeedsYou() {
-    func fixture(_ status: StewardSummary.Status) -> StewardSummary {
+@Test func sidebarRowsSplitAttentionFromHealth() {
+    func steward(_ name: String, _ status: StewardSummary.Status = .active) -> StewardSummary {
         StewardSummary(
-            id: "st_triage", name: "Triage keeper", outcome: "Sorted queue", charterVersion: 1,
-            status: status, ready: true)
+            id: name, name: name, outcome: "An outcome", charterVersion: 1, status: status,
+            ready: true)
     }
-    let steward = fixture(.active)
-    #expect(StatusMapping.health(of: steward, runs: [], pending: 1, onTrack: true) == .needsYou)
-    #expect(StatusMapping.health(of: steward, runs: [], pending: 0, onTrack: true) == .onTrack)
-    #expect(StatusMapping.health(of: steward, runs: [], pending: 0, onTrack: false) == .offTrack)
-    let paused = fixture(.paused)
-    #expect(StatusMapping.health(of: paused, runs: [], pending: 1, onTrack: false) == .paused)
-    #expect(StatusMapping.metricSuffix(latest: 0.96, target: 0.95) == "0.96 / 0.95")
-    #expect(StatusMapping.metricSuffix(latest: nil, target: 0.95) == nil)
+    func row(
+        _ s: StewardSummary, pending: Int = 0, onTrack: Bool?, selected: Bool = false
+    ) -> StatusMapping.SidebarRow {
+        StatusMapping.SidebarRow(
+            s, pending: pending, latest: onTrack == false ? 0.84 : 0.96, target: 0.9,
+            onTrack: onTrack, isSelected: selected)
+    }
+    let refund = row(steward("Refund follow-up"), pending: 1, onTrack: false)
+    #expect(refund.status == .needsYou)
+    #expect(refund.trailing == "0.84" && refund.trailingIsAlert)
+    #expect(refund.accessibility == "Refund follow-up, needs you, behind target, 0.84 of 0.90")
+    let behind = row(steward("Behind"), onTrack: false)
+    #expect(behind.status == .idle && behind.health == .behind && behind.trailing == "0.84")
+    let quiet = row(steward("Triage"), onTrack: true)
+    #expect(quiet.trailing == nil && quiet.status == .idle)
+    let selected = row(steward("Triage"), onTrack: true, selected: true)
+    #expect(selected.trailing == "0.96" && !selected.trailingIsAlert)
+    let paused = row(steward("Digest", .paused), pending: 1, onTrack: false)
+    #expect(paused.status == .paused && paused.trailing == "paused" && !paused.trailingIsAlert)
+    #expect(paused.accessibility == "Digest, paused")
+    let order = StatusMapping.sorted([
+        (steward("Digest", .paused), paused), (steward("Triage"), quiet),
+        (steward("Behind"), behind), (steward("Refund follow-up"), refund),
+    ])
+    #expect(order.map(\.name) == ["Refund follow-up", "Behind", "Triage", "Digest"])
 }

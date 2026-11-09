@@ -210,3 +210,11 @@ M4:
   `negative`; the paused dot is a hollow ring beside the muted word.
 - Visual check (`just snapshot` stewards, needs-you): paused shows a hollow ring and the word;
   needs-you rows are orange; meta reads `9m` and `Nov 8` with no "ago"; R1-R5 pass.
+- 2026-11-09 (check #15): sidebar dot = attention only (orange with approvals, else neutral, ring
+  when paused); health = text (`StatusMapping.SidebarRow`): behind target shows the value in red
+  mono on every row, the selected on-track steward shows it muted, paused shows the word. Sorted
+  needs you, behind, on track, paused; VoiceOver reads "Refund follow-up, needs you, behind
+  target, 0.84 of 0.90".
+- Visual check (`just snapshot` stewards, overview-light): Refund follow-up (red 0.84) first,
+  Support inbox triage (muted 0.96 when selected), Weekly queue digest ring plus paused last;
+  names untruncated at 240 pt; R1-R5 pass.

@@ -13,33 +13,65 @@ enum StatusMapping {
         }
     }
 
-    /// The sidebar dot for a steward (STYLE.md Sidebar): paused first, then needs you, then
-    /// running, then on or off track against its metric, else idle.
-    static func health(
-        of steward: StewardSummary, runs: [RunSummary], pending: Int, onTrack: Bool?
-    ) -> AryaStatus {
-        switch steward.status {
-        case .paused: return .paused
-        case .retired: return .idle
-        case .active:
-            if pending > 0 { return .needsYou }
-            if runs.contains(where: { $0.status == .running }) { return .running }
-            switch onTrack {
-            case true?: return .onTrack
-            case false?: return .offTrack
-            case nil: return .idle
+    /// How a steward's sidebar row reads (STYLE.md Sidebar). The dot carries attention only:
+    /// orange with pending approvals, else neutral (a ring when paused). The text carries
+    /// health: a behind-target steward always shows its metric in the negative tone; an
+    /// on-track one shows it muted only when selected; paused shows the word.
+    struct SidebarRow: Equatable {
+        enum Health: Int, Comparable {
+            case needsYou, behind, onTrack, paused
+            static func < (lhs: Health, rhs: Health) -> Bool { lhs.rawValue < rhs.rawValue }
+        }
+
+        var status: AryaStatus
+        var health: Health
+        var trailing: String?
+        var trailingIsAlert: Bool
+        var trailingIsMono: Bool
+        var accessibility: String
+
+        init(
+            _ steward: StewardSummary, pending: Int, latest: Double?, target: Double?,
+            onTrack: Bool?, isSelected: Bool
+        ) {
+            let value = latest.map(StatusMapping.metric)
+            let behind = onTrack == false && steward.status != .paused
+            var spoken = [steward.name]
+            if steward.status == .paused {
+                status = .paused
+                health = .paused
+                trailing = "paused"
+                trailingIsMono = false
+                spoken.append("paused")
+            } else {
+                status = pending > 0 ? .needsYou : .idle
+                health = pending > 0 ? .needsYou : behind ? .behind : .onTrack
+                trailing = behind || isSelected ? value : nil
+                trailingIsMono = true
+                if pending > 0 { spoken.append("needs you") }
+                if onTrack != nil { spoken.append(behind ? "behind target" : "on track") }
             }
+            trailingIsAlert = behind
+            if steward.status != .paused, let value {
+                spoken.append(target.map { "\(value) of \(StatusMapping.metric($0))" } ?? value)
+            }
+            accessibility = spoken.joined(separator: ", ")
         }
     }
 
-    /// "0.96 / 0.95", the latest metric against its target, for the selected steward's row.
-    static func metricSuffix(latest: Double?, target: Double?) -> String? {
-        guard let latest, let target else { return nil }
-        func number(_ value: Double) -> String {
-            value.rounded() == value && abs(value) >= 10
-                ? String(Int(value)) : String(format: "%.2f", value)
-        }
-        return "\(number(latest)) / \(number(target))"
+    /// Needs you first, then behind target, then on track, then paused; by name within each.
+    static func sorted(_ rows: [(StewardSummary, SidebarRow)]) -> [StewardSummary] {
+        rows.sorted {
+            $0.1.health != $1.1.health
+                ? $0.1.health < $1.1.health
+                : $0.0.name.localizedStandardCompare($1.0.name) == .orderedAscending
+        }.map(\.0)
+    }
+
+    /// A metric value as the sidebar prints it: "0.84", or "12" for whole numbers of 10 or more.
+    static func metric(_ value: Double) -> String {
+        value.rounded() == value && abs(value) >= 10
+            ? String(Int(value)) : String(format: "%.2f", value)
     }
 
     /// A run's thread title (STYLE.md Thread row): the first line of its summary, else its

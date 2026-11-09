@@ -126,8 +126,10 @@ display scale (`1 / displayScale` pt) in `rule`.
 ### Sidebar row
 
 24 pt, 12 pt horizontal padding, `selection` fill with a 4 pt radius when selected. A 6 pt
-status dot (`accentFill` needs you, `accent` running, `positive` on track, `negative` off track
-or failed, a hollow `inkFaint` ring plus the word `paused` when paused),
+attention dot (`accentFill` with pending approvals, else a neutral `inkFaint` dot, a ring when
+paused); health is text: a behind-target metric value in mono `negative` on every row, the
+selected on-track steward's value muted, the word `paused`; sorted needs you, behind, on
+track, paused,
 then the name in `body`. Counts are `monoSmall`; the "Needs you" count is `accent`.
 
 ### Thread row

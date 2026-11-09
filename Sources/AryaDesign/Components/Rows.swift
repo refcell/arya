@@ -9,12 +9,20 @@ public struct RailRow: View {
     let isSelected: Bool
     let indent: CGFloat
     let trailingIsMono: Bool
+    let trailingIsAlert: Bool
+    let accessibility: String?
 
-    /// - Parameter trailingIsMono: set for machine text such as a metric against its target.
+    /// - Parameters:
+    ///   - trailingIsMono: set for machine text such as a metric value.
+    ///   - trailingIsAlert: set when the trailing text is bad news (a metric behind target).
+    ///   - accessibility: the full VoiceOver label, when it says more than the title.
     public init(
         _ title: String, status: AryaStatus? = nil, trailing: String? = nil,
-        isSelected: Bool = false, indent: CGFloat = 0, trailingIsMono: Bool = false
+        isSelected: Bool = false, indent: CGFloat = 0, trailingIsMono: Bool = false,
+        trailingIsAlert: Bool = false, accessibility: String? = nil
     ) {
+        self.trailingIsAlert = trailingIsAlert
+        self.accessibility = accessibility
         self.title = title
         self.status = status
         self.trailing = trailing
@@ -31,9 +39,11 @@ public struct RailRow: View {
             if let trailing {
                 Text(trailing)
                     .aryaText(
-                        trailingIsMono ? AryaFont.monoSmall : AryaFont.caption, AryaColor.inkFaint
+                        trailingIsMono ? AryaFont.monoSmall : AryaFont.caption,
+                        trailingIsAlert ? AryaColor.negative : AryaColor.inkFaint
                     )
                     .lineLimit(1)
+                    .fixedSize()
             }
         }
         .padding(.leading, AryaSpace.s2 + indent)
@@ -44,8 +54,9 @@ public struct RailRow: View {
             in: RoundedRectangle(cornerRadius: AryaRadius.small)
         )
         .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(status?.word ?? "")
+        .accessibilityElement(children: accessibility == nil ? .combine : .ignore)
+        .accessibilityLabel(accessibility ?? title)
+        .accessibilityValue(accessibility == nil ? status?.word ?? "" : "")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

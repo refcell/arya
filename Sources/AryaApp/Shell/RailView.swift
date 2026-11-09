@@ -60,7 +60,7 @@ struct RailView: View {
                 RailGroupLabel("Stewards")
                     .padding(.bottom, AryaSpace.s1)
             }
-            ForEach(model.stewards) { steward in
+            ForEach(sortedStewards) { steward in
                 stewardRows(steward)
             }
         }
@@ -75,27 +75,31 @@ struct RailView: View {
         return MetricSeries.build(events: events, steward: steward)
     }
 
+    private func sidebarRow(_ steward: StewardSummary) -> StatusMapping.SidebarRow {
+        let series = metric(steward.id)
+        return StatusMapping.SidebarRow(
+            steward, pending: model.pendingApprovals(steward: steward.id),
+            latest: series?.latest?.value, target: series?.definition.target,
+            onTrack: series?.meetsTarget, isSelected: model.navigation.steward == steward.id)
+    }
+
+    private var sortedStewards: [StewardSummary] {
+        StatusMapping.sorted(model.stewards.map { ($0, sidebarRow($0)) })
+    }
+
     @ViewBuilder private func stewardRows(_ steward: StewardSummary) -> some View {
         let runs = model.runs[steward.id] ?? []
         let isSelected = model.navigation.steward == steward.id
         Button {
             model.navigation.select(steward: steward.id)
         } label: {
-            let series = metric(steward.id)
+            let row = sidebarRow(steward)
             RailRow(
-                steward.name,
-                status: StatusMapping.health(
-                    of: steward, runs: runs, pending: model.pendingApprovals(steward: steward.id),
-                    onTrack: series?.meetsTarget),
-                trailing: steward.status == .paused
-                    ? "paused"
-                    : isSelected
-                        ? StatusMapping.metricSuffix(
-                            latest: series?.latest?.value, target: series?.definition.target)
-                        : nil,
+                steward.name, status: row.status, trailing: row.trailing,
                 isSelected: isSelected && model.navigation.run == nil
                     && model.navigation.destination != .approvals,
-                trailingIsMono: steward.status != .paused)
+                trailingIsMono: row.trailingIsMono, trailingIsAlert: row.trailingIsAlert,
+                accessibility: row.accessibility)
         }
         .buttonStyle(.plain)
         if isSelected {
