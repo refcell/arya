@@ -76,26 +76,17 @@ extension LedgerReader {
     }
 
     /// Up to `limit` matching events with `seq < before` (the newest when nil), returned in
-    /// `seq` order. For a table that opens at the newest events and scrolls back. `index`
-    /// narrows the start as in `page`.
+    /// `seq` order. For a table that opens at the newest events and scrolls back. Reads
+    /// newest to oldest (`newest(_:before:limit:)`); `index` is accepted for symmetry with
+    /// `page` and not needed.
     public func pageBackward(
         _ filter: LedgerFilter = LedgerFilter(), before: Int64? = nil, limit: Int = 100,
         index: Projected<LedgerIndex>? = nil
     ) throws -> LedgerPage {
-        let from = index.map { start(filter, $0) } ?? 1
-        let limit = max(1, limit)
-        var window: [Event] = []
-        var dropped = false
-        do {
-            try forEach(filter, from: from) { event in
-                if let before, event.seq >= before { throw StopScan() }
-                window.append(event)
-                if window.count > limit {
-                    window.removeFirst()
-                    dropped = true
-                }
-            }
-        } catch is StopScan {}
+        _ = index  // Newest-first reads stop early; the index cannot narrow them further.
+        var window = try newest(filter, before: before, limit: limit + 1)
+        let dropped = window.count > limit
+        if dropped { window.removeFirst() }
         return LedgerPage(events: window, next: dropped ? window.first?.seq : nil)
     }
 }

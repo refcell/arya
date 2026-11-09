@@ -83,8 +83,10 @@ Next (lane-extended, in order):
   stewards start near seq 1, so this is the sieve cost; late runs skip their prefix).
 
 Next (lane-extended toward M3.5 app parity, in order):
-- [ ] (9) Newest-first reads without a full forward pass: read segments newest to oldest (tail
-  windows per segment) for `pageBackward` and "last N of type T" (recap, activity).
+- [x] (9) Newest-first reads: `LedgerReader.newest(_:before:limit:)` scans segments newest to
+  oldest, sieves lines from the bytes, and opens only the newest candidates; `pageBackward`
+  uses it. 50k probe: newest 50 of one steward 0.008 s (was 0.17 s), newest 20 approvals
+  0.007 s. Falls back to one forward pass if a segment's seqs are not contiguous.
 - [ ] (10) Per-steward counters for status widgets in `LedgerIndex`: runs finished/failed,
   approvals open/granted/denied, last metric value, so the sidebar reads one cached index.
 
@@ -195,7 +197,8 @@ Next (lane-extended toward M3.5 app parity, in order):
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
-- 2026-11-09: (8) done: index-narrowed queries; backlog extended with (9) and (10).
+- 2026-11-09: (9) done: newest-first reads; `pageBackward` 20x faster on 50k events.
+- 2026-11-09: (8) done: index-narrowed queries; backlog extended with (9) and (10) (a8fe3cf).
 - 2026-11-09: (7b) done: projection seeds and seeding on compacted ledgers (89b5dd0).
 - 2026-11-09: (7a) done: compaction to `archive/`, `verifyArchive`, covering anchors (6e8e9bc).
 - 2026-11-09: (6) done: `system.checkpoint`, `Checkpoints`, verify anchoring (`unanchored`,

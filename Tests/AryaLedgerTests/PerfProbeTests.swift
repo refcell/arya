@@ -108,7 +108,12 @@ private func weeksHome() throws -> (TempHome, Timestamp) {
     let lateSteward = try cpuSeconds {
         _ = try reader.pageBackward(LedgerFilter(steward: steward), limit: 50, index: index)
     }
-    print("PERF 50k: newest 50 of one steward, indexed \(format(lateSteward))")
+    let recent = try cpuSeconds {
+        _ = try reader.newest(LedgerFilter(namespaces: ["approval"]), limit: 20)
+    }
+    print(
+        "PERF 50k: newest 50 of one steward \(format(lateSteward)); "
+            + "newest 20 approvals \(format(recent))")
     print(
         "PERF 50k: filtered \(format(filtered)); namespace \(format(typed)); "
             + "last week \(format(since)); full \(format(full)); counts \(counts)")

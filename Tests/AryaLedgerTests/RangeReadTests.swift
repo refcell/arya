@@ -158,3 +158,22 @@ private func filters() -> [LedgerFilter] {
         }
     }
 }
+
+@Test func newestReadsEqualTheTailOfAForwardRead() throws {
+    let home = try TempHome()
+    defer { home.cleanup() }
+    let all = try seeded(home)
+    let reader = LedgerReader(home: home.url)
+    for filter in filters() {
+        for before in [nil, Int64(1), 2, 50, 121, 500] as [Int64?] {
+            for limit in [1, 3, 200] {
+                let expected = all.filter { event in
+                    filter.matches(event) && before.map { event.seq < $0 } ?? true
+                }.suffix(limit)
+                #expect(
+                    try reader.newest(filter, before: before, limit: limit) == Array(expected),
+                    "\(filter) before \(String(describing: before)) limit \(limit)")
+            }
+        }
+    }
+}
