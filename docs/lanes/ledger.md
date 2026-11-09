@@ -62,7 +62,16 @@ M3 (extended by the lane):
   best effort, so an unwritable cache never fails a read.
 
 M4:
-- [ ] (4) Signed checkpoints for ledger compaction (Later in ROADMAP): design note first.
+- [x] (4) Signed checkpoints for compaction: design note in ARCHITECTURE.md
+  ("Signed checkpoints and compaction").
+
+Next (lane-extended, in order):
+- [ ] (5) `system.key.added` and `keys/checkpoint.key` storage (CryptoKit Ed25519), with id
+  and rotation rules from the note; typed payload and golden.
+- [ ] (6) `system.checkpoint`: build, sign, check; `LedgerVerifier` anchoring with an
+  `unanchored` issue and its report text.
+- [ ] (7) Projection seeding from a checkpoint's digests; then `compact` and `verify --archive`.
+- [ ] (8) Use the `LedgerIndex` run spans to narrow `page(_:)` run queries when scans get slow.
 
 ## Decisions
 
@@ -139,21 +148,22 @@ M4:
 
 
 ## Log
+- HANDOFF 2026-11-09 (second session, ended near auto-compaction): backlog (1)-(4) done and
+  on main. Next is (5), then (6)-(8), all from the ARCHITECTURE.md checkpoint note. Notes:
+  measure perf with thread CPU time (`ARYA_PERF=1 just test perf`); wall time is meaningless
+  under machine load. Debug-build hot loops: avoid range patterns, `for in 0..<n`, and generic
+  slice algorithms (see the decision on perf). `JSONParser` changes must keep
+  `JSONParserTests` green; search longer with `ARYA_FUZZ_ITERATIONS=40000`. Runtime books use
+  `RuntimeBook.cacheName` (bump its suffix on any fold change). Open asks: workspace.md
+  (report lines on `LedgerCheck`, `sink.book` in `Workspace.runBook`), cli-e2e.md (print the
+  report). Machine rules: `just` recipes share 2 CI slots; full `just ci` only inside
+  `just publish`; never broad process kills.
+- 2026-11-09: (4) done: checkpoint and compaction design note; backlog extended (5)-(8).
 - 2026-11-09: (3) done: runtime books served from `cache/` (approved integration edit).
 - 2026-11-09: (2) done: `LedgerVerificationReport`, `segments` and `firstBadSeq` on
   `LedgerVerification`, public inits for its `Location` and `Failure`.
 - 2026-11-09: (1) done: `JSONParser` and envelope building without `JSONDecoder`; full
   read of 5,000 events 0.09 s CPU in debug.
-- HANDOFF 2026-11-09 (session ended near auto-compaction): main is green at f19e82f. Next item
-  is (1), the envelope decoder. The probe is `ARYA_PERF=1 just test perf`
-  (Tests/AryaLedgerTests/PerfProbeTests.swift): `JSONDecoder` decode of `Event` takes ~0.4-1.1
-  s and hashing ~0.1 s for 5,000 lines. `JSONSerialization` into `JSONValue` measured no faster,
-  so write a small byte-level parser for `JSONValue` in AryaCore (strings, numbers, nesting) and
-  build `Event` from it in `LedgerLine.open`; the goldens and verify tests guard correctness.
-  Publish rules: full `just ci` on the first push; after a clean rebase, tidy, build, and
-  `just test AryaLedgerTests`, at most 3 times, then full CI again. Commit through
-  `sh -c 'git commit -S -m …'`. Cross-lane notes go as one `- (from ledger)` line appended to
-  the end of the target lane's Questions.
 - 2026-11-09: ids, Timestamp, Ambient, JSONValue, canonical JSON landed in AryaCore (5fdc638).
 - 2026-11-09: Charter, Case, GateChecking with validation and goldens (5b7d61a).
 - 2026-11-09: Event envelope, Actor, EventType, line sealing (decision 0012), EventPayload

@@ -121,6 +121,48 @@ Each line is one event:
 
 Payload types are Swift `Codable` structs in `AryaLedger`, each with a golden-file test.
 
+### Signed checkpoints and compaction (M4 design)
+
+Not built yet; this is the plan the ledger lane works from. The ledger only grows: a full
+`verify` and a cold projection rebuild read every line, and an exported steward has nothing to
+prove where its history came from. A **checkpoint** pins the ledger's state at one `seq` under a
+local signing key, so older segments can be archived and history can travel.
+
+- **Event.** `system.checkpoint` (actor `system`), appended under the normal lock like any
+  event. Payload: `{"v":1,"through":<seq>,"head":"<hash at through>","events":<count>,
+  "segments":[{"name","sha256","first","last"}],"projections":{"<cache name>":"<sha256>"},
+  "key":"<key id>","signature":"<base64>"}`. `segments` lists every closed segment wholly at or
+  before `through`, with the SHA-256 of its file. `projections` holds the digest of each cached
+  projection's canonical `value` at `through`.
+- **Signature.** Ed25519 (CryptoKit `Curve25519.Signing`) over the canonical JSON of the payload
+  without `signature`. The private key lives at `keys/checkpoint.key` (mode 0600, never on the
+  ledger); its public half and id (`key_` + first 16 hex of its SHA-256) are recorded once by a
+  `system.key.added` event. Rotation appends a new `system.key.added` signed by the old key.
+  The chain already gives tamper evidence inside one file; the signature adds what the chain
+  cannot: a ledger whose early segments are gone, or an exported one, still proves that this
+  key saw exactly this head.
+- **Compaction.** `arya ledger compact --through <seq>` needs a checkpoint at or after that
+  `seq`, then moves the covered segments to `archive/` (never deletes; deleting archive files is
+  a separate, explicit person action). The live ledger then starts mid-chain.
+- **Verify.** When the first live event's `seq` is above 1, `verify` requires a checkpoint that
+  is signed by a recorded key, whose `through` is `first.seq - 1`, and whose `head` equals the
+  first live event's `prev`. Without one the report fails with a new `unanchored` issue.
+  `verify --archive` also re-hashes the archived segments against the checkpoint's list.
+- **Projections.** A projection cache entry whose digest matches the checkpoint seeds `catchUp`,
+  so a cold start reads only lines after the checkpoint. A cache that does not match is
+  rebuilt, which needs the archive; without it the projection is reported unavailable rather
+  than guessed.
+- **Replay.** Runs that started before the compaction point replay from `archive/`; when the
+  archive is missing, replay reports the run as archived instead of a divergence.
+- **Determinism.** Checkpoints take no clock or randomness beyond the event envelope; the same
+  ledger and key always produce the same payload. Ed25519 signatures from CryptoKit are
+  randomized, so replay compares the signed payload, never the signature bytes.
+
+Order of work: `system.key.added` and key storage; `system.checkpoint` with sign and check;
+`verify` anchoring and the `unanchored` issue; projection seeding; `compact` and archive
+verify; export and import on top. Non-goals: remote timestamping, multi-party signing, and
+checkpoints made automatically without a person asking (a later policy may schedule them).
+
 ## Charters and cases
 
 A charter is a versioned JSON document. Version numbers increase by one per accepted change.
