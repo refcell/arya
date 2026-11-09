@@ -116,6 +116,53 @@ extension Workspace {
         return try CanonicalJSON.encode(JSONValue.object(object))
     }
 
+    /// Corrects what a run did (the correction on a run thread): the run becomes a case of the
+    /// steward's newest casebook (or a new `corrections` casebook) with `expected`, recorded as a
+    /// new casebook version, `case.corrected`, and a memory note from `note`.
+    public func correct(
+        run: String, expected: Data, note: String? = nil, by person: String = "local"
+    ) async throws -> CorrectionSummary {
+        guard let record = try await runBook().records[RunID(unchecked: run)] else {
+            throw WorkspaceError.notFound(run)
+        }
+        guard let value = try? CanonicalJSON.decode(JSONValue.self, from: expected),
+            value.objectValue != nil
+        else { throw WorkspaceError.rejected("expected must be a JSON object") }
+        let outcome: CorrectionOutcome
+        do {
+            outcome = try await Corrector(sink: sink, blobs: blobs, ambient: ambient).correct(
+                run: record.id, expected: value, note: note.flatMap { $0.isEmpty ? nil : $0 },
+                person: person)
+        } catch EvalError.unknownRun {
+            throw WorkspaceError.notFound(run)
+        }
+        let body = try CanonicalJSON.decode(
+            CaseCorrectedPayload.self, from: try CanonicalJSON.encode(outcome.event.payload))
+        return CorrectionSummary(
+            steward: record.steward.rawValue, caseID: body.caseID.rawValue,
+            note: outcome.note.id.rawValue, casebook: outcome.casebook?.version ?? body.casebook)
+    }
+
+    /// What `run` recorded as its result with `decisions[0].choice` set to `choice`, as JSON:
+    /// a starting point for `correct(run:expected:)` when the run chose wrong.
+    public func expected(run: String, choice: String) async throws -> Data {
+        let id = RunID(unchecked: run)
+        guard try await runBook().records[id] != nil else { throw WorkspaceError.notFound(run) }
+        var events: [Event] = []
+        try reader.forEach { if $0.run == id { events.append($0) } }
+        let recorded = RecordedResults(events).results[id]?.result
+        var object =
+            try recorded.map {
+                try CanonicalJSON.decode(JSONValue.self, from: try CanonicalJSON.encode($0))
+            }?.objectValue ?? [:]
+        var decisions = object["decisions"]?.arrayValue ?? []
+        var first = decisions.first?.objectValue ?? [:]
+        first["choice"] = .string(choice)
+        if decisions.isEmpty { decisions = [.object(first)] } else { decisions[0] = .object(first) }
+        object["decisions"] = .array(decisions)
+        return try CanonicalJSON.encode(JSONValue.object(object))
+    }
+
     /// Marks a steward ready for live triggers (`steward.ready`), with its newest finished
     /// rehearsal of the live charter as evidence when there is one. `person` decides.
     public func markReady(steward: String, by person: String = "local") async throws

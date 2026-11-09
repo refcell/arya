@@ -140,3 +140,34 @@ extension JSONValue {
     #expect(!failed.wouldHave.isEmpty && !failed.diff.isEmpty)
     #expect(view.cases.first?.diff == "matches expected")
 }
+
+@Test func correctingALiveRunMakesItACase() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let run = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+
+    let expected = try await workspace.expected(run: run.id, choice: "shipping")
+    let value = try CanonicalJSON.decode(JSONValue.self, from: expected)
+    #expect(value["decisions"]?.arrayValue?.first?["choice"] == "shipping")
+    #expect(value["actions"]?.arrayValue?.isEmpty == false)
+
+    let correction = try await workspace.correct(
+        run: run.id, expected: expected, note: "Package questions are shipping.")
+
+    #expect(correction.steward == "st_inbox")
+    #expect(!correction.caseID.isEmpty)
+    let books = try await workspace.casebooks(steward: "st_inbox")
+    #expect(books.first?.version == correction.casebook)
+    #expect(books.first?.name == "corrections")
+    #expect(books.first?.cases == 1)
+    let notes = try await workspace.memory(steward: "st_inbox")
+    #expect(notes.map(\.text) == ["Package questions are shipping."])
+    #expect(notes.first?.id == correction.note)
+    await #expect(throws: WorkspaceError.notFound("run_missing")) {
+        try await workspace.correct(run: "run_missing", expected: expected)
+    }
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.correct(run: run.id, expected: Data("[1]".utf8))
+    }
+}

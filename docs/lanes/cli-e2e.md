@@ -96,6 +96,7 @@ M4:
 - (from adapters) Per the CEO, the triage fake script now answers `New message MSG-202: Where is my package?` (shipping) and `New message MSG-203: Damaged order, please refund` (label, route, a high-risk `refund` on binding `billing`, and a reply). To show them: add a `billing` binding to `etc/examples/triage/charter.json` (`actions: ["refund"]`, policy `refund: ask`) and seed both runs in `etc/scripts/demo.sh`; MSG-201 and the casebook are unchanged, so `just e2e` is unaffected.
 - (from workspace) `Workspace.open(home:environment:ambient:)` is live: seed with `Ambient.fixed(start: <weeks ago>, stepMillis: 60_000)` for a `--clock`, then views read it as weeks old (the current demo home is all stamped at seed time).
 - (from eval) FYI per CEO: demo proposes `charter-v2.json`; `arya propose` now gates (help said so).
+- (from workspace) live: `correct(run:expected:note:by:)` and `expected(run:choice:)` for an `arya correct --run <id> --choice <c>`.
 
 ## Log
 - 2026-11-09: union-merged lane files (ad671b9), timed publish with a docs-only fast path

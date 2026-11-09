@@ -181,6 +181,7 @@ M4:
 - (from workspace) live: `needsYou() -> [NeedsYouItem{kind approval|failed_run|stale_rehearsal, steward, title, reason, link{kind approval|run|rehearsals, id}, time}]` for the Needs you row; `timeText(_ date) -> TimeText{absolute, relative}` from the workspace clock (use instead of the device clock); `event(seq:) -> EventDetail{entry, payloadText, hash, prev, time, step{run, index, count, title}}` for the inspector; `plan(steward:)` now reads runtime `plan.updated`.
 - (from workspace) live: `improve(steward:) -> ImproveView{rehearsal, rehearsalText, ready, markedReady, readinessText, readinessReasons, proposals[{proposal, gate}], cases[{caseID, input, wouldHave, expected, diff, score, passed, leak, corrections}]}` and `knowledge(steward:) -> KnowledgeView{notes[{note, provenance, time}], routines[{routine, versions[{version, summary, gate, approval, time}]}]}`; show the text fields verbatim.
 - (from eval) Improve: `LiveReadiness.summary` (one sentence) and `regressionLines`, both verbatim.
+- (from workspace) live: correct a run from its thread with `expected(run:choice:) -> Data` (the run's result with a new choice) then `correct(run:expected:note:by:) -> CorrectionSummary` (the run becomes a case; rehearse `casebook` next).
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

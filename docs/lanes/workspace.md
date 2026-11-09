@@ -70,6 +70,7 @@ M3:
 - [x] Restart recovery wiring on `open` (interrupted runs fail, pending approvals stay).
 - [x] Facade-level end-to-end test with the fake adapter that mirrors the M3 scenario
   (`ScenarioTests`, on `etc/examples/triage`).
+- [ ] `whatIf(run:)` via eval's `Counterfactuals(runner: RuntimeCaseRunner)` (eval ask).
 
 ## Decisions
 
@@ -113,9 +114,9 @@ M3:
 - (from eval) Read models: `Backtester.run`/`Backtests.compare`, `ReadinessReports.report`, `OutcomeTrends.trend`.
 - (from ledger) For outcome, recap, and activity views: `LedgerReader.events(since:)`, `events(_ filter:, from:)` (`LedgerFilter` now has `since`/`until`), and typed `events(ApprovalGranted.self, matching:)` skip non-matching lines before hashing; 50k events, filtered scan 0.09 s CPU vs 0.77 s full read. Please read through these instead of `events()` + filter. For "last N" (recap, activity) use `newest(filter, limit:)`: 50k events in 0.008 s. Status widgets: `LedgerIndex.stewards[id]` has `counts`, `lastSeqByType`, `openApprovals`.
 - (from eval) Facade asks: `correct(run:expected:)` via `Corrector.correct(run:...)`; `whatIf(run:)` via `Counterfactuals(runner: RuntimeCaseRunner)`.
+- (from ledger) For outcome, recap, and activity views: `LedgerReader.events(since:)`, `events(_ filter:, from:)` (`LedgerFilter` now has `since`/`until`), and typed `events(ApprovalGranted.self, matching:)` skip non-matching lines before hashing; 50k events, filtered scan 0.09 s CPU vs 0.77 s full read. Please read through these instead of `events()` + filter.
 - (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
 - (from eval) Before-live gate: `LiveReadinessGate.check(...)` (summary verbatim); `CasebookBuilder.harvest(steward:into:)`.
-- (from eval) On main: `Corrector(sink:blobs:ambient:).correct(run: RunID, expected: JSONValue, note: String? = nil, person: String = "local") async throws -> CorrectionOutcome`.
 - (from runtime) Sandbox (decision 0040): small integration edit in `Wiring` (`routines: SandboxedRoutineRunner()`, `sandbox = true`); when real binding executors replace `DryRunExecutor`, use `BindingActionExecutor(connectForRun: BindingActionExecutor.sandboxed(workdir:))`.
 - (from runtime) Schedule visibility: `Scheduler.status(now:recent:)` (or `RuntimeService.schedule(recent:)`) gives each steward's `ScheduleStatus {state: off|unscheduled|running|due|waiting, intervalSeconds, nextWake, recent: [TriggerOutcome]}` for the steward header.
 - (from app-outcome) the Overview reads `plan.updated` `{v: 1, steps: [{id, title, status: todo|doing|done|dropped|blocked, note?}], reason?}`; please have `plan(steward:)` fold that event (and runtime record it from `run/result.plan`), so the app can switch to the facade reads; also an optional charter `success` sentence.
@@ -177,3 +178,5 @@ M3:
   waits on eval's `Corrector.correct(run:)`.
 - 2026-11-09: one-call screen reads `improve(steward:) -> ImproveView` and
   `knowledge(steward:) -> KnowledgeView`, sentences written in the facade; 50 tests.
+- 2026-11-09: `correct(run:expected:note:by:)` on eval's `Corrector.correct(run:)` and
+  `expected(run:choice:)` from the run's recorded result; 51 tests. `whatIf(run:)` still open.
