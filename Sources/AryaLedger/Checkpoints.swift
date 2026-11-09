@@ -40,15 +40,56 @@ public struct Checkpoints: Sendable {
     }
 
     /// Builds a checkpoint and appends it as a `system` event. The signer must already be on
-    /// the ledger (`CheckpointKeys.ensure`).
+    /// the ledger (`CheckpointKeys.ensure`). With `caches`, every cache file in `cache/` that
+    /// is exactly at `through` (the head by default) adds its value's digest to
+    /// `projections` and is kept as a seed in `archive/seeds/<through>/`, so a compacted
+    /// ledger can restore that projection (`ProjectionCache.current`). Bring the caches
+    /// current first.
     @discardableResult
     public func record(
         store: LedgerStore, through: Int64? = nil, projections: [String: String] = [:],
-        signer: CheckpointSigner
+        signer: CheckpointSigner, caches: ProjectionCache? = nil
     ) throws -> Event {
         guard try trustedRing().keys[signer.id] != nil else { throw CheckpointError.keyNotRecorded }
-        let payload = try build(through: through, projections: projections, signer: signer)
+        var digests = projections
+        var seeds: [String: [UInt8]] = [:]
+        if let caches, let target = try through ?? headSeq(),
+            let head = try reader.event(at: target)
+        {
+            for file in try caches.files(at: head) {
+                digests[file.name] = file.digest
+                seeds[file.name] = file.bytes
+            }
+        }
+        let payload = try build(through: through, projections: digests, signer: signer)
+        if !seeds.isEmpty {
+            let dir = seedDirectory(payload.through)
+            try FileIO.makeDirectory(dir.deletingLastPathComponent())
+            try FileIO.makeDirectory(dir)
+            for (name, bytes) in seeds {
+                try FileIO.atomicWrite(Data(bytes), to: dir.appendingPathComponent(name + ".json"))
+            }
+        }
         return try store.append(EventDraft(payload, actor: .system))
+    }
+
+    /// `archive/seeds/<through>/`.
+    func seedDirectory(_ through: Int64) -> URL {
+        reader.directory.deletingLastPathComponent()
+            .appendingPathComponent("archive/seeds", isDirectory: true)
+            .appendingPathComponent(String(through), isDirectory: true)
+    }
+
+    /// Lowercase hex SHA-256 of a projection value's canonical JSON, as `projections` holds.
+    public static func digest(_ value: JSONValue) throws -> String {
+        var bytes = [UInt8]()
+        try CanonicalJSON.write(value, into: &bytes)
+        return LedgerLine.hexSHA256(bytes)
+    }
+
+    private func headSeq() throws -> Int64? {
+        guard let newest = try reader.existingSegments().last else { return nil }
+        return try reader.lastEvent(of: newest)?.seq
     }
 
     /// The keys this ledger trusts: every live `system.key.added`, plus, on a compacted

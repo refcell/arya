@@ -157,10 +157,12 @@ local signing key, so older segments can be archived and history can travel.
   the first live `prev`). Without one the report fails with an `unanchored` issue.
   `verify --archive` (`verifyArchive()`) re-hashes the archived segments against the anchoring
   checkpoint's list and checks that the last archived event's hash is the first live `prev`.
-- **Projections.** A projection cache entry whose digest matches the checkpoint seeds `catchUp`,
-  so a cold start reads only lines after the checkpoint. A cache that does not match is
-  rebuilt, which needs the archive; without it the projection is reported unavailable rather
-  than guessed.
+- **Projections.** `Checkpoints.record(…, caches:)` adds the digest of every cache file exactly
+  at `through` and keeps that file as a seed in `archive/seeds/<through>/`. On a compacted
+  ledger, a cache that does not continue the live events is seeded from the newest trusted
+  checkpoint whose digest matches its seed, then caught up, so a cold start reads only lines
+  after the checkpoint. Without a matching seed the projection is reported unavailable
+  (`ProjectionError.archived`) rather than guessed.
 - **Replay.** Runs that started before the compaction point replay from `archive/`; when the
   archive is missing, replay reports the run as archived instead of a divergence.
 - **Determinism.** Checkpoints take no clock or randomness beyond the event envelope; the same

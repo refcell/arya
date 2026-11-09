@@ -39,16 +39,80 @@ public struct ProjectionCache: Sendable {
     /// Loads the cache (or starts empty), catches up with the ledger, saves the result if it
     /// moved, and returns it. Saving is best effort: a cache that cannot be written (a
     /// read-only home, a full disk) never fails the read, it only stays stale.
+    ///
+    /// On a compacted ledger a cache that does not continue the live events cannot be rebuilt
+    /// from them; it is seeded from `archive/seeds/` instead, using the newest trusted
+    /// checkpoint whose digest matches the seed. Without one it throws
+    /// `ProjectionError.archived` rather than guessing.
     public func current<P: LedgerProjection & Codable>(_ type: P.Type, name: String) throws
         -> Projected<P>
     {
         let saved = load(type, name: name)
         var projected = saved ?? Projected<P>()
-        try reader.catchUp(&projected)
+        do {
+            try reader.catchUp(&projected)
+        } catch ProjectionError.discontinuity {
+            guard var seeded = try seed(type, name: name) else {
+                throw ProjectionError.archived(name)
+            }
+            try reader.catchUp(&seeded)
+            projected = seeded
+        }
         if saved?.seq != projected.seq || saved?.hash != projected.hash {
             try? save(projected, name: name)
         }
         return projected
+    }
+
+    /// The newest seed a trusted checkpoint vouches for, or nil.
+    func seed<P: LedgerProjection & Codable>(_ type: P.Type, name: String) throws
+        -> Projected<P>?
+    {
+        guard Self.isValidName(name) else { return nil }
+        let checkpoints = Checkpoints(home: directory.deletingLastPathComponent())
+        let ring = try checkpoints.trustedRing()
+        var found: [SystemCheckpoint] = []
+        try reader.forEach(LedgerFilter(types: [.systemCheckpoint])) { event in
+            if let value = try? event.payload(as: SystemCheckpoint.self),
+                value.projections[name] != nil
+            {
+                found.append(value)
+            }
+        }
+        for checkpoint in found.reversed() {
+            guard Checkpoints.checkSignature(checkpoint, ring: ring) == nil,
+                let digest = checkpoint.projections[name],
+                let data = FileManager.default.contents(
+                    atPath: checkpoints.seedDirectory(checkpoint.through)
+                        .appendingPathComponent(name + ".json").path),
+                case .object(let fields)? = try? JSONParser.parse(Array(data)),
+                let value = fields["value"], (try? Checkpoints.digest(value)) == digest,
+                let file = try? JSONDecoder().decode(CacheFile<P>.self, from: data),
+                file.v == 1, file.name == name, file.seq == checkpoint.through,
+                file.hash == checkpoint.head
+            else { continue }
+            return Projected(value: file.value, seq: file.seq, hash: file.hash)
+        }
+        return nil
+    }
+
+    /// Cache files in `cache/` exactly at `head`: name, value digest, and file bytes.
+    func files(at head: Event) throws -> [(name: String, digest: String, bytes: [UInt8])] {
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory.path)
+        else { return [] }
+        var out: [(name: String, digest: String, bytes: [UInt8])] = []
+        for file in names.sorted() where file.hasSuffix(".json") {
+            let name = String(file.dropLast(5))
+            guard Self.isValidName(name),
+                let data = FileManager.default.contents(atPath: url(name).path),
+                case .object(let fields)? = try? JSONParser.parse(Array(data)),
+                fields["v"] == 1, fields["name"] == .string(name),
+                fields["seq"] == .int(head.seq), fields["hash"] == .string(head.hash),
+                let value = fields["value"]
+            else { continue }
+            out.append((name, try Checkpoints.digest(value), Array(data)))
+        }
+        return out
     }
 
     /// Removes the cache file for `name`, if any.

@@ -46,6 +46,9 @@ public struct Projected<P: LedgerProjection>: Sendable {
 public enum ProjectionError: Error, Hashable, Sendable {
     /// The next event did not follow the last folded one (wrong `seq` or `prev`).
     case discontinuity(expectedSeq: Int64, found: Int64)
+    /// The ledger was compacted and no trusted seed restores this projection; restore
+    /// `archive/` to rebuild it.
+    case archived(String)
 }
 
 extension LedgerReader {

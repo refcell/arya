@@ -93,3 +93,62 @@ private func compactableHome(checkpoint: Bool = true) throws -> (TempHome, Ledge
     // The live ledger still verifies: the checkpoint vouches for what was archived.
     #expect(try verifier.verify().ok)
 }
+
+/// Counts events and remembers the newest note text.
+private struct Tally: LedgerProjection, Codable, Hashable {
+    var count = 0
+    var last = ""
+
+    mutating func apply(_ event: Event) throws {
+        count += 1
+        if case .string(let text)? = event.payload.objectValue?["text"] { last = text }
+    }
+}
+
+/// A compacted home whose checkpoint at the head carried a `tally` seed, plus one event after.
+private func seededCompactedHome() throws -> (TempHome, LedgerStore, Int64) {
+    let home = try TempHome()
+    let store = try LedgerStore(home: home.url, ambient: .fixed(), segmentLimitBytes: 600)
+    let signer = try CheckpointKeys(home: home.url).ensure(store: store) { fixedKey(1) }
+    for index in 0..<30 { try store.append(note("note \(index)")) }
+    let caches = ProjectionCache(home: home.url)
+    _ = try caches.current(Tally.self, name: "tally")
+    let event = try Checkpoints(home: home.url).record(store: store, signer: signer, caches: caches)
+    let checkpoint = try event.payload(as: SystemCheckpoint.self)
+    #expect(checkpoint.projections["tally"] != nil)
+    try store.append(note("after"))
+    try store.compact(through: 20)
+    return (home, store, checkpoint.through)
+}
+
+@Test func compactedLedgerRestoresAProjectionFromItsSeed() throws {
+    let (home, _, through) = try seededCompactedHome()
+    defer { home.cleanup() }
+    let caches = ProjectionCache(home: home.url)
+    let seedFile = home.url.appendingPathComponent("archive/seeds/\(through)/tally.json")
+    #expect(FileManager.default.fileExists(atPath: seedFile.path))
+    try FileManager.default.removeItem(at: caches.directory)
+    let restored = try caches.current(Tally.self, name: "tally")
+    #expect(restored.value == Tally(count: 33, last: "after"))
+    #expect(restored.seq == 33)
+    // The restored cache is saved and keeps catching up normally.
+    #expect(caches.load(Tally.self, name: "tally")?.seq == 33)
+}
+
+@Test func compactedLedgerWithoutAMatchingSeedReportsArchived() throws {
+    let (home, _, through) = try seededCompactedHome()
+    defer { home.cleanup() }
+    let caches = ProjectionCache(home: home.url)
+    try FileManager.default.removeItem(at: caches.directory)
+    #expect(throws: ProjectionError.archived("other")) {
+        try caches.current(Tally.self, name: "other")
+    }
+    // A seed whose value changed no longer matches its checkpoint digest.
+    let seedFile = home.url.appendingPathComponent("archive/seeds/\(through)/tally.json")
+    let text = String(decoding: try Data(contentsOf: seedFile), as: UTF8.self)
+    try Data(text.replacingOccurrences(of: "\"count\":31", with: "\"count\":99").utf8)
+        .write(to: seedFile)
+    #expect(throws: ProjectionError.archived("tally")) {
+        try caches.current(Tally.self, name: "tally")
+    }
+}

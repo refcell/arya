@@ -74,9 +74,9 @@ Next (lane-extended, in order):
   checkpoint (`unanchored` issue otherwise) and checks every checkpoint (`badCheckpoint`).
 - [x] (7a) `LedgerStore.compact(through:)` (verify first, append lock, archive never
   overwritten) and `LedgerVerifier.verifyArchive()`; anchors may be any covering checkpoint.
-- [ ] (7b) Projection digests in `Checkpoints.record` from current cache files, seeds kept in
-  `archive/seeds/`, and `ProjectionCache` seeding on a compacted ledger (`archived` error when
-  no seed matches; `stillHas` accepts a cache exactly at the cut).
+- [x] (7b) Projection digests and seeds: `Checkpoints.record(…, caches:)` writes
+  `archive/seeds/<through>/<name>.json`; `ProjectionCache.current` seeds from the newest
+  trusted, digest-matching seed on a compacted ledger, else throws `ProjectionError.archived`.
 - [ ] (8) Use the `LedgerIndex` run spans to narrow `page(_:)` run queries when scans get slow.
 
 ## Decisions
@@ -172,6 +172,10 @@ Next (lane-extended, in order):
   can anchor a cut at a segment boundary. `verifyArchive` checks only the segments the anchor
   lists before the first live event; after a second compaction, older archive files were
   vouched for by the earlier checkpoint, which is itself archived.
+- Projection digests are SHA-256 of the canonical JSON of the cache file's `value`, computed
+  from the file as `JSONValue` so the ledger lane needs no projection types. Only cache files
+  exactly at the checkpoint's `through` (seq and hash) are digested; callers bring caches
+  current first. Seeds live under `archive/` because `cache/` must stay delete-safe.
 - Perf probes measure thread CPU time, not wall time, so a loaded machine does not make them
   flaky. Hot loops in `JSONParser` and `LedgerLine` use index loops and plain byte compares:
   tests run debug builds, where range patterns and generic slice algorithms cost metadata
@@ -182,7 +186,8 @@ Next (lane-extended, in order):
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
-- 2026-11-09: (7a) done: compaction to `archive/`, `verifyArchive`, covering anchors.
+- 2026-11-09: (7b) done: projection seeds and seeding on compacted ledgers.
+- 2026-11-09: (7a) done: compaction to `archive/`, `verifyArchive`, covering anchors (6e8e9bc).
 - 2026-11-09: (6) done: `system.checkpoint`, `Checkpoints`, verify anchoring (`unanchored`,
   `badCheckpoint`) with report text. Verify of 5,000 events 0.11 s CPU (ef55a14).
 - 2026-11-09: (5) done: `system.key.added`, `CheckpointKeys`, `KeyRing` (dd8bbe0).
