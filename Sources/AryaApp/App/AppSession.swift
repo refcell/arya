@@ -11,7 +11,9 @@ final class AppSession {
     private(set) var problem: String?
 
     /// Opens a home or the preview workspace, replacing whatever was open.
-    func open(_ choice: HomeChoice) async {
+    /// - Parameter environment: what adapter processes get (include `PATH`); the app passes
+    ///   its own process environment.
+    func open(_ choice: HomeChoice, environment: [String: String] = [:]) async {
         self.choice = choice
         problem = nil
         switch choice {
@@ -22,7 +24,7 @@ final class AppSession {
                 featureStore: FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now))
         case .home(let url):
             do {
-                let workspace = try await Workspace.open(home: url)
+                let workspace = try await Workspace.open(home: url, environment: environment)
                 model = AppModel(
                     source: workspace,
                     featureStore: FeatureStore(workspace: FacadeFeatureWorkspace(source: workspace))

@@ -24,11 +24,14 @@ extension Workspace: WorkspaceSource {
     nonisolated var label: String { home.lastPathComponent }
 
     func efforts() async throws -> [String: String] {
-        // The facade has no effort read yet; every steward shows the charter default.
-        [:]
+        var efforts: [String: String] = [:]
+        for steward in try await stewards() {
+            efforts[steward.id] = try await effort(for: steward.id)
+        }
+        return efforts
     }
 
     func setEffort(_ effort: String, steward: String) async throws {
-        throw WorkspaceError.unavailable("setEffort")
+        try await setEffort(effort, for: steward, by: "local")
     }
 }

@@ -64,7 +64,7 @@ import Testing
         #expect(model.live == .watching)
     }
 
-    @Test func aRealHomeReportsWhatIsNotAvailableYet() async throws {
+    @Test func aRealHomeShowsItsStewardsAndEffort() async throws {
         let home = FileManager.default.temporaryDirectory
             .appendingPathComponent("arya-app-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: home) }
@@ -72,11 +72,26 @@ import Testing
         await session.open(.home(home))
         let model = try #require(session.model)
         await model.refresh()
-        #expect(model.loaded)
-        if let problem = model.problem {
-            #expect(problem.hasPrefix("This workspace cannot do that yet"))
-        }
+        #expect(model.problem == nil)
+        #expect(model.stewards.isEmpty)
+        #expect(model.navigation.destination == nil)
+
+        let charter = try Data(
+            contentsOf: Self.repoRoot.appendingPathComponent(
+                "etc/examples/triage/charter.json"))
+        let workspace = try #require(model.source as? Workspace)
+        let steward = try await workspace.createSteward(charter: charter)
+        await model.refresh()
+        #expect(model.stewards.map(\.id) == [steward.id])
+        #expect(model.navigation.steward == steward.id)
+        let next: AryaEffort = model.effort(for: steward.id) == .high ? .low : .high
+        await model.setEffort(next, steward: steward.id)
+        #expect(model.problem == nil)
+        #expect(try await workspace.effort(for: steward.id) == next.rawValue)
     }
+
+    static let repoRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 
     @Test(arguments: [false, true])
     func theShellRenders(dark: Bool) async throws {

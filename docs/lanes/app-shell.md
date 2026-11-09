@@ -74,9 +74,8 @@ M4:
   app-views adds its own files beside them.
 - The rail is a custom view, not `NavigationSplitView`, because the system sidebar draws
   vibrancy, which STYLE.md forbids. The rail resizes by dragging the hairline (200–320 pt).
-- Effort has no facade read or write yet. The header shows `medium` for real homes and
-  `setEffort` reports "cannot do that yet"; switch to the facade call once runtime adds it
-  (noted in runtime's Questions).
+- Effort reads and writes go through the facade (`effort(for:)`, `setEffort(_:for:by:)`,
+  decision 0026); the app passes its process environment to `Workspace.open` for adapters.
 - Two seams coexist for now: the shell reads summaries through `WorkspaceSource`, and the
   feature views read events through app-views' `FeatureWorkspace`/`FeatureStore`. The shell
   passes the store in `FeatureContext.store`; preview mode wires app-views' `PreviewWorkspace`
@@ -104,3 +103,4 @@ M4:
   `ApprovalQueueView` through `FeatureContext.store`; it is yours to extend.
 - 2026-11-09: facade-backed `FacadeFeatureWorkspace` for real homes (7abeedf).
 - 2026-11-09: text size commands, `--home`, `just app-preview` (0ab37da).
+- 2026-11-09: rail arrow keys, `just screenshots`, one approvals count (bdd54f6).

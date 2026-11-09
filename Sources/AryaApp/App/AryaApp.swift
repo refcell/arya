@@ -19,11 +19,12 @@ struct AryaApp: App {
                     guard session.choice == nil else { return }
                     let support = FileManager.default.urls(
                         for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                    let environment = ProcessInfo.processInfo.environment
                     await session.open(
                         HomeLocator.resolve(
-                            arguments: CommandLine.arguments,
-                            environment: ProcessInfo.processInfo.environment,
-                            applicationSupport: support))
+                            arguments: CommandLine.arguments, environment: environment,
+                            applicationSupport: support),
+                        environment: environment)
                 }
         }
         .defaultSize(width: 1120, height: 720)
@@ -95,6 +96,8 @@ struct AryaCommands: Commands {
         panel.prompt = "Open"
         panel.message = "Choose an arya home folder."
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        Task { await session.open(.home(url)) }
+        Task {
+            await session.open(.home(url), environment: ProcessInfo.processInfo.environment)
+        }
     }
 }
