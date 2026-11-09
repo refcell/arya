@@ -1,0 +1,1 @@
+{"cost":{"costMicros":4500,"inputTokens":1200,"outputTokens":300},"counts":{"actions":1,"decisions":1,"delegations":0,"measurements":0,"memories":0,"routines":0},"status":"completed","summary":"Labeled ISSUE-7 as a bug."}

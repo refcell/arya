@@ -1,0 +1,1 @@
+{"action":{"binding":"tracker","id":"a1","kind":"label","params":{"label":"bug"},"rationale":"Stack trace points at the login handler.","target":"tracker:ISSUE-7"},"approval":"ap_01KDVDNA000000000000000003","expiresAt":"2026-01-02T00:00:00.000Z","kind":"action","to":"local"}

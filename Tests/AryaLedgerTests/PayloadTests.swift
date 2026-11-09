@@ -19,7 +19,47 @@ struct PayloadSample: Sendable, CustomStringConvertible {
     var description: String { type.rawValue }
 }
 
+private let run1 = RunID(rawValue: "run_01KDVDNA000000000000000001")!
+private let ap1 = ApprovalID(rawValue: "ap_01KDVDNA000000000000000003")!
+private let reh1 = RehearsalID(rawValue: "reh_01KDVDNA000000000000000005")!
+private let label = ProposedAction(
+    id: "a1", kind: "label", binding: "tracker", target: "tracker:ISSUE-7",
+    params: ["label": "bug"], rationale: "Stack trace points at the login handler.")
+
 let payloadSamples: [PayloadSample] = [
+    PayloadSample(
+        RunStarted(
+            input: RunInputRecord(kind: .case, text: "New issue: login page times out"),
+            charterVersion: 1, routines: ["summarize": String(repeating: "ab", count: 32)],
+            memory: ["v": 1, "notes": ["mem_1"]], adapter: "fake", effort: .medium,
+            instructions: "Outcome: every new issue is labeled.", limits: Limits(),
+            rehearsal: reh1, caseID: CaseID(rawValue: "case-0007")!, sample: 1)),
+    PayloadSample(RunInputReceived(kind: .message, text: "It is a bug.")),
+    PayloadSample(
+        RunAdapterEvent(
+            direction: .received,
+            message: ["jsonrpc": "2.0", "method": "run/event", "params": ["seq": 1]])),
+    PayloadSample(
+        RunToolCall(id: "t1", binding: "tracker", tool: "get", input: ["id": "ISSUE-7"])),
+    PayloadSample(RunToolResult(id: "t1", output: ["title": "Login"], source: .recorded)),
+    PayloadSample(
+        RunDecision(decision: RecordedDecision(id: "d1", choice: "bug", rationale: "Crash."))),
+    PayloadSample(
+        RunFinished(
+            status: .completed, summary: "Labeled ISSUE-7 as a bug.",
+            cost: RunCost(inputTokens: 1200, outputTokens: 300, costMicros: 4500),
+            counts: RunCounts(decisions: 1, actions: 1))),
+    PayloadSample(RunFailed(reason: "interrupted", detail: "adapter process gone")),
+    PayloadSample(ActionProposed(action: label, disposition: .ask, reason: "default")),
+    PayloadSample(ActionExecuted(action: "a1", approval: ap1, output: ["ok": true])),
+    PayloadSample(ActionFailed(action: "a1", error: "tracker returned 503")),
+    PayloadSample(ActionRejected(action: "a2", reason: "rule:close")),
+    PayloadSample(
+        ApprovalRequested(
+            approval: ap1, action: label, expiresAt: Timestamp(millis: 1_767_312_000_000))),
+    PayloadSample(ApprovalGranted(approval: ap1, note: "Go ahead.")),
+    PayloadSample(ApprovalDenied(approval: ap1, note: "Not this one.")),
+    PayloadSample(ApprovalExpired(approval: ap1)),
     PayloadSample(EnvRead(readings: [.time(Timestamp(millis: 0)), .random(42)])),
     PayloadSample(
         SystemRepair(
@@ -42,13 +82,16 @@ func payloadGolden(_ sample: PayloadSample) throws {
     }
     #expect(text == (try fixtureText(goldenName(sample.type))))
     #expect(try sample.roundTrips(Data(text.utf8)))
-    #expect(try sample.encode()["v"] == 1)
 }
 
 @Test func everyLedgerOwnedTypeHasAPayload() {
-    // Other payloads live with their writer (decisions 0019, 0022, 0023).
-    let owned: Set<EventType> = [.envRead, .systemRepair, .systemStarted]
-    #expect(Set(payloadSamples.map(\.type)) == owned)
+    // run.*, action.*, approval.*, env.read, and system.* are ledger-owned (decision 0024);
+    // the rest live with their writer (0019, 0022, 0023).
+    let owned = EventType.all.filter {
+        ["run", "action", "approval", "system"].contains($0.namespace) || $0 == .envRead
+    }
+    #expect(Set(payloadSamples.map(\.type)) == Set(owned))
+    #expect(payloadSamples.count == owned.count)
 }
 
 @Test func typedPayloadAccess() throws {
@@ -58,4 +101,31 @@ func payloadGolden(_ sample: PayloadSample) throws {
         at: Timestamp(millis: 0))
     #expect(try event.payload(as: SystemStarted.self).process == "test")
     #expect(throws: LedgerError.self) { try event.payload(as: EnvRead.self) }
+}
+
+@Test func decodesTheRuntimeApprovalShape() throws {
+    // Exactly what the runtime's approval queue writes today.
+    let text =
+        #"{"action":{"id":"a1","kind":"label","target":"tracker:ISSUE-7"},"#
+        + #""approval":"ap_1","kind":"action","to":"local"}"#
+    let decoded = try JSONDecoder().decode(ApprovalRequested.self, from: Data(text.utf8))
+    #expect(decoded.kind == .action)
+    #expect(decoded.action?.kind == "label")
+    #expect(decoded.action?.params == nil)
+    #expect(try CanonicalJSON.string(decoded) == text)
+    let question = #"{"approval":"ap_2","kind":"question","question":"Which label?","to":"local"}"#
+    let asked = try JSONDecoder().decode(ApprovalRequested.self, from: Data(question.utf8))
+    #expect(asked.question == "Which label?")
+    #expect(try CanonicalJSON.string(asked) == question)
+}
+
+@Test func decodesTheRuntimeActionShapes() throws {
+    let proposed =
+        #"{"action":{"id":"a1","kind":"label"},"disposition":"auto","reason":"rule:label"}"#
+    let value = try JSONDecoder().decode(ActionProposed.self, from: Data(proposed.utf8))
+    #expect(value.disposition == .auto)
+    #expect(try CanonicalJSON.string(value) == proposed)
+    let rejected = #"{"action":"a2","approval":"ap_1","reason":"denied"}"#
+    let refused = try JSONDecoder().decode(ActionRejected.self, from: Data(rejected.utf8))
+    #expect(try CanonicalJSON.string(refused) == rejected)
 }

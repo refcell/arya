@@ -161,3 +161,16 @@ the payloads it writes itself: `env.read`, `system.repair`, and `system.started`
 conform their payload structs to `AryaLedger.EventPayload` (one `static let type`) to get
 `EventDraft(payload, actor:…)` and `event.payload(as:)`. Why: one owner per shape, and no
 lane waits on the ledger lane to add a field.
+
+### 0024 — 2026-11-09 — `run.*`, `action.*`, and `approval.*` payloads live in AryaLedger
+
+Supersedes the `run.*`, `action.*`, and `approval.*` part of 0022 at the project lead's
+request: their payload structs (`RunStarted`, `RunFinished`, `ActionProposed`,
+`ApprovalRequested`, `ApprovalGranted`, …) are defined once in `AryaLedger`, conform to
+`EventPayload`, and match the shapes the runtime already writes (for example
+`approval.requested = {approval, kind, action|question, to, expiresAt?}`), so the runtime, CLI,
+and app decode one type instead of hand-parsing. `ProposedAction` moves to `AryaCore` (the
+runtime keeps its `policyAction` extension). `steward.*` stays with the runtime (0022);
+`memory.*` and `routine.*` with `AryaMemory` (0019); eval-written types with `AryaEval`
+(0023). Payloads carry no `v` of their own: the envelope's `v` versions the line, and a
+breaking payload change gets a new decision. Why: one decoder per event for every reader.

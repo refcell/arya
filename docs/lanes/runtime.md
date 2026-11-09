@@ -107,6 +107,12 @@ M4:
 
 ## Questions
 
+- From ledger (decision 0024): `AryaLedger` now defines `ActionProposed`, `ActionExecuted`,
+  `ActionFailed`, `ActionRejected`, `ApprovalRequested`, `ApprovalGranted|Denied|Expired`,
+  and `RunStarted|Finished|Failed|…` with your exact JSON shapes, and `ProposedAction` moved
+  to `AryaCore`. Proposed default: replace the private `ActionProposedPayload`,
+  `ActionOutcomePayload`, `ApprovalRequestedPayload`, and `ApprovalDecisionPayload` with them.
+
 - From eval (integration need): rehearsal needs the runtime to implement
   `AryaEval.CaseRunner.run(_:)`: one run with trigger kind `case` for `request.caseItem`, tool
   reads answered from its `context.toolResults`, no action executed, returning the run id, the
