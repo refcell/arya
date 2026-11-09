@@ -329,6 +329,31 @@ extension WorkspaceBackend {
         }
     }
 
+    func correctRun(_ run: String, choice: String, note: String?) async throws(CLIError)
+        -> CorrectionReport
+    {
+        let workspace = try await open()
+        let expected = try await call("expected") {
+            try await workspace.expected(run: run, choice: choice)
+        }
+        let summary = try await call("correct", rejection: { .invalidInput($0) }) {
+            try await workspace.correct(run: run, expected: expected, note: note)
+        }
+        return CorrectionReport(
+            steward: summary.steward, case: summary.caseID, choice: choice, note: note,
+            memory: summary.note)
+    }
+
+    func retract(memory id: String, reason: String?) async throws(CLIError) -> MemoryRow {
+        let workspace = try await open()
+        let note = try await call("retract") {
+            try await workspace.retract(memory: id, reason: reason)
+        }
+        return MemoryRow(
+            id: note.id, text: note.text, tags: note.tags, author: note.author, run: note.run,
+            retracted: note.retracted)
+    }
+
     func routines(steward: String) async throws(CLIError) -> [RoutineRow] {
         let workspace = try await open()
         let rows = try await call("routines") { try await workspace.routines(steward: steward) }

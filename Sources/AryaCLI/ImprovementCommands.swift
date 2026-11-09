@@ -32,6 +32,15 @@ extension CLI {
         case .ready:
             let detail = try await backend.markReady(steward: try invocation.positional("steward"))
             try output.emit(detail, json: json, text: TextRender.steward)
+        case .runCorrect:
+            let report = try await backend.correctRun(
+                try invocation.positional("run"), choice: values["choice"] ?? "",
+                note: values["note"])
+            try output.emit(report, json: json, text: ImprovementText.correction)
+        case .retract:
+            let row = try await backend.retract(
+                memory: try invocation.positional("memory"), reason: values["reason"])
+            try output.emit(row, json: json, text: ImprovementText.memory)
         default:
             try await dispatchInspection(invocation, backend: backend, output: output)
         }
@@ -141,6 +150,8 @@ enum ImprovementText {
                 + item.points.suffix(10).map { "  \($0.at)  \($0.value)" }
         }
     }
+
+    static func memory(_ row: MemoryRow) -> [String] { memory([row]) }
 
     static func memory(_ rows: [MemoryRow]) -> [String] {
         guard !rows.isEmpty else { return ["no memory notes"] }

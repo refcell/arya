@@ -17,11 +17,13 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case casebookList = "casebook list"
     case rehearse
     case correct
+    case runCorrect = "run correct"
     case ready
     case propose
     case proposals
     case metrics
     case memory
+    case retract
     case routines
     case replay
     case bindingProxy = "binding-proxy"
@@ -166,6 +168,15 @@ enum CommandTable {
                 noteOption,
             ]),
         CommandSpec(
+            id: .runCorrect, summary: "Correct what a run decided; it becomes a case and a memory",
+            positionals: [PositionalSpec(name: "run", help: "run id")],
+            options: [
+                OptionSpec(
+                    name: "choice", kind: .value(placeholder: "choice"), isRequired: true,
+                    help: "the decision the run should have made"),
+                noteOption,
+            ]),
+        CommandSpec(
             id: .ready, summary: "Mark a steward ready for live triggers",
             positionals: [stewardArgument]),
         CommandSpec(
@@ -191,6 +202,14 @@ enum CommandTable {
             id: .memory, summary: "List a steward's memory notes",
             positionals: [stewardArgument],
             options: [OptionSpec(name: "all", kind: .flag, help: "include retracted notes")]),
+        CommandSpec(
+            id: .retract, summary: "Retract a memory note; later runs no longer recall it",
+            positionals: [PositionalSpec(name: "memory", help: "memory note id")],
+            options: [
+                OptionSpec(
+                    name: "reason", kind: .value(placeholder: "text"),
+                    help: "why it is wrong (default: none)")
+            ]),
         CommandSpec(
             id: .routines, summary: "List a steward's routines and live versions",
             positionals: [stewardArgument]),

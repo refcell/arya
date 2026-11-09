@@ -109,9 +109,13 @@ struct ApprovalRow: Codable, Sendable, Equatable {
     let state: ApprovalState
     /// RFC 3339 timestamp from the ledger.
     let requestedAt: String
+    /// The verdict that held it: `rule:<action>`, `default`, or `autonomy:<level>:<risk>`.
+    var heldBy: String? = nil
+    /// That verdict in a person's words.
+    var heldBecause: String? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, steward, run, action, target, rationale, state, requestedAt
+        case id, steward, run, action, target, rationale, state, requestedAt, heldBy, heldBecause
     }
 }
 

@@ -157,3 +157,16 @@ import Testing
     #expect(backend.calls == ["pause st_triage", "resume st_triage"])
     #expect(await runCLI(["steward", "pause", "st_missing"]).0 != .ok)
 }
+
+@Test func runCorrectAndRetractReachTheBackend() async {
+    let backend = FakeBackend()
+    let corrected = await runCLI(
+        ["run", "correct", "run_1", "--choice", "refunds", "--note", "Refunds own these."],
+        backend: backend)
+    #expect(corrected.0 == .ok)
+    #expect(corrected.1.outText.contains("noted as mem_2"))
+    #expect(await runCLI(["retract", "mem_2", "--reason", "wrong"], backend: backend).0 == .ok)
+    #expect(
+        backend.calls == ["correct run run_1 refunds Refunds own these.", "retract mem_2 wrong"])
+    #expect(await runCLI(["run", "correct", "run_1"]).0 == .usage)
+}

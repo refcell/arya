@@ -195,6 +195,19 @@ extension FakeBackend {
                 author: "human:local", run: nil, retracted: false)
         ]
     }
+    func correctRun(_ run: String, choice: String, note: String?) async throws(CLIError)
+        -> CorrectionReport
+    {
+        record("correct run \(run) \(choice) \(note ?? "-")")
+        return CorrectionReport(
+            steward: "st_triage", case: "case-0009", choice: choice, note: note, memory: "mem_2")
+    }
+    func retract(memory: String, reason: String?) async throws(CLIError) -> MemoryRow {
+        record("retract \(memory) \(reason ?? "-")")
+        return MemoryRow(
+            id: memory, text: "Card changes are billing.", tags: [], author: "human:local",
+            run: nil, retracted: true)
+    }
     func routines(steward: String) async throws(CLIError) -> [RoutineRow] {
         record("routines \(steward)")
         return []

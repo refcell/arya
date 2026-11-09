@@ -152,6 +152,11 @@ protocol ImprovementBackend: Sendable {
     func listProposals(steward: String?) async throws(CLIError) -> [ProposalRow]
     func metrics(steward: String, metric: String?) async throws(CLIError) -> [MetricSeries]
     func memory(steward: String, scope: MemoryScope) async throws(CLIError) -> [MemoryRow]
+    /// Corrects a run's first decision to `choice`: the run becomes a case and `note` a memory.
+    func correctRun(_ run: String, choice: String, note: String?) async throws(CLIError)
+        -> CorrectionReport
+    /// Retracts a memory note and returns it as retracted.
+    func retract(memory: String, reason: String?) async throws(CLIError) -> MemoryRow
     func routines(steward: String) async throws(CLIError) -> [RoutineRow]
     func replay(run: String) async throws(CLIError) -> ReplayReport
     /// Serves until stdin closes.
