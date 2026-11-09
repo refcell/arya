@@ -17,6 +17,9 @@ public struct CharterBinding: Hashable, Sendable, Codable {
     public var channel: String?
     /// `mcp`: the server may use the network when arya sandboxes it (decision 0040).
     public var network: Bool = false
+    /// `person`: the MCP binding that relays messages to and from them (email, chat); nil
+    /// means the local inbox (decision 0042).
+    public var via: String?
 
     /// An MCP server binding.
     public static func mcp(
@@ -35,7 +38,7 @@ public struct CharterBinding: Hashable, Sendable, Codable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, kind, command, args, read, actions, channel, network
+        case id, kind, command, args, read, actions, channel, network, via
     }
 
     public init(from decoder: any Decoder) throws {
@@ -48,6 +51,7 @@ public struct CharterBinding: Hashable, Sendable, Codable {
         actions = try c.decodeIfPresent([String].self, forKey: .actions) ?? []
         channel = try c.decodeIfPresent(String.self, forKey: .channel)
         network = try c.decodeIfPresent(Bool.self, forKey: .network) ?? false
+        via = try c.decodeIfPresent(String.self, forKey: .via)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -59,9 +63,13 @@ public struct CharterBinding: Hashable, Sendable, Codable {
             try c.encode(args, forKey: .args)
             try c.encode(read, forKey: .read)
             try c.encode(actions, forKey: .actions)
+        } else if !actions.isEmpty {
+            // A person binding's replies (for example `reply`) must survive the ledger.
+            try c.encode(actions, forKey: .actions)
         }
         try c.encodeIfPresent(channel, forKey: .channel)
         if network { try c.encode(network, forKey: .network) }
+        try c.encodeIfPresent(via, forKey: .via)
     }
 
     init(

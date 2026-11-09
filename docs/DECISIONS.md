@@ -393,3 +393,19 @@ the Swift build. It never prompts and prints each step with its elapsed time, so
 background; agents publish that way. Until the app redesign (M3.5) passes review, its lanes
 publish freely and other lanes batch to at most one publish every 45-60 minutes. Why: fewer
 full CI runs and no lane-file conflicts free the slots for the work that matters now.
+
+### 0042 — 2026-11-09 — Email and chat reach stewards through relay bindings
+
+A person binding may set `via`: the id of an MCP binding (an email or chat server) that relays
+messages to and from that person, with the person's `channel` as their address there. Inbound,
+`Inbox.pull(relay, steward:)` calls the relay's `receive` read tool, which returns
+`{messages: [{from, text, intent?}]}`, and posts each message from the person whose channel
+matches `from` (unknown addresses, empty text, and unknown intents are skipped and counted),
+so relayed messages trigger runs and corrections become memory exactly like local ones;
+`inbox.message` records `via`. Outbound, an action through such a person binding calls the
+relay tool named by the action kind with the params, `target`, and `to` (the address); its
+`action.executed` output is the inbox entry plus `via` and the relay's `result`, so
+`InboxBook` threads both directions. A missing relay fails with `unknown_relay:<id>`. Person
+bindings now keep their `actions` in the encoded charter when they have any. The relay is
+responsible for returning each message once. Why: people work in email and chat, and a steward
+that owns an outcome has to meet them there without a second message path.

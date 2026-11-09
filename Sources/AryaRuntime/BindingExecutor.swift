@@ -77,12 +77,22 @@ public struct BindingActionExecutor: ActionExecutor {
             return .failed(error: "not_allowed:\(binding.id).\(action.kind)", output: nil)
         }
         switch binding.kind {
-        case .person: return .succeeded(output: Self.inboxEntry(binding, action))
+        case .person:
+            guard binding.via != nil else {
+                return .succeeded(output: Self.inboxEntry(binding, action))
+            }
+            guard let relay = request.relay else {
+                return .failed(error: "unknown_relay:\(binding.via ?? "")", output: nil)
+            }
+            return await call(relay, action, run: request.run, to: binding)
         case .mcp: return await call(binding, action, run: request.run)
         }
     }
 
-    private func call(_ binding: CharterBinding, _ action: ProposedAction, run: RunID) async
+    private func call(
+        _ binding: CharterBinding, _ action: ProposedAction, run: RunID,
+        to person: CharterBinding? = nil
+    ) async
         -> ExecutionOutcome
     {
         let upstream: any ToolUpstream
@@ -93,12 +103,22 @@ public struct BindingActionExecutor: ActionExecutor {
         }
         defer { Task { await upstream.close() } }
         do {
-            let result = try await upstream.call(action.kind, arguments: Self.arguments(action))
+            var arguments = Self.arguments(action)
+            if let person, case .object(var members) = arguments {
+                members["to"] = person.channel.map { .string($0) } ?? .null
+                arguments = .object(members)
+            }
+            let result = try await upstream.call(action.kind, arguments: arguments)
             let output = result["structuredContent"] ?? result["content"] ?? .null
             if result["isError"]?.boolValue == true {
                 return .failed(error: Self.text(result) ?? "tool error", output: output)
             }
-            return .succeeded(output: output)
+            guard let person, case .object(var entry) = Self.inboxEntry(person, action) else {
+                return .succeeded(output: output)
+            }
+            entry["via"] = .string(binding.id)
+            entry["result"] = output
+            return .succeeded(output: .object(entry))
         } catch {
             return .failed(error: "\(error)", output: nil)
         }

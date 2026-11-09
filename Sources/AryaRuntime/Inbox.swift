@@ -26,8 +26,10 @@ public struct InboxMessage: EventPayload {
     public static let type = EventType("inbox.message")
     /// The person binding id.
     public var from: String
-    /// The binding's channel, for example `inbox`.
+    /// The binding's channel, for example `inbox` or an address its relay knows.
     public var channel: String
+    /// The relay binding that carried it, for a person reached through `via`.
+    public var via: String?
     public var intent: MessageIntent
     public var text: String
     /// The `memory.added` note a correction became.
@@ -35,8 +37,10 @@ public struct InboxMessage: EventPayload {
 
     /// Creates a payload.
     public init(
-        from: String, channel: String, intent: MessageIntent, text: String, note: NoteID? = nil
+        from: String, channel: String, intent: MessageIntent, text: String, note: NoteID? = nil,
+        via: String? = nil
     ) {
+        self.via = via
         self.from = from
         self.channel = channel
         self.intent = intent
@@ -44,7 +48,7 @@ public struct InboxMessage: EventPayload {
         self.note = note
     }
 
-    enum CodingKeys: String, CodingKey { case from, channel, intent, text, note }
+    enum CodingKeys: String, CodingKey { case from, channel, intent, text, note, via }
 }
 
 /// The inbox event types.
@@ -58,6 +62,15 @@ public enum InboxError: Error, Equatable, Sendable {
     /// The sender is not one of the steward's person bindings.
     case unknownSender(String)
     case emptyText
+    /// The charter has no MCP binding with that id that lists the `receive` read tool.
+    case unknownRelay(String)
+}
+
+/// What `Inbox.pull` did.
+public struct RelayPull: Equatable, Sendable {
+    public var receipts: [InboxReceipt]
+    /// Messages skipped: unknown sender address, empty text, or unknown intent.
+    public var skipped: Int
 }
 
 /// What posting a message did.
@@ -101,7 +114,7 @@ public struct Inbox: Sendable {
         }
         let payload = InboxMessage(
             from: sender, channel: binding.channel ?? "inbox", intent: intent, text: trimmed,
-            note: note?.id)
+            note: note?.id, via: binding.via)
         let message = try await engine.sink.append(
             RuntimeEventDraft(
                 type: InboxEventType.message, steward: steward, actor: .person(sender),
@@ -119,6 +132,55 @@ public struct Inbox: Sendable {
             Self.runText(trimmed, from: sender, intent: intent), from: sender, to: steward,
             attachments: [attachment])
         return InboxReceipt(message: message.id, note: note?.id, triggered: triggered)
+    }
+
+    /// The relay read tool that returns new messages (decision 0042).
+    public static let receiveTool = "receive"
+
+    /// Pulls new messages from `steward`'s relay binding `relay` (an MCP binding that its person
+    /// bindings name in `via`): calls its `receive` tool, which returns
+    /// `{messages: [{from, text, intent?}]}` with `from` a person's channel address, and posts
+    /// each message from the person binding with that relay and channel. Messages from unknown
+    /// addresses, with empty text, or with an unknown intent are skipped and counted; the relay
+    /// is responsible for not returning a message twice.
+    public func pull(
+        _ relay: String, steward: StewardID,
+        connect: @Sendable (CharterBinding) async throws -> any ToolUpstream
+    ) async throws -> RelayPull {
+        let record = try await StewardLifecycle(sink: engine.sink).book().records[steward]
+        guard let record else { throw InboxError.unknownSteward(steward) }
+        guard let binding = record.charter.binding(relay), binding.kind == .mcp,
+            binding.read.contains(Self.receiveTool)
+        else { throw InboxError.unknownRelay(relay) }
+        let people = record.charter.bindings.filter { $0.kind == .person && $0.via == relay }
+        let upstream = try await connect(binding)
+        let result: JSONValue
+        do {
+            result = try await upstream.call(Self.receiveTool, arguments: [:])
+            await upstream.close()
+        } catch {
+            await upstream.close()
+            throw error
+        }
+        var pull = RelayPull(receipts: [], skipped: 0)
+        let messages = (result["structuredContent"] ?? result)["messages"]?.arrayValue ?? []
+        for message in messages {
+            let intent = message["intent"].map { $0.stringValue.flatMap(MessageIntent.init) }
+            guard let from = message["from"]?.stringValue, let text = message["text"]?.stringValue,
+                let person = people.first(where: { $0.channel == from }),
+                let intent = intent ?? .ask
+            else {
+                pull.skipped += 1
+                continue
+            }
+            do {
+                pull.receipts.append(
+                    try await post(text, from: person.id, to: steward, intent: intent))
+            } catch InboxError.emptyText {
+                pull.skipped += 1
+            }
+        }
+        return pull
     }
 
     /// The run input for a message: who sent it and what they want, then the text.

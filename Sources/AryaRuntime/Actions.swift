@@ -30,12 +30,15 @@ public struct ExecutionRequest: Sendable, Hashable {
     public var binding: CharterBinding?
     /// The approval that released it, for `ask` actions.
     public var approval: ApprovalID?
+    /// For a person binding with `via`: the MCP binding that relays to them.
+    public var relay: CharterBinding?
 
     /// Creates a request.
     public init(
         steward: StewardID, run: RunID, action: ProposedAction, binding: CharterBinding?,
-        approval: ApprovalID? = nil
+        approval: ApprovalID? = nil, relay: CharterBinding? = nil
     ) {
+        self.relay = relay
         self.steward = steward
         self.run = run
         self.action = action
@@ -123,7 +126,8 @@ public struct ActionDispatcher: Sendable {
             case .auto:
                 let request = ExecutionRequest(
                     steward: charter.id, run: run, action: action,
-                    binding: action.binding.flatMap(charter.binding))
+                    binding: action.binding.flatMap(charter.binding),
+                    relay: Self.relay(action, charter))
                 disposal.outcome = try await execute(request)
             case .ask:
                 disposal.approval =
@@ -167,7 +171,16 @@ public struct ActionDispatcher: Sendable {
         return try await execute(
             ExecutionRequest(
                 steward: record.steward, run: record.run, action: action,
-                binding: action.binding.flatMap(charter.binding), approval: record.id))
+                binding: action.binding.flatMap(charter.binding), approval: record.id,
+                relay: Self.relay(action, charter)))
+    }
+
+    /// The MCP binding a person binding's `via` names, when it is one.
+    static func relay(_ action: ProposedAction, _ charter: Charter) -> CharterBinding? {
+        guard let person = action.binding.flatMap(charter.binding), person.kind == .person,
+            let via = person.via, let relay = charter.binding(via), relay.kind == .mcp
+        else { return nil }
+        return relay
     }
 
     /// Records `action.rejected` for the action of a denied or expired approval.

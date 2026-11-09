@@ -193,6 +193,9 @@ M4:
   `RunEngine(sandbox:)`; `CharterBinding.network` (core) and `RunStarted.sandbox` (ledger)
   are small additive edits; `Workspace` wiring defaults to sandboxed routines. Harnesses get
   `run/start.sandbox` when the adapter reports `os`; `run.sandboxed {harness}` records it.
+- Relays (decision 0042): `CharterBinding.via` (core); `Inbox.pull` for inbound,
+  `ExecutionRequest.relay` and `BindingActionExecutor` for outbound. The serve loop does not
+  poll relays yet: a facade or service tick should call `Inbox.pull` per relay binding.
 
 ## Questions
 
@@ -242,3 +245,4 @@ M4:
 - 2026-11-09: schedule status: `SchedulePlan.status` / `Scheduler.status` (next wake, last N outcomes)
 - 2026-11-09: harness sandbox via `run/start.sandbox` for `os` adapters; `run.sandboxed`
 - 2026-11-09: integration fix in `RunReplayer`: replays sandbox when the recorded run did
+- 2026-11-09: email and chat relays for person bindings (decision 0042)

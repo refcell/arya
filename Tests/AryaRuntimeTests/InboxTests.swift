@@ -124,3 +124,96 @@ private struct InboxRig {
     #expect(thread[1].run == run)
     #expect(thread[1].action == "reply")
 }
+
+/// A relay MCP server: `receive` returns queued messages once; other tools echo their arguments.
+private actor RelayServer: ToolUpstream {
+    var queued: [JSONValue]
+    var calls: [(String, JSONValue)] = []
+
+    init(_ queued: [JSONValue]) { self.queued = queued }
+
+    func listTools() async throws -> [JSONValue] { [] }
+
+    func call(_ tool: String, arguments: JSONValue) async throws -> JSONValue {
+        calls.append((tool, arguments))
+        if tool == Inbox.receiveTool {
+            defer { queued = [] }
+            return ["structuredContent": ["messages": .array(queued)]]
+        }
+        return ["structuredContent": ["sent": true]]
+    }
+}
+
+private func relayCharter() -> Charter {
+    var charter = triageCharter()
+    charter.bindings.append(
+        .mcp("mail", command: "mail-server", read: ["receive"], actions: ["reply"]))
+    var alex = CharterBinding.person("alex", channel: "alex@example.com")
+    alex.via = "mail"
+    alex.actions = ["reply"]
+    charter.bindings.append(alex)
+    charter.triggers = [.manual, .message(from: "alex")]
+    return charter
+}
+
+@Test func relayMessagesArePostedFromTheMatchingPerson() async throws {
+    let rig = InboxRig()
+    try await rig.harness.lifecycle.create(relayCharter())
+    _ = try await rig.harness.sink.append(
+        RuntimeEventDraft(
+            type: StewardEventType.ready, steward: triage, actor: .localUser, payload: [:]))
+    let server = RelayServer([
+        ["from": "alex@example.com", "text": "ISSUE-7 is fixed", "intent": "correct"],
+        ["from": "stranger@example.com", "text": "hi"],
+        ["from": "alex@example.com", "text": "x", "intent": "shout"],
+        ["from": "alex@example.com", "text": "  "],
+    ])
+    let pull = try await rig.inbox.pull("mail", steward: triage) { _ in server }
+    await rig.scheduler.settle()
+    #expect(pull.receipts.count == 1)
+    #expect(pull.skipped == 3)
+    let message = try #require(try await rig.events(InboxEventType.message).first)
+    #expect(message.payload["via"] == "mail")
+    #expect(message.payload["from"] == "alex")
+    #expect(try await rig.events("memory.added").count == 1)
+    #expect(try await rig.events("run.started").count == 1)
+
+    await #expect(throws: InboxError.unknownRelay("tracker")) {
+        try await rig.inbox.pull("tracker", steward: triage) { _ in server }
+    }
+}
+
+@Test func repliesToRelayedPeopleGoThroughTheRelay() async throws {
+    let charter = try CanonicalJSON.decode(
+        Charter.self, from: CanonicalJSON.encode(relayCharter()))  // survives the ledger
+    let alex = try #require(charter.binding("alex"))
+    #expect(alex.actions == ["reply"])
+    let server = RelayServer([])
+    let executor = BindingActionExecutor(connectForRun: { binding, _ in
+        #expect(binding.id == "mail")
+        return server
+    })
+    let action = ProposedAction(
+        id: "a1", kind: "reply", binding: "alex", target: "tracker:ISSUE-7",
+        params: ["text": "Thanks, closing it."])
+    let outcome = await executor.execute(
+        ExecutionRequest(
+            steward: triage, run: RunID(unchecked: "run_01"), action: action, binding: alex,
+            relay: ActionDispatcher.relay(action, charter)))
+    guard case .succeeded(let output) = outcome else {
+        Issue.record("expected success, got \(outcome)")
+        return
+    }
+    #expect(output["inbox"] == "alex")
+    #expect(output["via"] == "mail")
+    #expect(output["result"]?["sent"] == true)
+    let calls = await server.calls
+    #expect(calls.first?.0 == "reply")
+    #expect(calls.first?.1["to"] == "alex@example.com")
+    #expect(calls.first?.1["text"] == "Thanks, closing it.")
+
+    let missing = await executor.execute(
+        ExecutionRequest(
+            steward: triage, run: RunID(unchecked: "run_01"), action: action, binding: alex))
+    #expect(missing == .failed(error: "unknown_relay:mail", output: nil))
+}
