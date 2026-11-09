@@ -26,7 +26,11 @@ let package = Package(
             dependencies: ["AryaCore", "AryaLedger", "AryaAdapters", "AryaMemory"]
         ),
         .target(name: "AryaEval", dependencies: ["AryaCore", "AryaMemory", "AryaRuntime"]),
-        .target(name: "Arya", dependencies: ["AryaCore", "AryaRuntime", "AryaEval"]),
+        .target(
+            name: "Arya",
+            dependencies: [
+                "AryaCore", "AryaLedger", "AryaAdapters", "AryaMemory", "AryaRuntime", "AryaEval",
+            ]),
         .target(name: "AryaDesign"),
 
         // `arya` CLI. The target is not named `arya` because it would collide with the
@@ -49,7 +53,9 @@ let package = Package(
             name: "AryaEvalTests",
             dependencies: ["AryaCore", "AryaMemory", "AryaRuntime", "AryaEval"],
             resources: [.copy("Fixtures")]),
-        .testTarget(name: "AryaTests", dependencies: ["Arya"]),
+        .testTarget(
+            name: "AryaTests",
+            dependencies: ["Arya", "AryaCore", "AryaAdapters", "AryaRuntime", "AryaEval"]),
         .testTarget(name: "AryaDesignTests", dependencies: ["AryaDesign"]),
         .testTarget(
             name: "AryaCLITests", dependencies: ["AryaCLI", "Arya", "AryaAdapters", "AryaCore"]),

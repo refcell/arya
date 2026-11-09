@@ -10,10 +10,10 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 ## Backlog
 
 M2 (top priority first):
-- [ ] Runtime-backed `AryaEval.CaseRunner` in `Sources/Arya` (the runtime cannot import eval):
+- [x] Runtime-backed `AryaEval.CaseRunner` in `Sources/Arya` (the runtime cannot import eval):
   one run with trigger kind `case` for `request.caseItem`, tool reads answered from its
   `context.toolResults`, no action executed; returns the run id, a result shaped like the
-  case's `expected`, and `leak`. Wired into `CasebookRehearser`.
+  case's `expected`, and `leak` (`RuntimeCaseRunner`). Plugs into `CasebookRehearser`.
 - [ ] cli-e2e facade additions: `charter(_ id:) -> Data` (live charter), `run(_ id:) ->
   RunDetail` (decisions and per-action dispositions), and the calls behind `casebook import`,
   `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
@@ -31,8 +31,16 @@ M3:
 - Canonical `approval.requested` payload is the runtime's `{approval, kind, action}` with a
   full `ProposedAction` (project lead decision).
 
+- `RuntimeCaseRunner` passes the charter to the run loop only when it differs from the live
+  charter at the requested version, so live rehearsals record the live `charterVersion` and
+  candidates record 0. The scored result is the whole `run/result` as JSON; a failed run scores
+  against `{}` and keeps its run id.
+- `Arya` depends on every library module (ledger, adapters, memory, runtime, eval); it is the
+  one place they meet.
+
 ## Questions
 
 ## Log
 
 - 2026-11-09: lane created; `Sources/Arya` and `Tests/AryaTests` move here from runtime
+- 2026-11-09: `RuntimeCaseRunner` (runtime-backed `CaseRunner`) for eval rehearsals
