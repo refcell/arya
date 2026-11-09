@@ -76,6 +76,20 @@ private func delegatedDetails(_ updates: [AdapterUpdate]) -> [String?] {
     #expect(try JSONValue(encoding: step) == json)
 }
 
+@Test func delegateRequestMatchesAResultDelegation() throws {
+    let json: JSONValue = [
+        "session": "s1", "id": "c1", "title": "Draft", "input": "Draft a reply.",
+        "adapter": "reviewer", "effort": "low", "limits": ["maxTurns": 4],
+    ]
+    let params = try json.decode(HostDelegateParams.self)
+    #expect(try JSONValue(encoding: params) == json)
+    #expect(
+        params.delegation
+            == RunResult.Delegation(
+                id: "c1", title: "Draft", input: "Draft a reply.", adapter: "reviewer",
+                effort: "low", limits: RunLimits(maxTurns: 4)))
+}
+
 @Test func refusalOmitsRunAndResult() throws {
     let value = try JSONValue(encoding: HostDelegateResult.refused("depth limit"))
     #expect(value == ["status": "refused", "reason": "depth limit"])

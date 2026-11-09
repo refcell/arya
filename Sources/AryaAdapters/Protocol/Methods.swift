@@ -385,22 +385,40 @@ public struct HostAskResult: Sendable, Hashable, Codable {
 
 /// Params of the `host/delegate` request (adapter to arya): run a child of this run on `input`
 /// and answer with its outcome. `id` names the delegation within the run. Like
-/// `run/result.delegations`, the child keeps the parent's charter and input kind.
+/// `run/result.delegations`, the child keeps the parent's charter and input kind and may name an
+/// `adapter`, `effort`, and `limits`.
 public struct HostDelegateParams: Sendable, Hashable, Codable {
     public var session: String
     public var id: String
     public var title: String
     public var input: String
+    /// As on a `run/result` delegation: the adapter profile (one `crew.adapters` lists),
+    /// effort, and budget; arya caps each at the parent run's.
+    public var adapter: String?
+    public var effort: String?
+    public var limits: RunLimits?
 
-    public init(session: String, id: String, title: String, input: String) {
+    public init(
+        session: String, id: String, title: String, input: String, adapter: String? = nil,
+        effort: String? = nil, limits: RunLimits? = nil
+    ) {
         self.session = session
         self.id = id
         self.title = title
         self.input = input
+        self.adapter = adapter
+        self.effort = effort
+        self.limits = limits
+    }
+
+    /// The same request as a `run/result` delegation, so the host runs both alike.
+    public var delegation: RunResult.Delegation {
+        RunResult.Delegation(
+            id: id, title: title, input: input, adapter: adapter, effort: effort, limits: limits)
     }
 
     enum CodingKeys: String, CodingKey {
-        case session, id, title, input
+        case session, id, title, input, adapter, effort, limits
     }
 }
 

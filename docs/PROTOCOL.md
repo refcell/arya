@@ -207,7 +207,8 @@ child run and waits for it, so the agent can use the child's result before it fi
 inside a run).
 
 arya runs the child like a `run/result` delegation: the parent's charter and input kind, `input`
-as the input text, `parent` set, and its actions recorded as proposed only. The child's actions
+as the input text, `parent` set, and its actions recorded as proposed only. The optional
+`adapter`, `effort`, and `limits` mean what they mean on a delegation and are capped the same way. The child's actions
 never execute; the parent proposes whatever it keeps in its own `run/result`. The answer comes
 when the child ends.
 
