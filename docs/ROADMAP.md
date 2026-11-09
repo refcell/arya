@@ -50,6 +50,27 @@ app bundle script.
   ledger and metric update, replay the run with zero divergence, and verify the ledger.
 - `just demo`: seeds a demo home and opens the app on it; README screenshot and GIF.
 
+## M3.5 — App parity (done when the app reads as a working steward, not a log viewer)
+
+The M3 checklist passes, but the app is still far from the target experience. Owners are in
+parentheses.
+
+- Restyle to a dense, dark workspace layout (app-shell, app-views).
+- Outcome-first steward screen: the metric against its target with a sparkline, the current
+  plan, a recap of recent work, and activity that gives the reason for each step (app-outcome,
+  workspace, eval).
+- New steward flow: outcome, success metric, target, guardrails, autonomy level, and bindings
+  (app-outcome, workspace).
+- Planning that adapts as a run learns more (runtime, adapters).
+- Risk and autonomy levels, with approvals that explain why they are asked (runtime, app-views).
+- Backtest comparison and readiness visible in the app (eval, app-views).
+- Onboarding to systems and people, and a context view of people, history, and decisions
+  (app-outcome, runtime, memory work through workspace).
+- People channels: a local inbox, plus email and chat (runtime, app-outcome).
+- Sandboxed routines and adapters (runtime).
+- Fleet view of sub-agents (app-views).
+- Schedule and long-running work view (app-outcome).
+
 ## M4 — Real harnesses
 
 - `arya-exec-adapter` profiles for common command-line agents; MCP tool bindings passed through
