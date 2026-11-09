@@ -22,7 +22,7 @@ M1:
   reasons (`adapter_exited`, `timeout`, `invalid_result`, `budget`).
 - [x] Policy: classify each action as `auto`, `ask`, or `deny` with `policy.default` = `ask`;
   table-driven tests.
-- [ ] Approval queue: `approval.requested`, grant, deny, expiry; actor is the person who decided.
+- [x] Approval queue: `approval.requested`, grant, deny, expiry; actor is the person who decided.
 - [ ] Action executor protocol with a recording executor for tests; `action.executed` and
   `action.failed` carry output.
 - [ ] Restart recovery: interrupted runs become `run.failed(interrupted)`; pending approvals are
@@ -65,9 +65,20 @@ M4:
   memory keeps snapshot order, routines sort by name.
 - Run phases: `started → running → disposing(status) → finished(status)`, with `fail(reason)`
   from any live phase; terminal phases reject every input. Adds failure reason
-  `adapter_failed` for `run/result` with `status: failed` or a harness error.
+  `adapter_failed` for `run/result` with `status: failed` or a harness error. The phase input
+  type is `RunPhaseInput` (`AryaAdapters` already exports `RunInput`).
+- Policy rules may name a `binding`; such a rule matches only actions through that binding and
+  records reason `rule:<binding>.<kind>`.
+- Approvals: payloads `approval.requested {approval, kind, action|question, to, expiresAt?}`
+  and `approval.granted|denied|expired {approval, note?}`. The deciding person is the event
+  actor; expiry is `system`. The projection keeps the first decision and ignores later ones, so
+  two processes racing to decide cannot flip an approval. Any person may decide (single user);
+  `to` is advisory.
 
 ## Questions
 
 ## Log
 
+- 2026-11-09: policy classifier, run phases, instruction composer, and the `Workspace` facade
+  API (stubs throwing `unavailable`) landed; cli-e2e and app lanes can code against
+  `Sources/Arya` (0d5c02b)

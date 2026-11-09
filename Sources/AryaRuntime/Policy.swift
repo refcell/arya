@@ -13,18 +13,28 @@ public enum ActionDisposition: String, Codable, Sendable, CaseIterable {
     case deny
 }
 
-/// One `policy.rules[]` entry: a disposition for an action kind.
+/// One `policy.rules[]` entry: a disposition for an action kind, optionally only through one
+/// binding.
 public struct PolicyRule: Sendable, Hashable {
     /// The action kind the rule matches, for example `label`.
     public var action: String
-    /// The disposition for that kind.
+    /// When set, the rule matches only actions through this binding.
+    public var binding: String?
+    /// The disposition for matching actions.
     public var decision: ActionDisposition
 
     /// Creates a rule.
-    public init(action: String, decision: ActionDisposition) {
+    public init(action: String, binding: String? = nil, decision: ActionDisposition) {
         self.action = action
+        self.binding = binding
         self.decision = decision
     }
+
+    func matches(_ action: PolicyAction) -> Bool {
+        self.action == action.kind && (binding == nil || binding == action.binding)
+    }
+
+    var label: String { binding.map { "rule:\($0).\(action)" } ?? "rule:\(action)" }
 }
 
 /// The parts of a proposed action that policy looks at.
@@ -47,6 +57,12 @@ public struct PolicyVerdict: Sendable, Hashable {
     public var disposition: ActionDisposition
     /// A short, stable explanation, for example `rule:label` or `default`.
     public var reason: String
+
+    /// Creates a verdict.
+    public init(disposition: ActionDisposition, reason: String) {
+        self.disposition = disposition
+        self.reason = reason
+    }
 }
 
 /// A charter's approval policy together with the action kinds each binding allows.
@@ -75,13 +91,14 @@ public struct ActionPolicy: Sendable, Hashable {
     /// Classifies one proposed action.
     ///
     /// Order: an empty kind, an unknown binding, or a kind the binding does not list is denied
-    /// (arya could not carry it out); then the first matching rule; then the default.
+    /// (arya could not carry it out); then the first matching rule (kind, and binding when the
+    /// rule names one); then the default.
     public func classify(_ action: PolicyAction) -> PolicyVerdict {
         if let refusal = structuralRefusal(action) {
             return PolicyVerdict(disposition: .deny, reason: refusal)
         }
-        if let rule = rules.first(where: { $0.action == action.kind }) {
-            return PolicyVerdict(disposition: rule.decision, reason: "rule:\(rule.action)")
+        if let rule = rules.first(where: { $0.matches(action) }) {
+            return PolicyVerdict(disposition: rule.decision, reason: rule.label)
         }
         return PolicyVerdict(disposition: defaultDisposition, reason: "default")
     }

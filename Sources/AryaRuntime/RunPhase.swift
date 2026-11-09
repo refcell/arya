@@ -49,7 +49,7 @@ public enum RunPhase: Sendable, Hashable {
 }
 
 /// An input that may move a run to a new phase.
-public enum RunInput: Sendable, Hashable {
+public enum RunPhaseInput: Sendable, Hashable {
     /// The adapter answered `run/start`.
     case adapterStarted
     /// The adapter streamed an event.
@@ -67,12 +67,12 @@ public struct RunTransitionError: Error, Equatable, Sendable {
     /// The phase the run was in.
     public var from: RunPhase
     /// The rejected input.
-    public var input: RunInput
+    public var input: RunPhaseInput
 }
 
 extension RunPhase {
     /// The phase after `input`, or an error if the transition is not allowed.
-    public func applying(_ input: RunInput) throws(RunTransitionError) -> RunPhase {
+    public func applying(_ input: RunPhaseInput) throws(RunTransitionError) -> RunPhase {
         switch (self, input) {
         case (.started, .adapterStarted):
             return .running

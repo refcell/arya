@@ -4,7 +4,7 @@ import Testing
 
 @Test func happyPathReachesFinished() throws {
     var phase = RunPhase.started
-    for input: RunInput in [
+    for input: RunPhaseInput in [
         .adapterStarted, .adapterEvent, .adapterEvent, .resultReceived(.completed),
         .dispositionsRecorded,
     ] {
@@ -30,7 +30,7 @@ func anyLivePhaseCanFail(_ reason: RunFailureReason) throws {
 
 @Test func terminalPhasesRejectInputs() {
     let terminal: [RunPhase] = [.finished(.completed), .failed(.timeout)]
-    let inputs: [RunInput] = [
+    let inputs: [RunPhaseInput] = [
         .adapterStarted, .adapterEvent, .resultReceived(.completed), .dispositionsRecorded,
         .fail(.interrupted),
     ]

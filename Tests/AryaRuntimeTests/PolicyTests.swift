@@ -60,6 +60,19 @@ func classifiesActions(_ testCase: PolicyCase) {
     #expect(policy.classify(PolicyAction(kind: "routine", binding: nil)).disposition == .ask)
 }
 
+@Test func bindingQualifiedRulesMatchOnlyThatBinding() {
+    let policy = ActionPolicy(
+        rules: [
+            PolicyRule(action: "message", binding: "person:alex", decision: .auto),
+            PolicyRule(action: "message", decision: .deny),
+        ],
+        bindingActions: ["person:alex": ["message"], "person:sam": ["message"]])
+    let alex = policy.classify(PolicyAction(kind: "message", binding: "person:alex"))
+    #expect(alex == PolicyVerdict(disposition: .auto, reason: "rule:person:alex.message"))
+    let sam = policy.classify(PolicyAction(kind: "message", binding: "person:sam"))
+    #expect(sam == PolicyVerdict(disposition: .deny, reason: "rule:message"))
+}
+
 @Test func structuralRefusalBeatsAutoRule() {
     let policy = ActionPolicy(
         defaultDisposition: .auto, rules: [PolicyRule(action: "close", decision: .auto)],
