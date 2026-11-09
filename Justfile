@@ -63,9 +63,9 @@ e2e *args:
 demo *args:
     etc/scripts/demo.sh {{ args }}
 
-# Rebase, check, and push to main under push races: just publish AryaCLITests
+# Rebase, check, and push to main under push races: just publish 'Arya(App|Design)Tests'
 publish filter:
-    etc/scripts/publish.sh {{ filter }}
+    etc/scripts/publish.sh "{{ filter }}"
 
 # Everything CI runs
 ci: tidy build test
