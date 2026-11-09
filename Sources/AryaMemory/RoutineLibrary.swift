@@ -197,7 +197,13 @@ extension RoutineVersion {
         -> String
     {
         let data: Data?
-        do { data = try store.get(version) } catch { throw .unreadable(version) }
+        do {
+            data = try store.getIfPresent(version)
+        } catch let error as RoutineContentError {
+            throw error
+        } catch {
+            throw .unreadable(version)
+        }
         guard let data else { throw .missingBlob(version) }
         guard RoutineNaming.version(of: data) == version else { throw .corruptBlob(version) }
         guard let text = String(data: data, encoding: .utf8) else {

@@ -121,13 +121,13 @@ public struct RoutineSource: Sendable, Equatable {
     }
 }
 
-/// Where routine content lives. A stand-in until `AryaLedger` publishes its blob store, which
-/// keys blobs by the same lowercase hex SHA-256.
+/// Where routine content lives: the home's `AryaLedger.BlobStore`, or an in-memory store in
+/// tests. Keys are the lowercase hex SHA-256 of the content.
 public protocol RoutineBlobStore: Sendable {
     /// Stores `data` and returns its key (the lowercase hex SHA-256).
     func put(_ data: Data) throws -> String
-    /// The blob with this key, or nil.
-    func get(_ key: String) throws -> Data?
+    /// The blob with this key, or nil when none is stored.
+    func getIfPresent(_ key: String) throws -> Data?
 }
 
 /// An in-memory `RoutineBlobStore` for tests and rehearsal.
@@ -143,7 +143,7 @@ public final class InMemoryRoutineBlobStore: RoutineBlobStore, @unchecked Sendab
         return key
     }
 
-    public func get(_ key: String) throws -> Data? {
+    public func getIfPresent(_ key: String) throws -> Data? {
         lock.withLock { blobs[key] }
     }
 

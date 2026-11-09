@@ -58,7 +58,7 @@ let labelV2 =
         let source = try RoutineSource(name: "label-issue", language: .sh, content: labelV1)
         let payload = try source.propose(into: store, reason: "Repeated in 5 runs.", run: "run_1")
         #expect(try encodeJSON(payload) == (try fixture("routine.proposed.json")))
-        #expect(try store.get(source.version) == source.data)
+        #expect(try store.getIfPresent(source.version) == source.data)
         let promoted = RoutinePromotedPayload(
             name: "label-issue", version: source.version, proposal: ProposalID(body: "1"))
         #expect(try encodeJSON(promoted) == (try fixture("routine.promoted.json")))

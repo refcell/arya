@@ -47,7 +47,7 @@ final class ScriptedGate: RoutineGateChecking, @unchecked Sendable {
         #expect(draft.actor == .steward("st_triage"))
         #expect(draft.run == "run_1")
         let version = intake.accepted[0].version
-        #expect(try store.get(version) == Data(labelV1.utf8))
+        #expect(try store.getIfPresent(version) == Data(labelV1.utf8))
     }
 
     @Test func intakeSkipsVersionsAlreadyProposed() throws {

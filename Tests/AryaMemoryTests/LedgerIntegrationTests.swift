@@ -69,3 +69,68 @@ func ledger(_ drafts: [EventDraft]) throws -> [Event] {
         #expect(RoutineRetiredPayload.type.rawValue == RoutineEventType.retired)
     }
 }
+
+@Suite struct MemoryReplayTests {
+    @Test func recordedInputsMatchTheLedgerBeforeTheRun() throws {
+        let note = try makeNote("mem_1", "Auth issues go to the auth queue.", tags: ["auth"])
+        let source = try RoutineSource(name: "label-issue", language: .sh, content: labelV1)
+        let promoted = RoutinePromotedPayload(name: source.name, version: source.version)
+        let snapshot = try CanonicalJSON.jsonValue(MemorySnapshot(notes: ["mem_1"]))
+        let events = try ledger([
+            .memoryAdded(note, steward: "st_triage"),
+            EventDraft(
+                RoutineProposedPayload(source: source), actor: .steward("st_triage"),
+                steward: "st_triage"),
+            EventDraft(promoted, actor: .system, steward: "st_triage"),
+            EventDraft(type: .runStarted, actor: .local, steward: "st_triage"),
+            .memoryRetracted("mem_1", steward: "st_triage", actor: .local),
+        ])
+        let started = events[3]
+        let state = try MemoryReplay.state(before: started.seq, ledger: events)
+        let good = MemoryReplay.check(
+            runStarted: started, memory: MemoryJSONField(snapshot),
+            routines: ["label-issue": source.version], state: state)
+        #expect(good.isEmpty)
+        let bad = MemoryReplay.check(
+            runStarted: started,
+            memory: .value(try CanonicalJSON.jsonValue(MemorySnapshot(notes: ["mem_2"]))),
+            routines: ["other": "abc"], state: state)
+        #expect(
+            bad == [
+                .noteNotLive("mem_2"), .routineVersion(name: "other", recorded: "abc", live: nil),
+                .routineMissing(name: "label-issue"),
+            ])
+        let after = try MemoryReplay.state(before: 99, ledger: events)
+        #expect(
+            MemoryReplay.check(
+                runStarted: started, memory: MemoryJSONField(snapshot),
+                routines: ["label-issue": source.version], state: after) == [.noteNotLive("mem_1")])
+        #expect(
+            MemoryReplay.check(
+                runStarted: started, memory: .value("nope"), routines: [:], state: state)
+                == [.unreadableSnapshot])
+    }
+}
+
+@Suite struct BlobStoreAdoptionTests {
+    @Test func homeBlobStoreHoldsRoutineContent() throws {
+        try withTempDir { home in
+            let store = BlobStore(home: home)
+            let source = try RoutineSource(name: "label-issue", language: .sh, content: labelV1)
+            let payload = try source.propose(into: store)
+            let library = try RoutineLibrary(events: [
+                routineEvent(seq: 1, type: RoutineEventType.proposed, payload)
+            ])
+            let version = try #require(
+                library.version(steward: "st_triage", name: source.name, version: source.version))
+            #expect(try version.content(from: store) == labelV1)
+            #expect(throws: RoutineContentError.missingBlob(source.version)) {
+                try version.content(from: BlobStore(home: home.appendingPathComponent("other")))
+            }
+            try Data("tampered".utf8).write(to: store.path(source.version))
+            #expect(throws: RoutineContentError.corruptBlob(source.version)) {
+                try version.content(from: store)
+            }
+        }
+    }
+}

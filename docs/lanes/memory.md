@@ -33,11 +33,11 @@ M3 (integration toward the end-to-end scenario):
   `MemoryQuery.forRun` derives tags from the input text and case.
 - [x] Listings for `arya memory --all` and the app: `MemoryProjection.allNotes` with retracted
   flags.
-- [ ] Blob store adoption: conform the ledger's blob store to `RoutineBlobStore` and drop the
+- [x] Blob store adoption: conform the ledger's blob store to `RoutineBlobStore` and drop the
   stub once `AryaLedger` ships it.
 - [ ] Facade read models for the app's Memory and Routines views (provenance line, history,
   diff between any two versions) once the runtime publishes the facade's memory API.
-- [ ] Replay check helper: given a recorded `run.started.memory`, recompute the snapshot from
+- [x] Replay check helper: given a recorded `run.started.memory`, recompute the snapshot from
   the projection at that `seq` and report a divergence.
 
 ## Decisions
@@ -76,8 +76,9 @@ M3 (integration toward the end-to-end scenario):
   version it retires.
 - The library projection never applies a contradictory event (promoting an unproposed version,
   a duplicate proposal, retiring a non-live version); it records a `RoutineAnomaly` instead.
-- Until `AryaLedger` ships a blob store, routines use `RoutineBlobStore` (put/get by SHA-256 key)
-  with an in-memory implementation; loading content re-hashes and rejects a corrupt blob.
+- Routine content lives in the home's `AryaLedger.BlobStore`, which conforms to
+  `RoutineBlobStore` (`put`, `getIfPresent`); tests use `InMemoryRoutineBlobStore`. Loading
+  content re-hashes and rejects a corrupt blob.
 - `RoutineDiff` is Myers' shortest edit script over lines (removals before additions in a
   change), with 1-based line numbers per side, unified-style hunks (default 3 lines of context),
   and `unified()` text. A missing final newline is not a change; `\r\n` is.
@@ -105,6 +106,10 @@ M3 (integration toward the end-to-end scenario):
 - `MemoryQuery.forRun` tags = known live-note tags that appear as words in the input text
   (lowercased; words are runs of letters, digits, `-_:.`, trailing dots dropped), plus
   `case:<id>` for case runs, so a rehearsal of a corrected case sees its correction first.
+- `MemoryReplay.check` compares a `run.started` event's `memory` snapshot and `routines` map with
+  the projections rebuilt from events before it: a snapshot note that was not live, a routine
+  version that differs from the live one, and a live routine missing from the record are
+  divergences.
 
 ## Questions
 
@@ -121,3 +126,4 @@ M3 (integration toward the end-to-end scenario):
 - 2026-11-09: projections read ledger `Event`s; payloads conform to `EventPayload` (d82f2b3).
 - 2026-11-09: routine proposals, `RoutineGatekeeper`, decision 0025 landed (77bd06a).
 - 2026-11-09: run memory intake, `RunPreparation.context`, `allNotes` landed (d7bc2f0).
+- 2026-11-09: fixed the runtime.md reference to decision 0025 (ef53890).
