@@ -29,7 +29,7 @@ M1:
   line. Test tampering with one byte in a middle segment.
 - [x] Torn-line repair on open: move bytes to a blob, truncate, append `system.repair`. Test by
   writing a partial line.
-- [ ] Two-process append test (spawn a child writer) proving no lost or interleaved lines.
+- [x] Two-process append test (spawn a child writer) proving no lost or interleaved lines.
 - [x] Blob store `blobs/sha256/ab/<hex>`: put, get, exists; atomic write via temp file + rename.
 - [x] Typed payloads for the ledger-owned event types (`run.*`, `action.*`, `approval.*`,
   `env.read`, `system.*`), each with a golden test; the rest live with their writers (0019,
@@ -91,6 +91,8 @@ M3:
   `follow(after:interval:)` polls (200 ms default) and yields an `AsyncThrowingStream`; simple
   and portable, and appends are rare. `LedgerVerifier.verify()` returns a value (`ok`, count,
   head, first `Failure` with segment, line, offset, issue) rather than throwing on bad data.
+- The multi-process test spawns `AryaLedgerWriter`, a tiny test-helper executable (not a
+  product), two at a time alongside the test process, 150 appends each over 4 KiB segments.
 - `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
 
 ## Questions
