@@ -261,3 +261,26 @@ struct Opened {
     #expect(run.status == .failed)
     #expect(run.failureReason == "adapter_exited")
 }
+
+@Test func runDetailShowsDecisionsAndDispositions() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let run = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+
+    let detail = try #require(try await workspace.run(run.id))
+
+    #expect(detail.input == "New message MSG-9")
+    #expect(detail.decisions.map(\.choice) == ["billing"])
+    #expect(detail.actions.map(\.kind) == ["label", "route", "reply"])
+    #expect(detail.actions.map(\.disposition) == [.executed, .executed, .held])
+    #expect(detail.actions.map(\.policy) == ["auto", "auto", "ask"])
+    let approval = try #require(detail.actions[2].approval)
+
+    _ = try await workspace.deny(approval)
+
+    let after = try #require(try await workspace.run(run.id))
+    #expect(after.actions[2].disposition == .rejected)
+    #expect(after.actions[2].detail == "approval_denied")
+    #expect(try await workspace.run("run_missing") == nil)
+}

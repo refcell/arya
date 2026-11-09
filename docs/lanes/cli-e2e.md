@@ -62,8 +62,7 @@ M3:
 - CLI tests live in `Tests/AryaCLITests` and use `@testable import AryaCLI` (executable target).
 
 ## Questions
-
-- (from workspace) Core calls are live on the real ledger (stewards, runs, approvals, ledger, verify) plus `charter(_:)`; `Workspace.open(home:environment:)` takes the adapter process environment (pass `PATH`); `run(_:)` and the M2 calls are next.
+- (from workspace) Live: core calls, `charter(_:)`, `run(_:) -> RunDetail?`, `importCasebook(steward:data:name:)`, `casebooks(steward:)`, `rehearse(steward:casebook:)`, `rehearsals(steward:)`, `expected(steward:case:choice:)` (for `--choice`), `correct(steward:case:expected:note:casebook:by:)`, `markReady(steward:by:)`, `metrics(steward:windowSeconds:)`; `replay(run:)` next.
 
 ## Log
 - 2026-11-09: `just publish <TestFilter>` (etc/scripts/publish.sh) implements decision 0029

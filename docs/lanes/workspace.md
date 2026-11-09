@@ -12,6 +12,8 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 M1 (the facade still throws `unavailable` for these):
 - [x] A ledger-backed `EventSink` for the home, then stewards, runs, approvals, ledger read,
   and verify through the runtime; restart recovery on `open`.
+- [ ] `replay(run:) -> ReplayReport` with a divergence report (drive the run again with
+  `ReplayAdapter` and a recorded ambient into a scratch sink; compare derived events).
 - [ ] `routine(name:version:) -> RoutineDetail` and `routineHistory(name:)` from
   `RoutineLibrary` (app-views: routine history and diff).
 
@@ -20,7 +22,7 @@ M2 (top priority first):
   one run with trigger kind `case` for `request.caseItem`, tool reads answered from its
   `context.toolResults`, no action executed; returns the run id, a result shaped like the
   case's `expected`, and `leak` (`RuntimeCaseRunner`). Plugs into `CasebookRehearser`.
-- [ ] cli-e2e facade additions: `charter(_ id:) -> Data` (live charter), `run(_ id:) ->
+- [x] cli-e2e facade additions (all but `replay`, next): `charter(_ id:) -> Data` (live charter), `run(_ id:) ->
   RunDetail` (decisions and per-action dispositions), and the calls behind `casebook import`,
   `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
 - [x] Effort (decision 0026): `effort(for:)` and `setEffort(_:for:by:)`, recording
@@ -60,6 +62,11 @@ M3:
 - Until binding executors land (M4), approved and `auto` actions go to `DryRunExecutor`, which
   records `action.executed` with output `{"dryRun": true}`.
 - `verifyLedger().firstBadSeq` is the count of good events plus one.
+- M2 facade: casebooks come from `casebook.imported` events plus their blobs (`HomeCasebooks`);
+  `rehearse` defaults to the steward's newest imported casebook and `gate.samples`;
+  `markReady` cites the newest finished live rehearsal of the live version as evidence;
+  `expected(steward:case:choice:)` builds the corrected expected result for a choice so the
+  CLI's `--choice` needs no JSON. Metrics are `OutcomeMetrics.series` in UTC-day windows.
 
 ## Questions
 
@@ -78,3 +85,4 @@ M3:
 - 2026-11-09: `RuntimeCaseRunner` (runtime-backed `CaseRunner`) for eval rehearsals
 - 2026-11-09: core facade on the real ledger: stewards, effort, runs, approvals, ledger,
   events, verify, restart recovery
+- 2026-11-09: M2 calls: casebooks, rehearse, correct, ready, metrics, and `run(_:)` detail
