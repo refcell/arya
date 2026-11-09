@@ -8,6 +8,8 @@ struct RunThread: View {
     var stream: RunStream
     var now: Date
     var context: StepContext
+    /// Run controls (More, Run now…) at the right end of the top line.
+    var accessory = AnyView(EmptyView())
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s4) {
@@ -40,9 +42,11 @@ struct RunThread: View {
 
     /// Trigger and start time only; the summary is the last step, shown once.
     private var header: some View {
-        HStack(spacing: AryaSpace.s2) {
+        HStack(alignment: .center, spacing: AryaSpace.s2) {
             if case .running = stream.status { StatusDot(.running) }
             Text(RunThreadText.meta(stream)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            Spacer(minLength: AryaSpace.s3)
+            accessory
         }
     }
 }
@@ -233,10 +237,21 @@ enum RunThreadText {
     }
 
     /// "started by manual · 14:54:19".
+    /// "started manually", "started on schedule", "started by a message".
+    static func started(_ trigger: String) -> String {
+        switch trigger {
+        case "manual": "started manually"
+        case "interval", "schedule": "started on schedule"
+        case "message": "started by a message"
+        case "case": "started by a rehearsal case"
+        default: "started by \(trigger)"
+        }
+    }
+
     static func meta(_ stream: RunStream, timeZone: TimeZone = .current) -> String {
         var parts: [String] = []
         if case .started(let trigger) = stream.steps.first?.kind {
-            parts.append("started by \(trigger)")
+            parts.append(started(trigger))
         }
         if let first = stream.steps.first {
             parts.append(StreamStepText.clock(first.at, timeZone: timeZone))

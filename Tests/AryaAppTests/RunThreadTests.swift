@@ -57,7 +57,7 @@ private func reply() -> ProposedActionStep {
     #expect(stream.input == "New message MSG-201: Refund for a duplicate charge")
     #expect(stream.title == "Routed MSG-201.")
     let utc = try #require(TimeZone(identifier: "UTC"))
-    #expect(RunThreadText.meta(stream, timeZone: utc) == "started by manual · 08:00:05")
+    #expect(RunThreadText.meta(stream, timeZone: utc) == "started manually · 08:00:05")
     let visible = RunThreadText.visible(stream.steps)
     #expect(visible.count == 1)
     if case .finished(_, let summary) = visible.first?.kind {

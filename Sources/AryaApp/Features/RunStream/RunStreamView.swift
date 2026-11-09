@@ -5,6 +5,7 @@ import SwiftUI
 struct RunStreamView: View {
     @ObservedObject var store: FeatureStore
     var run: String
+    var accessory = AnyView(EmptyView())
 
     var body: some View {
         switch store.state {
@@ -27,11 +28,13 @@ struct RunStreamView: View {
                 guidance: "Steps appear here as the run reads, decides, and proposes.")
         } else {
             ScrollView {
-                RunThread(stream: stream, now: store.now, context: context(stream))
-                    .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
-                    .padding(.horizontal, AryaSpace.s5)
-                    .padding(.vertical, AryaSpace.s4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                RunThread(
+                    stream: stream, now: store.now, context: context(stream), accessory: accessory
+                )
+                .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
+                .padding(.horizontal, AryaSpace.s5)
+                .padding(.vertical, AryaSpace.s4)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(AryaColor.canvas)
         }

@@ -8,19 +8,18 @@ struct StreamTab: View {
     var run: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
-                RunControls(store: store, steward: steward, run: run).id(run)
+        if let run {
+            RunStreamView(
+                store: store, run: run,
+                accessory: AnyView(RunControls(store: store, steward: steward, run: run).id(run)))
+        } else {
+            VStack(alignment: .leading, spacing: AryaSpace.s3) {
+                RunControls(store: store, steward: steward, run: nil)
+                Text("No runs yet. A run starts when a trigger fires or you start one here.")
+                    .aryaText(AryaFont.body, AryaColor.inkMuted)
             }
-            .padding(.horizontal, AryaSpace.s5)
-            .padding(.top, AryaSpace.s3)
-            if let run {
-                RunStreamView(store: store, run: run)
-            } else {
-                EmptyState(
-                    "No runs yet.",
-                    guidance: "A run starts when a trigger fires or you start one with Run now.")
-            }
+            .padding(AryaSpace.s5)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 }
@@ -40,7 +39,7 @@ private struct RunControls: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             HStack(spacing: AryaSpace.s3) {
-                Spacer()
+                if run == nil { Spacer() }
                 if run != nil {
                     Menu("More") {
                         Button(replaying ? "Replaying" : "Replay this run") { replayRun() }

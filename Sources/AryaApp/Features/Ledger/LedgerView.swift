@@ -8,8 +8,12 @@ struct LedgerView: View {
     @ObservedObject var store: FeatureStore
     /// The selected steward; nil shows every steward's events with a steward column.
     var steward: String?
+    /// The selected event when the shell drives it (navigation, snapshots); else local.
+    var selection: Binding<String?>?
     @AryaState private var filter = LedgerFilter.all
-    @AryaState private var selected: String?
+    @AryaState private var localSelection: String?
+
+    private var selected: Binding<String?> { selection ?? $localSelection }
 
     var body: some View {
         switch store.state {
@@ -42,12 +46,12 @@ struct LedgerView: View {
                     .padding(.horizontal, AryaSpace.s5)
                     .padding(.vertical, AryaSpace.s3)
                 LedgerRows(
-                    table: table, showsSteward: steward == nil, selected: $selected)
+                    table: table, showsSteward: steward == nil, selected: selected)
             }
-            if let event = table.rows.first(where: { $0.id == selected }) {
+            if let event = table.rows.first(where: { $0.id == selected.wrappedValue }) {
                 AryaHairline(.vertical)
                 LedgerInspector(event: event, title: event.run.flatMap { table.runTitles[$0] }) {
-                    selected = nil
+                    selected.wrappedValue = nil
                 }
                 .frame(width: AryaSize.readingWidth / 2)
             }
