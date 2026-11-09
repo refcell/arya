@@ -17,9 +17,11 @@ struct RuntimeCaseRunner: CaseRunner {
         let item = request.caseItem
         let input = RunInput(
             kind: .case, text: item.input.text, attachments: item.input.attachments)
-        let runRequest = RunRequest(
+        var runRequest = RunRequest(
             steward: request.steward, input: input, mode: .rehearsal(item.context),
             actor: .system, charter: try await candidate(request))
+        runRequest.rehearsal = RehearsalTag(
+            rehearsal: request.rehearsal, caseID: item.id, sample: request.sample + 1)
         let outcome = try await loop.run(runRequest)
         return CaseRunOutcome(
             run: outcome.run, result: try Self.shape(outcome.result), leak: outcome.leak)

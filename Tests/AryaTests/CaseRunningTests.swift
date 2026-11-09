@@ -114,8 +114,9 @@ struct OneCasebook: CasebookSource {
     let starts = events.filter { $0.type == RunEventType.started }
     #expect(starts.count == 2)
     for start in starts {
-        #expect(start.payload["trigger"] == "case")
-        #expect(start.payload["rehearsal"] == true)
+        #expect(start.payload["input"]?["kind"] == "case")
+        #expect(start.payload["rehearsal"]?.stringValue?.hasPrefix("reh_") == true)
+        #expect(start.payload["sample"] == 1)
         #expect(start.payload["charterVersion"] == 1)
         #expect(start.draft.actor == .system)
     }
