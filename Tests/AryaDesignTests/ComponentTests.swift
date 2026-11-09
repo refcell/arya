@@ -63,6 +63,23 @@ import Testing
         #expect(ApprovalCard.action(for: .escape, modifiers: .command) == nil)
     }
 
+    @Test func threadTimesAreShort() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        #expect(ThreadRow.shortTime(now, now: now) == "now")
+        #expect(ThreadRow.shortTime(now.addingTimeInterval(-240), now: now) == "4m")
+        #expect(ThreadRow.shortTime(now.addingTimeInterval(-7200), now: now) == "2h")
+        #expect(ThreadRow.shortTime(now.addingTimeInterval(-259_200), now: now) == "3d")
+    }
+
+    @Test func sparklinePointsFillTheRect() {
+        let size = CGSize(width: 80, height: 20)
+        let points = Sparkline.points([1, 3, 2], in: size)
+        #expect(points.map(\.x) == [0, 40, 80])
+        #expect(points.map(\.y) == [20, 0, 10])
+        #expect(Sparkline.points([5, 5], in: size).allSatisfy { $0.y == 10 })
+        #expect(Sparkline.points([], in: size).isEmpty)
+    }
+
     @Test func diffLinesAreClassified() {
         let lines = DiffLine.parse("--- a/x\n+++ b/x\n@@ -1 +1 @@\n-old\n+new\n same")
         #expect(lines.map(\.kind) == [.header, .header, .hunk, .removed, .added, .context])

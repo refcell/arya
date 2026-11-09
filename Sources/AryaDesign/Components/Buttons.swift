@@ -48,7 +48,7 @@ struct AryaButtonBody: View {
 
     private var fill: Color {
         guard kind == .primary else { return .clear }
-        return isEnabled ? AryaColor.accent : AryaColor.rule
+        return isEnabled ? AryaColor.accent : .clear
     }
 }
 
@@ -82,6 +82,11 @@ extension ButtonStyle where Self == AryaPrimaryButtonStyle {
 
 extension ButtonStyle where Self == AryaSecondaryButtonStyle {
     public static var aryaSecondary: AryaSecondaryButtonStyle { .init() }
+}
+
+extension ButtonStyle where Self == AryaSecondaryButtonStyle {
+    /// The quiet button: no fill, a `ruleStrong` outline (STYLE.md Buttons).
+    public static var aryaQuiet: AryaSecondaryButtonStyle { .init() }
 }
 
 extension ButtonStyle where Self == AryaTertiaryButtonStyle {

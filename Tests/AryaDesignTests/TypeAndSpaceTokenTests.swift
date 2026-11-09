@@ -5,16 +5,19 @@ import Testing
 
 @MainActor @Suite struct TypeAndSpaceTokenTests {
     @Test func typeScaleMatchesTheGuide() {
-        let sizes = AryaFont.all.map { "\($0.name) \(Int($0.size))/\(Int($0.lineHeight))" }
+        let sizes = AryaFont.all.map { "\($0.name) \($0.size)/\(Int($0.lineHeight))" }
         #expect(
             sizes == [
-                "display 30/36", "title 22/28", "heading 17/22", "body 13/19", "bodyStrong 13/19",
-                "caption 11/15", "overline 10/14", "mono 12/18", "monoSmall 11/16",
+                "title 20.0/26", "heading 13.0/19", "body 13.0/19", "bodyStrong 13.0/19",
+                "caption 11.0/16", "label 10.5/14", "mono 12.0/17", "monoStrong 12.0/17",
+                "monoSmall 11.0/15", "metric 20.0/24",
             ])
-        #expect(AryaFont.overline.uppercase && AryaFont.overline.tracking == 0.8)
+        #expect(AryaFont.label.uppercase && AryaFont.label.tracking == 0.6)
+        // Prose breathes at about 1.45 line height.
+        #expect(abs(AryaFont.body.lineHeight / AryaFont.body.size - 1.46) < 0.02)
         #expect(
-            AryaFont.all.filter { $0.face == .serif }.map(\.name) == [
-                "display", "title", "heading",
+            AryaFont.all.filter { $0.face == .mono }.map(\.name) == [
+                "mono", "monoStrong", "monoSmall", "metric",
             ])
     }
 
@@ -33,14 +36,14 @@ import Testing
     }
 
     @Test func spacingIsOnTheFourPointGrid() {
-        #expect(AryaSpace.all == [4, 8, 12, 16, 24, 32, 48])
+        #expect(AryaSpace.all == [4, 8, 12, 16, 20, 24, 32])
         let sizes: [CGFloat] = [
-            AryaSize.railWidth, AryaSize.railRowHeight, AryaSize.tableRowHeight,
-            AryaSize.controlHeight, AryaSize.tabBarHeight, AryaSize.stepGutter,
-            AryaSize.readingWidth, AryaRadius.small,
+            AryaSize.sidebarWidth, AryaSize.inspectorWidth, AryaSize.rowHeight,
+            AryaSize.tabBarHeight, AryaSize.titleBarInset, AryaSize.pagePadding,
+            AryaSize.readingWidth, AryaSize.stepGutter, AryaRadius.small,
         ]
         #expect(sizes.allSatisfy { $0.truncatingRemainder(dividingBy: 4) == 0 })
-        #expect(AryaRadius.medium == 6)
+        #expect(AryaSize.rowHeight >= 22 && AryaSize.rowHeight <= 26)
     }
 
     @Test func hairlineIsOneDevicePixel() {

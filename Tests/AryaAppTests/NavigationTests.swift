@@ -1,3 +1,4 @@
+import AryaDesign
 import Foundation
 import Testing
 
@@ -61,9 +62,9 @@ import Testing
     }
 
     @Test func railWidthStaysInBounds() {
-        #expect(RailWidth.clamp(100) == 200)
+        #expect(RailWidth.clamp(100) == AryaSize.sidebarMinWidth)
         #expect(RailWidth.clamp(260) == 260)
-        #expect(RailWidth.clamp(900) == 320)
+        #expect(RailWidth.clamp(900) == AryaSize.sidebarMaxWidth)
     }
 }
 

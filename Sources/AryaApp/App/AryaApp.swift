@@ -10,6 +10,14 @@ struct AryaApp: App {
     init() {
         // Show a Dock icon and menu bar even when launched as a bare binary.
         NSApplication.shared.setActivationPolicy(.regular)
+        // Dark whatever the system setting unless the person chose Light (decision 0036).
+        Self.apply(AryaAppearance(stored: UserDefaults.standard.string(forKey: Self.appearanceKey)))
+    }
+
+    static let appearanceKey = "appearance"
+
+    static func apply(_ appearance: AryaAppearance) {
+        NSApplication.shared.appearance = NSAppearance(named: appearance.nsAppearanceName)
     }
 
     var body: some Scene {
@@ -60,6 +68,7 @@ struct SessionView: View {
 struct AryaCommands: Commands {
     let session: AppSession
     @AppStorage(TextScale.defaultsKey) private var textScale = Double(TextScale.standard)
+    @AppStorage(AryaApp.appearanceKey) private var appearance = AryaAppearance.dark.rawValue
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -72,6 +81,14 @@ struct AryaCommands: Commands {
                 .keyboardShortcut("-")
             Button("Actual Size") { textScale = Double(TextScale.standard) }
                 .keyboardShortcut("0", modifiers: [.command, .option])
+            Divider()
+            Picker("Appearance", selection: $appearance) {
+                Text("Dark").tag(AryaAppearance.dark.rawValue)
+                Text("Light").tag(AryaAppearance.light.rawValue)
+            }
+            .onChange(of: appearance) { _, stored in
+                AryaApp.apply(AryaAppearance(stored: stored))
+            }
             Divider()
         }
         CommandMenu("Steward") {

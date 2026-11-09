@@ -303,3 +303,18 @@ under "Plan", and the finish rules ask for the whole plan whenever it changes. T
 `PlanUpdated` and projection `PlanBook` live in `AryaRuntime`, the only writer; read models
 adapt to it. Why: a steward owns an outcome over many runs, so it needs a durable plan it can
 revise, not only one-shot decisions.
+
+### 0036 — 2026-11-09 — Clean single-canvas workspace
+
+Supersedes the paper palette and serif headings of 0020 (its toolchain notes still hold) and the
+boxed dark components drafted after it. The window is one near-black canvas with a hidden,
+transparent title bar; the sidebar, page, and an on-demand inspector are separated by single
+hairlines, never by fills, cards, or bands. Each screen has one purpose and one orange primary
+action; secondary detail moves behind disclosure, hover, or the inspector. Stewards are listed
+on the left with their runs as threads titled by summary, never by number or id; a steward page
+has at most four tabs (Overview, Improve, Knowledge, Ledger) and no header band; effort and
+other settings live in the inspector. Type is the system sans for interface text and the system
+monospace for machine text, with small uppercase labels and no serif; spacing is on a 4 pt
+grid. The app opens dark whatever the system setting; Light is a setting. Why: the app had grown
+boxed, banded, and repetitive; one canvas with type-driven structure carries the same
+functionality with far less noise.

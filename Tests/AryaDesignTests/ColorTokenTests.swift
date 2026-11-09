@@ -4,18 +4,26 @@ import Testing
 @testable import AryaDesign
 
 @MainActor @Suite struct ColorTokenTests {
-    @Test func paperAndInkValuesMatchTheGuide() {
-        #expect(AryaColorToken.canvas.light.description == "#F6F1E7")
-        #expect(AryaColorToken.canvas.dark.description == "#141311")
-        #expect(AryaColorToken.accent.light.description == "#B13B0B")
-        #expect(AryaColorToken.accent.dark.description == "#F08A4B")
-        #expect(AryaColorToken.accentInk.light.description == "#FFFFFF")
-        #expect(AryaColorToken.allCases.count == 14)
+    @Test func darkAndLightValuesMatchTheGuide() {
+        #expect(AryaColorToken.canvas.dark.description == "#0C0C0D")
+        #expect(AryaColorToken.raised.dark.description == "#141416")
+        #expect(AryaColorToken.ink.dark.description == "#F4F4F5")
+        #expect(AryaColorToken.accent.dark.description == "#F97316")
+        #expect(AryaColorToken.canvas.light.description == "#FAFAFA")
+        #expect(AryaColorToken.accent.light.description == "#B4390A")
+        #expect(AryaColorToken.allCases.count == 15)
+    }
+
+    @Test func theAppearanceDefaultsToDark() {
+        #expect(AryaAppearance(stored: nil) == .dark)
+        #expect(AryaAppearance(stored: "sepia") == .dark)
+        #expect(AryaAppearance(stored: "light") == .light)
+        #expect(AryaAppearance.dark.nsAppearanceName == .darkAqua)
     }
 
     @Test(arguments: AryaColorToken.allCases)
     func everyTokenResolvesInBothAppearances(token: AryaColorToken) throws {
-        for (name, scheme) in [(NSAppearance.Name.aqua, AryaScheme.paper), (.darkAqua, .ink)] {
+        for (name, scheme) in [(NSAppearance.Name.aqua, AryaScheme.light), (.darkAqua, .dark)] {
             let appearance = try #require(NSAppearance(named: name))
             var resolved: NSColor?
             appearance.performAsCurrentDrawingAppearance {
@@ -31,9 +39,9 @@ import Testing
 
     @Test func schemeFollowsAppearance() throws {
         let dark = try #require(NSAppearance(named: .darkAqua))
-        #expect(AryaScheme(dark) == .ink)
+        #expect(AryaScheme(dark) == .dark)
         let light = try #require(NSAppearance(named: .aqua))
-        #expect(AryaScheme(light) == .paper)
+        #expect(AryaScheme(light) == .light)
     }
 
     @Test func increaseContrastSubstitutesRulesAndFaintText() {
@@ -45,29 +53,32 @@ import Testing
     }
 
     /// Every text token on every surface it appears on meets WCAG AA (STYLE.md).
-    @Test(arguments: [AryaScheme.paper, .ink])
+    @Test(arguments: [AryaScheme.dark, .light])
     func textTokensMeetAAOnSurfaces(scheme: AryaScheme) {
-        let surfaces: [AryaColorToken] = [.canvas, .surface, .sunken, .selection, .accentWash]
-        let texts: [AryaColorToken] = [.ink, .inkMuted, .inkFaint, .accent, .positive, .negative]
+        let surfaces: [AryaColorToken] = [.canvas, .raised, .selection]
+        let texts: [AryaColorToken] = [
+            .ink, .inkMuted, .inkFaint, .accent, .positive, .negative, .warning,
+        ]
         for text in texts {
-            for surface in surfaces where !(surface == .selection && text.isStatus) {
+            for surface in surfaces {
                 let ratio = text.value(in: scheme).contrast(with: surface.value(in: scheme))
                 #expect(ratio >= 4.5, "\(text) on \(surface): \(ratio)")
             }
         }
-        let onAccent = AryaColorToken.accentInk.value(in: scheme)
-            .contrast(with: AryaColorToken.accent.value(in: scheme))
-        #expect(onAccent >= 4.5)
+        let fills: [(AryaColorToken, AryaColorToken)] = [
+            (.accentInk, .accent), (.ink, .positiveWash), (.ink, .negativeWash),
+            (.positive, .positiveWash), (.negative, .negativeWash), (.canvas, .ink),
+        ]
+        for (text, fill) in fills {
+            let ratio = text.value(in: scheme).contrast(with: fill.value(in: scheme))
+            #expect(ratio >= 4.5, "\(text) on \(fill): \(ratio)")
+        }
     }
 
     @Test func contrastMatchesThePublishedTable() {
-        let ratio = AryaColorToken.ink.light.contrast(with: AryaColorToken.canvas.light)
-        #expect(abs(ratio - 15.27) < 0.01)
-        let accent = AryaColorToken.accent.dark.contrast(with: AryaColorToken.canvas.dark)
-        #expect(abs(accent - 7.46) < 0.01)
+        let ratio = AryaColorToken.ink.dark.contrast(with: AryaColorToken.canvas.dark)
+        #expect(abs(ratio - 17.79) < 0.01)
+        let accent = AryaColorToken.accent.light.contrast(with: AryaColorToken.canvas.light)
+        #expect(abs(accent - 5.70) < 0.01)
     }
-}
-
-extension AryaColorToken {
-    fileprivate var isStatus: Bool { self == .positive || self == .negative }
 }

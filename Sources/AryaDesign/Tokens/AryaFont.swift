@@ -5,7 +5,7 @@ import SwiftUI
 public struct AryaTextStyle: Hashable, Sendable {
     /// The system face a style uses.
     public enum Face: String, Sendable, CaseIterable {
-        case serif, sans, mono
+        case sans, mono
     }
 
     public let name: String
@@ -60,7 +60,6 @@ public struct AryaTextStyle: Hashable, Sendable {
 extension AryaTextStyle.Face {
     var design: Font.Design {
         switch self {
-        case .serif: .serif
         case .sans: .default
         case .mono: .monospaced
         }
@@ -68,7 +67,6 @@ extension AryaTextStyle.Face {
 
     var nsDesign: NSFontDescriptor.SystemDesign {
         switch self {
-        case .serif: .serif
         case .sans: .default
         case .mono: .monospaced
         }
@@ -86,36 +84,43 @@ extension Font.Weight {
     }
 }
 
-/// The type scale from `docs/STYLE.md`.
+/// The type scale in `docs/STYLE.md`: system sans for prose and labels, system monospace for
+/// machine text. No serif or display faces (decision 0036).
 public enum AryaFont {
-    public static let display = AryaTextStyle(
-        name: "display", face: .serif, size: 30, lineHeight: 36)
+    /// The page title: the steward name.
     public static let title = AryaTextStyle(
-        name: "title", face: .serif, size: 22, lineHeight: 28)
+        name: "title", face: .sans, size: 20, lineHeight: 26, weight: .semibold)
+    /// Section and card titles, empty-state line.
     public static let heading = AryaTextStyle(
-        name: "heading", face: .serif, size: 17, lineHeight: 22, weight: .semibold)
+        name: "heading", face: .sans, size: 13, lineHeight: 19, weight: .semibold)
+    /// Prose, conversation, sidebar names.
     public static let body = AryaTextStyle(
         name: "body", face: .sans, size: 13, lineHeight: 19)
+    /// Emphasis, selected tab, button labels.
     public static let bodyStrong = AryaTextStyle(
         name: "bodyStrong", face: .sans, size: 13, lineHeight: 19, weight: .semibold)
+    /// Secondary prose and guidance.
     public static let caption = AryaTextStyle(
-        name: "caption", face: .sans, size: 11, lineHeight: 15)
-    public static let overline = AryaTextStyle(
-        name: "overline", face: .sans, size: 10, lineHeight: 14, weight: .medium,
-        tracking: 0.8, uppercase: true)
+        name: "caption", face: .sans, size: 11, lineHeight: 16)
+    /// Uppercase metadata labels, pills, and group names.
+    public static let label = AryaTextStyle(
+        name: "label", face: .sans, size: 10.5, lineHeight: 14, weight: .semibold,
+        tracking: 0.6, uppercase: true)
+    /// Commands, code, diffs, logs, ids.
     public static let mono = AryaTextStyle(
-        name: "mono", face: .mono, size: 12, lineHeight: 18)
+        name: "mono", face: .mono, size: 12, lineHeight: 17)
+    /// The command in a tool call, a diff stat.
+    public static let monoStrong = AryaTextStyle(
+        name: "monoStrong", face: .mono, size: 12, lineHeight: 17, weight: .semibold)
+    /// Timestamps, counts, gutters, table cells.
     public static let monoSmall = AryaTextStyle(
-        name: "monoSmall", face: .mono, size: 11, lineHeight: 16)
-
-    /// Large monospaced numerals for a headline metric value (proposed by app-outcome).
-    /// Not in `all` until STYLE.md lists it.
+        name: "monoSmall", face: .mono, size: 11, lineHeight: 15)
+    /// KPI values on the outcome line.
     public static let metric = AryaTextStyle(
-        name: "metric", face: .mono, size: 28, lineHeight: 32, weight: .medium)
+        name: "metric", face: .mono, size: 20, lineHeight: 24, weight: .medium)
 
-    /// Every type token, in the guide's order.
     public static let all: [AryaTextStyle] = [
-        display, title, heading, body, bodyStrong, caption, overline, mono, monoSmall,
+        title, heading, body, bodyStrong, caption, label, mono, monoStrong, monoSmall, metric,
     ]
 }
 

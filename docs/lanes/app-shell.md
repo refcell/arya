@@ -131,3 +131,11 @@ M4:
 - 2026-11-09: feature writes and reads reach real homes: proposals, corrections, ready,
   rehearse, start run, routine bodies, expected results, replay (app-views' request).
 - 2026-11-09: approval cards answer only Command-Return and Command-Delete (decision 0034).
+- 2026-11-09: decision 0036, clean single-canvas workspace: STYLE.md rewritten; tokens moved to
+  one dark canvas (`#0C0C0D`), `raised` for code only, sans plus mono type (no serif), 4 pt grid;
+  the app opens dark (View > Appearance offers Light); approval block unboxed; `ThreadRow`,
+  `Sparkline`, `OutcomeLine`, `InlineError` added.
+- Visual check (tokens): one canvas across sidebar and page, no serif, approval unboxed with an
+  orange label and one orange button. Still failing: gray title bar with a window title (rule 1),
+  effort control in a header (rule 3), six tabs (rule 4), "run 18" thread titles, event id under
+  Decision, duplicated summary, "action" and "auto" labels (app-views). Next push fixes chrome.

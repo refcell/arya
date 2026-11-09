@@ -44,25 +44,25 @@ public struct ApprovalCard: View {
     }
 
     public var body: some View {
+        // Unboxed (STYLE.md Approval block): structure from type and spacing, no fill or frame.
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
-            Text(action).aryaText(AryaFont.mono, AryaColor.ink)
-            Text(summary).aryaText(AryaFont.bodyStrong, AryaColor.ink)
-            Text(rationale).aryaText(AryaFont.body, AryaColor.inkMuted)
-            HStack(spacing: AryaSpace.s2) {
-                Text(context).aryaText(AryaFont.caption, AryaColor.inkFaint)
-                Spacer(minLength: AryaSpace.s4)
-                Button("Deny", action: onDeny).buttonStyle(.aryaSecondary)
-                Button(approveLabel, action: onApprove).buttonStyle(.aryaPrimary)
+            Text("Needs your approval").aryaText(AryaFont.label, AryaColor.accent)
+            Text(action).aryaText(AryaFont.monoStrong, AryaColor.ink)
+            Text(summary).aryaText(AryaFont.body, AryaColor.ink)
+            if !rationale.isEmpty {
+                Text(rationale).aryaText(AryaFont.body, AryaColor.inkMuted)
             }
-            .padding(.top, AryaSpace.s2)
+            Text(context).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            HStack(spacing: AryaSpace.s2) {
+                Button("Deny", action: onDeny).buttonStyle(.aryaQuiet)
+                    .accessibilityLabel("Deny \(action)")
+                Button(approveLabel, action: onApprove).buttonStyle(.aryaPrimary)
+                    .accessibilityLabel("\(approveLabel): \(action)")
+            }
+            .padding(.top, AryaSpace.s1)
         }
-        .padding(AryaSpace.s4)
+        .padding(.vertical, AryaSpace.s2)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AryaColor.accentWash)
-        .overlay(alignment: .leading) {
-            Rectangle().fill(AryaColor.accent).frame(width: AryaSize.approvalEdge)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: AryaRadius.medium))
         .padding(AryaSize.focusRing * 2)
         .overlay {
             if isFocused {
@@ -107,17 +107,16 @@ public struct EmptyState: View {
     }
 
     public var body: some View {
-        VStack(spacing: AryaSpace.s3) {
-            Text(title).aryaText(AryaFont.display, AryaColor.ink)
-            Text(guidance).aryaText(AryaFont.body, AryaColor.inkMuted)
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            Text(title).aryaText(AryaFont.body, AryaColor.inkMuted)
+            Text(guidance).aryaText(AryaFont.caption, AryaColor.inkFaint)
             if let actionTitle, let action {
                 Button(actionTitle, action: action).buttonStyle(.aryaSecondary)
                     .padding(.top, AryaSpace.s2)
             }
         }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: AryaSize.readingWidth)
-        .padding(.top, AryaSpace.s7)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
+        .padding(AryaSpace.s5)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }

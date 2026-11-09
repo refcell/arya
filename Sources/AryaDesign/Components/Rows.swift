@@ -29,10 +29,13 @@ public struct RailRow: View {
                 Text(trailing).aryaText(AryaFont.caption, AryaColor.inkFaint).lineLimit(1)
             }
         }
-        .padding(.leading, AryaSpace.s3 + indent)
-        .padding(.trailing, AryaSpace.s3)
-        .frame(height: AryaSize.railRowHeight)
-        .background(isSelected ? AryaColor.selection : .clear)
+        .padding(.leading, AryaSpace.s2 + indent)
+        .padding(.trailing, AryaSpace.s2)
+        .frame(height: AryaSize.rowHeight)
+        .background(
+            isSelected ? AryaColor.selection : .clear,
+            in: RoundedRectangle(cornerRadius: AryaRadius.small)
+        )
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityValue(status?.word ?? "")
@@ -50,7 +53,7 @@ public struct RailGroupLabel: View {
 
     public var body: some View {
         Text(title)
-            .aryaText(AryaFont.overline, AryaColor.inkFaint)
+            .aryaText(AryaFont.label, AryaColor.inkFaint)
             .padding(.horizontal, AryaSpace.s3)
             .accessibilityAddTraits(.isHeader)
     }

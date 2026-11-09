@@ -1,51 +1,62 @@
 import AppKit
 import SwiftUI
 
-/// The 4 pt spacing scale from `docs/STYLE.md`.
+/// The spacing scale in `docs/STYLE.md`, on a 4 pt grid.
 public enum AryaSpace {
     public static let s1: CGFloat = 4
     public static let s2: CGFloat = 8
     public static let s3: CGFloat = 12
     public static let s4: CGFloat = 16
-    public static let s5: CGFloat = 24
-    public static let s6: CGFloat = 32
-    public static let s7: CGFloat = 48
+    public static let s5: CGFloat = 20
+    public static let s6: CGFloat = 24
+    public static let s7: CGFloat = 32
 
-    /// Every step, smallest first.
     public static let all: [CGFloat] = [s1, s2, s3, s4, s5, s6, s7]
 }
 
-/// Fixed sizes from `docs/STYLE.md` (Layout and Components).
+/// Fixed sizes in `docs/STYLE.md`.
 public enum AryaSize {
-    public static let railWidth: CGFloat = 240
-    public static let railMinWidth: CGFloat = 200
-    public static let railMaxWidth: CGFloat = 320
-    public static let railRowHeight: CGFloat = 28
-    public static let tableRowHeight: CGFloat = 32
-    public static let controlHeight: CGFloat = 28
-    public static let tabBarHeight: CGFloat = 36
+    public static let sidebarWidth: CGFloat = 240
+    public static let sidebarMinWidth: CGFloat = 200
+    public static let sidebarMaxWidth: CGFloat = 320
+    public static let inspectorWidth: CGFloat = 320
+    /// Sidebar rows, threads, steps, and table rows.
+    public static let rowHeight: CGFloat = 24
+    public static let controlHeight: CGFloat = 26
+    public static let tabBarHeight: CGFloat = 32
     public static let tabUnderline: CGFloat = 2
-    public static let approvalEdge: CGFloat = 2
+    /// Content starts this far from the window top, below the traffic lights.
+    public static let titleBarInset: CGFloat = 40
+    public static let pagePadding: CGFloat = 24
+    public static let readingWidth: CGFloat = 680
+    public static let threadIndent: CGFloat = 18
+    public static let stepGutter: CGFloat = 40
     public static let focusRing: CGFloat = 2
     public static let statusDot: CGFloat = 6
-    public static let stepGutter: CGFloat = 32
-    public static let readingWidth: CGFloat = 720
+    public static let sparklineWidth: CGFloat = 80
+    public static let sparklineHeight: CGFloat = 20
+    public static let chartHeight: CGFloat = 120
+    public static let chartLine: CGFloat = 1.5
     public static let windowMinWidth: CGFloat = 960
     public static let windowMinHeight: CGFloat = 600
-    public static let chartHeight: CGFloat = 160
-    public static let sparklineHeight: CGFloat = 48
-    public static let chartLine: CGFloat = 1.5
-    /// The pressed-button opacity, the one sanctioned use of opacity.
     public static let pressedOpacity: Double = 0.7
+
+    /// Older names kept while the feature views move over.
+    public static let railWidth = sidebarWidth
+    public static let railMinWidth = sidebarMinWidth
+    public static let railMaxWidth = sidebarMaxWidth
+    public static let railRowHeight = rowHeight
+    public static let tableRowHeight = rowHeight
 }
 
-/// Corner radii from `docs/STYLE.md`. No other radii exist.
+/// Corner radii: 4 pt for buttons, fields, and code. Pills use `Capsule`; there are no cards.
 public enum AryaRadius {
     public static let small: CGFloat = 4
-    public static let medium: CGFloat = 6
+    /// Older name; the same 4 pt.
+    public static let medium: CGFloat = 4
 }
 
-/// A one-device-pixel line in `rule` (or `ruleStrong`), the only region separator.
+/// A 1 px rule in `rule` at every display scale (`1 / displayScale` pt).
 public struct AryaHairline: View {
     /// The direction the line runs.
     public enum Axis: Sendable { case horizontal, vertical }

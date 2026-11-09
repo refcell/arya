@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The appearance a color token is resolved in.
 public struct AryaScheme: Hashable, Sendable, CaseIterable {
-    /// Dark (ink) rather than light (paper).
+    /// The dark scheme (the default) rather than light.
     public var isDark: Bool
     /// The system Increase Contrast setting.
     public var isHighContrast: Bool
@@ -13,10 +13,10 @@ public struct AryaScheme: Hashable, Sendable, CaseIterable {
         self.isHighContrast = isHighContrast
     }
 
-    public static let paper = AryaScheme(isDark: false)
-    public static let ink = AryaScheme(isDark: true)
+    public static let light = AryaScheme(isDark: false)
+    public static let dark = AryaScheme(isDark: true)
     public static let allCases: [AryaScheme] = [
-        .paper, .ink,
+        .dark, .light,
         AryaScheme(isDark: false, isHighContrast: true),
         AryaScheme(isDark: true, isHighContrast: true),
     ]
@@ -36,51 +36,54 @@ public struct AryaScheme: Hashable, Sendable, CaseIterable {
     }
 }
 
-/// Every color token in `docs/STYLE.md`, with its paper and ink values.
+/// Every color token in `docs/STYLE.md`, with its dark (default) and light values. One canvas
+/// covers the window; `raised` is only for code, logs, and fields (decision 0036).
 public enum AryaColorToken: String, CaseIterable, Sendable {
-    case canvas, surface, sunken, selection
+    case canvas, raised, selection
     case ink, inkMuted, inkFaint
     case rule, ruleStrong
-    case accent, accentInk, accentWash
-    case positive, negative
+    case accent, accentInk
+    case positive, positiveWash, negative, negativeWash, warning
 
-    /// The value in the light (paper) scheme.
-    public var light: AryaRGB {
+    /// The value in the dark scheme, the app's default.
+    public var dark: AryaRGB {
         switch self {
-        case .canvas: AryaRGB(0xF6F1E7)
-        case .surface: AryaRGB(0xFBF8F2)
-        case .sunken: AryaRGB(0xEFE8DA)
-        case .selection: AryaRGB(0xECE5D7)
-        case .ink: AryaRGB(0x1D1B17)
-        case .inkMuted: AryaRGB(0x4F4A3E)
-        case .inkFaint: AryaRGB(0x6B6557)
-        case .rule: AryaRGB(0xDDD4C2)
-        case .ruleStrong: AryaRGB(0xC7BCA6)
-        case .accent: AryaRGB(0xB13B0B)
-        case .accentInk: AryaRGB(0xFFFFFF)
-        case .accentWash: AryaRGB(0xF6E3D3)
-        case .positive: AryaRGB(0x3F6B3A)
-        case .negative: AryaRGB(0x9B2C2C)
+        case .canvas: AryaRGB(0x0C0C0D)
+        case .raised: AryaRGB(0x141416)
+        case .selection: AryaRGB(0x1C1C1F)
+        case .ink: AryaRGB(0xF4F4F5)
+        case .inkMuted: AryaRGB(0xA1A1AA)
+        case .inkFaint: AryaRGB(0x8B8B94)
+        case .rule: AryaRGB(0x1F1F21)
+        case .ruleStrong: AryaRGB(0x2C2C30)
+        case .accent: AryaRGB(0xF97316)
+        case .accentInk: AryaRGB(0x0C0C0D)
+        case .positive: AryaRGB(0x4ADE80)
+        case .positiveWash: AryaRGB(0x0E1F14)
+        case .negative: AryaRGB(0xF87171)
+        case .negativeWash: AryaRGB(0x251314)
+        case .warning: AryaRGB(0xFBBF24)
         }
     }
 
-    /// The value in the dark (ink) scheme.
-    public var dark: AryaRGB {
+    /// The value in the light scheme.
+    public var light: AryaRGB {
         switch self {
-        case .canvas: AryaRGB(0x141311)
-        case .surface: AryaRGB(0x1B1A17)
-        case .sunken: AryaRGB(0x100F0D)
-        case .selection: AryaRGB(0x25231F)
-        case .ink: AryaRGB(0xECE6DA)
-        case .inkMuted: AryaRGB(0xB5AE9F)
-        case .inkFaint: AryaRGB(0x918B7F)
-        case .rule: AryaRGB(0x2B2925)
-        case .ruleStrong: AryaRGB(0x3A3731)
-        case .accent: AryaRGB(0xF08A4B)
-        case .accentInk: AryaRGB(0x1A0F08)
-        case .accentWash: AryaRGB(0x2E1D13)
-        case .positive: AryaRGB(0x8DBF7F)
-        case .negative: AryaRGB(0xE58A80)
+        case .canvas: AryaRGB(0xFAFAFA)
+        case .raised: AryaRGB(0xF2F2F3)
+        case .selection: AryaRGB(0xE9E9EC)
+        case .ink: AryaRGB(0x18181B)
+        case .inkMuted: AryaRGB(0x52525B)
+        case .inkFaint: AryaRGB(0x63636C)
+        case .rule: AryaRGB(0xE4E4E7)
+        case .ruleStrong: AryaRGB(0xD4D4D8)
+        case .accent: AryaRGB(0xB4390A)
+        case .accentInk: AryaRGB(0xFFFFFF)
+        case .positive: AryaRGB(0x166534)
+        case .positiveWash: AryaRGB(0xE9F9EE)
+        case .negative: AryaRGB(0xB91C1C)
+        case .negativeWash: AryaRGB(0xFDECEC)
+        case .warning: AryaRGB(0x8A5405)
         }
     }
 
@@ -114,8 +117,7 @@ public enum AryaColorToken: String, CaseIterable, Sendable {
 /// Color tokens as SwiftUI colors. Feature views use these, never literal colors.
 public enum AryaColor {
     public static let canvas = AryaColorToken.canvas.color
-    public static let surface = AryaColorToken.surface.color
-    public static let sunken = AryaColorToken.sunken.color
+    public static let raised = AryaColorToken.raised.color
     public static let selection = AryaColorToken.selection.color
     public static let ink = AryaColorToken.ink.color
     public static let inkMuted = AryaColorToken.inkMuted.color
@@ -124,7 +126,35 @@ public enum AryaColor {
     public static let ruleStrong = AryaColorToken.ruleStrong.color
     public static let accent = AryaColorToken.accent.color
     public static let accentInk = AryaColorToken.accentInk.color
-    public static let accentWash = AryaColorToken.accentWash.color
     public static let positive = AryaColorToken.positive.color
+    public static let positiveWash = AryaColorToken.positiveWash.color
     public static let negative = AryaColorToken.negative.color
+    public static let negativeWash = AryaColorToken.negativeWash.color
+    public static let warning = AryaColorToken.warning.color
+
+    /// Older names, kept so views compile while they move to one canvas. Panes are not filled,
+    /// so `surface` is the canvas; code and fields use `raised`; tinted boxes are gone.
+    public static let surface = canvas
+    public static let sunken = raised
+    public static let accentWash = canvas
+    public static let warningWash = canvas
+}
+
+/// The app's appearance. Dark is the default whatever the system setting (STYLE.md, decision
+/// 0035); light is a secondary choice.
+public enum AryaAppearance: String, CaseIterable, Sendable {
+    case dark, light
+
+    /// The AppKit appearance to set on `NSApp.appearance`.
+    public var nsAppearanceName: NSAppearance.Name {
+        switch self {
+        case .dark: .darkAqua
+        case .light: .aqua
+        }
+    }
+
+    /// A stored choice, falling back to dark for anything unknown.
+    public init(stored: String?) {
+        self = stored.flatMap(AryaAppearance.init(rawValue:)) ?? .dark
+    }
 }
