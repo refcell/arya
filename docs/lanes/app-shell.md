@@ -11,7 +11,7 @@ Design: [ARCHITECTURE.md](../ARCHITECTURE.md#the-app), decision 0002.
 ## Backlog
 
 M3 (start now against a stub `Workspace`; switch to the real one when runtime lands):
-- [ ] `AryaDesign` tokens: colors (light and dark), type scale, spacing, radii, from STYLE.md;
+- [x] `AryaDesign` tokens: colors (light and dark), type scale, spacing, radii, from STYLE.md;
   tests that every token resolves in both appearances.
 - [ ] Components: buttons, badges for run and approval states, list rows, cards, empty states,
   code and diff blocks, the effort selector.
@@ -26,6 +26,13 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
 - [ ] Preview fixtures: a stub workspace with sample stewards for development and screenshots.
 
 ## Decisions
+
+- Tab order follows STYLE.md (normative): Stream, Changes, Ledger, Memory, Routines, Rehearsals.
+- Color tokens are `AryaColorToken` cases with paper and ink hex values; `AryaColor.x` is a
+  dynamic SwiftUI color. Contrast is computed and tested from the hex values (decision 0020).
+- Type tokens are `AryaTextStyle` values in `AryaFont`; apply with `.aryaText(style, color)`.
+  Text size scales through the `aryaTextScale` environment value.
+- Fixed sizes from STYLE.md live in `AryaSize` so feature views never write literal sizes.
 
 ## Questions
 

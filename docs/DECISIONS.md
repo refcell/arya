@@ -123,3 +123,14 @@ for approval, never executed silently. Why: guardrails should fail safe.
 The `Codable` payloads for `memory.*` and `routine.*` events are defined in `AryaMemory`, which
 also projects them. `AryaLedger` stores them as opaque payloads. Why: `AryaMemory` depends on
 `AryaLedger`, not the other way around, and a single owner avoids two types per event.
+
+### 0020 — 2026-11-09 — No SwiftUI macros; colors are code, not an asset catalog
+
+The command-line tools ship no SwiftUI macro plugin, so `@Entry`, `#Preview`, and other
+SwiftUI macros do not compile. Use a classic `EnvironmentKey` with a computed
+`EnvironmentValues` property, and no preview macros (preview fixtures are plain views and data).
+Observation's `@Observable` does compile (its plugin is in the toolchain) and is the default for
+app models on macOS 14; `ObservableObject` with `@Published` remains acceptable. Without Xcode
+there is no `actool`, so color tokens are dynamic `NSColor`s defined in `AryaDesign` code that
+resolve paper, ink, and Increase Contrast values from the effective appearance. Why: the app
+must build with SwiftPM and the command-line tools only (0001, 0002).
