@@ -79,9 +79,10 @@ extension EventType {
     public static let envRead: EventType = "env.read"
     public static let systemRepair: EventType = "system.repair"
     public static let systemStarted: EventType = "system.started"
+    public static let systemKeyAdded: EventType = "system.key.added"
 
     /// Every known type, in ARCHITECTURE.md order (`steward.resumed` added by decision 0021,
-    /// `steward.effort.set` by decision 0026).
+    /// `steward.effort.set` by decision 0026, `system.key.added` by the checkpoint note).
     public static let all: [EventType] = [
         stewardCreated, stewardCharterUpdated, stewardReady, stewardPaused, stewardResumed,
         stewardRetired, stewardEffortSet,
@@ -91,6 +92,6 @@ extension EventType {
         memoryRetracted, routineProposed, routinePromoted, routineRetired, casebookImported,
         caseCorrected, rehearsalStarted, rehearsalCaseScored, rehearsalFinished, proposalCreated,
         proposalGated, proposalAccepted, proposalRejected, proposalOverridden, metricRecorded,
-        envRead, systemRepair, systemStarted,
+        envRead, systemRepair, systemStarted, systemKeyAdded,
     ]
 }

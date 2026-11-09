@@ -57,3 +57,36 @@ public struct SystemStarted: EventPayload {
 
     private enum CodingKeys: String, CodingKey { case v, process, version }
 }
+
+/// `system.key.added`: a checkpoint signing key's public half, recorded once. The first key
+/// stands alone; a rotation names the key it `replaces` and carries that key's `signature`
+/// over the canonical JSON of this payload without `signature`.
+public struct SystemKeyAdded: EventPayload {
+    public static let type = EventType.systemKeyAdded
+    public var v: Int
+    /// `key_` + the first 16 hex digits of the SHA-256 of the raw public key.
+    public var key: String
+    /// Always `ed25519`.
+    public var algorithm: String
+    /// Base64 of the 32-byte raw public key.
+    public var publicKey: String
+    /// The key this one rotates out, if any.
+    public var replaces: String?
+    /// Base64 Ed25519 signature by `replaces`; nil for the first key.
+    public var signature: String?
+
+    public init(
+        key: String, publicKey: String, replaces: String? = nil, signature: String? = nil
+    ) {
+        v = 1
+        self.key = key
+        algorithm = "ed25519"
+        self.publicKey = publicKey
+        self.replaces = replaces
+        self.signature = signature
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case v, key, algorithm, publicKey, replaces, signature
+    }
+}

@@ -117,7 +117,7 @@ Each line is one event:
   - `rehearsal.*`: `started`, `case.scored`, `finished`; `proposal.*`: `created`, `gated`,
     `accepted`, `rejected`, `overridden`
   - `metric.recorded`, `env.read` (an ambient reading not already carried by an envelope),
-    `system.repair`, `system.started`
+    `system.repair`, `system.started`, `system.key.added` (a checkpoint signing key)
 
 Payload types are Swift `Codable` structs in `AryaLedger`, each with a golden-file test.
 

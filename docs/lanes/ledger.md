@@ -66,8 +66,9 @@ M4:
   ("Signed checkpoints and compaction").
 
 Next (lane-extended, in order):
-- [ ] (5) `system.key.added` and `keys/checkpoint.key` storage (CryptoKit Ed25519), with id
-  and rotation rules from the note; typed payload and golden.
+- [x] (5) `system.key.added` (`SystemKeyAdded`, golden) and `CheckpointKeys` (`keys/checkpoint.key`,
+  0600, `ensure`, `rotate` signed by the old key, old file kept in `keys/retired/`); `KeyRing`
+  folds the trusted keys and lists rejected ones.
 - [ ] (6) `system.checkpoint`: build, sign, check; `LedgerVerifier` anchoring with an
   `unanchored` issue and its report text.
 - [ ] (7) Projection seeding from a checkpoint's digests; then `compact` and `verify --archive`.
@@ -152,6 +153,13 @@ Next (lane-extended, in order):
   `seq` skip is always opened to keep the contiguity check. `since` skips a segment when the
   next one's first `at` is before the bound, assuming `at` never steps back across a segment
   boundary; segments read are compared line by line.
+- Checkpoint key material never comes from `Ambient` (its readings land in `env.read` on the
+  ledger): new keys come from CryptoKit's system generator, or from the caller in tests. The
+  key file is canonical JSON `{"algorithm","key","privateKey","v"}`. `KeyRing` trusts a first
+  key only while no key is trusted and unsigned, and a later key only when `replaces` names a
+  trusted key whose signature over the payload without `signature` checks; others go to
+  `rejected`. `ensure` refuses (`notRecorded`) to record a stored key unsigned on a ledger
+  that already trusts another.
 - Perf probes measure thread CPU time, not wall time, so a loaded machine does not make them
   flaky. Hot loops in `JSONParser` and `LedgerLine` use index loops and plain byte compares:
   tests run debug builds, where range patterns and generic slice algorithms cost metadata
@@ -162,8 +170,9 @@ Next (lane-extended, in order):
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
+- 2026-11-09: (5) done: `system.key.added`, `CheckpointKeys`, `KeyRing`.
 - 2026-11-09: (5a) done: sieved filtered reads, `since`/`until`, `events(since:)`, typed
-  reads; 50k filtered scan 0.09 s CPU. Read API offered in workspace.md Questions.
+  reads; 50k filtered scan 0.09 s CPU (9930fc1). Read API offered in workspace.md Questions.
 - HANDOFF 2026-11-09 (second session, ended near auto-compaction): backlog (1)-(4) done and
   on main. Next is (5a) (app-parity read speed), then (5)-(8), all from the ARCHITECTURE.md checkpoint note. Notes:
   measure perf with thread CPU time (`ARYA_PERF=1 just test perf`); wall time is meaningless
