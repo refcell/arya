@@ -1,4 +1,5 @@
 import AryaCore
+import AryaMemory
 import AryaRuntime
 import Foundation
 import Testing
@@ -10,7 +11,7 @@ import Testing
 /// even for `c-4` (which the live charter gets wrong).
 struct CharterRunner: CaseRunner {
     func run(_ request: CaseRunRequest) async throws -> CaseRunOutcome {
-        let mode = request.charter.guardrails.first ?? ""
+        let mode = request.routine.map { $0.version } ?? request.charter.guardrails.first ?? ""
         let id = request.caseItem.id.rawValue
         var choice = "bug"
         if mode == "sloppy" && id == "c-1" { choice = "feature" }
@@ -24,6 +25,7 @@ private struct Harness {
     let ambient = Ambient.fixed(seed: 3)
     let book: Casebook
     let desk: ProposalDesk
+    let routineGate: RoutineRehearsalGate
     let steward = StewardID(unchecked: "st_triage")
 
     init(tolerance: Double = 0) throws {
@@ -37,6 +39,7 @@ private struct Harness {
         let rehearser = CasebookRehearser(
             runner: CharterRunner(), casebooks: FixedCasebooks(book: book), sink: sink,
             ambient: ambient)
+        routineGate = RoutineRehearsalGate(sink: sink, rehearser: rehearser)
         desk = ProposalDesk(
             sink: sink, gate: RehearsalGate(sink: sink, rehearser: rehearser), ambient: ambient)
         self.tolerance = tolerance
@@ -150,4 +153,45 @@ private struct Harness {
     await #expect(throws: ProposalError.closed(b.id, .rejected)) {
         try await h.desk.override(b.id, reason: "x", person: "local")
     }
+}
+
+@Test func routineGateRehearsesTheCandidateRoutine() async throws {
+    let h = try Harness()
+    try await h.start()
+    func request(_ version: String) -> RoutineGateRequest {
+        RoutineGateRequest(
+            steward: h.steward, proposal: ProposalID(unchecked: "prop_r\(version)"),
+            name: "label", candidateVersion: version, liveVersion: nil,
+            casebookVersion: h.book.version)
+    }
+    let good = try await h.routineGate.check(request("better"))
+    #expect(good.passed)
+    #expect(good.candidateMean == 1)
+    let bad = try await h.routineGate.check(request("sloppy"))
+    #expect(!bad.passed)
+    #expect(bad.regressions.map(\.rawValue) == ["c-1"])
+
+    let events = try await h.sink.events(from: 1)
+    let started = events.filter { $0.type == "rehearsal.started" }
+    #expect(started.count == 3)
+    #expect(started[1].payload["routine"] == ["name": "label", "version": "better"])
+    let gated = events.filter { $0.type == "proposal.gated" }
+    #expect(gated.map { $0.payload["routine"]?["version"] } == ["better", "sloppy"])
+}
+
+@Test func baselineIsStaleAfterARoutinePromotion() async throws {
+    let h = try Harness()
+    try await h.start()
+    let a = try await h.desk.propose(h.charter("better"))
+    _ = try await h.desk.check(a.id, casebookVersion: h.book.version)
+    _ = try await h.sink.append(
+        RuntimeEventDraft(
+            type: "routine.promoted", steward: h.steward, actor: .system,
+            payload: ["name": "label", "version": "v2"]))
+    _ = try await h.desk.check(a.id, casebookVersion: h.book.version)
+    _ = try await h.desk.check(a.id, casebookVersion: h.book.version)
+    let started = try await h.sink.events(from: 1).filter { $0.type == "rehearsal.started" }
+    let live = started.filter { $0.payload["proposal"] == nil }
+    #expect(live.count == 2)
+    #expect(started.count == 5)
 }

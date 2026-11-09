@@ -8,6 +8,9 @@ public struct CaseRunRequest: Hashable, Sendable {
     /// The charter the run uses (live or a proposal's candidate).
     public var charter: Charter
     public var rehearsal: RehearsalID
+    /// A candidate routine the run uses in place of the live one
+    /// (`RoutineLibrary.candidateRoutines(for:)`); `nil` uses the live routines.
+    public var routine: RoutineCandidate?
     public var caseItem: Case
     /// Sample index, starting at 0.
     public var sample: Int
@@ -74,12 +77,14 @@ public struct CasebookRehearser: Rehearser {
             RehearsalStartedPayload(
                 rehearsal: id, charterVersion: request.charterVersion,
                 casebookVersion: book.version, cases: book.cases.count,
-                samples: request.samples, proposal: request.proposal))
+                samples: request.samples, proposal: request.proposal,
+                routine: request.routine))
         let jobs = book.cases.flatMap { item in
             (0..<request.samples).map {
                 CaseRunRequest(
                     steward: request.steward, charterVersion: request.charterVersion,
-                    charter: charter, rehearsal: id, caseItem: item, sample: $0)
+                    charter: charter, rehearsal: id, routine: request.routine, caseItem: item,
+                    sample: $0)
             }
         }
         let scorer = try self.scorer ?? charter.scorer.makeScorer()

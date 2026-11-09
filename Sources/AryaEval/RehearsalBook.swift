@@ -28,7 +28,7 @@ public struct RehearsalBook: Sendable {
             let request = RehearsalRequest(
                 steward: steward, charterVersion: body.charterVersion,
                 casebookVersion: body.casebookVersion, samples: body.samples,
-                proposal: body.proposal)
+                proposal: body.proposal, routine: body.routine)
             records[body.rehearsal] = RehearsalRecord(
                 result: RehearsalResult(id: body.rehearsal, request: request, outcomes: []),
                 finished: false, finishedSeq: nil)
@@ -49,15 +49,18 @@ public struct RehearsalBook: Sendable {
         }
     }
 
-    /// The latest finished rehearsal of a live charter version (no proposal) on a casebook
-    /// version: the gate baseline (decision 0017).
+    /// The latest finished rehearsal of a live charter version (no proposal, no candidate
+    /// routine) on a casebook version that finished after `seq`, the steward's latest
+    /// configuration change: the gate baseline (decision 0017).
     public func baseline(
-        steward: StewardID, charterVersion: Int, casebookVersion: String
+        steward: StewardID, charterVersion: Int, casebookVersion: String, after seq: Int = 0
     ) -> RehearsalResult? {
         records.values
             .filter { record in
                 let request = record.result.request
-                return record.finished && request.proposal == nil && request.steward == steward
+                return record.finished && (record.finishedSeq ?? 0) > seq
+                    && request.proposal == nil && request.routine == nil
+                    && request.steward == steward
                     && request.charterVersion == charterVersion
                     && request.casebookVersion == casebookVersion
             }

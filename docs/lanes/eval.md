@@ -29,6 +29,12 @@ M2:
 - [x] Metric series from `metric.recorded`, action outcomes, and approval rates; per-steward
   series with fixed windows for the app chart.
 
+- [x] Routine gate (decision 0025): `RoutineRehearsalGate` conforms to `RoutineGateChecking`.
+- [ ] Casebook projection from `casebook.imported` (names, versions, latest per name) and a
+  `CasebookSource` over blobs, for `arya casebook list`, rehearsal, and gates.
+- [ ] Rehearsal review model for the app: per case expected versus actual, score notes, leak,
+  and corrections applied.
+
 Later:
 - [ ] Judge-adapter scorer (an adapter scores a result against the expected one).
 
@@ -64,6 +70,11 @@ Later:
   overrides (person only, failed gates only), accepts, and rejects; `RehearsalGate` records
   `proposal.gated` with actor `system`. Closed (accepted or rejected) proposals refuse every
   further operation. Only charter proposals exist so far; routine proposals come next.
+- Baselines are fresh only if they finished after the steward's latest configuration change
+  (`steward.created`, `steward.charter.updated`, `routine.promoted`); rehearsals with a
+  proposal or a candidate routine never serve as baselines. Charter and routine gates share
+  `GateFlow`; a routine gate rehearses the live charter with `RoutineCandidate` in place and
+  records `proposal.gated` with `routine`.
 - Metric series: `OutcomeMetrics.series` reads `metric.recorded` payloads as `{"metric",
   "value"}` (a `run/result` measurement), `action.executed|failed|rejected`, and
   `approval.granted|denied|expired`, per steward, into contiguous fixed windows aligned to
@@ -93,3 +104,4 @@ Later:
 - 2026-11-09: corrections (`case.corrected`, note, corrected casebook) and readiness (86e1c81)
 - 2026-11-09: charters flow through rehearsal; `RehearsalBook` finds baselines (8f0f8a6)
 - 2026-11-09: proposals (`ProposalDesk`, `ProposalBook`) and `RehearsalGate`, decision 0027 (e0c679e)
+- 2026-11-09: per-steward outcome metric series with fixed windows (fabfc1e)

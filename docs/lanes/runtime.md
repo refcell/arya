@@ -123,10 +123,6 @@ M4:
 
 ## Questions
 
-- From eval: `OutcomeMetrics` reads `metric.recorded` as `{"v":1,"metric":"<name>","value":<n>,
-  "run":"<run id>"}` with the steward on the envelope, one event per `run/result` measurement.
-  Proposed default: the runtime writes exactly that shape (payload lives with its writer).
-
 - The eval `CaseRunner`, the cli-e2e facade additions, app-shell's effort read and write, and
   memory's routine wiring (decision 0025) moved to the [workspace lane](workspace.md) with the
   facade. For decision 0026 the facade

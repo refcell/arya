@@ -1,5 +1,21 @@
 import AryaCore
 
+/// A routine version rehearsed in place of the live version of its name (or added, for a new
+/// name), as in a routine gate (decision 0025).
+public struct RoutineCandidate: Hashable, Sendable, Codable {
+    public var name: String
+    public var version: String
+
+    public init(name: String, version: String) {
+        self.name = name
+        self.version = version
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case name, version
+    }
+}
+
 /// What to rehearse: a steward's charter version on one casebook version.
 public struct RehearsalRequest: Hashable, Sendable, Codable {
     public var steward: StewardID
@@ -10,20 +26,23 @@ public struct RehearsalRequest: Hashable, Sendable, Codable {
     /// The proposal whose candidate charter is rehearsed; `nil` for the live charter. Only
     /// rehearsals without a proposal serve as gate baselines.
     public var proposal: ProposalID?
+    /// A candidate routine to use instead of the live one; `nil` uses the live routines.
+    public var routine: RoutineCandidate?
 
     public init(
         steward: StewardID, charterVersion: Int, casebookVersion: String, samples: Int = 1,
-        proposal: ProposalID? = nil
+        proposal: ProposalID? = nil, routine: RoutineCandidate? = nil
     ) {
         self.steward = steward
         self.charterVersion = charterVersion
         self.casebookVersion = casebookVersion
         self.samples = max(1, samples)
         self.proposal = proposal
+        self.routine = routine
     }
 
     enum CodingKeys: String, CodingKey {
-        case steward, charterVersion, casebookVersion, samples, proposal
+        case steward, charterVersion, casebookVersion, samples, proposal, routine
     }
 }
 

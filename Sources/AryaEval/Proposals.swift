@@ -33,10 +33,12 @@ public struct ProposalGatedPayload: Hashable, Sendable, Codable {
     public var casebook: String
     public var baseline: RehearsalID?
     public var candidate: RehearsalID?
+    /// The candidate routine, for a routine proposal.
+    public var routine: RoutineCandidate?
     public var verdict: GateCheckVerdict
 
     enum CodingKeys: String, CodingKey {
-        case v, proposal, casebook, baseline, candidate, verdict
+        case v, proposal, casebook, baseline, candidate, routine, verdict
     }
 }
 
