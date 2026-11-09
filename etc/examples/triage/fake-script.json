@@ -1,0 +1,667 @@
+{
+  "v": 1,
+  "responses": {
+    "New message MSG-101: Charged twice": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-101"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-101",
+            "from": "customer:c-101",
+            "subject": "Charged twice",
+            "body": "I was billed twice for my March plan. Please refund one charge."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a billing message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-101 as billing and routed it to billing.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "The message reads as a billing request."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-101",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category"
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-101",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue"
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-102: App crashes on export": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-102"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-102",
+            "from": "customer:c-102",
+            "subject": "App crashes on export",
+            "body": "The desktop app closes every time I export a report to CSV."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a bug message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-102 as bug and routed it to engineering.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "bug",
+            "rationale": "The message reads as a bug request."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-102",
+            "params": {
+              "label": "bug"
+            },
+            "rationale": "category"
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-102",
+            "params": {
+              "queue": "engineering"
+            },
+            "rationale": "owning queue"
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-103: Cannot sign in": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-103"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-103",
+            "from": "customer:c-103",
+            "subject": "Cannot sign in",
+            "body": "The sign-in page says my password is wrong right after I reset it."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a account message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-103 as account and routed it to accounts.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "account",
+            "rationale": "The message reads as a account request."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-103",
+            "params": {
+              "label": "account"
+            },
+            "rationale": "category"
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-103",
+            "params": {
+              "queue": "accounts"
+            },
+            "rationale": "owning queue"
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-104: How do I add a teammate?": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-104"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-104",
+            "from": "customer:c-104",
+            "subject": "How do I add a teammate?",
+            "body": "Where in settings do I invite another person to my workspace?"
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a how-to message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-104 as how-to and routed it to help.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "how-to",
+            "rationale": "The message reads as a how-to request."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-104",
+            "params": {
+              "label": "how-to"
+            },
+            "rationale": "category"
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-104",
+            "params": {
+              "queue": "help"
+            },
+            "rationale": "owning queue"
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-105: Suspicious login alert": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-105"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-105",
+            "from": "customer:c-105",
+            "subject": "Suspicious login alert",
+            "body": "I got an alert about a login from a city I have never visited."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a security message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-105 as security and routed it to security.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "security",
+            "rationale": "The message reads as a security request."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-105",
+            "params": {
+              "label": "security"
+            },
+            "rationale": "category"
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-105",
+            "params": {
+              "queue": "security"
+            },
+            "rationale": "owning queue"
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-106: Update card on file": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-106"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-106",
+            "from": "customer:c-106",
+            "subject": "Update card on file",
+            "body": "My card expired. How do I change the card you charge each month?"
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a billing message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-106 as billing and routed it to billing.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "The message reads as a billing request."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-106",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category"
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-106",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue"
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-107: WIN A FREE CRUISE": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-107"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-107",
+            "from": "customer:c-107",
+            "subject": "WIN A FREE CRUISE",
+            "body": "Click here to claim your prize before midnight."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a spam message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-107 as spam and routed it to spam.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "spam",
+            "rationale": "The message reads as a spam request."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-107",
+            "params": {
+              "label": "spam"
+            },
+            "rationale": "category"
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-107",
+            "params": {
+              "queue": "spam"
+            },
+            "rationale": "owning queue"
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-108: Export is slow": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-108"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-108",
+            "from": "customer:c-108",
+            "subject": "Export is slow",
+            "body": "Exports of large reports take more than ten minutes to finish."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a bug message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-108 as bug and routed it to engineering.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "bug",
+            "rationale": "The message reads as a bug request."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-108",
+            "params": {
+              "label": "bug"
+            },
+            "rationale": "category"
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-108",
+            "params": {
+              "queue": "engineering"
+            },
+            "rationale": "owning queue"
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-201: Refund for a duplicate charge": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "A duplicate charge: billing. I will draft a reply."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-201 as billing, routed it, and drafted a reply for approval.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "The customer reports a duplicate charge."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-201",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category"
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-201",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue"
+          },
+          {
+            "id": "a3",
+            "kind": "reply",
+            "binding": "inbox",
+            "target": "inbox:MSG-201",
+            "params": {
+              "text": "Thanks for writing in. We have sent your refund to the billing team."
+            },
+            "rationale": "acknowledge the customer"
+          }
+        ],
+        "memories": [
+          {
+            "text": "Duplicate charges go to billing with an acknowledgement reply.",
+            "tags": [
+              "billing"
+            ]
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    }
+  },
+  "default": {
+    "events": [
+      {
+        "kind": "message",
+        "role": "assistant",
+        "text": "No scripted response for this input."
+      }
+    ],
+    "status": "completed",
+    "result": {
+      "summary": "Nothing to do.",
+      "decisions": [],
+      "actions": []
+    }
+  }
+}

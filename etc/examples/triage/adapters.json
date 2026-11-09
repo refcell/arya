@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "profiles": {
+    "fake-triage": {
+      "command": "arya-fake-adapter",
+      "args": {
+        "low": ["--script", "etc/examples/triage/fake-script.json"],
+        "medium": ["--script", "etc/examples/triage/fake-script.json"],
+        "high": ["--script", "etc/examples/triage/fake-script.json"]
+      }
+    }
+  }
+}

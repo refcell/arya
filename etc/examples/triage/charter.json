@@ -1,0 +1,91 @@
+{
+  "v": 1,
+  "id": "st_triage",
+  "name": "Support inbox triage",
+  "outcome": "Every new message in the support inbox is labeled and routed to the right queue within one hour.",
+  "metric": {
+    "name": "routed_within_1h",
+    "unit": "ratio",
+    "direction": "up",
+    "target": 0.95
+  },
+  "guardrails": [
+    "Never delete a message.",
+    "Ask before replying to a customer.",
+    "Route anything about security to the security queue."
+  ],
+  "bindings": [
+    {
+      "id": "inbox",
+      "kind": "mcp",
+      "command": "inbox-mcp",
+      "args": [],
+      "read": [
+        "search",
+        "get"
+      ],
+      "actions": [
+        "label",
+        "route",
+        "reply"
+      ]
+    },
+    {
+      "id": "person:sam",
+      "kind": "person",
+      "channel": "inbox"
+    }
+  ],
+  "triggers": [
+    {
+      "kind": "interval",
+      "everySeconds": 900
+    },
+    {
+      "kind": "manual"
+    }
+  ],
+  "policy": {
+    "default": "ask",
+    "rules": [
+      {
+        "action": "label",
+        "decision": "auto"
+      },
+      {
+        "action": "route",
+        "decision": "auto"
+      },
+      {
+        "action": "reply",
+        "decision": "ask"
+      },
+      {
+        "action": "delete",
+        "decision": "deny"
+      }
+    ]
+  },
+  "adapter": "fake-triage",
+  "effort": "medium",
+  "crew": {
+    "maxParallel": 1
+  },
+  "limits": {
+    "maxTurns": 10,
+    "timeoutSeconds": 60,
+    "maxCostMicros": 0
+  },
+  "scorer": {
+    "kind": "exact",
+    "fields": [
+      "decisions.choice",
+      "actions.kind",
+      "actions.target"
+    ]
+  },
+  "gate": {
+    "samples": 1,
+    "tolerance": 0.0
+  }
+}

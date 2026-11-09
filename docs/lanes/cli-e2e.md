@@ -15,7 +15,7 @@ M1:
 - [ ] `arya init`, `arya steward create|list|show`, `arya run`, `arya approvals`,
   `arya approve|deny`, `arya ledger tail|verify`. Parsed, rendered, and tested against a fake
   backend; wire `WorkspaceBackend` once `Workspace` lands (runtime lane).
-- [ ] `etc/examples/triage/`: a generic issue-triage charter, a fake-adapter script, and a
+- [x] `etc/examples/triage/`: a generic issue-triage charter, a fake-adapter script, and a
   casebook of invented past issues.
 
 M2:
@@ -35,6 +35,8 @@ M3:
 
 ## Decisions
 
+- `etc/examples/triage` is a support inbox triage steward (CEO request). The scripted steward
+  misses only `case-0006`, which the e2e scenario corrects; `ExamplesTests` pins this.
 - The CLI talks to an arya home only through `CLIBackend` (`Sources/AryaCLI/Backend.swift`), which
   returns CLI view models (`Models.swift`). Those models are the `--json` contract: explicit keys,
   sorted, pretty-printed, slashes unescaped; nil optionals are omitted. `PendingBackend` stands in
@@ -50,3 +52,5 @@ M3:
 ## Questions
 
 ## Log
+- 2026-11-09: argument parser, command table, help, text and `--json` output, `CLIBackend`
+  with `PendingBackend` (6b4ff5c)
