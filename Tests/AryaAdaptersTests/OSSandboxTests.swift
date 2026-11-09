@@ -88,3 +88,79 @@ func sandboxedAgentWritesOnlyInsideItsWorkdir() async throws {
     let temp = workdir.appendingPathComponent(".tmp/temp.txt")
     #expect(FileManager.default.fileExists(atPath: temp.path))
 }
+
+/// Runs `body` as a sandboxed agent (network denied) in a `work` subdirectory and returns the
+/// updates up to the result.
+func sandboxedRun(_ body: String) async throws -> (FakeAgent, [AdapterUpdate]) {
+    let agent = try FakeAgent(body)
+    let workdir = agent.directory.appendingPathComponent("work")
+    try FileManager.default.createDirectory(at: workdir, withIntermediateDirectories: true)
+    let (transport, endpoint) = InMemoryPipe.make()
+    let server = ExecAdapterServer(
+        profile: agent.profile(), environment: ["PATH": "/usr/bin:/bin"], endpoint: endpoint)
+    Task { await server.serve() }
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.timeouts)
+    _ = try await adapter.initialize(InitializeParams(client: Sample.client))
+    var start = agent.start()
+    start.workdir = workdir.path
+    start.sandbox = OSSandbox.confiningWrites(to: workdir.path, network: .denied)
+    _ = try await adapter.start(start)
+    let updates = await collect(adapter, until: \.isResult)
+    try await adapter.shutdown()
+    return (agent, updates)
+}
+
+func errorMessages(_ updates: [AdapterUpdate]) -> [String] {
+    updates.compactMap(\.event).compactMap { params in
+        if case .error(let message) = params.event.body { return message }
+        return nil
+    }
+}
+
+@Test(.enabled(if: OSSandbox.isAvailable))
+func sandboxBlocksOutsideWritesAndNetworkAndSaysSoOnce() async throws {
+    let (agent, updates) = try await sandboxedRun(
+        """
+        cat > /dev/null
+        (echo outside > ../outside.txt) && wrote=yes || wrote=no
+        /usr/bin/nc -zv -w 2 127.0.0.1 9 2> nc.err
+        if grep -q "not permitted" nc.err; then net=denied; else net=allowed; fi
+        cat nc.err >&2
+        printf '```json\\n{"summary":"%s %s"}\\n```\\n' "$wrote" "$net"
+        """)
+    let result = try #require(updates.compactMap(\.result).first)
+    #expect(try result.decodedResult().summary == "no denied", "\(updates)")
+    let outside = agent.directory.appendingPathComponent("outside.txt")
+    #expect(!FileManager.default.fileExists(atPath: outside.path))
+    let errors = errorMessages(updates)
+    #expect(errors.count == 1, "\(errors)")
+    let report = try #require(errors.first)
+    #expect(report.hasPrefix("The sandbox blocked the agent from writing outside its workdir"))
+    #expect(report.contains("Operation not permitted"))
+    #expect(report.hasSuffix(").") && !report.contains("\n"))
+}
+
+@Test(.enabled(if: OSSandbox.isAvailable))
+func cleanSandboxedRunReportsNoDenial() async throws {
+    let (_, updates) = try await sandboxedRun(
+        """
+        cat > /dev/null
+        echo fine > inside.txt
+        printf '```json\\n{"summary":"ok"}\\n```\\n'
+        """)
+    #expect(updates.compactMap(\.result).first?.status == .completed)
+    #expect(errorMessages(updates).isEmpty)
+}
+
+@Test func denialWatcherFindsTheFirstDeniedLine() {
+    let forwarded = StderrBuffer()
+    let watcher = SandboxDenialWatcher(forwardingTo: forwarded)
+    watcher.append(Data("warming up\nsh: ../a: Operation not ".utf8))
+    #expect(watcher.report == nil)
+    watcher.append(Data("permitted\nsecond: Operation not permitted\n".utf8))
+    #expect(watcher.firstDenial == "sh: ../a: Operation not permitted")
+    #expect(forwarded.contents.count > 0)
+    let partial = SandboxDenialWatcher(forwardingTo: StderrBuffer())
+    partial.append(Data("tail without newline: operation not permitted".utf8))
+    #expect(partial.firstDenial == "tail without newline: operation not permitted")
+}

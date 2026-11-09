@@ -115,6 +115,10 @@ M4:
   policy stays in one place. The standard profile allows writes only in `WORKDIR`, `/dev` nodes,
   and listed paths; temp directories are not writable (workdirs live there), so the exec adapter
   points `TMPDIR` into the workdir. An adapter that cannot sandbox rejects the run with `-32002`.
+- Sandbox denials are reported, not fatal: the exec adapter watches the agent's stderr for
+  `Operation not permitted` and emits one `error` sentence with the first denied line; the run's
+  status still follows the agent, so a harness probing a cache directory does not lose a valid
+  result. macOS logs violations elsewhere, so stderr is the signal an adapter can see.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 

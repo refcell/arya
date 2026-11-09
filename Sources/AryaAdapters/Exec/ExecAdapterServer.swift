@@ -22,6 +22,7 @@ public actor ExecAdapterServer {
     private var output: [String] = []
     private var outputBytes = 0
     private var mcpConfigFile: URL?
+    private var denials: SandboxDenialWatcher?
     private var lastResult: JSONValue?
     private var cost = CostResult()
     private var finalText: String?
@@ -166,7 +167,13 @@ public actor ExecAdapterServer {
                 command.environment["TMPDIR"] = tmp.path
                 command = OSSandbox.wrap(command, in: sandbox, sandboxExec: sandboxExec)
             }
-            let agent = try ProcessTransport.launch(command, stderr: agentStderr)
+            var stderr = agentStderr
+            if request.sandbox != nil {
+                let watcher = SandboxDenialWatcher(forwardingTo: agentStderr)
+                denials = watcher
+                stderr = watcher
+            }
+            let agent = try ProcessTransport.launch(command, stderr: stderr)
             self.agent = agent
             await emit(RunEvent(.status(state: "working", detail: "agent started")))
             Task { await self.read(agent) }
@@ -254,6 +261,8 @@ public actor ExecAdapterServer {
     }
 
     private func agentEnded(_ exit: AdapterExit) async {
+        // The agent's stderr is drained before its end is reported, so a denial is known now.
+        if let report = denials?.report { await emit(RunEvent(.error(message: report))) }
         if stopRequested {
             await finish(.stopped, result: nil)
             return

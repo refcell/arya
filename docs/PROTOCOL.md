@@ -276,7 +276,10 @@ the agent and the run ends `stopped`. Capabilities: `effort` lists the efforts i
 false, `cost` is true for `jsonl` and `stream-json`, `tools` is `mcp` for `mcpConfig: "file"`, and
 `sandbox` is `os` when `/usr/bin/sandbox-exec` exists, otherwise the profile's value. With
 `run/start.sandbox` the agent is launched under it, with `TMPDIR` set to `workdir/.tmp` so temporary
-files stay writable. The agent's stderr is forwarded to the adapter's stderr. Only the last 8 MiB of
+files stay writable. When the sandboxed agent's stderr shows a denied operation (`Operation not
+permitted`), the run reports one `error` event: "The sandbox blocked the agent from writing outside
+its workdir or using the network (<first denied line>)." The run's status still follows the agent's
+exit and result. The agent's stderr is forwarded to the adapter's stderr. Only the last 8 MiB of
 output is kept for parsing, and `.arya-mcp.json` is deleted when the run ends.
 
 ### Fake adapter scripts

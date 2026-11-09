@@ -206,6 +206,8 @@ M4:
   folds it into `charter.effort` without bumping the version, so the next run records the
   effort it used in `run.started`. The workspace lane landed that fold as a small integration
   edit in `Stewards.swift`.
+- (from adapters) OS sandbox for harnesses: `run/start.sandbox` (`SandboxRequest`: SBPL `profile` + `params`) is honored by adapters reporting capability `sandbox: "os"` (the exec adapter on any Mac with `/usr/bin/sandbox-exec`); others reject it with `-32002`. Suggested default: `OSSandbox.confiningWrites(to: workdir, network: .allowed)` when the adapter reports `os`. Routine sandboxing (0031) can reuse `OSSandbox.wrap(_:in:)` around the routine runner's command.
+- (from adapters) Sandbox network per the CEO: pass `OSSandbox.confiningWrites(to: workdir, extraWritablePaths: [], network: .denied)` unless a charter binding allows network (proposed: an optional binding field such as `network: "allowed"`, owned by core), then `.allowed`; the exec adapter reports blocked writes and connections as one `error` event sentence starting "The sandbox blocked the agent".
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior

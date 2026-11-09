@@ -83,3 +83,55 @@ public enum OSSandbox {
         return "\"\(escaped)\""
     }
 }
+
+/// Forwards an agent's stderr and remembers the first line that shows the OS sandbox refusing
+/// an operation, so the run can report it in one sentence.
+final class SandboxDenialWatcher: StderrSink {
+    private let forward: any StderrSink
+    private let state = Locked((pending: Data(), firstDenial: String?.none))
+
+    /// What denied operations print: the `EPERM` text shells, tools, and runtimes use.
+    static let markers = ["Operation not permitted", "operation not permitted"]
+
+    init(forwardingTo forward: any StderrSink) { self.forward = forward }
+
+    func append(_ data: Data) {
+        forward.append(data)
+        state.withLock { state in
+            guard state.firstDenial == nil else { return }
+            state.pending.append(data)
+            while let newline = state.pending.firstIndex(of: 0x0A) {
+                let line = String(decoding: state.pending[..<newline], as: UTF8.self)
+                state.pending = Data(state.pending[state.pending.index(after: newline)...])
+                if Self.markers.contains(where: line.contains) {
+                    state.firstDenial = line.trimmingCharacters(in: .whitespaces)
+                    state.pending = Data()
+                    return
+                }
+            }
+            // Keep a bounded tail while waiting for a newline.
+            if state.pending.count > 4096 { state.pending = Data(state.pending.suffix(4096)) }
+        }
+    }
+
+    /// The first denied operation's stderr line, cut to 160 characters.
+    var firstDenial: String? {
+        state.withLock { state in
+            if state.firstDenial == nil, !state.pending.isEmpty {
+                let tail = String(decoding: state.pending, as: UTF8.self)
+                if Self.markers.contains(where: tail.contains) {
+                    state.firstDenial = tail.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+            return state.firstDenial.map { String($0.prefix(160)) }
+        }
+    }
+
+    /// The sentence the run reports, or `nil` when nothing was denied.
+    var report: String? {
+        firstDenial.map {
+            "The sandbox blocked the agent from writing outside its workdir or using the "
+                + "network (\($0))."
+        }
+    }
+}
