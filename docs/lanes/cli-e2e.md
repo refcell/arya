@@ -95,6 +95,7 @@ M4:
 - (from eval) Backtest demo data: `Tests/AryaEvalTests/Fixtures/backtest` (README); copy to examples?
 - (from app-outcome) please seed the demo home with a steward plan: have the fake triage script return `plan` in `run/result` (protocol `PlanStep`s: `id`, `text`, `status` pending|in_progress|done|skipped|blocked, `rationale`) on both live runs, changing one step between them, so the runtime records `plan.updated` and the Overview shows a plan and why it changed. A few days of `metric.recorded` history would also fill the sparkline.
 - (from adapters) Per the CEO, the triage fake script now answers `New message MSG-202: Where is my package?` (shipping) and `New message MSG-203: Damaged order, please refund` (label, route, a high-risk `refund` on binding `billing`, and a reply). To show them: add a `billing` binding to `etc/examples/triage/charter.json` (`actions: ["refund"]`, policy `refund: ask`) and seed both runs in `etc/scripts/demo.sh`; MSG-201 and the casebook are unchanged, so `just e2e` is unaffected.
+- (from workspace) `Workspace.open(home:environment:ambient:)` is live: seed with `Ambient.fixed(start: <weeks ago>, stepMillis: 60_000)` for a `--clock`, then views read it as weeks old (the current demo home is all stamped at seed time).
 
 ## Log
 - 2026-11-09: M3.5 section in ROADMAP (1a1d360). Demo steward enriched: history runs with `plan`,

@@ -252,10 +252,26 @@ extension Workspace {
 
     // MARK: Plan
 
-    /// The steward's current plan: the plan of its newest live run that reported one, with
-    /// that run's summary as why it changed. No items until a run reports a plan.
+    /// The steward's current plan: the newest runtime `plan.updated` for it, with the run
+    /// that changed it and why. Homes written before runtime recorded plans fall back to the
+    /// newest live run result that carried one. No items until a run reports a plan.
     public func plan(steward: String) async throws -> Plan {
         let id = try await existing(steward).id
+        if let event = try await sink.events(from: 1).last(where: {
+            $0.type == PlanEventType.updated && $0.draft.steward == id
+        }) {
+            let body = try CanonicalJSON.decode(
+                PlanUpdated.self, from: try CanonicalJSON.encode(event.payload))
+            let at = event.at.date
+            return Plan(
+                steward: id.rawValue,
+                items: body.items.map {
+                    Plan.Item(
+                        id: $0.id, text: $0.text, status: $0.status.rawValue, reason: $0.rationale,
+                        updatedAt: at)
+                },
+                updatedAt: at, reason: body.reason, run: event.draft.run?.rawValue)
+        }
         let live = Set(
             try await runBook().all.filter { $0.steward == id && $0.trigger != "case" }
                 .map(\.id))

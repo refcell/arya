@@ -63,12 +63,20 @@ public actor Workspace {
     public static func open(home: URL, environment: [String: String] = [:]) async throws
         -> Workspace
     {
+        try await open(home: home, environment: environment, ambient: .live)
+    }
+
+    /// Opens with an explicit clock, for example `Ambient.fixed(start:stepMillis:)` weeks in the
+    /// past, so a seeding tool can write history that reads as old.
+    public static func open(home: URL, environment: [String: String] = [:], ambient: Ambient)
+        async throws -> Workspace
+    {
         try HomeLayout.create(at: home)
         let leases = try FileRunLeases(directory: HomeLayout.leases(home))
         return try await open(
             home: home,
             wiring: Wiring(
-                ambient: .live,
+                ambient: ambient,
                 adapters: ProfileAdapterFactory(home: home, environment: environment),
                 executor: DryRunExecutor(), leases: leases))
     }

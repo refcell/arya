@@ -112,9 +112,6 @@ M3:
 - (from cli-e2e) Please add `serve(every:)` (holds scheduler.lock, ticks) and `serveBindingProxy(steward:run:binding:recorded:)` (stdio); CLI calls are wired.
 - (from eval) Read models: `Backtester.run`/`Backtests.compare`, `ReadinessReports.report`, `OutcomeTrends.trend`.
 - (from ledger) For outcome, recap, and activity views: `LedgerReader.events(since:)`, `events(_ filter:, from:)` (`LedgerFilter` now has `since`/`until`), and typed `events(ApprovalGranted.self, matching:)` skip non-matching lines before hashing; 50k events, filtered scan 0.09 s CPU vs 0.77 s full read. Please read through these instead of `events()` + filter.
-- (from app-outcome) the Overview reads `plan.updated` `{v: 1, steps: [{id, title, status: todo|doing|done|dropped|blocked, note?}], reason?}`; please have `plan(steward:)` fold that event (and runtime record it from `run/result.plan`), so the app can switch to the facade reads; also an optional charter `success` sentence.
-- (from cli-e2e) Demo needs weeks of history: `Workspace.open(home:environment:clock:)` taking a start time that steps, for a CLI `--clock`?
-- (from runtime) `plan.updated` is live (decision 0035): `plan(steward:)` can read `PlanBook(events).plans[id]` and the newest event's `PlanUpdated {items: [{id, text, status, rationale?}], reason?}`; the app's `OutcomeFeed` expects `{steps: [{title, note}]}` and should adapt to this shape.
 - (from runtime) Approval cards: `action.proposed` now has `risk` (low|medium|high) and `autonomy`, and `reason` `autonomy:<level>:<risk>` when autonomy made it ask (decision 0037); charters carry `autonomy` and `policy.risk`.
 - (from eval) Facade asks: `correct(run:expected:)` via `Corrector.correct(run:...)`; `whatIf(run:)` via `Counterfactuals(runner: RuntimeCaseRunner)`.
 - (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
@@ -134,6 +131,8 @@ M3:
   (`RecordedResults`) until runtime folds them into its own events
 - 2026-11-09: charter policy rules take an optional `note` (the guardrail in a person's
   words; small AryaCore edit, ARCHITECTURE.md updated) for the approval block
+- 2026-11-09: `plan(steward:)` reads runtime's `plan.updated` (decision 0035), falling back
+  to recorded results for older homes; time text comes from the workspace clock (`TimeText`)
 - 2026-11-09: recap takes the last seen `seq` from the caller; the facade keeps no per-person
   state
 - 2026-11-09: routine intake runs in the facade after each facade-started live run (runtime
@@ -161,3 +160,5 @@ M3:
 - 2026-11-09: plan, approval risk and why, decision and action why from recorded results;
   42 AryaTests.
 - 2026-11-09: approval `policyText` from charter rule notes; 43 AryaTests.
+- 2026-11-09: `needsYou()`, `TimeText`/`timeText(_:)`, `event(seq:)` inspector,
+  `open(home:environment:ambient:)` for back-dated seeding, plan from `plan.updated`; 47 tests.
