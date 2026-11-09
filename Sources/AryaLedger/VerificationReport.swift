@@ -30,6 +30,16 @@ extension LedgerVerification {
                 details: ["head: \(head)"])
         }
         let location = failure.location
+        if case .unanchored = failure.issue {
+            return LedgerVerificationReport(
+                ok: false, headline: "ledger unanchored: \(failure.issue)",
+                details: [
+                    "where: \(location.segment) line \(location.line), byte \(location.offset)",
+                    "verified: \(events) from seq \(firstSeq), in \(files); head \(head)",
+                    "meaning: \(failure.issue.meaning)",
+                    "next: \(failure.issue.nextStep)",
+                ])
+        }
         return LedgerVerificationReport(
             ok: false, headline: "ledger broken at seq \(seq): \(failure.issue)",
             details: [
@@ -59,6 +69,13 @@ extension LedgerVerification.Issue {
             return "an append was interrupted before its newline."
         case .torn(repairable: false):
             return "a segment other than the newest ends in the middle of a line."
+        case .badCheckpoint(_, .unknownKey), .badCheckpoint(_, .badSignature),
+            .badCheckpoint(_, .malformed):
+            return "a checkpoint is not signed by a key this ledger trusts."
+        case .badCheckpoint:
+            return "a signed checkpoint does not match the events or segments it names."
+        case .unanchored:
+            return "older segments are gone and no signed checkpoint vouches for what they held."
         }
     }
 
@@ -68,6 +85,12 @@ extension LedgerVerification.Issue {
         case .torn(repairable: true):
             return "nothing; the next write moves the partial bytes to a blob and records "
                 + "system.repair."
+        case .badCheckpoint:
+            return "do not compact with this checkpoint; find out who wrote it, then record a "
+                + "fresh one."
+        case .unanchored:
+            return "restore the archived segments or the checkpoint that covers them; history "
+                + "before the first live event cannot be trusted until then."
         default:
             return "stop writing to this home and restore the named segment from a backup; "
                 + "events after the break cannot be trusted."

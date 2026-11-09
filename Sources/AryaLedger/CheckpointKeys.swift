@@ -142,6 +142,22 @@ public struct KeyRing: LedgerProjection, Hashable {
         current = payload.key
     }
 
+    /// Trusts keys carried by an anchoring checkpoint (id to base64 public key). Entries
+    /// whose id does not match their key are ignored.
+    mutating func trust(_ carried: [String: String]) {
+        for (id, encoded) in carried.sorted(by: { $0.key < $1.key }) where keys[id] == nil {
+            guard let raw = Data(base64Encoded: encoded),
+                let key = try? Curve25519.Signing.PublicKey(rawRepresentation: raw),
+                CheckpointKeys.id(of: key) == id
+            else { continue }
+            keys[id] = raw
+            current = current ?? id
+        }
+    }
+
+    /// The trusted keys as checkpoint `keys`: id to base64 public key.
+    public var carried: [String: String] { keys.mapValues { $0.base64EncodedString() } }
+
     /// Folds every `system.key.added` in the ledger (a typed, sieved read).
     public static func read(_ reader: LedgerReader) throws -> KeyRing {
         var ring = KeyRing()

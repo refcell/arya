@@ -69,8 +69,9 @@ Next (lane-extended, in order):
 - [x] (5) `system.key.added` (`SystemKeyAdded`, golden) and `CheckpointKeys` (`keys/checkpoint.key`,
   0600, `ensure`, `rotate` signed by the old key, old file kept in `keys/retired/`); `KeyRing`
   folds the trusted keys and lists rejected ones.
-- [ ] (6) `system.checkpoint`: build, sign, check; `LedgerVerifier` anchoring with an
-  `unanchored` issue and its report text.
+- [x] (6) `system.checkpoint` (`SystemCheckpoint`, golden): `Checkpoints.build`/`record`/
+  `check`/`trustedRing`; `LedgerVerifier` accepts a mid-chain start only with an anchoring
+  checkpoint (`unanchored` issue otherwise) and checks every checkpoint (`badCheckpoint`).
 - [ ] (7) Projection seeding from a checkpoint's digests; then `compact` and `verify --archive`.
 - [x] (5a, CEO priority for app parity) Fast long-range reads: `LineSieve` skips lines that
   cannot match a `LedgerFilter` before hashing or parsing; `LedgerFilter.since`/`until`;
@@ -160,6 +161,13 @@ Next (lane-extended, in order):
   trusted key whose signature over the payload without `signature` checks; others go to
   `rejected`. `ensure` refuses (`notRecorded`) to record a stored key unsigned on a ledger
   that already trusts another.
+- Checkpoints carry `keys` (every trusted public key) so a compacted ledger whose
+  `system.key.added` events were archived still checks them; only the anchoring checkpoint's
+  `keys` are trusted, and only entries whose id hashes from their key. Verify folds keys and
+  collects checkpoints in its one pass, then checks signatures, live heads, and live segment
+  digests; a checkpoint's key may be recorded after it (keys are never revoked).
+  `LedgerVerification` gained `firstSeq` (default 1); `firstBadSeq` is the checkpoint's `seq`
+  for `badCheckpoint` and the first live `seq` for `unanchored`.
 - Perf probes measure thread CPU time, not wall time, so a loaded machine does not make them
   flaky. Hot loops in `JSONParser` and `LedgerLine` use index loops and plain byte compares:
   tests run debug builds, where range patterns and generic slice algorithms cost metadata
@@ -170,7 +178,9 @@ Next (lane-extended, in order):
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
-- 2026-11-09: (5) done: `system.key.added`, `CheckpointKeys`, `KeyRing`.
+- 2026-11-09: (6) done: `system.checkpoint`, `Checkpoints`, verify anchoring (`unanchored`,
+  `badCheckpoint`) with report text. Verify of 5,000 events 0.11 s CPU.
+- 2026-11-09: (5) done: `system.key.added`, `CheckpointKeys`, `KeyRing` (dd8bbe0).
 - 2026-11-09: (5a) done: sieved filtered reads, `since`/`until`, `events(since:)`, typed
   reads; 50k filtered scan 0.09 s CPU (9930fc1). Read API offered in workspace.md Questions.
 - HANDOFF 2026-11-09 (second session, ended near auto-compaction): backlog (1)-(4) done and

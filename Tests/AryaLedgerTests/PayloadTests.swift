@@ -70,6 +70,16 @@ let payloadSamples: [PayloadSample] = [
         SystemKeyAdded(
             key: "key_0123456789abcdef", publicKey: String(repeating: "A", count: 43) + "=",
             replaces: "key_fedcba9876543210", signature: String(repeating: "B", count: 86) + "==")),
+    PayloadSample(
+        SystemCheckpoint(
+            through: 12, head: String(repeating: "ab", count: 32),
+            segments: [
+                CheckpointSegment(
+                    name: "000001.jsonl", sha256: String(repeating: "cd", count: 32), first: 1,
+                    last: 9)
+            ], projections: ["runs.v1": String(repeating: "ef", count: 32)],
+            keys: ["key_0123456789abcdef": String(repeating: "A", count: 43) + "="],
+            key: "key_0123456789abcdef", signature: String(repeating: "B", count: 86) + "==")),
 ]
 
 private func goldenName(_ type: EventType) -> String { "payloads/\(type.rawValue).json" }

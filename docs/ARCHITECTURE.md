@@ -117,7 +117,8 @@ Each line is one event:
   - `rehearsal.*`: `started`, `case.scored`, `finished`; `proposal.*`: `created`, `gated`,
     `accepted`, `rejected`, `overridden`
   - `metric.recorded`, `env.read` (an ambient reading not already carried by an envelope),
-    `system.repair`, `system.started`, `system.key.added` (a checkpoint signing key)
+    `system.repair`, `system.started`, `system.key.added` (a checkpoint signing key),
+    `system.checkpoint`
 
 Payload types are Swift `Codable` structs in `AryaLedger`, each with a golden-file test.
 
@@ -131,9 +132,12 @@ local signing key, so older segments can be archived and history can travel.
 - **Event.** `system.checkpoint` (actor `system`), appended under the normal lock like any
   event. Payload: `{"v":1,"through":<seq>,"head":"<hash at through>","events":<count>,
   "segments":[{"name","sha256","first","last"}],"projections":{"<cache name>":"<sha256>"},
-  "key":"<key id>","signature":"<base64>"}`. `segments` lists every closed segment wholly at or
-  before `through`, with the SHA-256 of its file. `projections` holds the digest of each cached
-  projection's canonical `value` at `through`.
+  "keys":{"<key id>":"<base64 public key>"},"key":"<key id>","signature":"<base64>"}`.
+  `segments` lists every closed segment wholly at or before `through`, with the SHA-256 of its
+  file. `projections` holds the digest of each cached projection's canonical `value` at
+  `through`. `keys` carries every trusted public key, because compaction archives the
+  `system.key.added` events: on a compacted ledger the anchoring checkpoint's `keys` join the
+  live ones (`Checkpoints.trustedRing()`). `events` equals `through`.
 - **Signature.** Ed25519 (CryptoKit `Curve25519.Signing`) over the canonical JSON of the payload
   without `signature`. The private key lives at `keys/checkpoint.key` (mode 0600, never on the
   ledger); its public half and id (`key_` + first 16 hex of its SHA-256) are recorded once by a

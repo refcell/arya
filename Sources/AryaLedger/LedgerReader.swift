@@ -133,7 +133,7 @@ public struct LedgerReader: Sendable {
         return Int(seq - first.seq)
     }
 
-    private func firstEvent(of segment: Segment) throws -> Event? {
+    func firstEvent(of segment: Segment) throws -> Event? {
         var found: Event?
         try scan(segment, stopAfterFirst: true) { event, _, _ in found = event }
         return found

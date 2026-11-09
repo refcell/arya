@@ -55,7 +55,10 @@ import Testing
     let issues: [LedgerVerification.Issue] = [
         .line(.hashMismatch), .line(.tooShort), .line(.missingHashSuffix),
         .line(.badEnvelope("seq")), .seqGap(expected: 4, found: 6), .prevMismatch(seq: 4),
-        .torn(repairable: true), .torn(repairable: false),
+        .torn(repairable: true), .torn(repairable: false), .badCheckpoint(seq: 4, .badSignature),
+        .badCheckpoint(seq: 4, .unknownKey("key_0123456789abcdef")),
+        .badCheckpoint(seq: 4, .malformed), .badCheckpoint(seq: 4, .headMismatch),
+        .badCheckpoint(seq: 4, .segmentMismatch("000001.jsonl")),
     ]
     for issue in issues {
         let verdict = LedgerVerification(
@@ -72,4 +75,22 @@ import Testing
             ])
         #expect(report.details.suffix(2).allSatisfy { $0.hasSuffix(".") })
     }
+}
+
+@Test func reportForAnUnanchoredLedger() {
+    let verdict = LedgerVerification(
+        events: 5, head: Event.genesisHash, segments: 2,
+        failure: .init(
+            location: .init(segment: "000003.jsonl", line: 1, offset: 0),
+            issue: .unanchored(first: 9)), firstSeq: 9)
+    #expect(verdict.firstBadSeq == 9)
+    #expect(
+        verdict.report.lines == [
+            "ledger unanchored: starts at seq 9 with no signed checkpoint through seq 8",
+            "where: 000003.jsonl line 1, byte 0",
+            "verified: 5 events from seq 9, in 2 segments; head \(Event.genesisHash)",
+            "meaning: older segments are gone and no signed checkpoint vouches for what they held.",
+            "next: restore the archived segments or the checkpoint that covers them; history "
+                + "before the first live event cannot be trusted until then.",
+        ])
 }
