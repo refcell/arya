@@ -64,7 +64,7 @@ Result:
 | `cost` | `run/cost` returns real numbers (otherwise zeros) |
 | `transcript` | supports `run/transcript` |
 | `tools` | `"mcp"` if the harness can use the MCP servers in `run/start.tools`, else `"none"` |
-| `sandbox` | `"workdir"` if the harness's built-in write tools are confined to `workdir` or off, `"none"` if they cannot be restricted |
+| `sandbox` | `"os"` if the adapter launches the harness under the OS sandbox in `run/start.sandbox`, `"workdir"` if the harness's built-in write tools are confined to `workdir` or off, `"none"` if they cannot be restricted |
 
 If `protocol` is unsupported the adapter returns error `-32001`.
 
@@ -80,7 +80,8 @@ If `protocol` is unsupported the adapter returns error `-32001`.
   "tools":[{"name":"tracker","transport":"stdio","command":"arya",
             "args":["binding-proxy","--run","run_01J…","--binding","tracker"]}],
   "limits":{"maxTurns":40,"timeoutSeconds":900,"maxCostMicros":2000000},
-  "resultSchema":{"…":"JSON Schema of run/result.result"}}}
+  "resultSchema":{"…":"JSON Schema of run/result.result"},
+  "sandbox":{"profile":"(version 1) …","params":{"WORKDIR":"…"}}}}
 ```
 
 Result: `{"session":"<adapter session id>"}`. The adapter then works asynchronously.
@@ -90,6 +91,13 @@ Result: `{"session":"<adapter session id>"}`. The adapter then works asynchronou
   systems: they expose only read tools and record every call. Adapters pass them through
   unchanged and must not add other tools that reach external systems.
 - `workdir` is a fresh scratch directory owned by the run. The adapter runs the harness there.
+- `sandbox` (optional) is an OS sandbox arya chose for the harness: a macOS sandbox profile
+  (SBPL text) and the parameters it reads with `(param "NAME")`. An adapter with capability
+  `sandbox: "os"` launches the harness as `sandbox-exec -p <profile> -D NAME=value … <command>`;
+  any other adapter rejects such a `run/start` with `-32002`, so a sandboxed run never runs
+  unconfined. `OSSandbox.confiningWrites(to:extraWritablePaths:network:)` builds the standard
+  one: writes only in `WORKDIR` (resolved, `/private/var/…`), the standard `/dev` nodes, and the
+  listed paths (for a harness's own state directory), with outbound network allowed or denied.
 
 ### `run/send`
 
@@ -266,8 +274,10 @@ the result; `turn.completed` usage adds up into `run/cost` tokens (Codex reports
 `failed` with an `error` event saying why (the result, if any, is still sent). `run/stop` terminates
 the agent and the run ends `stopped`. Capabilities: `effort` lists the efforts in `args`, `send` is
 false, `cost` is true for `jsonl` and `stream-json`, `tools` is `mcp` for `mcpConfig: "file"`, and
-`sandbox` comes from the profile. The agent's stderr is forwarded to the adapter's stderr. Only the
-last 8 MiB of output is kept for parsing, and `.arya-mcp.json` is deleted when the run ends.
+`sandbox` is `os` when `/usr/bin/sandbox-exec` exists, otherwise the profile's value. With
+`run/start.sandbox` the agent is launched under it, with `TMPDIR` set to `workdir/.tmp` so temporary
+files stay writable. The agent's stderr is forwarded to the adapter's stderr. Only the last 8 MiB of
+output is kept for parsing, and `.arya-mcp.json` is deleted when the run ends.
 
 ### Fake adapter scripts
 

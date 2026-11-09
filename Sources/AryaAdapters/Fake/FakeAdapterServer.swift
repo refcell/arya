@@ -106,6 +106,10 @@ public actor FakeAdapterServer {
             throw RPCError(code: RPCErrorCode.busy, message: "busy: this process already has a run")
         }
         let request = try params.decode(RunStartParams.self)
+        if request.sandbox != nil, script.capabilities.sandbox != .os {
+            throw RPCError(
+                code: RPCErrorCode.capabilityNotSupported, message: "no OS sandbox")
+        }
         guard let match = script.response(for: request.input.text) else {
             throw RPCError(
                 code: RPCErrorCode.harnessFailure, message: "no script response for input")

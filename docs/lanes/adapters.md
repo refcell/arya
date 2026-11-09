@@ -53,6 +53,8 @@ M4:
   `codex-cli` example uses it.
 - [x] Outcome fields on `run/result`: `plan`, action `risk`, `why` on decisions and actions;
   in the result schema and the triage example.
+- [x] OS sandbox: `run/start.sandbox` (SBPL profile + params), capability `sandbox: "os"`, the
+  exec adapter launching under `sandbox-exec`, and `OSSandbox` helpers for the runtime.
 
 ## Decisions
 
@@ -109,6 +111,10 @@ M4:
 - `plan` step `status` and action `risk` are strict enums: an unknown value makes the result
   undecodable, so the run fails with `invalid_result` rather than showing a guess. An empty
   plan is not encoded, so results without one stay byte-identical.
+- The OS sandbox is chosen by arya and only executed by adapters: arya sends the profile text so
+  policy stays in one place. The standard profile allows writes only in `WORKDIR`, `/dev` nodes,
+  and listed paths; temp directories are not writable (workdirs live there), so the exec adapter
+  points `TMPDIR` into the workdir. An adapter that cannot sandbox rejects the run with `-32002`.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -136,3 +142,5 @@ M4:
 - 2026-11-09: `codex-json` parsing (dd2bf06), exec prompt off the server loop (604802b),
   queued stdin writes (65c2170). Hardened timing-sensitive tests for machine load;
   AryaAdaptersTests passed 5 of 5 runs under load average ~230.
+- 2026-11-09: plan/risk/why (63e1030); test hardening (fb94eff); shipping and high-risk refund
+  triage messages, billing binding, fallback-never-a-message test (2292097).

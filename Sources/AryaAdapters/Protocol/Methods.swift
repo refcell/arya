@@ -41,10 +41,37 @@ public enum ToolSupport: String, Sendable, Hashable, Codable {
     case none
 }
 
-/// Whether a harness's built-in write tools are confined to the run's workdir.
+/// How a harness's writes are confined.
 public enum SandboxSupport: String, Sendable, Hashable, Codable {
+    /// The adapter launches the harness under the OS sandbox profile `run/start.sandbox`
+    /// carries (macOS `sandbox-exec`).
+    case os
+    /// The harness's built-in write tools are confined to the run's workdir or off.
     case workdir
     case none
+}
+
+/// An OS sandbox for the harness, chosen by arya and sent in `run/start.sandbox`: a macOS
+/// sandbox profile (SBPL text) and the parameters it reads with `(param "NAME")`. Only an
+/// adapter reporting capability `sandbox: "os"` accepts it.
+public struct SandboxRequest: Sendable, Hashable, Codable {
+    public var profile: String
+    public var params: [String: String]
+
+    public init(profile: String, params: [String: String] = [:]) {
+        self.profile = profile
+        self.params = params
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        profile = try c.decode(String.self, forKey: .profile)
+        params = try c.decodeIfPresent([String: String].self, forKey: .params) ?? [:]
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case profile, params
+    }
 }
 
 /// What an adapter can do, reported by `initialize`.
@@ -171,11 +198,13 @@ public struct RunStartParams: Sendable, Hashable, Codable {
     public var tools: [ToolServer]
     public var limits: RunLimits
     public var resultSchema: JSONValue?
+    /// An OS sandbox to run the harness in; absent means none.
+    public var sandbox: SandboxRequest?
 
     public init(
         run: String, instructions: String, input: RunInput, effort: String = "medium",
         workdir: String, tools: [ToolServer] = [], limits: RunLimits = RunLimits(),
-        resultSchema: JSONValue? = nil
+        resultSchema: JSONValue? = nil, sandbox: SandboxRequest? = nil
     ) {
         self.run = run
         self.instructions = instructions
@@ -185,6 +214,7 @@ public struct RunStartParams: Sendable, Hashable, Codable {
         self.tools = tools
         self.limits = limits
         self.resultSchema = resultSchema
+        self.sandbox = sandbox
     }
 
     public init(from decoder: any Decoder) throws {
@@ -197,10 +227,11 @@ public struct RunStartParams: Sendable, Hashable, Codable {
         tools = try container.decodeIfPresent([ToolServer].self, forKey: .tools) ?? []
         limits = try container.decodeIfPresent(RunLimits.self, forKey: .limits) ?? RunLimits()
         resultSchema = try container.decodeIfPresent(JSONValue.self, forKey: .resultSchema)
+        sandbox = try container.decodeIfPresent(SandboxRequest.self, forKey: .sandbox)
     }
 
     enum CodingKeys: String, CodingKey {
-        case run, instructions, input, effort, workdir, tools, limits, resultSchema
+        case run, instructions, input, effort, workdir, tools, limits, resultSchema, sandbox
     }
 }
 

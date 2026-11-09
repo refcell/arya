@@ -13,6 +13,7 @@ public actor ExecAdapterServer {
     private let environment: [String: String]
     private let endpoint: any AdapterEndpoint
     private let agentStderr: any StderrSink
+    private let sandboxExec: String?
 
     private var session: String?
     private var request: RunStartParams?
@@ -39,10 +40,14 @@ public actor ExecAdapterServer {
     /// - Parameters:
     ///   - environment: the complete environment for the agent; profile `env` is added on top.
     ///   - agentStderr: where the agent's stderr goes (the binary forwards it to its own).
+    ///   - sandboxExec: the `sandbox-exec` to launch sandboxed agents with, or `nil` when the
+    ///     machine has none; the default finds the system one.
     public init(
         profile: AdapterProfile, environment: [String: String], endpoint: any AdapterEndpoint,
-        agentStderr: any StderrSink = StderrBuffer()
+        agentStderr: any StderrSink = StderrBuffer(),
+        sandboxExec: String? = OSSandbox.isAvailable ? OSSandbox.sandboxExecPath : nil
     ) {
+        self.sandboxExec = sandboxExec
         self.profile = profile
         self.environment = environment.merging(profile.env) { _, profile in profile }
         self.endpoint = endpoint
@@ -54,7 +59,8 @@ public actor ExecAdapterServer {
         Capabilities(
             effort: profile.supportedEfforts, send: false, cost: profile.parse != .text,
             transcript: true,
-            tools: profile.mcpConfig == .file ? .mcp : .none, sandbox: profile.sandbox)
+            tools: profile.mcpConfig == .file ? .mcp : .none,
+            sandbox: sandboxExec == nil ? profile.sandbox : .os)
     }
 
     /// Serves until the host closes the connection or sends `shutdown`.
@@ -121,6 +127,11 @@ public actor ExecAdapterServer {
             throw RPCError(code: RPCErrorCode.busy, message: "busy: this process already has a run")
         }
         let start = try params.decode(RunStartParams.self)
+        if start.sandbox != nil, sandboxExec == nil {
+            throw RPCError(
+                code: RPCErrorCode.capabilityNotSupported,
+                message: "no OS sandbox on this machine")
+        }
         session = "exec-\(start.run)"
         request = start
         return try JSONValue(encoding: RunStartResult(session: session ?? ""))
@@ -144,9 +155,17 @@ public actor ExecAdapterServer {
                 arguments = arguments.map { $0.replacingOccurrences(of: "{mcpConfig}", with: path) }
             }
             if profile.promptVia == .argument { arguments.append(prompt) }
-            let command = AdapterCommand(
+            var command = AdapterCommand(
                 executable: profile.command, arguments: arguments, environment: environment,
                 workingDirectory: request.workdir)
+            if let sandbox = request.sandbox, let sandboxExec {
+                // Temporary files go inside the workdir, which the sandbox lets the agent write.
+                let tmp = URL(fileURLWithPath: request.workdir).appendingPathComponent(".tmp")
+                try FileManager.default.createDirectory(
+                    at: tmp, withIntermediateDirectories: true)
+                command.environment["TMPDIR"] = tmp.path
+                command = OSSandbox.wrap(command, in: sandbox, sandboxExec: sandboxExec)
+            }
             let agent = try ProcessTransport.launch(command, stderr: agentStderr)
             self.agent = agent
             await emit(RunEvent(.status(state: "working", detail: "agent started")))
