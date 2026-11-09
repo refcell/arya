@@ -284,3 +284,16 @@ struct Opened {
     #expect(after.actions[2].detail == "approval_denied")
     #expect(try await workspace.run("run_missing") == nil)
 }
+
+@Test func replayOfALiveRunMatchesTheRecording() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let run = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+
+    let report = try await workspace.replay(run: run.id)
+
+    #expect(report.divergences == [])
+    #expect(report.events > 2)
+    await #expect(throws: WorkspaceError.self) { try await workspace.replay(run: "run_missing") }
+}

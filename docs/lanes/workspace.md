@@ -12,9 +12,8 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 M1 (the facade still throws `unavailable` for these):
 - [x] A ledger-backed `EventSink` for the home, then stewards, runs, approvals, ledger read,
   and verify through the runtime; restart recovery on `open`.
-- [ ] `replay(run:) -> ReplaySummary`: a thin call into eval's `RunReplayer` (eval owns the
-  replay engine, project lead decision); the facade shape is published and throws
-  `unavailable` until it lands.
+- [x] `replay(run:) -> ReplaySummary`: a thin call into eval's `RunReplayer` (eval owns the
+  replay engine, project lead decision).
 - [x] Memory and routine reads from `MemoryProjection`/`RoutineLibrary`:
   `memory(steward:includeRetracted:)`, `routines(steward:)`,
   `routine(steward:name:version:) -> RoutineDetail` (body, gate status, provenance),
@@ -83,7 +82,6 @@ M3:
 
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
-- (from eval) `RunReplayer(sink:casebooks:).replay(run:)` is on main (36829d4) for `Workspace.replay`.
 
 ## Log
 
@@ -108,3 +106,6 @@ M3:
   Rehearsals now honor `CaseRunRequest.routine`.
 - 2026-11-09: charter proposals and routine gates through the facade (28 AryaTests green);
   replay waits on eval's `RunReplayer`.
+- 2026-11-09: `replay(run:)` on eval's `RunReplayer`. `just e2e`: ok (15 steps): init, create,
+  import, rehearse 7/8, correct case-0006, rehearse 8/8, ready, live run, approval wait,
+  approve, executed, metric recorded, series updated, replay zero divergence, verify.
