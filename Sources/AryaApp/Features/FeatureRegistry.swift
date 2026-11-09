@@ -56,7 +56,7 @@ enum FeatureRegistry {
             }
         case .ledger:
             if let store = context.store {
-                LedgerView(store: store)
+                LedgerView(store: store, steward: context.steward?.id)
             } else {
                 EmptyState(
                     "The ledger is empty.",

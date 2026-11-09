@@ -8,6 +8,8 @@ struct LedgerFilter: Hashable, Sendable {
     var type: String?
     /// An actor as `kind:id` (`human:local`).
     var actor: String?
+    /// Free text matched against the type, run and its title, actor, and payload.
+    var query = ""
 
     static let all = LedgerFilter()
 
@@ -25,6 +27,17 @@ struct LedgerFilter: Hashable, Sendable {
         return true
     }
 
+    /// Whether the event contains the search text, ignoring case.
+    func matchesQuery(_ event: FeatureEvent, title: String?) -> Bool {
+        let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !needle.isEmpty else { return true }
+        let fields = [
+            event.type, event.run ?? "", title ?? "", LedgerTable.actorLabel(event.actor),
+            event.steward ?? "", event.payload.compactText,
+        ]
+        return fields.contains { $0.lowercased().contains(needle) }
+    }
+
     /// Whether any filter is set.
     var isActive: Bool { self != .all }
 }
@@ -38,17 +51,49 @@ struct LedgerTable: Hashable, Sendable {
     var runs: [String]
     var namespaces: [String]
     var actors: [String]
+    /// Each run's short title: its summary, else the first line of its input.
+    var runTitles: [String: String] = [:]
 
     static func build(events: [FeatureEvent], filter: LedgerFilter) -> LedgerTable {
         let scoped = events.filter { filter.steward == nil || $0.steward == filter.steward }
+        let titles = runTitles(events)
         return LedgerTable(
-            rows: events.filter(filter.matches).reversed(),
+            rows: events.filter {
+                filter.matches($0) && filter.matchesQuery($0, title: $0.run.flatMap { titles[$0] })
+            }.reversed(),
             total: events.count,
             stewards: distinct(events.compactMap(\.steward)),
             runs: distinct(scoped.compactMap(\.run)),
             namespaces: distinct(events.map(namespace)),
-            actors: distinct(events.map { actorLabel($0.actor) }))
+            actors: distinct(events.map { actorLabel($0.actor) }),
+            runTitles: titles)
     }
+
+    /// Run titles from `run.finished` summaries, falling back to the `run.started` input.
+    static func runTitles(_ events: [FeatureEvent]) -> [String: String] {
+        var titles: [String: String] = [:]
+        for event in events {
+            guard let run = event.run else { continue }
+            switch event.type {
+            case "run.started":
+                let input = event.payload["input"]?["text"]?.string ?? ""
+                if let line = input.split(separator: "\n").first, titles[run] == nil {
+                    titles[run] = String(line)
+                }
+            case "run.finished":
+                if let summary = event.payload["summary"]?.string, !summary.isEmpty {
+                    titles[run] = summary
+                }
+            default: continue
+            }
+        }
+        return titles
+    }
+
+    /// The longest type in the rows, so the mono type column lines up.
+    var typeWidth: Int { rows.map(\.type.count).max() ?? 0 }
+    /// The most digits in a row's seq.
+    var seqWidth: Int { rows.map { String($0.seq).count }.max() ?? 1 }
 
     /// `kind:id`, for example `human:local`.
     static func actorLabel(_ actor: FeatureActor) -> String { "\(actor.kind.rawValue):\(actor.id)" }
@@ -72,6 +117,18 @@ enum LedgerText {
         return "Showing \(table.rows.count) of \(table.total) events"
     }
 
+    /// `text` padded with spaces to `width` characters, leading or trailing, for mono columns.
+    static func pad(_ text: String, _ width: Int, leading: Bool = false) -> String {
+        let fill = String(repeating: " ", count: max(0, width - text.count))
+        return leading ? fill + text : text + fill
+    }
+
+    /// The run column: its title, else a short id, else a dash for events outside a run.
+    static func runLabel(_ event: FeatureEvent, titles: [String: String]) -> String {
+        guard let run = event.run else { return "—" }
+        return titles[run] ?? "run …" + run.suffix(6)
+    }
+
     /// The verify result as one sentence with the next step on failure.
     static func verify(_ result: FeatureVerifyResult) -> String {
         switch result {
@@ -91,5 +148,27 @@ enum LedgerText {
             ("actor", LedgerTable.actorLabel(event.actor)),
             ("hash", event.hash.isEmpty ? "—" : event.hash),
         ]
+    }
+}
+
+extension LedgerFilter {
+    /// Whether a menu filter (not the search text) is set.
+    var isFiltered: Bool { steward != nil || run != nil || type != nil || actor != nil }
+}
+
+extension FeatureVerifyResult {
+    var isIntact: Bool {
+        if case .intact = self { return true }
+        return false
+    }
+}
+
+extension LedgerText {
+    /// "chain intact" or "chain broken at 412", for the status line.
+    static func verifyStatus(_ result: FeatureVerifyResult) -> String {
+        switch result {
+        case .intact: "chain intact"
+        case .broken(let seq, _): "chain broken at \(seq)"
+        }
     }
 }

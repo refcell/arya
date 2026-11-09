@@ -189,6 +189,9 @@ struct InlineApproval: View {
                 if !action.rationale.isEmpty {
                     Text("Why: \(action.rationale)").aryaText(AryaFont.caption, AryaColor.inkMuted)
                 }
+                if !action.policyText.isEmpty {
+                    Text(action.policyText).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                }
                 Text(RunThreadText.approvalMeta(action)).aryaText(
                     AryaFont.monoSmall, AryaColor.inkFaint)
                 HStack(spacing: AryaSpace.s3) {
@@ -279,11 +282,10 @@ enum RunThreadText {
         return action.target.isEmpty ? verb : "\(verb) \(preposition(action.kind)) \(action.target)"
     }
 
-    /// "via inbox · held by rule reply · risk medium".
+    /// "via inbox · risk medium"; why it was held is its own sentence (`policyText`).
     static func approvalMeta(_ action: ProposedActionStep) -> String {
         var parts: [String] = []
         if let binding = action.binding { parts.append("via \(binding)") }
-        if !action.rule.isEmpty { parts.append("held by \(action.policyReason)") }
         parts.append("risk \(action.risk.rawValue)")
         return parts.joined(separator: " · ")
     }

@@ -18,7 +18,25 @@ private func reply() -> ProposedActionStep {
     #expect(action.content == "Thanks for writing in.")
     #expect(action.paramLines.isEmpty)
     #expect(RunThreadText.approvalTitle(action) == "Reply to inbox:MSG-201")
-    #expect(RunThreadText.approvalMeta(action) == "via inbox · held by rule reply · risk medium")
+    #expect(RunThreadText.approvalMeta(action) == "via inbox · risk medium")
+    let noted: FeatureJSON = [
+        "policy": [
+            "rules": [
+                [
+                    "action": "reply", "binding": "inbox",
+                    "note": "Replies to customers need sign-off",
+                ]
+            ]
+        ]
+    ]
+    #expect(PolicyText.describe(action, charter: noted) == "Replies to customers need sign-off")
+    #expect(
+        PolicyText.describe(action, charter: nil) == "Reply actions need approval (charter rule).")
+    var unnamed = action
+    unnamed.rule = "default"
+    #expect(
+        PolicyText.describe(unnamed, charter: nil)
+            == "Actions the charter does not name need approval.")
     #expect(ActionRisk(kind: "label") == .low)
     #expect(ActionRisk(kind: "close") == .high)
     var route = action

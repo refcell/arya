@@ -26,12 +26,6 @@ struct ApprovalQueueView: View {
     private func content(_ queue: ApprovalQueue, events: [FeatureEvent]) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AryaSpace.s4) {
-                HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                    Text("Needs you").aryaText(AryaFont.bodyStrong, AryaColor.ink)
-                    if !queue.pending.isEmpty {
-                        Text("\(queue.pending.count)").aryaText(AryaFont.mono, AryaColor.inkMuted)
-                    }
-                }
                 FeatureWriteErrorLine(store: store)
                 if queue.pending.isEmpty {
                     Text("Nothing needs you right now.").aryaText(AryaFont.body, AryaColor.inkMuted)
@@ -51,14 +45,16 @@ struct ApprovalQueueView: View {
     @ViewBuilder
     private func pending(_ items: [ApprovalItem], events: [FeatureEvent]) -> some View {
         let current = items.first { $0.id == selected } ?? items[0]
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(items) { item in
-                NeedsYouRow(item: item, now: store.now, isSelected: item.id == current.id) {
-                    selected = item.id
+        if items.count > 1 {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(items) { item in
+                    NeedsYouRow(item: item, now: store.now, isSelected: item.id == current.id) {
+                        selected = item.id
+                    }
                 }
             }
+            AryaHairline()
         }
-        AryaHairline()
         let detail = NeedsYouDetail.build(item: current, events: events)
         InlineApproval(
             action: detail.action, approval: current.id, source: detail.source, primary: true,
