@@ -149,19 +149,22 @@ public struct RunEngine: Sendable {
     let questionPoll: Duration
     let leases: any RunLeases
     let secondsUnit: Duration
+    let proxy: BindingProxyLaunch?
 
     /// Creates a run engine. `workdir` returns (and may create) the scratch directory of a run.
     /// `questionPoll` is how often a `host/ask` question checks the ledger for an answer.
     /// `leases` must be shared with `RunRecovery` (file leases across processes).
     /// `secondsUnit` is how long one second of `limits.timeoutSeconds` lasts (tests shrink it).
+    /// `proxy`, when set, gives each run one binding-proxy tool server per MCP binding.
     public init(
         sink: any EventSink, ambient: Ambient, adapters: any AdapterFactory,
         dispatcher: ActionDispatcher, approvals: ApprovalQueue,
         workdir: @escaping @Sendable (RunID) throws -> String,
         questionPoll: Duration = .milliseconds(250), leases: any RunLeases = MemoryRunLeases(),
-        secondsUnit: Duration = .seconds(1)
+        secondsUnit: Duration = .seconds(1), proxy: BindingProxyLaunch? = nil
     ) {
         self.secondsUnit = secondsUnit
+        self.proxy = proxy
         self.leases = leases
         self.sink = sink
         self.ambient = ambient

@@ -116,13 +116,29 @@ final class RunDriver: @unchecked Sendable {
 
     private func startParams() throws -> RunStartParams {
         let limits = charter.limits
+        let workdir = try loop.workdir(run)
         return RunStartParams(
             run: run.rawValue, instructions: instructions, input: request.input,
-            effort: charter.effort.rawValue, workdir: try loop.workdir(run), tools: [],
+            effort: charter.effort.rawValue, workdir: workdir, tools: try toolServers(workdir),
             limits: RunLimits(
                 maxTurns: limits.maxTurns, timeoutSeconds: limits.timeoutSeconds,
                 maxCostMicros: limits.maxCostMicros),
             resultSchema: RunResultSchema.value)
+    }
+
+    /// Binding proxies for the harness. In rehearsal the case's recorded tool results are
+    /// written to `<workdir>/tool-results.json` and the proxies answer from them.
+    private func toolServers(_ workdir: String) throws -> [ToolServer] {
+        guard let proxy = loop.proxy else { return [] }
+        var recorded: String?
+        if case .rehearsal(let context) = request.mode {
+            let file = URL(fileURLWithPath: workdir).appendingPathComponent("tool-results.json")
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try CanonicalJSON.encode(context.toolResults).write(to: file)
+            recorded = file.path
+        }
+        return proxy.servers(charter: charter, run: run, recorded: recorded)
     }
 
     // MARK: Streaming

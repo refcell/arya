@@ -150,3 +150,22 @@ private actor Lines {
     private(set) var all: [Data] = []
     func add(_ line: Data) { all.append(line) }
 }
+
+@Test func recordedCallsReplayFromTheLedger() async throws {
+    let rig = ProxyRig()
+    _ = try await rig.proxy().handle(
+        request(1, "tools/call", ["name": "get", "arguments": ["id": "ISSUE-7"]]))
+    let recordings = try ToolRecordings.from(try await rig.sink.events(from: 1), run: rig.run)
+    #expect(recordings.count == 1)
+    #expect(recordings[0].tool == "tracker.get")
+    #expect(recordings[0].input == ["id": "ISSUE-7"])
+
+    // A replay proxy answers the same call identically, with no upstream and no leak.
+    let replay = rig.proxy(.recorded(recordings))
+    let answer = try result(
+        await replay.handle(
+            request(1, "tools/call", ["name": "get", "arguments": ["id": "ISSUE-7"]])))
+    #expect(answer["structuredContent"]?["title"] == "Login times out")
+    #expect(await !replay.leak)
+    #expect(await rig.upstream.calls == ["get"])
+}

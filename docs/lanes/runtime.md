@@ -31,7 +31,7 @@ M1:
 - [x] `host/ask` handling through the approval queue.
 
 M2:
-- [ ] `arya binding-proxy`: a stdio MCP server per binding exposing only `read` tools, recording
+- [x] `arya binding-proxy`: a stdio MCP server per binding exposing only `read` tools, recording
   `run.tool.call` and `run.tool.result`, and serving recorded results in rehearsal and replay
   (the CLI entry point is wired by cli-e2e).
 - [x] Triggers: manual, interval, message; the scheduler holds `scheduler.lock`;
@@ -162,6 +162,13 @@ M4:
   (actor: system). `ToolSource.live` forwards to a `ToolUpstream`. `.recorded` answers from
   `RecordedToolResult`s whose tool is `<binding>.<tool>` (or bare) with an equal input; a miss
   answers `isError` and sets `leak`.
+- Binding proxy wiring: `RunEngine(proxy: BindingProxyLaunch(command:args:))` gives each run
+  one `run/start.tools` server per MCP binding with read tools. The args are the launch args
+  plus `--steward --run --binding`, and in rehearsal `--recorded <workdir>/tool-results.json`
+  (the case's recordings, written by the runtime). The proxy process uses
+  `BindingProxyArguments(parsing:)`, then `BindingProxyHost.proxy(_:sink:)` (binding from the
+  live charter; live servers through `ProcessToolUpstream`), then `serveStandardIO`.
+  `ToolRecordings.from(events, run:)` turns a run's tool calls into recordings for replay.
 
 ## Questions
 
@@ -199,3 +206,4 @@ M4:
 - 2026-11-09: memory snapshot and routines in `run.started`, `memory.added` from live runs, wire lines via `WireRecord.ledgerPayload`
 - 2026-11-09: routine approval per name and version (decision 0032)
 - 2026-11-09: binding proxy core (`BindingProxy`, `ToolUpstream`, recorded source)
+- 2026-11-09: binding proxy process upstream, host, launch wiring, and ledger recordings for replay

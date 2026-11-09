@@ -46,7 +46,8 @@ struct RunHarness {
 
     init(
         script: FakeScript, timeouts: ConnectionTimeouts? = nil, stepMillis: Int64 = 1,
-        secondsUnit: Duration = .seconds(1)
+        secondsUnit: Duration = .seconds(1), proxy: BindingProxyLaunch? = nil,
+        workdirRoot: String = "scratch"
     ) {
         let ambient = Ambient.fixed(stepMillis: stepMillis)
         sink = MemoryEventSink(ambient: ambient)
@@ -56,8 +57,8 @@ struct RunHarness {
         if let timeouts { factory.timeouts = timeouts }
         loop = RunEngine(
             sink: sink, ambient: ambient, adapters: factory, dispatcher: dispatcher,
-            approvals: approvals, workdir: { "scratch/\($0.rawValue)" },
-            questionPoll: .milliseconds(1), secondsUnit: secondsUnit)
+            approvals: approvals, workdir: { "\(workdirRoot)/\($0.rawValue)" },
+            questionPoll: .milliseconds(1), secondsUnit: secondsUnit, proxy: proxy)
         lifecycle = StewardLifecycle(sink: sink)
     }
 
