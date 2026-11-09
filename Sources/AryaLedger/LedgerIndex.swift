@@ -24,8 +24,23 @@ public struct LedgerIndex: LedgerProjection, Hashable, Codable {
         public var lastSeq: Int64
         public var firstAt: Timestamp
         public var lastAt: Timestamp
+        /// Events of each type, for status widgets (runs finished or failed, approvals).
+        public var counts: [EventType: Int]
+        /// The `seq` of the newest event of each type, so a widget can open the latest
+        /// `metric.recorded` or `run.finished` with one read.
+        public var lastSeqByType: [EventType: Int64]
 
-        enum CodingKeys: String, CodingKey { case firstSeq, lastSeq, firstAt, lastAt }
+        /// Approvals requested and not yet granted, denied, or expired.
+        public var openApprovals: Int {
+            let closed =
+                (counts[.approvalGranted] ?? 0) + (counts[.approvalDenied] ?? 0)
+                + (counts[.approvalExpired] ?? 0)
+            return max(0, (counts[.approvalRequested] ?? 0) - closed)
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case firstSeq, lastSeq, firstAt, lastAt, counts, lastSeqByType
+        }
     }
 
     public private(set) var events: Int64 = 0
@@ -47,14 +62,16 @@ public struct LedgerIndex: LedgerProjection, Hashable, Codable {
         countsByType[event.type, default: 0] += 1
         if let steward = event.steward {
             eventsBySteward[steward, default: 0] += 1
-            if var span = stewards[steward] {
-                span.lastSeq = event.seq
-                span.lastAt = event.at
-                stewards[steward] = span
-            } else {
-                stewards[steward] = StewardSpan(
-                    firstSeq: event.seq, lastSeq: event.seq, firstAt: event.at, lastAt: event.at)
-            }
+            var span =
+                stewards[steward]
+                ?? StewardSpan(
+                    firstSeq: event.seq, lastSeq: event.seq, firstAt: event.at, lastAt: event.at,
+                    counts: [:], lastSeqByType: [:])
+            span.lastSeq = event.seq
+            span.lastAt = event.at
+            span.counts[event.type, default: 0] += 1
+            span.lastSeqByType[event.type] = event.seq
+            stewards[steward] = span
         }
         if let run = event.run {
             if var span = runs[run] {

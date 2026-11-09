@@ -97,3 +97,31 @@ private func populate(_ store: LedgerStore, from start: Int, count: Int) throws 
     #expect(span.lastAt.millis - span.startedAt.millis == 2000)
     #expect(index.runs(of: triage).map(\.0) == [run])
 }
+
+@Test func indexKeepsPerStewardCountersForStatusWidgets() throws {
+    let home = try TempHome()
+    defer { home.cleanup() }
+    let store = try LedgerStore(home: home.url, ambient: .fixed())
+    let types: [EventType] = [
+        .runStarted, .runFinished, .runStarted, .runFailed, .approvalRequested,
+        .approvalRequested, .approvalGranted, .metricRecorded, .approvalRequested,
+        .approvalExpired, .metricRecorded,
+    ]
+    for type in types {
+        try store.append(EventDraft(type: type, actor: .system, steward: triage))
+    }
+    try store.append(EventDraft(type: .runFailed, actor: .system, steward: steward2))
+    let index = try LedgerReader(home: home.url).rebuild(LedgerIndex.self).value
+    let span = try #require(index.stewards[triage])
+    #expect(span.counts[.runStarted] == 2)
+    #expect(span.counts[.runFinished] == 1 && span.counts[.runFailed] == 1)
+    #expect(span.openApprovals == 1)
+    #expect(span.lastSeqByType[.metricRecorded] == 11)
+    #expect(span.firstSeq == 1 && span.lastSeq == 11)
+    #expect(index.stewards[steward2]?.counts == [.runFailed: 1])
+    // The counters survive the projection cache round trip.
+    let cached = try ProjectionCache(home: home.url).current(LedgerIndex.self, name: "index")
+    #expect(
+        ProjectionCache(home: home.url).load(LedgerIndex.self, name: "index")?.value
+            == cached.value)
+}
