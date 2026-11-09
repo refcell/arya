@@ -39,6 +39,19 @@ import Testing
         #expect(model.problem?.contains("already decided") == true)
     }
 
+    @Test func stewardCommandsWriteThroughTheSource() async {
+        let model = AppModel(source: ShellPreviewWorkspace())
+        await model.refresh()
+        model.navigation.select(steward: "st_spend")
+        await model.setPaused(true)
+        #expect(model.selectedSteward?.status == .paused)
+        await model.setPaused(false)
+        #expect(model.selectedSteward?.status == .active)
+        await model.startRun(input: "check spend")
+        #expect(model.runs["st_spend"]?.count == 2)
+        #expect(model.problem == nil)
+    }
+
     @Test func effortChangesAreWritten() async {
         let source = ShellPreviewWorkspace()
         let model = AppModel(source: source)

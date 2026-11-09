@@ -9,6 +9,10 @@ protocol WorkspaceSource: Sendable {
     func stewards() async throws -> [StewardSummary]
     func runs(steward: String?) async throws -> [RunSummary]
     func approvals(includeDecided: Bool) async throws -> [ApprovalSummary]
+    func pauseSteward(_ id: String) async throws
+    func resumeSteward(_ id: String) async throws
+    /// Starts a manual run and returns once it finishes or fails.
+    func startRun(steward: String, input: String) async throws -> RunSummary
     func approve(_ id: String, note: String?) async throws -> ApprovalSummary
     func deny(_ id: String, note: String?) async throws -> ApprovalSummary
     func ledger(from seq: Int, limit: Int?) async throws -> [LedgerEntry]

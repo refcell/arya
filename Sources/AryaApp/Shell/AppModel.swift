@@ -111,6 +111,24 @@ final class AppModel {
         for notice in notices { notifications.post(notice) }
     }
 
+    /// Starts a manual run of the selected steward; the rail shows it from its first event.
+    func startRun(input: String = "") async {
+        guard let steward = navigation.steward else { return }
+        await write { _ = try await source.startRun(steward: steward, input: input) }
+    }
+
+    /// Pauses or resumes the selected steward.
+    func setPaused(_ paused: Bool) async {
+        guard let steward = navigation.steward else { return }
+        await write {
+            if paused {
+                try await source.pauseSteward(steward)
+            } else {
+                try await source.resumeSteward(steward)
+            }
+        }
+    }
+
     func approve(_ id: String) async { await write { _ = try await source.approve(id, note: nil) } }
 
     func deny(_ id: String) async { await write { _ = try await source.deny(id, note: nil) } }

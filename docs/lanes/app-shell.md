@@ -40,6 +40,7 @@ M3, extended (toward the end-to-end scenario and `just demo`):
   shell stub paths each replaces.
 - [ ] One preview source: once `just demo` seeds a real home, point `just app-preview` at it and
   delete both preview stubs (`ShellPreviewWorkspace`, app-views' `PreviewWorkspace`).
+- [x] Steward menu: Start Run (⇧⌘R), Pause, Resume through the facade.
 
 M4:
 - [x] Approval notifications (local `UserNotifications`) with Approve and Deny actions.
@@ -110,3 +111,4 @@ M4:
 - 2026-11-09: effort through the facade; real homes show stewards (7f3044c).
 - 2026-11-09: Return and Escape on focused approval cards (5b52dba).
 - 2026-11-09: approval notifications with Approve and Deny actions (b0260e4).
+- 2026-11-09: every steward tab routed to app-views' views; screenshots per tab (78c9c17).

@@ -75,6 +75,18 @@ struct AryaCommands: Commands {
                 .keyboardShortcut("0", modifiers: [.command, .option])
             Divider()
         }
+        CommandMenu("Steward") {
+            let steward = session.model?.selectedSteward
+            Button("Start Run") { Task { await session.model?.startRun() } }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+                .disabled(steward == nil || steward?.status != .active)
+            if steward?.status == .paused {
+                Button("Resume") { Task { await session.model?.setPaused(false) } }
+            } else {
+                Button("Pause") { Task { await session.model?.setPaused(true) } }
+                    .disabled(steward?.status != .active)
+            }
+        }
         CommandMenu("Go") {
             Button("Approvals") { session.model?.navigation.showApprovals() }
                 .keyboardShortcut("0")

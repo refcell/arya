@@ -86,6 +86,34 @@ actor ShellPreviewWorkspace: WorkspaceSource {
         record("run.started", steward: run.steward, run: run.id)
     }
 
+    func pauseSteward(_ id: String) throws {
+        try setStatus(.paused, of: id, type: "steward.paused")
+    }
+
+    func resumeSteward(_ id: String) throws {
+        try setStatus(.active, of: id, type: "steward.resumed")
+    }
+
+    func startRun(steward: String, input: String) throws -> RunSummary {
+        guard stewardList.contains(where: { $0.id == steward }) else {
+            throw WorkspaceError.notFound(steward)
+        }
+        let run = RunSummary(
+            id: "run_\(runList.count + 100)", steward: steward, trigger: "manual",
+            charterVersion: 1, status: .finished, summary: input,
+            startedAt: now.addingTimeInterval(Double(entries.count)))
+        startRun(run)
+        return run
+    }
+
+    private func setStatus(_ status: StewardSummary.Status, of id: String, type: String) throws {
+        guard let index = stewardList.firstIndex(where: { $0.id == id }) else {
+            throw WorkspaceError.notFound(id)
+        }
+        stewardList[index].status = status
+        record(type, steward: id, run: nil)
+    }
+
     /// Appends a pending approval and its `approval.requested` event. For tests and demos.
     func requestApproval(_ approval: ApprovalSummary) {
         approvalList.append(approval)
