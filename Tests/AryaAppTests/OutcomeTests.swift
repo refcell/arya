@@ -147,9 +147,8 @@ private func triage() -> OutcomeSnapshot {
             recap, seenAt: now.addingTimeInterval(-86_400), now: now, timeZone: utc))
     #expect(
         text
-            == "Since yesterday: 1 run ended, 1 action taken. Last run done: Labeled "
-            + "ISSUE-7 and asked to assign it. Waiting on you: 1 approval, 1 question, 2 proposals."
-    )
+            == "Since yesterday: 1 run ended, 1 action taken. Waiting on you: 1 approval, "
+            + "1 question, 2 proposals.")
     let quiet = OutcomeRecap(
         goal: "", lastRun: nil, runsSince: 0, actionsSince: [], pending: [], questions: 0,
         failedActions: 0, openProposals: 0)
@@ -224,4 +223,31 @@ private func triage() -> OutcomeSnapshot {
     #expect(state.points.count == 1)
     #expect(state.trend == [0.7, 0.8])
     #expect(triage().state.trend.count >= 5)
+}
+
+@Test func riskAndWhyComeFromTheRecordedResultWhenTheEventLacksThem() throws {
+    var log = FeatureEventBuilder(start: now)
+    log.add("run.started", run: "run_1", ["trigger": "manual"])
+    let recorded: FeatureJSON = [
+        "id": "a1", "kind": "reply", "target": "inbox:MSG-1", "rationale": "ack",
+        "risk": "medium", "why": "The customer is waiting on a refund.",
+    ]
+    log.add(
+        "run.adapter.event", run: "run_1",
+        [
+            "direction": "in",
+            "message": [
+                "jsonrpc": "2.0", "method": "run/result",
+                "params": ["result": ["actions": [recorded]]],
+            ],
+        ])
+    log.add(
+        "action.proposed", run: "run_1",
+        [
+            "action": ["id": "a1", "kind": "reply", "target": "inbox:MSG-1", "rationale": "ack"],
+            "disposition": "ask", "reason": "default ask",
+        ])
+    let item = try #require(OutcomeActivityFeed.build(events: log.events, steward: steward).first)
+    #expect(item.risk == "medium")
+    #expect(item.reason == "The customer is waiting on a refund.")
 }

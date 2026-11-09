@@ -142,7 +142,31 @@ enum OutcomeActivityFeed {
                 if items[id]?.state == .proposed { items[id]?.state = .waiting }
             }
         }
-        return order.reversed().compactMap { items[$0] }
+        let recorded = recordedActions(mine)
+        return order.reversed().compactMap { id in
+            guard var item = items[id] else { return nil }
+            let action = recorded[item.run]?[item.action]
+            item.risk = item.risk ?? action?["risk"]?.string
+            if let why = action?["why"]?.string, !why.isEmpty { item.reason = why }
+            return item
+        }
+    }
+
+    /// Actions as each run reported them in its recorded `run/result` (in
+    /// `run.adapter.event`), by run and action id; they carry the `risk` and `why` the
+    /// runtime does not fold into `action.proposed` yet.
+    static func recordedActions(_ events: [FeatureEvent]) -> [String: [String: FeatureJSON]] {
+        var out: [String: [String: FeatureJSON]] = [:]
+        for event in events where event.type == "run.adapter.event" {
+            guard let run = event.run, let message = event.payload["message"],
+                message["method"]?.string == "run/result",
+                let actions = message["params"]?["result"]?["actions"]?.array
+            else { continue }
+            for action in actions {
+                if let id = action["id"]?.string { out[run, default: [:]][id] = action }
+            }
+        }
+        return out
     }
 
     private static func settled(_ type: String) -> OutcomeActivity.State? {

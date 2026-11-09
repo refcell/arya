@@ -83,3 +83,5 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 - 2026-11-09: CEO fixes: clock times instead of "just now", recap only after 15 min away
   ("Since yesterday: …"), unboxed status label, sparkline from readings within a day,
   waiting rows open the approval; plans read the runtime's `plan.updated {items, reason}`.
+- 2026-11-09: Plan hidden until the steward has one; recap drops the last-run sentence (it
+  is the first Recent row); risk and why fall back to each run's recorded `run/result`.

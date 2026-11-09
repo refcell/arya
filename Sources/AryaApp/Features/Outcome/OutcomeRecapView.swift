@@ -38,10 +38,6 @@ enum OutcomeRecapText {
         let news = since(recap)
         let list = news.replacing(" · ", with: ", ")
         text += news == "nothing new" ? ", nothing new ran." : ": \(list)."
-        if let last = recap.lastRun, !last.summary.isEmpty {
-            text += " Last run \(last.status.word): \(last.summary)"
-            if !text.hasSuffix(".") { text += "." }
-        }
         if let waiting {
             text += " Waiting on you: \(waiting.replacing(" · ", with: ", "))."
         }

@@ -97,7 +97,9 @@ struct OverviewTab: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
-                OutcomePlanSection(plan: snapshot.plan, now: store.now, openRun: openRun)
+                if let plan = snapshot.plan, !plan.steps.isEmpty {
+                    OutcomePlanSection(plan: plan, now: store.now, openRun: openRun)
+                }
                 OutcomeActivitySection(
                     activity: snapshot.activity, now: store.now, openRun: openRun,
                     openApprovals: openApprovals)
@@ -152,41 +154,37 @@ struct OutcomeDetails: View {
     }
 }
 
-/// The steward's current plan as a quiet checklist, with why it last changed.
+/// The steward's current plan as a quiet checklist, with why it last changed. Hidden when
+/// the steward has no plan yet.
 struct OutcomePlanSection: View {
-    let plan: OutcomePlan?
+    let plan: OutcomePlan
     let now: Date
     let openRun: (String) -> Void
 
     var body: some View {
-        OutcomeSection("Plan", trailing: plan.map { "\($0.doneCount)/\($0.activeCount)" }) {
-            if let plan {
-                ForEach(plan.steps) { step in
-                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                        Text(step.status.mark)
-                            .aryaText(AryaFont.mono, color(step.status))
-                            .accessibilityLabel(step.status.rawValue)
-                        Text(step.title)
-                            .aryaText(
-                                AryaFont.body,
-                                step.status == .dropped ? AryaColor.inkFaint : AryaColor.ink
-                            )
-                            .strikethrough(step.status == .dropped)
-                        if let note = step.note {
-                            Text(note).aryaText(AryaFont.caption, AryaColor.inkFaint)
-                        }
+        OutcomeSection("Plan", trailing: "\(plan.doneCount)/\(plan.activeCount)") {
+            ForEach(plan.steps) { step in
+                HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                    Text(step.status.mark)
+                        .aryaText(AryaFont.mono, color(step.status))
+                        .accessibilityLabel(step.status.rawValue)
+                    Text(step.title)
+                        .aryaText(
+                            AryaFont.body,
+                            step.status == .dropped ? AryaColor.inkFaint : AryaColor.ink
+                        )
+                        .strikethrough(step.status == .dropped)
+                    if let note = step.note {
+                        Text(note).aryaText(AryaFont.caption, AryaColor.inkFaint)
                     }
-                    .frame(minHeight: AryaSize.outcomeRowHeight)
                 }
-                if let reason = plan.reason {
-                    Text("Changed \(OutcomeTime.short(plan.updated, now: now)): \(reason)")
-                        .aryaText(AryaFont.caption, AryaColor.inkFaint)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, AryaSpace.s1)
-                }
-            } else {
-                Text("No plan yet. The steward writes one on its next run.")
+                .frame(minHeight: AryaSize.outcomeRowHeight)
+            }
+            if let reason = plan.reason {
+                Text("Changed \(OutcomeTime.short(plan.updated, now: now)): \(reason)")
                     .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, AryaSpace.s1)
             }
         }
     }
