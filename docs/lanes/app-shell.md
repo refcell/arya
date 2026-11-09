@@ -25,6 +25,26 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
   a working `Arya.app`.
 - [x] Preview fixtures: a stub workspace with sample stewards for development and screenshots.
 
+M3, extended (toward the end-to-end scenario and `just demo`):
+- [x] Facade-backed `FeatureWorkspace` (`FacadeFeatureWorkspace`) so a real home feeds the
+  feature views, not only preview mode.
+- [ ] Text size: View menu Bigger, Smaller, Actual Size (⌘+, ⌘−, ⌘0 style) driving
+  `aryaTextScale`, persisted in user defaults.
+- [ ] Keyboard: reading-order focus (rail, header, tabs, pane), arrow keys in the rail, Return
+  approves and Escape denies the focused approval card.
+- [ ] `just screenshots`: render the preview shell offscreen to PNGs in both schemes for the
+  README and for visual review.
+- [ ] `just app-preview` and a `--home PATH` launch argument so `just demo` can open the app on
+  a seeded home.
+- [ ] Switch effort, steward state, and runs to facade calls as runtime lands them; delete the
+  shell stub paths each replaces.
+- [ ] One preview source: derive the shell's summaries from the feature events so preview mode
+  has a single fixture.
+
+M4:
+- [ ] Approval notifications (local `UserNotifications`) with Approve and Deny actions.
+- [ ] Person-binding inbox entry in the rail.
+
 ## Decisions
 
 - Tab order follows STYLE.md (normative): Stream, Changes, Ledger, Memory, Routines, Rehearsals.
@@ -60,8 +80,8 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
 - Two seams coexist for now: the shell reads summaries through `WorkspaceSource`, and the
   feature views read events through app-views' `FeatureWorkspace`/`FeatureStore`. The shell
   passes the store in `FeatureContext.store`; preview mode wires app-views' `PreviewWorkspace`
-  next to `ShellPreviewWorkspace` (same `st_triage` run ids). Next: a facade-backed
-  `FeatureWorkspace` so real homes feed the feature views too.
+  next to `ShellPreviewWorkspace` (same `st_triage` run ids). Real homes feed the
+  feature views through `FacadeFeatureWorkspace`.
 - The icon is drawn at bundle time by `etc/app/make-icon.swift` (AppKit, STYLE.md colors) and
   converted with `sips` and `iconutil`, so no binary asset is tracked.
 

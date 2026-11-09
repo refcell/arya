@@ -22,7 +22,11 @@ final class AppSession {
                 featureStore: FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now))
         case .home(let url):
             do {
-                model = AppModel(source: try await Workspace.open(home: url))
+                let workspace = try await Workspace.open(home: url)
+                model = AppModel(
+                    source: workspace,
+                    featureStore: FeatureStore(workspace: FacadeFeatureWorkspace(source: workspace))
+                )
             } catch {
                 model = nil
                 problem = "Could not open the home at \(url.lastPathComponent): \(error)."
