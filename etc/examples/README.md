@@ -26,21 +26,9 @@ The live input `New message MSG-201: Refund for a duplicate charge` produces a `
 `route` action, which the policy executes, and a `reply`, which waits for approval. It also
 records one memory note and one `routed_within_1h` measurement.
 
-## Fake adapter script format
+## Fake adapter script
 
-Proposed for `arya-fake-adapter --script <file>` (adapters lane). A script maps the exact
-`run/start.input.text` to a response; inputs with no entry get `default`.
-
-```json
-{"v": 1,
- "responses": {
-   "<input text>": {
-     "events": [RunEvent, ...],
-     "status": "completed",
-     "result": {"summary": "...", "decisions": [], "actions": [], "measurements": []}}},
- "default": {"events": [], "status": "completed", "result": {"summary": "..."}}}
-```
-
-`events` are `run/event` payloads without `seq` or `at` (the adapter numbers and stamps them);
-`status` and `result` become the `run/result` notification. Both follow
-[PROTOCOL.md](../../docs/PROTOCOL.md).
+`fake-script.json` uses the script format of `arya-fake-adapter --script <file>`
+([PROTOCOL.md](../../docs/PROTOCOL.md#fake-adapter-scripts)): one entry in `runs` per case
+input and one for the live input, each with `run/event` steps and a `run/result`, plus a run
+without `input` that answers anything else.

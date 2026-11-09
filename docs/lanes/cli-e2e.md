@@ -69,7 +69,9 @@ M3:
   `casebook import`, `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
 
 ## Log
-- 2026-11-09: M2 commands parsed and rendered, waiting on facade calls
+- 2026-11-09: example script moved to the adapters lane's `runs`/`steps` format, checked with
+  `FakeScript.load`
+- 2026-11-09: M2 commands parsed and rendered, waiting on facade calls (ac81054)
 - 2026-11-09: `WorkspaceBackend` over the facade replaces `PendingBackend`; `arya init` works
   (c9871fc)
 - 2026-11-09: examples validated through `Charter.load` and `Case.load` (ebd2ba3)

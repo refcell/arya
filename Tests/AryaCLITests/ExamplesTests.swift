@@ -1,3 +1,4 @@
+import AryaAdapters
 import AryaCore
 import Foundation
 import Testing
@@ -21,6 +22,14 @@ private func casebook() throws -> [Object] {
     return try text.split(separator: "\n").map { line in
         try #require(try JSONSerialization.jsonObject(with: Data(line.utf8)) as? Object)
     }
+}
+
+/// Script runs keyed by input text; the run without input is keyed by "".
+private func scriptRuns() throws -> [String: Object] {
+    let runs = objects(try object("fake-script.json")["runs"])
+    var result: [String: Object] = [:]
+    for run in runs { result[run["input"] as? String ?? ""] = run }
+    return result
 }
 
 private func strings(_ value: Any?) -> [String] { value as? [String] ?? [] }
@@ -70,7 +79,7 @@ private func bindingActions(_ charter: Object) -> [String: [String]] {
 @Test func triageScriptCoversEveryCaseAndUsesDeclaredActions() throws {
     let charter = try object("charter.json")
     let actions = bindingActions(charter)
-    let responses = try #require(try object("fake-script.json")["responses"] as? [String: Object])
+    let responses = try scriptRuns()
     var mismatches: [String] = []
     for item in try casebook() {
         let text = try #require((item["input"] as? Object)?["text"] as? String)
@@ -99,7 +108,7 @@ private func bindingActions(_ charter: Object) -> [String: [String]] {
     let decision = { (kind: String) in
         rules.first { $0["action"] as? String == kind }?["decision"] as? String ?? "ask"
     }
-    let responses = try #require(try object("fake-script.json")["responses"] as? [String: Object])
+    let responses = try scriptRuns()
     let live = try #require(responses["New message MSG-201: Refund for a duplicate charge"])
     let kinds = objects((live["result"] as? Object)?["actions"]).compactMap {
         $0["kind"] as? String
@@ -113,6 +122,9 @@ private func bindingActions(_ charter: Object) -> [String: [String]] {
     #expect(charter.policy.decision(forAction: "reply") == .ask)
     #expect(charter.policy.decision(forAction: "delete") == .deny)
     #expect(charter.policy.decision(forAction: "archive") == .ask)
+    let script = try FakeScript.load(from: triage.appendingPathComponent("fake-script.json"))
+    #expect(script.run(for: "New message MSG-201: Refund for a duplicate charge") != nil)
+    #expect(script.run(for: "anything else") != nil)
     let text = try String(
         contentsOf: triage.appendingPathComponent("casebook.jsonl"), encoding: .utf8)
     for line in text.split(separator: "\n") {
