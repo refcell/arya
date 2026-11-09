@@ -31,15 +31,15 @@ M3, extended (toward the end-to-end scenario and `just demo`):
 - [x] Text size: View menu Bigger, Smaller, Actual Size (⌘+, ⌘−, ⌘0 style) driving
   `aryaTextScale`, persisted in user defaults.
 - [x] Keyboard: arrow keys move through the rail in reading order (`RailOrder`).
-- [ ] Keyboard: Return approves and Escape denies the focused approval card (with app-views).
+- [x] Keyboard: Return approves and Escape denies the focused approval card (`ApprovalCard`).
 - [x] `just screenshots`: render the preview shell offscreen to PNGs in both schemes for the
   README and for visual review.
 - [x] `just app-preview` and a `--home PATH` launch argument so `just demo` can open the app on
   a seeded home.
-- [ ] Switch effort, steward state, and runs to facade calls as runtime lands them; delete the
+- [x] Switch effort, steward state, and runs to facade calls as runtime lands them; delete the
   shell stub paths each replaces.
-- [ ] One preview source: derive the shell's summaries from the feature events so preview mode
-  has a single fixture.
+- [ ] One preview source: once `just demo` seeds a real home, point `just app-preview` at it and
+  delete both preview stubs (`ShellPreviewWorkspace`, app-views' `PreviewWorkspace`).
 
 M4:
 - [ ] Approval notifications (local `UserNotifications`) with Approve and Deny actions.
@@ -104,3 +104,4 @@ M4:
 - 2026-11-09: facade-backed `FacadeFeatureWorkspace` for real homes (7abeedf).
 - 2026-11-09: text size commands, `--home`, `just app-preview` (0ab37da).
 - 2026-11-09: rail arrow keys, `just screenshots`, one approvals count (bdd54f6).
+- 2026-11-09: effort through the facade; real homes show stewards (7f3044c).

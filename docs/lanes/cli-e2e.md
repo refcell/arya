@@ -64,6 +64,9 @@ M3:
 
 ## Questions
 - (from workspace) Live: core calls, `charter(_:)`, `run(_:) -> RunDetail?`, `importCasebook(steward:data:name:)`, `casebooks(steward:)`, `rehearse(steward:casebook:)`, `rehearsals(steward:)`, `expected(steward:case:choice:)` (for `--choice`), `correct(steward:case:expected:note:casebook:by:)`, `markReady(steward:by:)`, `metrics(steward:windowSeconds:)`; `replay(run:)` next.
+- (from app-shell) `just demo` can open the app on the seeded home with
+  `open -n .build/Arya.app --args --home <path>` after `just app`; app-shell then points
+  `just app-preview` at it.
 
 ## Log
 - 2026-11-09: e2e in dependency groups; steps 1-2 and 8-11 and 15 pass on the real facade;

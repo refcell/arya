@@ -10,6 +10,18 @@ public struct ApprovalCard: View {
     let approveLabel: String
     let onDeny: () -> Void
     let onApprove: () -> Void
+    @FocusState private var isFocused: Bool
+
+    /// What a key does to a focused card: Return approves, Escape denies (STYLE.md Buttons).
+    public enum KeyAction: Equatable, Sendable { case approve, deny }
+
+    public static func action(for key: KeyEquivalent) -> KeyAction? {
+        switch key {
+        case .return: .approve
+        case .escape: .deny
+        default: nil
+        }
+    }
 
     /// - Parameters:
     ///   - action: kind and target, in `mono` (`close_issue #418`).
@@ -49,6 +61,25 @@ public struct ApprovalCard: View {
             Rectangle().fill(AryaColor.accent).frame(width: AryaSize.approvalEdge)
         }
         .clipShape(RoundedRectangle(cornerRadius: AryaRadius.medium))
+        .padding(AryaSize.focusRing * 2)
+        .overlay {
+            if isFocused {
+                RoundedRectangle(cornerRadius: AryaRadius.medium + AryaSize.focusRing * 2)
+                    .strokeBorder(AryaColor.accent, lineWidth: AryaSize.focusRing)
+            }
+        }
+        .padding(-AryaSize.focusRing * 2)
+        .focusable()
+        .focused($isFocused)
+        .focusEffectDisabled()
+        .onKeyPress(keys: [.return, .escape]) { press in
+            switch Self.action(for: press.key) {
+            case .approve: onApprove()
+            case .deny: onDeny()
+            case nil: return .ignored
+            }
+            return .handled
+        }
         .accessibilityElement(children: .contain)
         .accessibilityAction(named: "Approve", onApprove)
         .accessibilityAction(named: "Deny", onDeny)

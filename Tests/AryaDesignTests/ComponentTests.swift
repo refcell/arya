@@ -54,6 +54,12 @@ import Testing
         #expect(CountLabel.text(for: 2) == "2")
     }
 
+    @Test func approvalCardKeys() {
+        #expect(ApprovalCard.action(for: .return) == .approve)
+        #expect(ApprovalCard.action(for: .escape) == .deny)
+        #expect(ApprovalCard.action(for: .space) == nil)
+    }
+
     @Test func diffLinesAreClassified() {
         let lines = DiffLine.parse("--- a/x\n+++ b/x\n@@ -1 +1 @@\n-old\n+new\n same")
         #expect(lines.map(\.kind) == [.header, .header, .hunk, .removed, .added, .context])
