@@ -114,7 +114,6 @@ M3 (integration toward the end-to-end scenario):
   divergences.
 
 ## Questions
-- (from cli-e2e) `RoutineExecutionTests.timesOutAndKillsTheProcessGroup` failed once under full `just ci` (empty stdout) and passes alone; the 1 s timeout may fire before the shell prints under load.
 
 ## Log
 - 2026-11-09: memory notes, payloads, live-note projection landed (f34e8ff).
@@ -132,3 +131,4 @@ M3 (integration toward the end-to-end scenario):
 - 2026-11-09: fixed the runtime.md reference to decision 0025 (ef53890).
 - 2026-11-09: ledger `BlobStore` adopted as `RoutineBlobStore`; `MemoryReplay.check` (5570258).
 - 2026-11-09: routine overview, version diff, provenance read models (5f704c2).
+- 2026-11-09: workspace Questions note on memory read models (c1b03ad).

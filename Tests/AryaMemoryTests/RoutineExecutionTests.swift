@@ -65,14 +65,18 @@ func invocation(
         }
     }
 
+    /// The timeout fires and kills the whole group, including a background child holding the
+    /// output pipe open. Output is not asserted: under load the shell may not print before the
+    /// timeout.
     @Test func timesOutAndKillsTheProcessGroup() throws {
         try withTempDir { dir in
             let script = "(sleep 30; touch late) & echo started; sleep 30"
             let started = Date()
             let outcome = try runner.run(invocation(script, in: dir, timeoutSeconds: 1))
             #expect(outcome.status == .timedOut)
-            #expect(outcome.stdout == "started\n")
-            #expect(Date().timeIntervalSince(started) < 10)
+            #expect(outcome.exitCode == nil)
+            #expect(outcome.stdout == "" || outcome.stdout == "started\n")
+            #expect(Date().timeIntervalSince(started) < 20)
         }
     }
 
