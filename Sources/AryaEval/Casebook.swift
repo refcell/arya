@@ -1,3 +1,4 @@
+import AryaCore
 import CryptoKit
 import Foundation
 
@@ -5,14 +6,14 @@ import Foundation
 /// cases"). Local to `AryaEval` until `AryaCore.Case` lands.
 public struct EvalCase: Hashable, Sendable, Codable {
     public var v: Int
-    public var id: String
-    public var input: EvalValue
-    public var context: EvalValue
-    public var expected: EvalValue
+    public var id: CaseID
+    public var input: JSONValue
+    public var context: JSONValue
+    public var expected: JSONValue
     public var source: String?
 
     public init(
-        id: String, input: EvalValue, context: EvalValue = .object([:]), expected: EvalValue,
+        id: CaseID, input: JSONValue, context: JSONValue = .object([:]), expected: JSONValue,
         source: String? = nil
     ) {
         self.v = 1
@@ -30,10 +31,10 @@ public struct EvalCase: Hashable, Sendable, Codable {
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         v = try c.decode(Int.self, forKey: .v)
-        id = try c.decode(String.self, forKey: .id)
-        input = try c.decode(EvalValue.self, forKey: .input)
-        context = try c.decodeIfPresent(EvalValue.self, forKey: .context) ?? .object([:])
-        expected = try c.decode(EvalValue.self, forKey: .expected)
+        id = try c.decode(CaseID.self, forKey: .id)
+        input = try c.decode(JSONValue.self, forKey: .input)
+        context = try c.decodeIfPresent(JSONValue.self, forKey: .context) ?? .object([:])
+        expected = try c.decode(JSONValue.self, forKey: .expected)
         source = try c.decodeIfPresent(String.self, forKey: .source)
     }
 }
@@ -42,7 +43,6 @@ public struct EvalCase: Hashable, Sendable, Codable {
 public enum CasebookError: Error, Equatable, Sendable {
     case invalidLine(line: Int, reason: String)
     case unsupportedVersion(line: Int, version: Int)
-    case emptyID(line: Int)
     case duplicateID(String)
     case empty
 }
@@ -58,7 +58,7 @@ public struct Casebook: Hashable, Sendable {
     public static func parse(name: String, data: Data) throws -> Casebook {
         let decoder = JSONDecoder()
         var cases: [EvalCase] = []
-        var seen = Set<String>()
+        var seen = Set<CaseID>()
         let lines = data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: false)
         for (offset, raw) in lines.enumerated() {
             let line = offset + 1
@@ -73,8 +73,9 @@ public struct Casebook: Hashable, Sendable {
             guard item.v == 1 else {
                 throw CasebookError.unsupportedVersion(line: line, version: item.v)
             }
-            guard !item.id.isEmpty else { throw CasebookError.emptyID(line: line) }
-            guard seen.insert(item.id).inserted else { throw CasebookError.duplicateID(item.id) }
+            guard seen.insert(item.id).inserted else {
+                throw CasebookError.duplicateID(item.id.rawValue)
+            }
             cases.append(item)
         }
         guard !cases.isEmpty else { throw CasebookError.empty }
@@ -87,18 +88,16 @@ public struct Casebook: Hashable, Sendable {
         self.version = Self.hash(try Self.normalized(self.cases))
     }
 
-    /// Canonical JSON Lines: sorted keys, no whitespace, `/` unescaped, one case per line,
-    /// each line ending in `\n`.
+    /// Canonical JSON Lines (`AryaCore.CanonicalJSON`), one case per line, each ending in
+    /// `\n`.
     public func normalizedData() throws -> Data {
         try Self.normalized(cases)
     }
 
     static func normalized(_ cases: [EvalCase]) throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         var out = Data()
         for item in cases {
-            out.append(try encoder.encode(item))
+            out.append(try CanonicalJSON.encode(item))
             out.append(UInt8(ascii: "\n"))
         }
         return out

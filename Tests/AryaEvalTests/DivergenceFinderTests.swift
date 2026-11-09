@@ -1,8 +1,9 @@
+import AryaCore
 import Testing
 
 @testable import AryaEval
 
-private func event(_ seq: Int, _ type: String, _ payload: [String: EvalValue]) -> ReplayEvent {
+private func event(_ seq: Int, _ type: String, _ payload: [String: JSONValue]) -> ReplayEvent {
     ReplayEvent(seq: seq, type: type, payload: .object(payload))
 }
 
@@ -39,10 +40,10 @@ private func event(_ seq: Int, _ type: String, _ payload: [String: EvalValue]) -
 }
 
 @Test func pathsCoverArraysAndMissingKeys() {
-    let a: EvalValue = .object(["xs": .array([.number(1), .number(2)])])
-    let b: EvalValue = .object(["xs": .array([.number(1), .number(3)])])
-    let c: EvalValue = .object(["xs": .array([.number(1)])])
-    let d: EvalValue = .object(["xs": .array([.number(1), .number(2)]), "y": .null])
+    let a: JSONValue = .object(["xs": .array([.int(1), .int(2)])])
+    let b: JSONValue = .object(["xs": .array([.int(1), .int(3)])])
+    let c: JSONValue = .object(["xs": .array([.int(1)])])
+    let d: JSONValue = .object(["xs": .array([.int(1), .int(2)]), "y": .null])
     #expect(DivergenceFinder.firstDifference(a, b, path: "p") == "p.xs[1]")
     #expect(DivergenceFinder.firstDifference(a, c, path: "p") == "p.xs[1]")
     #expect(DivergenceFinder.firstDifference(a, d, path: "p") == "p.y")

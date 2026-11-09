@@ -1,3 +1,4 @@
+import AryaCore
 import CryptoKit
 import Foundation
 import Testing
@@ -13,7 +14,7 @@ func fixture(_ name: String) throws -> Data {
 
 actor MemoryRecorder: EvalRecorder {
     var blobs: [String: Data] = [:]
-    var events: [(type: String, steward: String?, payload: EvalValue)] = []
+    var events: [(type: String, steward: StewardID?, payload: JSONValue)] = []
 
     func putBlob(_ data: Data) async throws -> String {
         let key = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
@@ -21,14 +22,14 @@ actor MemoryRecorder: EvalRecorder {
         return key
     }
 
-    func append(type: String, steward: String?, payload: EvalValue) async throws {
+    func append(type: String, steward: StewardID?, payload: JSONValue) async throws {
         events.append((type, steward, payload))
     }
 }
 
 @Test func parsesAndSortsCases() throws {
     let book = try Casebook.parse(name: "triage", data: try fixture("triage.jsonl"))
-    #expect(book.cases.map(\.id) == ["case-0001", "case-0002"])
+    #expect(book.cases.map(\.id.rawValue) == ["case-0001", "case-0002"])
     #expect(book.cases[1].context == .object([:]))
     #expect(book.version.count == 64)
 }
@@ -64,7 +65,7 @@ actor MemoryRecorder: EvalRecorder {
         try Casebook.parse(
             name: "n", data: Data(ok.replacingOccurrences(of: "\"v\":1", with: "\"v\":2").utf8))
     }
-    #expect(throws: CasebookError.emptyID(line: 1)) {
+    #expect(throws: CasebookError.invalidLine(line: 1, reason: "not a case object")) {
         try Casebook.parse(
             name: "n", data: Data(ok.replacingOccurrences(of: "\"a\"", with: "\"\"").utf8))
     }
@@ -74,7 +75,9 @@ actor MemoryRecorder: EvalRecorder {
 @Test func importRecordsBlobAndEvent() async throws {
     let recorder = MemoryRecorder()
     let (book, payload) = try await CasebookImporter(recorder: recorder)
-        .importCasebook(name: "triage", data: try fixture("triage.jsonl"), steward: "st_triage")
+        .importCasebook(
+            name: "triage", data: try fixture("triage.jsonl"),
+            steward: StewardID(unchecked: "st_triage"))
     #expect(payload.blob == book.version)
     #expect(payload.cases == 2)
     let blobs = await recorder.blobs
@@ -82,6 +85,6 @@ actor MemoryRecorder: EvalRecorder {
     let events = await recorder.events
     #expect(events.count == 1)
     #expect(events[0].type == "casebook.imported")
-    #expect(events[0].steward == "st_triage")
+    #expect(events[0].steward?.rawValue == "st_triage")
     #expect(events[0].payload["version"] == .string(book.version))
 }

@@ -1,9 +1,10 @@
+import AryaCore
 import Testing
 
 @testable import AryaEval
 
 private let request = RehearsalRequest(
-    steward: "st_triage", charterVersion: 1, casebookVersion: "ab")
+    steward: StewardID(unchecked: "st_triage"), charterVersion: 1, casebookVersion: "ab")
 
 /// Builds a result from `case id -> sample pass flags`; a passing sample scores 1, else 0.
 private func result(_ cases: [(String, [Bool])], leaks: Set<String> = []) -> RehearsalResult {
@@ -11,7 +12,8 @@ private func result(_ cases: [(String, [Bool])], leaks: Set<String> = []) -> Reh
         request: request,
         outcomes: cases.map { id, samples in
             CaseOutcome(
-                caseID: id, samples: samples.map { CaseScore(value: $0 ? 1 : 0, passed: $0) },
+                caseID: CaseID(rawValue: id)!,
+                samples: samples.map { CaseScore(value: $0 ? 1 : 0, passed: $0) },
                 leak: leaks.contains(id))
         })
 }
@@ -72,7 +74,7 @@ func gateRule(_ c: GateCase) {
         baseline: c.baseline, candidate: c.candidate, tolerance: c.tolerance)
     #expect(verdict.passed == c.passed)
     #expect(verdict.reason == c.reason)
-    #expect(verdict.regressions == c.regressions)
+    #expect(verdict.regressions.map(\.rawValue) == c.regressions)
 }
 
 @Test func meanAveragesSamplesThenCases() {

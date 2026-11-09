@@ -34,9 +34,10 @@ Later:
 
 ## Decisions
 
-- Until `AryaCore` publishes ids, `Case`, a JSON value, and `GateChecking`, eval uses plain
-  string ids, its own `EvalValue`, and `EvalGateChecking` (prefixed so modules importing both
-  never see an ambiguous name). Each is replaced when the core type lands.
+- Eval uses `AryaCore.JSONValue`, `CanonicalJSON`, and typed ids (`RunID`, `StewardID`,
+  `ProposalID`, `CaseID`). Until `AryaCore` publishes `Case` and `GateChecking`, eval keeps
+  `EvalCase` and `EvalGateChecking` (prefixed so modules importing both never see an ambiguous
+  name); each is replaced when the core type lands.
 - Stubs fail safe: replay and rehearsal throw `notImplemented`, the stub scorer fails every case,
   and the stub gate refuses every proposal.
 - Replay compares derived events by position (type, then payload in sorted key order), never by
@@ -46,7 +47,7 @@ Later:
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
 - Casebooks: cases are sorted by id and a casebook's version is the SHA-256 of canonical JSON
-  Lines (sorted keys, no whitespace, `/` unescaped), so reordering or reformatting keeps the
+  Lines (`CanonicalJSON`), so reordering or reformatting keeps the
   version. Duplicate ids, `v` other than 1, empty ids, and empty casebooks are rejected. The
   normalized casebook is stored as one blob whose hash equals the version. Writes go through
   `EvalRecorder` (blob put and event append), which the facade adapts to the ledger once it
@@ -58,3 +59,4 @@ Later:
 
 - 2026-11-09: interfaces `Replayer`, `Rehearser`, `Scorer`, `Gate` with stubs (8247b8d)
 - 2026-11-09: `DivergenceFinder`, exact and rubric scorers, pure `GateRule` (6a59273)
+- 2026-11-09: casebook format, content-hash versions, import via `EvalRecorder` (6ee26b3)

@@ -1,10 +1,12 @@
+import AryaCore
+
 /// One recorded or re-derived ledger event, reduced to what replay compares.
 public struct ReplayEvent: Hashable, Sendable, Codable {
     public var seq: Int
     public var type: String
-    public var payload: EvalValue
+    public var payload: JSONValue
 
-    public init(seq: Int, type: String, payload: EvalValue) {
+    public init(seq: Int, type: String, payload: JSONValue) {
         self.seq = seq
         self.type = type
         self.payload = payload
@@ -38,13 +40,13 @@ public struct Divergence: Hashable, Sendable, Codable {
 
 /// The outcome of replaying one run. Zero divergence is the pass condition.
 public struct ReplayReport: Hashable, Sendable, Codable {
-    public var run: String
+    public var run: RunID
     public var comparedEvents: Int
     public var divergence: Divergence?
 
     public var passed: Bool { divergence == nil }
 
-    public init(run: String, comparedEvents: Int, divergence: Divergence?) {
+    public init(run: RunID, comparedEvents: Int, divergence: Divergence?) {
         self.run = run
         self.comparedEvents = comparedEvents
         self.divergence = divergence
@@ -57,14 +59,14 @@ public struct ReplayReport: Hashable, Sendable, Codable {
 
 /// Re-runs a recorded run against its recorded inputs and compares the derived events.
 public protocol Replayer: Sendable {
-    func replay(run: String) async throws -> ReplayReport
+    func replay(run: RunID) async throws -> ReplayReport
 }
 
 /// Placeholder until the runtime can be driven by a `ReplayAdapter`.
 public struct StubReplayer: Replayer {
     public init() {}
 
-    public func replay(run: String) async throws -> ReplayReport {
+    public func replay(run: RunID) async throws -> ReplayReport {
         throw EvalError.notImplemented("replay")
     }
 }

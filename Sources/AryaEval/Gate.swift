@@ -1,11 +1,15 @@
+import AryaCore
+
 /// A proposal to be gated: a candidate charter version rehearsed against the live version.
 public struct GateRequest: Hashable, Sendable, Codable {
-    public var steward: String
-    public var proposal: String
+    public var steward: StewardID
+    public var proposal: ProposalID
     public var candidateVersion: Int
     public var casebookVersion: String
 
-    public init(steward: String, proposal: String, candidateVersion: Int, casebookVersion: String) {
+    public init(
+        steward: StewardID, proposal: ProposalID, candidateVersion: Int, casebookVersion: String
+    ) {
         self.steward = steward
         self.proposal = proposal
         self.candidateVersion = candidateVersion
@@ -23,11 +27,11 @@ public struct GateVerdict: Hashable, Sendable, Codable {
     public var baselineMean: Double?
     public var candidateMean: Double
     /// Case ids that passed in every baseline sample and failed in every candidate sample.
-    public var regressions: [String]
+    public var regressions: [CaseID]
     public var reason: String
 
     public init(
-        passed: Bool, baselineMean: Double?, candidateMean: Double, regressions: [String],
+        passed: Bool, baselineMean: Double?, candidateMean: Double, regressions: [CaseID],
         reason: String
     ) {
         self.passed = passed

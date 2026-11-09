@@ -1,3 +1,5 @@
+import AryaCore
+
 /// Compares a run's recorded derived events with the events a replay derived.
 ///
 /// Events are compared by position: type first, then payload, field by field. Object keys are
@@ -25,7 +27,7 @@ public enum DivergenceFinder {
 
     /// The dotted path of the first difference between two values, or `nil` when equal.
     /// Array elements appear as `[i]`.
-    public static func firstDifference(_ a: EvalValue, _ b: EvalValue, path: String) -> String? {
+    public static func firstDifference(_ a: JSONValue, _ b: JSONValue, path: String) -> String? {
         switch (a, b) {
         case (.object(let x), .object(let y)):
             for key in Set(x.keys).union(y.keys).sorted() {

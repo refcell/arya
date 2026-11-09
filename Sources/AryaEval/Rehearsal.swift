@@ -1,12 +1,16 @@
+import AryaCore
+
 /// What to rehearse: a steward's charter version on one casebook version.
 public struct RehearsalRequest: Hashable, Sendable, Codable {
-    public var steward: String
+    public var steward: StewardID
     public var charterVersion: Int
     public var casebookVersion: String
     /// Runs per case (`gate.samples`), at least 1.
     public var samples: Int
 
-    public init(steward: String, charterVersion: Int, casebookVersion: String, samples: Int = 1) {
+    public init(
+        steward: StewardID, charterVersion: Int, casebookVersion: String, samples: Int = 1
+    ) {
         self.steward = steward
         self.charterVersion = charterVersion
         self.casebookVersion = casebookVersion
@@ -20,12 +24,12 @@ public struct RehearsalRequest: Hashable, Sendable, Codable {
 
 /// The scores of one case over every sample, in sample order.
 public struct CaseOutcome: Hashable, Sendable, Codable {
-    public var caseID: String
+    public var caseID: CaseID
     public var samples: [CaseScore]
     /// True when a tool read had no recorded answer (decision 0015).
     public var leak: Bool
 
-    public init(caseID: String, samples: [CaseScore], leak: Bool = false) {
+    public init(caseID: CaseID, samples: [CaseScore], leak: Bool = false) {
         self.caseID = caseID
         self.samples = samples
         self.leak = leak

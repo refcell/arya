@@ -1,3 +1,4 @@
+import AryaCore
 import Foundation
 
 /// The payload of a `casebook.imported` event.
@@ -28,7 +29,7 @@ public protocol EvalRecorder: Sendable {
     /// Stores `data` content-addressed and returns its lowercase hex SHA-256.
     func putBlob(_ data: Data) async throws -> String
     /// Appends an event with the local user as actor unless the caller names another.
-    func append(type: String, steward: String?, payload: EvalValue) async throws
+    func append(type: String, steward: StewardID?, payload: JSONValue) async throws
 }
 
 /// Records casebooks into blobs and the ledger.
@@ -42,22 +43,15 @@ public struct CasebookImporter: Sendable {
     /// Parses, stores, and records a casebook; returns it with the recorded payload.
     @discardableResult
     public func importCasebook(
-        name: String, data: Data, steward: String?
+        name: String, data: Data, steward: StewardID?
     ) async throws -> (Casebook, CasebookImported) {
         let book = try Casebook.parse(name: name, data: data)
         let blob = try await recorder.putBlob(try book.normalizedData())
         let payload = CasebookImported(
             name: name, version: book.version, blob: blob, cases: book.cases.count)
         try await recorder.append(
-            type: "casebook.imported", steward: steward, payload: try EvalValue(encoding: payload))
+            type: "casebook.imported", steward: steward,
+            payload: try CanonicalJSON.jsonValue(payload))
         return (book, payload)
-    }
-}
-
-extension EvalValue {
-    /// Converts any `Encodable` into an `EvalValue` through JSON.
-    public init(encoding value: some Encodable) throws {
-        let data = try JSONEncoder().encode(value)
-        self = try JSONDecoder().decode(EvalValue.self, from: data)
     }
 }

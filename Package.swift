@@ -43,7 +43,8 @@ let package = Package(
         .testTarget(name: "AryaMemoryTests", dependencies: ["AryaMemory"]),
         .testTarget(name: "AryaRuntimeTests", dependencies: ["AryaRuntime"]),
         .testTarget(
-            name: "AryaEvalTests", dependencies: ["AryaEval"], resources: [.copy("Fixtures")]),
+            name: "AryaEvalTests", dependencies: ["AryaCore", "AryaEval"],
+            resources: [.copy("Fixtures")]),
         .testTarget(name: "AryaTests", dependencies: ["Arya"]),
         .testTarget(name: "AryaDesignTests", dependencies: ["AryaDesign"]),
         .testTarget(name: "AryaCLITests", dependencies: ["AryaCLI"]),

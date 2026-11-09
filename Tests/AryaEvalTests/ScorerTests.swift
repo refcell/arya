@@ -1,15 +1,16 @@
+import AryaCore
 import Testing
 
 @testable import AryaEval
 
-private let expected: EvalValue = .object([
+private let expected: JSONValue = .object([
     "decisions": .array([.object(["choice": .string("bug")])]),
     "actions": .array([
         .object(["kind": .string("label"), "target": .string("tracker:ISSUE-7")])
     ]),
 ])
 
-private func actual(choice: String, target: String) -> EvalValue {
+private func actual(choice: String, target: String) -> JSONValue {
     .object([
         "decisions": .array([.object(["choice": .string(choice)])]),
         "actions": .array([.object(["kind": .string("label"), "target": .string(target)])]),
@@ -42,7 +43,7 @@ private func actual(choice: String, target: String) -> EvalValue {
     (RubricCheck(kind: .equals, path: "actions.kind", value: .string("label")), true),
     (RubricCheck(kind: .equals, path: "actions.kind", value: .string("close")), false),
     (RubricCheck(kind: .contains, path: "summary", value: .string("timeout")), true),
-    (RubricCheck(kind: .contains, path: "summary", value: .number(1)), false),
+    (RubricCheck(kind: .contains, path: "summary", value: .int(1)), false),
 ])
 func rubricChecks(check: RubricCheck, holds: Bool) {
     let result = actual(choice: "bug", target: "tracker:ISSUE-7")

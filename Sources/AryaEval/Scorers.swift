@@ -1,11 +1,13 @@
-extension EvalValue {
+import AryaCore
+
+extension JSONValue {
     /// Values at a dotted path. Arrays along the way fan out, so `actions.kind` on
     /// `{"actions":[{"kind":"label"},{"kind":"comment"}]}` gives `["label", "comment"]`.
     /// Missing members contribute nothing.
-    public func values(at path: String) -> [EvalValue] {
-        var current: [EvalValue] = [self]
+    public func values(at path: String) -> [JSONValue] {
+        var current: [JSONValue] = [self]
         for key in path.split(separator: ".").map(String.init) {
-            current = current.flatMap { value -> [EvalValue] in
+            current = current.flatMap { value -> [JSONValue] in
                 switch value {
                 case .array(let items): return items.compactMap { $0[key] }
                 default: return value[key].map { [$0] } ?? []
@@ -25,7 +27,7 @@ public struct ExactScorer: Scorer {
         self.fields = fields
     }
 
-    public func score(expected: EvalValue, actual: EvalValue) -> CaseScore {
+    public func score(expected: JSONValue, actual: JSONValue) -> CaseScore {
         guard !fields.isEmpty else {
             return CaseScore(value: 0, passed: false, notes: ["no fields to compare"])
         }
@@ -53,10 +55,10 @@ public struct RubricCheck: Hashable, Sendable, Codable {
 
     public var kind: Kind
     public var path: String
-    public var value: EvalValue?
+    public var value: JSONValue?
     public var weight: Double
 
-    public init(kind: Kind, path: String, value: EvalValue? = nil, weight: Double = 1) {
+    public init(kind: Kind, path: String, value: JSONValue? = nil, weight: Double = 1) {
         self.kind = kind
         self.path = path
         self.value = value
@@ -67,7 +69,7 @@ public struct RubricCheck: Hashable, Sendable, Codable {
         case kind, path, value, weight
     }
 
-    func holds(expected: EvalValue, actual: EvalValue) -> Bool {
+    func holds(expected: JSONValue, actual: JSONValue) -> Bool {
         let found = actual.values(at: path)
         switch kind {
         case .matchesExpected: return found == expected.values(at: path)
@@ -95,7 +97,7 @@ public struct RubricScorer: Scorer {
         self.passThreshold = passThreshold
     }
 
-    public func score(expected: EvalValue, actual: EvalValue) -> CaseScore {
+    public func score(expected: JSONValue, actual: JSONValue) -> CaseScore {
         let total = checks.reduce(0) { $0 + max(0, $1.weight) }
         guard total > 0 else {
             return CaseScore(value: 0, passed: false, notes: ["rubric has no weight"])

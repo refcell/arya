@@ -1,3 +1,5 @@
+import AryaCore
+
 /// The pure gate rule from decision 0017.
 ///
 /// The candidate passes when its mean score is at least the baseline mean minus `tolerance`,
@@ -49,7 +51,7 @@ public enum GateRule {
     }
 
     static func verdict(
-        _ passed: Bool, _ baselineMean: Double?, _ candidateMean: Double, _ regressions: [String],
+        _ passed: Bool, _ baselineMean: Double?, _ candidateMean: Double, _ regressions: [CaseID],
         _ reason: String
     ) -> GateVerdict {
         GateVerdict(
