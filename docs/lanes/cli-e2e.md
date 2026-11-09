@@ -51,7 +51,7 @@ M3:
   are omitted. `WorkspaceBackend` maps the facade into them (`Mapping.swift`); a facade call
   that throws `unavailable` becomes exit 69 naming the call (`Workspace.createSteward`).
 - `arya run` derives decisions and action dispositions from the run's ledger entries with a
-  lenient reader (`RunDigest`) until the facade offers a run detail. Enrichment calls (pending
+  lenient reader (`RunDigest`) until the facade offers a run detail (workspace lane backlog). Enrichment calls (pending
   approval counts, last run) are optional: their failure leaves the field empty.
 - Exit statuses follow `sysexits`: 0 ok, 1 failure (failed run, broken ledger), 64 usage,
   65 invalid input, 66 not found, 69 not available yet. `just e2e` treats 69 as "pending".
@@ -62,11 +62,6 @@ M3:
 - CLI tests live in `Tests/AryaCLITests` and use `@testable import AryaCLI` (executable target).
 
 ## Questions
-
-- (to runtime) Facade additions the CLI needs, proposed defaults in parentheses: the live
-  charter of a steward for `arya steward show` (`charter(_ id:) -> Data`); a run detail with
-  decisions and per-action dispositions (`run(_ id:) -> RunDetail`); the M2 calls behind
-  `casebook import`, `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
 
 ## Log
 - 2026-11-09: example script back on the canonical `responses`/`default` format
