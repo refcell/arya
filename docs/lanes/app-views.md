@@ -133,6 +133,8 @@ M4:
   folded); the Ledger filter bar is wider than the pane at 1120 pt (Actor clips) and the time
   column truncates to "jus…now"; Rehearsals truncates "Rehearse ag…"; approval cards and Memory
   show full run ids where a short form fits.
+- (from app-shell) Fixed in `ApprovalCard` (decision 0034): Command-Return approves and
+  Command-Delete denies; plain Return and Escape do nothing on a card.
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

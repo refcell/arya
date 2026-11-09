@@ -242,7 +242,9 @@ no fill. Chip text is a single lowercase word or short id. Chips never act as bu
 - Pressed: the whole button drops to 70% opacity while held, the one sanctioned use of opacity.
   Disabled: text `inkFaint`, and the primary fill becomes `rule`.
 - Keyboard focus: a 2 pt `accent` ring outside the button with 2 pt offset, matching the corner.
-  Return triggers the primary action; Escape triggers Cancel or Deny only when the pane has focus.
+  Return triggers the primary action; Escape triggers Cancel only when the pane has focus. An
+  approval card is the exception (decision 0034): Command-Return approves and Command-Delete
+  denies, so a stray Return on a card that took focus never grants anything.
 
 ### Effort selector
 

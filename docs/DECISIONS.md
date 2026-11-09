@@ -281,3 +281,11 @@ those recipes, so they never hold a slot while waiting for another one. Builds p
 a build killed by a signal under load is not a code failure, so rerun it once before
 debugging. Why: two concurrent builds keep the machine responsive and finish sooner overall
 than ten builds fighting for 14 cores.
+
+### 0034 — 2026-11-09 — Approval cards need Command for their keys
+
+A focused approval card took plain Return as Approve and Escape as Deny. The card can take focus
+on its own when the window activates, so a Return typed for something else granted a demo
+approval. Approval cards now answer only Command-Return (approve) and Command-Delete (deny);
+other primary buttons keep plain Return. STYLE.md Buttons notes the exception. Why: granting an
+action is the one write that must never happen by accident, and the modifier costs one key.

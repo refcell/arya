@@ -55,9 +55,12 @@ import Testing
     }
 
     @Test func approvalCardKeys() {
-        #expect(ApprovalCard.action(for: .return) == .approve)
-        #expect(ApprovalCard.action(for: .escape) == .deny)
-        #expect(ApprovalCard.action(for: .space) == nil)
+        #expect(ApprovalCard.action(for: .return, modifiers: .command) == .approve)
+        #expect(ApprovalCard.action(for: .delete, modifiers: .command) == .deny)
+        // A plain Return or Delete on a card that took focus does nothing (decision 0034).
+        #expect(ApprovalCard.action(for: .return, modifiers: []) == nil)
+        #expect(ApprovalCard.action(for: .delete, modifiers: []) == nil)
+        #expect(ApprovalCard.action(for: .escape, modifiers: .command) == nil)
     }
 
     @Test func diffLinesAreClassified() {

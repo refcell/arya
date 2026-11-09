@@ -31,7 +31,8 @@ M3, extended (toward the end-to-end scenario and `just demo`):
 - [x] Text size: View menu Bigger, Smaller, Actual Size (⌘+, ⌘−, ⌘0 style) driving
   `aryaTextScale`, persisted in user defaults.
 - [x] Keyboard: arrow keys move through the rail in reading order (`RailOrder`).
-- [x] Keyboard: Return approves and Escape denies the focused approval card (`ApprovalCard`).
+- [x] Keyboard: Command-Return approves and Command-Delete denies the focused approval card
+  (`ApprovalCard`, decision 0034; plain Return granted a demo approval on window activation).
 - [x] `just screenshots`: render the preview shell offscreen to PNGs in both schemes for the
   README and for visual review.
 - [x] `just app-preview` and a `--home PATH` launch argument so `just demo` can open the app on
@@ -127,3 +128,4 @@ M4:
   rail (main pane takes `minWidth: 0` and clips). Feature-view findings sent to app-views.
 - 2026-11-09: feature writes and reads reach real homes: proposals, corrections, ready,
   rehearse, start run, routine bodies, expected results, replay (app-views' request).
+- 2026-11-09: approval cards answer only Command-Return and Command-Delete (decision 0034).

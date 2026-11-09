@@ -12,14 +12,16 @@ public struct ApprovalCard: View {
     let onApprove: () -> Void
     @FocusState private var isFocused: Bool
 
-    /// What a key does to a focused card: Return approves, Escape denies (STYLE.md Buttons).
+    /// What a key does to a focused card: Command-Return approves and Command-Delete denies
+    /// (decision 0034). Without Command nothing happens, so a stray Return never grants.
     public enum KeyAction: Equatable, Sendable { case approve, deny }
 
-    public static func action(for key: KeyEquivalent) -> KeyAction? {
+    public static func action(for key: KeyEquivalent, modifiers: EventModifiers) -> KeyAction? {
+        guard modifiers.contains(.command) else { return nil }
         switch key {
-        case .return: .approve
-        case .escape: .deny
-        default: nil
+        case .return: return .approve
+        case .delete: return .deny
+        default: return nil
         }
     }
 
@@ -72,8 +74,8 @@ public struct ApprovalCard: View {
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
-        .onKeyPress(keys: [.return, .escape]) { press in
-            switch Self.action(for: press.key) {
+        .onKeyPress(keys: [.return, .delete]) { press in
+            switch Self.action(for: press.key, modifiers: press.modifiers) {
             case .approve: onApprove()
             case .deny: onDeny()
             case nil: return .ignored
