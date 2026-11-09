@@ -26,7 +26,7 @@ M2:
 - [x] Corrections (`case.corrected`) and readiness (`steward.ready`).
 - [x] Proposals and gates: baseline lookup, samples, tolerance, per-case regression rule,
   override event. Table-driven gate tests.
-- [ ] Metric series from `metric.recorded`, action outcomes, and approval rates; per-steward
+- [x] Metric series from `metric.recorded`, action outcomes, and approval rates; per-steward
   series with fixed windows for the app chart.
 
 Later:
@@ -64,6 +64,11 @@ Later:
   overrides (person only, failed gates only), accepts, and rejects; `RehearsalGate` records
   `proposal.gated` with actor `system`. Closed (accepted or rejected) proposals refuse every
   further operation. Only charter proposals exist so far; routine proposals come next.
+- Metric series: `OutcomeMetrics.series` reads `metric.recorded` payloads as `{"metric",
+  "value"}` (a `run/result` measurement), `action.executed|failed|rejected`, and
+  `approval.granted|denied|expired`, per steward, into contiguous fixed windows aligned to
+  multiples of the window width since the epoch (UTC days by default), empty windows included.
+  Approval rate is granted over decided; `nil` when nothing was decided.
 - Corrections: `Corrector` records `case.corrected` and a `memory.added` note (built with
   `MemoryCorrections.note`, pointing at the correction event), both with the person as actor.
   A new expected result produces a new casebook version, recorded as `casebook.imported` with
@@ -87,3 +92,4 @@ Later:
 - 2026-11-09: eval uses core `Case`, `GateChecking`, `ScorerSpec`, runtime `EventSink` (028a9f8)
 - 2026-11-09: corrections (`case.corrected`, note, corrected casebook) and readiness (86e1c81)
 - 2026-11-09: charters flow through rehearsal; `RehearsalBook` finds baselines (8f0f8a6)
+- 2026-11-09: proposals (`ProposalDesk`, `ProposalBook`) and `RehearsalGate`, decision 0027 (e0c679e)
