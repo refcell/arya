@@ -23,9 +23,20 @@ public struct LedgerReader: Sendable {
     public func forEach(from seq: Int64 = 1, _ body: (Event) throws -> Void) throws {
         let segments = try existingSegments()
         let start = try firstSegmentIndex(containing: seq, in: segments)
-        for segment in segments[start...] {
-            try scan(segment) { event, _, _ in
-                if event.seq >= seq { try body(event) }
+        for (index, segment) in segments[start...].enumerated() {
+            let skip = index == 0 ? try linesBefore(seq, in: segment) : 0
+            do {
+                var first = skip > 0
+                try scan(segment, skipLines: skip) { event, _, _ in
+                    // Skipping assumes contiguous seqs; on a damaged ledger, rescan in full.
+                    if first, event.seq != seq { throw RescanSegment() }
+                    first = false
+                    if event.seq >= seq { try body(event) }
+                }
+            } catch is RescanSegment {
+                try scan(segment) { event, _, _ in
+                    if event.seq >= seq { try body(event) }
+                }
             }
         }
     }
@@ -76,6 +87,13 @@ public struct LedgerReader: Sendable {
         return chosen
     }
 
+    /// Lines of `segment` that hold events before `seq`, assuming contiguous `seq`s from the
+    /// segment's first event.
+    private func linesBefore(_ seq: Int64, in segment: Segment) throws -> Int {
+        guard seq > 1, let first = try firstEvent(of: segment), seq > first.seq else { return 0 }
+        return Int(seq - first.seq)
+    }
+
     private func firstEvent(of segment: Segment) throws -> Event? {
         var found: Event?
         try scan(segment, stopAfterFirst: true) { event, _, _ in found = event }
@@ -84,10 +102,11 @@ public struct LedgerReader: Sendable {
 
     /// Calls `body(event, offset, lineNumber)` for each complete line of `segment`.
     func scan(
-        _ segment: Segment, stopAfterFirst: Bool = false,
+        _ segment: Segment, stopAfterFirst: Bool = false, skipLines: Int = 0,
         _ body: (Event, Int64, Int) throws -> Void
     ) throws {
-        try scanLines(segment, stopAfterFirst: stopAfterFirst) { line, offset, number in
+        try scanLines(segment, stopAfterFirst: stopAfterFirst, skipLines: skipLines) {
+            line, offset, number in
             let event: Event
             do {
                 event = try LedgerLine.open(line)
@@ -100,9 +119,10 @@ public struct LedgerReader: Sendable {
     }
 
     /// Calls `body(bytes, offset, lineNumber)` for each newline-terminated line, reading the
-    /// file in 1 MiB chunks. Line numbers start at 1.
+    /// file in 1 MiB chunks. Line numbers start at 1. Lines before `skipLines` are counted but
+    /// not passed to `body`.
     func scanLines(
-        _ segment: Segment, stopAfterFirst: Bool = false,
+        _ segment: Segment, stopAfterFirst: Bool = false, skipLines: Int = 0,
         _ body: (ArraySlice<UInt8>, Int64, Int) throws -> Void
     ) throws {
         let fd = try FileIO.open(segment.url, O_RDONLY)
@@ -120,17 +140,37 @@ public struct LedgerReader: Sendable {
             readOffset += Int64(chunk.count)
             buffer += chunk
             var lineStart = 0
-            while let newline = buffer[lineStart...].firstIndex(of: 0x0A) {
+            for newline in Self.newlines(in: buffer) {
                 number += 1
-                try body(buffer[lineStart..<newline], bufferStart + Int64(lineStart), number)
-                if stopAfterFirst { return }
+                if number > skipLines {
+                    try body(buffer[lineStart..<newline], bufferStart + Int64(lineStart), number)
+                    if stopAfterFirst { return }
+                }
                 lineStart = newline + 1
             }
             buffer.removeFirst(lineStart)
             bufferStart += Int64(lineStart)
         }
     }
+
+    /// Offsets of every `\n` in `bytes`, found with `memchr`.
+    static func newlines(in bytes: [UInt8]) -> [Int] {
+        var out: [Int] = []
+        bytes.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+            guard let base = raw.baseAddress else { return }
+            var offset = 0
+            while offset < raw.count {
+                guard let hit = memchr(base + offset, 0x0A, raw.count - offset) else { break }
+                let index = base.distance(to: UnsafeRawPointer(hit))
+                out.append(index)
+                offset = index + 1
+            }
+        }
+        return out
+    }
 }
+
+private struct RescanSegment: Error {}
 
 /// A line that failed its hash or envelope check while reading.
 public struct LedgerReadError: Error, Hashable, Sendable, CustomStringConvertible {

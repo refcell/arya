@@ -47,6 +47,19 @@ M3:
 - [x] Ledger query API for the app's ledger table: filter by steward, run, type, actor; page by
   `seq`.
 
+M3 (extended by the lane):
+- [x] Fast `seq`-addressed reads: `memchr` line splitting and skipping known lines in the first
+  segment (5,000 events: tail read 1.5 s to 0.05 s). Perf probe: `ARYA_PERF=1 just test perf`.
+- [ ] Faster full reads: decode the envelope without `JSONDecoder` (it is ~80% of a full read),
+  so the runtime's books and the app's first load stay fast as the ledger grows.
+- [ ] `LedgerEventSink` catch-up: let runtime books fold only new events through `Projected`
+  and `ProjectionCache` (offer it in runtime's Questions; the runtime owns the books).
+- [ ] `arya ledger verify` output helpers: a stable, human-readable report from
+  `LedgerVerification` for the CLI and the app's verify button.
+
+M4:
+- [ ] Signed checkpoints for ledger compaction (Later in ROADMAP): design note first.
+
 ## Decisions
 
 - Ids are `PrefixedID` structs (`st_`, `run_`, `ev_`, `ap_`, `prop_`, `reh_`, `mem_`); generated

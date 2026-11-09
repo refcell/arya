@@ -129,3 +129,22 @@ private func multiSegment(_ home: TempHome, count: Int = 12) throws -> [Event] {
     _ = try LedgerStore(home: home.url, ambient: .fixed())
     #expect(try LedgerVerifier(home: home.url).verify().ok)
 }
+
+@Test func readFromSeqSurvivesNonContiguousSegments() throws {
+    let home = try TempHome()
+    defer { home.cleanup() }
+    let store = try LedgerStore(home: home.url, ambient: .fixed())
+    try store.append((0..<6).map { note("n\($0)") })
+    // Drop the second line: seqs inside the segment are no longer contiguous.
+    var lines = try home.lines(1)
+    lines.remove(at: 1)
+    try Data((lines.joined(separator: "\n") + "\n").utf8).write(to: home.segment(1))
+    #expect(try LedgerReader(home: home.url).events(from: 4).map(\.seq) == [4, 5, 6])
+    #expect(try LedgerReader(home: home.url).events(from: 2).map(\.seq) == [3, 4, 5, 6])
+}
+
+@Test func newlineFinderMatchesNaiveScan() {
+    let bytes = Array("a\nbb\n\nccc\nd".utf8)
+    #expect(LedgerReader.newlines(in: bytes) == [1, 4, 5, 9])
+    #expect(LedgerReader.newlines(in: []).isEmpty)
+}
