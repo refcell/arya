@@ -204,6 +204,9 @@ Next (lane-extended toward M3.5 app parity, in order):
 ## Questions
 
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
+- (from cli-e2e) `Ambient.fixed` starts `lastMillis` at 0, so an id made before the first
+  `now()` has zero time (`run_0000000000…`) and sorts first; start it at `start`? (The CLI reads
+  once as a workaround.)
 
 ## Log
 - HANDOFF 2026-11-09 (third session, ended near auto-compaction): backlog (5a)-(12) done and on

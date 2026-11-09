@@ -280,3 +280,19 @@ private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
         #expect(try await backend.resumeSteward("st_triage").summary.state != .paused)
     }
 }
+
+@Test func clockedRunIDsSortByTime() async throws {
+    try await withTemporaryHome { home in
+        let clock = try #require(WorkspaceBackend.clock("2026-10-12T09:00:00Z"))
+        let backend = WorkspaceBackend(home: home, clock: clock)
+        _ = try await backend.initHome()
+        let charter = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("etc/examples/triage/charter.json")
+        _ = try await backend.createSteward(charterPath: charter.path)
+        let run = try await WorkspaceBackend(home: home, clock: clock)
+            .startRun(steward: "st_triage", input: nil).run
+        // A ULID's first ten characters are its time; zero time would be "0000000000".
+        #expect(!run.dropFirst("run_".count).hasPrefix("0000000000"))
+    }
+}
