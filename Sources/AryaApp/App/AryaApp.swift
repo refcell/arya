@@ -35,6 +35,7 @@ struct AryaApp: App {
 /// The window content once a home is chosen, or why it is not open.
 struct SessionView: View {
     let session: AppSession
+    @AppStorage(TextScale.defaultsKey) private var textScale = Double(TextScale.standard)
 
     var body: some View {
         Group {
@@ -49,17 +50,28 @@ struct SessionView: View {
         }
         .frame(minWidth: AryaSize.windowMinWidth, minHeight: AryaSize.windowMinHeight)
         .navigationSubtitle(session.subtitle)
+        .environment(\.aryaTextScale, TextScale.normalized(textScale))
     }
 }
 
 /// Menu commands: open a home, refresh, go to approvals, and switch tabs by number.
 struct AryaCommands: Commands {
     let session: AppSession
+    @AppStorage(TextScale.defaultsKey) private var textScale = Double(TextScale.standard)
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("Open Home…") { openHome() }.keyboardShortcut("o")
             Button("Open Preview Workspace") { Task { await session.open(.preview) } }
+        }
+        CommandGroup(after: .toolbar) {
+            Button("Bigger Text") { textScale = Double(TextScale.bigger(textScale)) }
+                .keyboardShortcut("+")
+            Button("Smaller Text") { textScale = Double(TextScale.smaller(textScale)) }
+                .keyboardShortcut("-")
+            Button("Actual Size") { textScale = Double(TextScale.standard) }
+                .keyboardShortcut("0", modifiers: [.command, .option])
+            Divider()
         }
         CommandMenu("Go") {
             Button("Approvals") { session.model?.navigation.showApprovals() }

@@ -72,6 +72,22 @@ import Testing
                 == .preview)
     }
 
+    @Test func homeArgumentBeatsTheEnvironment() {
+        let choice = HomeLocator.resolve(
+            arguments: ["AryaApp", "--home", "/tmp/demo"], environment: ["ARYA_HOME": "/tmp/h"],
+            applicationSupport: support)
+        #expect(choice == .home(URL(fileURLWithPath: "/tmp/demo")))
+    }
+
+    @Test func textScaleSteps() {
+        #expect(TextScale.bigger(1) == 1.15)
+        #expect(TextScale.bigger(1.5) == 1.5)
+        #expect(TextScale.smaller(1) == 0.85)
+        #expect(TextScale.smaller(0.85) == 0.85)
+        #expect(TextScale.normalized(1.1) == 1.15)
+        #expect(TextScale.normalized(9) == 1.5)
+    }
+
     @Test func aryaHomeThenDefault() {
         let set = HomeLocator.resolve(
             arguments: [], environment: ["ARYA_HOME": "/tmp/h"], applicationSupport: support)

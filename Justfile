@@ -45,6 +45,10 @@ app:
 run-app: app
     open .build/Arya.app
 
+# Build and launch the app on the in-memory preview workspace
+app-preview: app
+    open -n .build/Arya.app --args --preview
+
 # End-to-end scenario with the fake adapter and a temporary home (`just e2e --keep` keeps it)
 e2e *args:
     etc/scripts/e2e.sh {{ args }}

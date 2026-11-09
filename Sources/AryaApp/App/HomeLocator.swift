@@ -9,7 +9,7 @@ enum HomeChoice: Equatable {
 }
 
 /// Resolves the home once at launch (ARCHITECTURE.md "Home directory"): `--preview` or
-/// `ARYA_PREVIEW=1` picks sample data, then `ARYA_HOME`, then
+/// `ARYA_PREVIEW=1` picks sample data, then `--home PATH`, then `ARYA_HOME`, then
 /// `~/Library/Application Support/arya`. Pure, so tests pass in their own inputs.
 enum HomeLocator {
     static func resolve(
@@ -17,6 +17,10 @@ enum HomeLocator {
     ) -> HomeChoice {
         if arguments.contains("--preview") || environment["ARYA_PREVIEW"] == "1" {
             return .preview
+        }
+        if let flag = arguments.firstIndex(of: "--home"), flag + 1 < arguments.count {
+            return .home(
+                URL(fileURLWithPath: (arguments[flag + 1] as NSString).expandingTildeInPath))
         }
         if let path = environment["ARYA_HOME"], !path.isEmpty {
             return .home(URL(fileURLWithPath: (path as NSString).expandingTildeInPath))

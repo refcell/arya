@@ -28,13 +28,13 @@ M3 (start now against a stub `Workspace`; switch to the real one when runtime la
 M3, extended (toward the end-to-end scenario and `just demo`):
 - [x] Facade-backed `FeatureWorkspace` (`FacadeFeatureWorkspace`) so a real home feeds the
   feature views, not only preview mode.
-- [ ] Text size: View menu Bigger, Smaller, Actual Size (⌘+, ⌘−, ⌘0 style) driving
+- [x] Text size: View menu Bigger, Smaller, Actual Size (⌘+, ⌘−, ⌘0 style) driving
   `aryaTextScale`, persisted in user defaults.
 - [ ] Keyboard: reading-order focus (rail, header, tabs, pane), arrow keys in the rail, Return
   approves and Escape denies the focused approval card.
 - [ ] `just screenshots`: render the preview shell offscreen to PNGs in both schemes for the
   README and for visual review.
-- [ ] `just app-preview` and a `--home PATH` launch argument so `just demo` can open the app on
+- [x] `just app-preview` and a `--home PATH` launch argument so `just demo` can open the app on
   a seeded home.
 - [ ] Switch effort, steward state, and runs to facade calls as runtime lands them; delete the
   shell stub paths each replaces.
@@ -97,3 +97,4 @@ M4:
 - 2026-11-09: window, rail, header, tabs, approvals entry, live updates, preview workspace
   (c1b00af). For app-views: `FeatureRegistry` now hosts `RunStreamView` and
   `ApprovalQueueView` through `FeatureContext.store`; it is yours to extend.
+- 2026-11-09: facade-backed `FacadeFeatureWorkspace` for real homes (7abeedf).
