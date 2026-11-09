@@ -196,14 +196,18 @@ public struct StewardDraft: Sendable, Hashable, Codable {
     public var triggers: [Trigger]
     /// Adapter profile name in `adapters.json`.
     public var adapter: String
+    /// How far the steward acts on its own: `observe`, `suggest`, `act_low`, or `act_medium`;
+    /// nil for none (rules and `autonomy` alone decide).
+    public var level: String?
 
     public init(
         id: String? = nil, name: String, outcome: String, metric: String, unit: String,
         direction: String = "up", target: Double? = nil, guardrails: [String] = [],
         autonomy: String = "ask", rules: [Rule] = [], bindings: [Binding] = [],
         effort: String = "medium", triggers: [Trigger] = [Trigger(kind: "manual")],
-        adapter: String
+        adapter: String, level: String? = nil
     ) {
+        self.level = level
         self.id = id
         self.name = name
         self.outcome = outcome
@@ -413,13 +417,84 @@ extension StewardDraft {
             default: throw fail("trigger kind must be manual, interval, or message")
             }
         }
+        let autonomy = try level.flatMap { level -> Autonomy? in
+            if level.isEmpty { return nil }
+            guard let value = Autonomy(rawValue: level) else {
+                throw fail("level must be observe, suggest, act_low, or act_medium, not \(level)")
+            }
+            return value
+        }
         var policy = Policy(rules: rules)
         policy.default = fallback
-        return Charter(
+        var charter = Charter(
             id: steward, name: name, outcome: outcome,
             metric: Metric(name: metric, unit: unit, direction: direction, target: target),
             guardrails: guardrails, bindings: bindings, triggers: triggers, policy: policy,
             adapter: adapter, effort: effort)
+        charter.autonomy = autonomy
+        return charter
+    }
+
+    /// The fields of `charter` a person edits; the rest (risk rules, crew, limits, scorer,
+    /// gate) stay on the charter and survive `applied(to:)`.
+    init(_ charter: Charter) {
+        self.init(
+            id: charter.id.rawValue, name: charter.name, outcome: charter.outcome,
+            metric: charter.metric.name, unit: charter.metric.unit,
+            direction: charter.metric.direction.rawValue, target: charter.metric.target,
+            guardrails: charter.guardrails, autonomy: charter.policy.default.rawValue,
+            rules: charter.policy.rules.map {
+                Rule(
+                    action: $0.action, binding: $0.binding, decision: $0.decision.rawValue,
+                    note: $0.note)
+            },
+            bindings: charter.bindings.map {
+                Binding(
+                    id: $0.id, kind: $0.kind.rawValue, command: $0.command, args: $0.args,
+                    read: $0.read, actions: $0.actions, channel: $0.channel)
+            },
+            effort: charter.effort.rawValue,
+            triggers: charter.triggers.map {
+                switch $0 {
+                case .manual: Trigger(kind: "manual")
+                case .interval(let seconds): Trigger(kind: "interval", everySeconds: seconds)
+                case .message(let from): Trigger(kind: "message", from: from)
+                }
+            },
+            adapter: charter.adapter, level: charter.autonomy?.rawValue)
+    }
+
+    /// `base` with these fields applied; fields a draft does not hold are kept from `base`.
+    func applied(to base: Charter) throws -> Charter {
+        let edited = try charter()
+        guard edited.id == base.id else {
+            throw WorkspaceError.rejected(
+                "draft is for \(edited.id.rawValue), not \(base.id.rawValue)")
+        }
+        var out = base
+        out.name = edited.name
+        out.outcome = edited.outcome
+        out.metric = edited.metric
+        out.guardrails = edited.guardrails
+        out.bindings = edited.bindings.map { binding in
+            guard var kept = base.bindings.first(where: { $0.id == binding.id }) else {
+                return binding
+            }
+            kept.kind = binding.kind
+            kept.command = binding.command
+            kept.args = binding.args
+            kept.read = binding.read
+            kept.actions = binding.actions
+            kept.channel = binding.channel
+            return kept
+        }
+        out.triggers = edited.triggers
+        out.policy.rules = edited.policy.rules
+        out.policy.default = edited.policy.default
+        out.adapter = edited.adapter
+        out.effort = edited.effort
+        out.autonomy = edited.autonomy
+        return out
     }
 
     /// Lowercase letters and digits, other runs as `_`, for example "Inbox triage" →

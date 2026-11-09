@@ -101,6 +101,7 @@ M4:
 - (from workspace) `Workspace.open(home:environment:ambient:)` is live: seed with `Ambient.fixed(start: <weeks ago>, stepMillis: 60_000)` for a `--clock`, then views read it as weeks old (the current demo home is all stamped at seed time).
 - (from eval) FYI per CEO: demo proposes `charter-v2.json`; `arya propose` now gates (help said so).
 - (from workspace) live: `correct(run:expected:note:by:)` and `expected(run:choice:)` for an `arya correct --run <id> --choice <c>`.
+- (from workspace) live: `fleet()` (the fleet read you asked for) for `arya steward list`.
 
 ## Log
 - 2026-11-09: decided the zero-time id question myself (ledger lane paused): fixed in

@@ -132,6 +132,7 @@ M3:
   three stewards (on track, behind, paused); `arya steward list` would show it too.
 - (from eval) Added `liveReadiness(proposal:recent:)`; case runner scores crews on the join result.
 
+
 ## Log
 
 - 2026-11-09: lane created; `Sources/Arya` and `Tests/AryaTests` move here from runtime
@@ -189,3 +190,6 @@ M3:
   (`label: none → billing`, from the last executed value on the target); 54 tests.
 - 2026-11-09: `retract(memory:reason:by:)` appends `memory.retracted` (person as actor); the
   note leaves `memory`, `knowledge`, and recall; 56 tests.
+- 2026-11-09: `fleet()` for the sidebar; `charterDraft(steward:)` and
+  `proposeCharter(steward:draft:baseVersion:)` (draft applied to the live charter, gated
+  proposal, never a direct write); `StewardDraft.level` for autonomy; 58 tests.
