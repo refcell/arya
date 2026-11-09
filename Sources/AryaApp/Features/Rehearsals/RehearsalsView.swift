@@ -47,9 +47,21 @@ struct RehearsalsView: View {
             }
             .background(AryaColor.canvas)
         } else {
-            EmptyState(
-                "No rehearsals yet.",
-                guidance: "Rehearse the steward on its casebook to see what it would have done.")
+            if let steward {
+                EmptyState(
+                    "No rehearsals yet.",
+                    guidance:
+                        "Rehearse the steward on its casebook to see what it would have done.",
+                    actionTitle: "Rehearse",
+                    action: {
+                        Task { await store.perform(.rehearse(steward: steward, casebook: nil)) }
+                    })
+            } else {
+                EmptyState(
+                    "No rehearsals yet.",
+                    guidance: "Rehearse the steward on its casebook to see what it would have done."
+                )
+            }
         }
     }
 }
@@ -75,6 +87,13 @@ private struct RehearsalHeader: View {
                 Text(RehearsalsText.totals(item)).aryaText(AryaFont.bodyStrong, AryaColor.ink)
                     .monospacedDigit()
                 Spacer(minLength: AryaSpace.s3)
+                if let steward = item.steward {
+                    Button("Rehearse again") {
+                        Task { await store.perform(.rehearse(steward: steward, casebook: nil)) }
+                    }
+                    .buttonStyle(.aryaSecondary)
+                    .help("Run every case of the newest casebook against the live charter.")
+                }
                 readiness
             }
             Text(RehearsalsText.meta(item)).aryaText(AryaFont.caption, AryaColor.inkFaint)

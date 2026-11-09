@@ -10,8 +10,9 @@ enum FeatureRegistry {
     static func view(for tab: StewardTab, context: FeatureContext) -> some View {
         switch tab {
         case .stream:
-            if let store = context.store, let run = context.run?.id ?? context.runs.first?.id {
-                RunStreamView(store: store, run: run)
+            if let store = context.store, let steward = context.steward?.id {
+                StreamTab(
+                    store: store, steward: steward, run: context.run?.id ?? context.runs.first?.id)
             } else {
                 EmptyState(
                     "No runs yet.",

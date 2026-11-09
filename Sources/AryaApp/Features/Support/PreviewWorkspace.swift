@@ -10,6 +10,7 @@ actor PreviewWorkspace: FeatureWorkspace {
     private var broken: (seq: Int, reason: String)?
     private var routines: [String: String]
     private var expected: [String: FeatureJSON]
+    private var divergent: Set<String> = []
     private var subscribers: [Int: AsyncStream<Void>.Continuation] = [:]
     private var nextSubscriber = 0
 
@@ -96,6 +97,12 @@ actor PreviewWorkspace: FeatureWorkspace {
                 ["v": 1, "note": .string(note), "reason": .string(reason)])
         case .correctCase(let correction): try correct(correction)
         case .proposeCharter(let proposal): try propose(proposal)
+        case .startRun(let steward, let input):
+            let run = "run_w\(nextID)"
+            emit(
+                steward: steward, run: run, "run.started", .localUser,
+                ["trigger": "manual", "input": .string(input)])
+        case .rehearse(let steward, let casebook): rehearse(steward: steward, casebook: casebook)
         case .markReady(let steward, let version, let rehearsal):
             var payload: FeatureJSON = ["v": 1, "charterVersion": .number(Double(version))]
             if let rehearsal, case .object(var members) = payload {
@@ -177,6 +184,37 @@ actor PreviewWorkspace: FeatureWorkspace {
             throw FeatureWriteError.alreadyRetracted(id)
         }
         return added
+    }
+
+    /// Replays match the recording exactly in preview, except runs listed in `divergent`.
+    func replay(run: String) async throws -> FeatureReplayResult {
+        let events = log.filter { $0.run == run }
+        guard !events.isEmpty else { throw FeatureReadError.unavailable("run \(run)") }
+        guard divergent.contains(run), let last = events.last else {
+            return FeatureReplayResult(run: run, events: events.count, divergences: [])
+        }
+        let divergence = FeatureReplayResult.Divergence(
+            index: events.count - 1, seq: last.seq, type: last.type, field: "payload.output",
+            recorded: #"{"payload":{"output":"recorded"},"type":"\#(last.type)"}"#,
+            replayed: #"{"payload":{"output":"changed"},"type":"\#(last.type)"}"#)
+        return FeatureReplayResult(run: run, events: events.count, divergences: [divergence])
+    }
+
+    /// Runs whose replay reports a divergence, for previews and tests.
+    func markDivergent(_ run: String) { divergent.insert(run) }
+
+    /// `rehearsal.started` for the live charter, copying the cases of the last rehearsal.
+    private func rehearse(steward: String, casebook: String?) {
+        let live = LiveCharter.find(events: log, steward: steward)?.version ?? 0
+        let last = log.last { $0.steward == steward && $0.type == "rehearsal.started" }
+        let book = casebook ?? last?.payload["casebookVersion"]?.string ?? ""
+        emit(
+            steward: steward, run: nil, "rehearsal.started", .localUser,
+            [
+                "v": 1, "rehearsal": .string("rh_w\(nextID)"),
+                "charterVersion": .number(Double(live)), "casebookVersion": .string(book),
+                "cases": last?.payload["cases"] ?? 0, "samples": 1,
+            ])
     }
 
     /// `proposal.created` for a candidate charter one version above the live one.

@@ -26,9 +26,9 @@ M3 (start now against the app-shell stub workspace):
 M3, extended (toward `just e2e` driven from the app):
 - [x] Changes tab holds the metric chart and the charter editor entry (app-shell routed the
   other tabs in 78c9c17).
-- [ ] Run now: start a manual run with an input from the Stream tab (`FeatureWrite.startRun`).
-- [ ] Rehearse: start a rehearsal of the live charter on its casebook from the Rehearsals tab.
-- [ ] Replay: replay a finished run from the Stream tab and show the divergence report.
+- [x] Run now: start a manual run with an input from the Stream tab (`FeatureWrite.startRun`).
+- [x] Rehearse: start a rehearsal of the live charter on its casebook from the Rehearsals tab.
+- [x] Replay: replay a finished run from the Stream tab and show the divergence report.
 - [ ] Steward overview: charter version, readiness, last run, and open approvals at a glance.
 
 M4:
@@ -99,6 +99,11 @@ M4:
   version that is no longer live is refused. Policy rules may name actions no binding offers
   (`close: deny` is a guard).
 
+- Run now and Rehearse are writes (`FeatureWrite.startRun`, `.rehearse`); Replay is a read
+  (`FeatureWorkspace.replay(run:) -> FeatureReplayResult`, mirroring `ReplaySummary`) and is
+  enabled only once the run has ended. Every new seam call defaults to "unavailable" until the
+  shell's facade adapter forwards it.
+
 ## Questions
 - (from app-shell) `FeatureRegistry` now routes Changes, Ledger, Memory, Routines, and
   Rehearsals to your views when a store is wired; metric chart placement is yours. Changes
@@ -119,3 +124,4 @@ M4:
 - 2026-11-09: outcome metric chart against the charter target (857ad11).
 
 - 2026-11-09: charter editor that saves changes as proposals (7451fa6).
+- 2026-11-09: Changes tab hosts the metric chart and charter editor (06dcbbb).

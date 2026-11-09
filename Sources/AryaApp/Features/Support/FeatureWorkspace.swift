@@ -19,6 +19,32 @@ enum FeatureWrite: Hashable, Sendable {
     case markReady(steward: String, charterVersion: Int, rehearsal: String?)
     /// Proposes a new charter version (`proposal.created`); it goes live only through a gate.
     case proposeCharter(CharterProposal)
+    /// Starts a manual run with the person's input (`run.started`, trigger `manual`).
+    case startRun(steward: String, input: String)
+    /// Rehearses the live charter on a casebook version (nil: the steward's newest).
+    case rehearse(steward: String, casebook: String?)
+}
+
+/// The result of replaying a run from the ledger alone.
+struct FeatureReplayResult: Hashable, Sendable {
+    /// Where a replay first differed from the recording.
+    struct Divergence: Hashable, Sendable {
+        /// Position among the run's events, from 0.
+        var index: Int
+        var seq: Int?
+        var type: String
+        /// Dotted path of the first differing field, for example `payload.status`.
+        var field: String
+        /// Recorded and replayed events as canonical JSON, or empty.
+        var recorded: String
+        var replayed: String
+    }
+
+    var run: String
+    /// Events compared.
+    var events: Int
+    /// Empty when the replay matched the recording exactly.
+    var divergences: [Divergence]
 }
 
 /// A proposed charter change from the editor.
@@ -62,6 +88,8 @@ protocol FeatureWorkspace: Sendable {
     func routineContent(steward: String, name: String, version: String) async throws -> String?
     /// The expected result of one case in a casebook version, or nil if it is missing.
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON?
+    /// Replays a finished run and reports the first difference from the recording.
+    func replay(run: String) async throws -> FeatureReplayResult
     /// Yields once whenever new events may be available.
     func changes() -> AsyncStream<Void>
 }
@@ -75,6 +103,11 @@ extension FeatureWorkspace {
     /// Workspaces without a casebook read report that expected results are not available yet.
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON? {
         throw FeatureReadError.unavailable("expected results")
+    }
+
+    /// Workspaces without a replay engine report that replay is not available yet.
+    func replay(run: String) async throws -> FeatureReplayResult {
+        throw FeatureReadError.unavailable("replay")
     }
 }
 
