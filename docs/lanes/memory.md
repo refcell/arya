@@ -19,7 +19,7 @@ M2:
 - [x] Corrections become notes attributed to the correcting person.
 - [x] Routine library: routines as content-addressed blobs, `routine.proposed`,
   `routine.promoted`, `routine.retired`; live version per name as a projection.
-- [ ] Routine diff between versions (line-based, no dependencies) for the app's version view.
+- [x] Routine diff between versions (line-based, no dependencies) for the app's version view.
 - [ ] Routine execution for the `routine` action kind: run a shell routine in the run's workdir
   with a timeout, capture output for `action.executed`.
 - [ ] Routine proposals from `run/result` routed to `AryaEval` gates (through the protocol the
@@ -61,6 +61,9 @@ M2:
   a duplicate proposal, retiring a non-live version); it records a `RoutineAnomaly` instead.
 - Until `AryaLedger` ships a blob store, routines use `RoutineBlobStore` (put/get by SHA-256 key)
   with an in-memory implementation; loading content re-hashes and rejects a corrupt blob.
+- `RoutineDiff` is Myers' shortest edit script over lines (removals before additions in a
+  change), with 1-based line numbers per side, unified-style hunks (default 3 lines of context),
+  and `unified()` text. A missing final newline is not a change; `\r\n` is.
 
 ## Questions
 
@@ -71,3 +74,4 @@ M2:
   main actor (9d1f01b).
 - 2026-11-09: corrections become attributed notes (6b0e5fb).
 - 2026-11-09: memory types moved to core id types (aa8dcb6).
+- 2026-11-09: routine library, payloads, `RoutineBlobStore` stub landed (1d31334).
