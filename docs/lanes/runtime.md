@@ -34,8 +34,9 @@ M2:
 - [ ] `arya binding-proxy`: a stdio MCP server per binding exposing only `read` tools, recording
   `run.tool.call` and `run.tool.result`, and serving recorded results in rehearsal and replay
   (the CLI entry point is wired by cli-e2e).
-- [ ] Triggers: manual, interval, calendar, message; the scheduler holds `scheduler.lock`;
+- [x] Triggers: manual, interval, message; the scheduler holds `scheduler.lock`;
   only ready, unpaused stewards take live triggers.
+- [ ] Calendar triggers: core `Trigger` has no calendar kind yet; add it with core first.
 - [ ] Crews: delegations become child runs bounded by `crew.maxParallel`, then one join run.
 - [x] Budgets: `maxTurns`, `timeoutSeconds`, `maxCostMicros` enforced with `run/stop`.
 - [ ] Wire `GateChecking` to `AryaEval` in the facade; charter and routine changes go live only
@@ -129,6 +130,14 @@ M4:
   wall-clock deadline of `timeoutSeconds` sends `run/stop {reason: timeout}` and fails the run
   `timeout`. A result that arrives within budget finishes normally even if its final cost is
   over (the work is done; the cost is on `run.finished`).
+- Scheduling is a pure plan over the books (`SchedulePlan.due`): a steward that takes live
+  triggers and has an interval trigger (shortest wins) is due when it has no open live run and
+  never ran on a schedule, last started a scheduled run one interval ago, or its last scheduled
+  run failed `interrupted` (the restart re-queue). Manual and message runs do not move the
+  schedule. `Scheduler` (an actor) fires due runs in the background; `deliver` starts a
+  message run when a `message` trigger matches the sender (a person binding id), with that
+  person as actor. `SchedulerLock` flocks `<home>/scheduler.lock`; the facade takes it before
+  creating a `Scheduler`.
 
 ## Questions
 
@@ -162,3 +171,4 @@ M4:
 - 2026-11-09: `LedgerEventSink` over the real ledger; end-to-end run and restart on a temp home
 - 2026-11-09: `metric.recorded` from live-run measurements (decision 0030)
 - 2026-11-09: budgets: turns, cost, and wall-clock deadline enforced with `run/stop`
+- 2026-11-09: triggers and scheduler (`SchedulePlan`, `Scheduler`, `SchedulerLock`); interrupted scheduled runs re-queue
