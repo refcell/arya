@@ -92,6 +92,8 @@ Later:
 
 - From memory: routine proposals need an eval conformance of `AryaMemory.RoutineGateChecking`
   (decision 0025): rehearse the live charter with `RoutineLibrary.candidateRoutines(for:)`.
+- (from runtime) `metric.recorded` is live (decision 0030): decode with
+  `AryaRuntime.MetricRecorded` (`metric`, `value`); live runs only, so say if rehearsals need it.
 
 ## Log
 

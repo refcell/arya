@@ -170,6 +170,14 @@ final class RunDriver: @unchecked Sendable {
                 RunEventType.decision, .steward(charter.id),
                 try Payload.encode(RunDecision(decision: recorded)))
         }
+        if case .live = request.mode {
+            for measurement in result.measurements {
+                try await append(
+                    MetricEventType.recorded, .steward(charter.id),
+                    try Payload.encode(
+                        MetricRecorded(metric: measurement.metric, value: measurement.value)))
+            }
+        }
         let actions = result.actions.map(ProposedAction.init)
         let disposals = try await dispose(actions)
         try transition(.dispositionsRecorded)

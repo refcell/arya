@@ -234,3 +234,12 @@ any lane that notices may fix it. `just build` builds every target and test targ
 in parallel. Why: `main` moves faster than a full run, and plain `swift build` followed by
 `swift test` compiled every module twice (testable and not); after a change in `AryaCore` the
 full run went from 120 s to 59 s on the same machine.
+
+### 0030 — 2026-11-09 — The runtime owns the `metric.recorded` payload
+
+When a live run finishes, the runtime writes one `metric.recorded {metric, value}` per entry in
+`run/result.measurements` (actor: the steward, run: the run), after the run's `run.decision`
+events and before `run.finished`. Rehearsals record none. The typed payload is
+`AryaRuntime.MetricRecorded`, not an eval type as 0023 said: the writer owns the shape, and the
+runtime cannot import `AryaEval` (0015), while eval already imports the runtime. Why: eval's
+metric series need real measurements, and one writer per event type keeps the shape stable.

@@ -120,6 +120,8 @@ M4:
 - `LedgerEventSink` is the real `EventSink`: appends through `LedgerStore`, reads through
   `LedgerReader`. `RuntimeEvent`/`RuntimeActor` stay as thin views so eval and the facade keep
   compiling; `RuntimeActor.adapter(profile)` carries the adapter profile, as the ledger does.
+- `metric.recorded` (decision 0030): the runtime writes one per measurement of a live run,
+  after `run.decision`; the payload type `MetricRecorded` lives in the runtime.
 
 ## Questions
 
@@ -150,3 +152,4 @@ M4:
 - 2026-11-09: run, action, and approval payloads are the ledger's typed structs (d190a54);
   rehearsal runs carry a `RehearsalTag` (d0d97f5)
 - 2026-11-09: `LedgerEventSink` over the real ledger; end-to-end run and restart on a temp home
+- 2026-11-09: `metric.recorded` from live-run measurements (decision 0030)
