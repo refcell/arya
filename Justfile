@@ -7,6 +7,12 @@ set positional-arguments := true
 swift_flags := `d="$(dirname "$(xcrun --find swift)")/../lib/swift/host/plugins/testing"; \
     [ -d "$d" ] && echo "-Xswiftc -plugin-path -Xswiftc $d" || true`
 
+# At most this many parallel compile jobs per build (override with ARYA_JOBS).
+jobs := env_var_or_default("ARYA_JOBS", "6")
+
+# Every swift build or test runs in a machine-wide CI slot (etc/scripts/slot.sh).
+slot := "etc/scripts/slot.sh"
+
 alias b := build
 alias t := test
 
@@ -15,15 +21,15 @@ default:
 
 # Build every target and test target once (debug, testable; `just test` reuses it)
 build *args:
-    swift build {{ swift_flags }} --build-tests {{ args }}
+    {{ slot }} swift build {{ swift_flags }} -j {{ jobs }} --build-tests "$@"
 
 # Run tests, optionally filtered: just test AryaCoreTests
 test filter='':
     #!/usr/bin/env bash
     set -euo pipefail
-    swift build {{ swift_flags }} --build-tests
-    if [ -n "{{ filter }}" ]; then swift test {{ swift_flags }} --skip-build --filter "{{ filter }}"
-    else swift test {{ swift_flags }} --skip-build; fi
+    {{ slot }} swift build {{ swift_flags }} -j {{ jobs }} --build-tests
+    if [ -n "$1" ]; then {{ slot }} swift test {{ swift_flags }} --skip-build --filter "$1"
+    else {{ slot }} swift test {{ swift_flags }} --skip-build; fi
 
 # Format Swift sources in place
 fmt:
@@ -52,16 +58,17 @@ app-preview: app
 
 # Render the preview shell to .build/screenshots in light and dark
 screenshots:
-    ARYA_SCREENSHOTS_DIR="$PWD/.build/screenshots" swift test {{ swift_flags }} --filter ScreenshotTests
+    ARYA_SCREENSHOTS_DIR="$PWD/.build/screenshots" {{ slot }} swift test {{ swift_flags }} \
+      -j {{ jobs }} --filter ScreenshotTests
     @ls .build/screenshots
 
 # End-to-end scenario with the fake adapter and a temporary home (`just e2e --keep` keeps it)
 e2e *args:
-    etc/scripts/e2e.sh {{ args }}
+    etc/scripts/e2e.sh "$@"
 
 # Seed a demo home from etc/examples and open the app on it (`just demo --no-open` seeds only)
 demo *args:
-    etc/scripts/demo.sh {{ args }}
+    etc/scripts/demo.sh "$@"
 
 # Rebase, check, and push to main under push races: just publish 'Arya(App|Design)Tests'
 publish filter:

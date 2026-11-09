@@ -32,7 +32,10 @@ byte-identical copy of this file; edit both together (`cp AGENTS.md CLAUDE.md`).
    `just tidy && just build && just test <YourModuleTests>` before pushing again, at most three
    times in a row; after that, or after any conflict (keep both sides), run the full `just ci`
    ([decision 0029](docs/DECISIONS.md)); `just publish <YourModuleTests>` does all of this.
-   Never force-push `main`.
+   Never force-push `main`. Build and test only through `just`: every swift build or test
+   waits for one of two machine-wide CI slots ([decision 0033](docs/DECISIONS.md)), so never
+   run `swift build` or `swift test` directly. While developing run `just test
+   <YourModuleTests>`; the full `just ci` runs inside `just publish`.
 3. **Run `just hooks` once per clone.** It wires the local denylist and secret scan into git
    so it runs on every commit. The denylist lives untracked in the git common
    directory (`$(git rev-parse --git-common-dir)/info/denylist` and

@@ -265,3 +265,19 @@ version. Every other routine is `ask`, whatever `policy.default` or a kind-level
 says, so a new version asks again until the charter names it. A routine with no name or no
 live version is denied (`no_routine_name`, `unknown_routine:<name>`). Why: a routine is code
 the steward wrote; approving a name must not silently approve the next version of it.
+
+### 0033 — 2026-11-09 — Swift builds and tests run in two machine-wide CI slots
+
+Every lane builds in its own worktree on one machine, and unbounded parallel `swift build`
+runs pushed the load past 200, so builds were killed (SIGTERM, SIGBUS) and runs collided.
+Every swift build or test the repo's tooling starts now goes through `etc/scripts/slot.sh`:
+it holds one of two lock files in the shared git dir
+(`$(git rev-parse --git-common-dir)/arya-ci-slot-{1,2}.lock`) with `lockf(1)` for the
+command's lifetime, tries each slot without waiting, and otherwise polls every two seconds,
+printing `waiting for a CI slot`. `just build`, `just test`, `just screenshots`, and
+`etc/scripts/bundle-app.sh` wrap their swift calls; `just ci` and `just publish` go through
+those recipes, so they never hold a slot while waiting for another one. Builds pass `-j 6`.
+`ARYA_CI_SLOTS` and `ARYA_JOBS` override the counts. Don't run swift build or test directly;
+a build killed by a signal under load is not a code failure, so rerun it once before
+debugging. Why: two concurrent builds keep the machine responsive and finish sooner overall
+than ten builds fighting for 14 cores.

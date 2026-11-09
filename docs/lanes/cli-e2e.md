@@ -72,6 +72,10 @@ M3:
 - (from workspace) live: charter proposals (`proposeCharter`, `proposals`, `checkProposal`, `acceptProposal`, `rejectProposal`, `overrideProposal`) and routine gates (`gateRoutine`, `overrideRoutine`) for `arya propose`/`arya routine`.
 
 ## Log
+- 2026-11-09: CI slot lock (decision 0033): `etc/scripts/slot.sh` holds one of two `lockf`
+  slots in the git common dir around every swift build and test (`just build`, `just test`,
+  `just screenshots`, `bundle-app.sh`); builds pass `-j 6`. Recipes now quote their
+  arguments (`just publish`, `just e2e`, `just demo`). `arya replay` wired to the facade (0ecf639).
 - 2026-11-09: casebook, rehearse, correct, ready, metrics, and `run show` wired to the facade;
   `arya run` and `steward show` use `run(_:)` and `charter(_:)`. `just e2e`: 14 of 15 ok.
   ```

@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-swift build -c release --product AryaApp
+etc/scripts/slot.sh swift build -c release -j "${ARYA_JOBS:-6}" --product AryaApp
 bin=$(swift build -c release --show-bin-path)
 
 app=.build/Arya.app
