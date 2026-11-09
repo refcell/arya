@@ -79,9 +79,15 @@ private let events = PreviewFixtures.triage(now: FeatureTestClock.now)
     #expect(LedgerText.count(table) == "2 events for this steward")
     #expect(
         LedgerText.outOfScope(table)
-            == "1 more event in the ledger belongs to other stewards or the system.")
+            == "1 more event belongs to other stewards or the system")
     let all = LedgerTable.build(events: log.events, filter: .all)
     #expect(LedgerText.outOfScope(all) == nil)
     let verified = LedgerText.verifyStatus(.intact(events: 3), total: 3)
     #expect(verified == "✓ chain verified · 3 events")
+}
+
+@Test func allEventsNameStewardsFromTheirCharters() {
+    let table = LedgerTable.build(events: events, filter: .all)
+    #expect(table.stewardNames[PreviewFixtures.steward] == "Issue triage")
+    #expect(LedgerText.count(table) == "\(events.count) events")
 }

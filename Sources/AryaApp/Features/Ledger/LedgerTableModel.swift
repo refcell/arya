@@ -58,6 +58,8 @@ struct LedgerTable: Hashable, Sendable {
     var actors: [String]
     /// Each run's short title: its summary, else the first line of its input.
     var runTitles: [String: String] = [:]
+    /// Steward names from their charters, for the steward column and filter.
+    var stewardNames: [String: String] = [:]
 
     static func build(events: [FeatureEvent], filter: LedgerFilter) -> LedgerTable {
         let scoped = events.filter { filter.steward == nil || $0.steward == filter.steward }
@@ -71,7 +73,7 @@ struct LedgerTable: Hashable, Sendable {
             runs: distinct(scoped.compactMap(\.run)),
             namespaces: distinct(events.map(namespace)),
             actors: distinct(events.map { actorLabel($0.actor) }),
-            runTitles: titles)
+            runTitles: titles, stewardNames: StewardNames.build(events: events))
     }
 
     /// Run titles from `run.finished` summaries, falling back to the `run.started` input.
@@ -135,8 +137,8 @@ enum LedgerText {
     static func outOfScope(_ table: LedgerTable) -> String? {
         let others = table.total - table.scopedTotal
         guard table.scoped, others > 0 else { return nil }
-        let words = others == 1 ? "event in the ledger belongs" : "events in the ledger belong"
-        return "\(others) more \(words) to other stewards or the system."
+        let words = others == 1 ? "event belongs" : "events belong"
+        return "\(others) more \(words) to other stewards or the system"
     }
 
     /// `text` padded with spaces to `width` characters, leading or trailing, for mono columns.

@@ -14,6 +14,8 @@ struct LedgerView: View {
     /// Opens a run's thread (run, steward) from the inspector.
     var openRun: ((String, String) -> Void)?
     @AryaState private var filter = LedgerFilter.all
+    /// On a steward's Ledger tab: show every event (all stewards and the system) instead.
+    @AryaState private var allEvents = false
     @AryaState private var localSelection: String?
 
     private var selected: Binding<String?> { selection ?? $localSelection }
@@ -38,18 +40,22 @@ struct LedgerView: View {
     /// The table for the current filter, scoped to the selected steward when there is one.
     private func table(_ events: [FeatureEvent]) -> LedgerTable {
         var scoped = filter
-        if let steward { scoped.steward = steward }
+        if let steward, !allEvents { scoped.steward = steward }
         return LedgerTable.build(events: events, filter: scoped)
     }
 
     private func content(_ table: LedgerTable) -> some View {
         HStack(alignment: .top, spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
-                LedgerToolbar(store: store, table: table, filter: $filter, scoped: steward != nil)
-                    .padding(.horizontal, AryaSpace.s5)
-                    .padding(.vertical, AryaSpace.s3)
+                LedgerToolbar(
+                    store: store, table: table, filter: $filter,
+                    allEvents: steward == nil ? nil : $allEvents
+                )
+                .padding(.horizontal, AryaSpace.s5)
+                .padding(.vertical, AryaSpace.s3)
                 LedgerRows(
-                    table: table, showsSteward: steward == nil, selected: selected)
+                    table: table, showsSteward: steward == nil || allEvents, selected: selected,
+                    showAll: { allEvents = true })
             }
             if let event = table.rows.first(where: { $0.id == selected.wrappedValue }) {
                 AryaHairline(.vertical)
@@ -70,7 +76,8 @@ private struct LedgerToolbar: View {
     @ObservedObject var store: FeatureStore
     var table: LedgerTable
     @Binding var filter: LedgerFilter
-    var scoped: Bool
+    /// The scope choice on a steward's tab; nil on the ledger-wide view.
+    var allEvents: Binding<Bool>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
@@ -116,6 +123,17 @@ private struct LedgerToolbar: View {
 
     private var filterMenu: some View {
         Menu(filter.isFiltered ? "Filtered" : "Filter") {
+            if let allEvents {
+                Section("Show") {
+                    scopeChoice("This steward", selected: !allEvents.wrappedValue) {
+                        allEvents.wrappedValue = false
+                        filter.steward = nil
+                    }
+                    scopeChoice("All events", selected: allEvents.wrappedValue) {
+                        allEvents.wrappedValue = true
+                    }
+                }
+            }
             Section("Type") {
                 ForEach(table.namespaces, id: \.self) { value in
                     toggle(value, current: filter.type) { filter.type = $0 }
@@ -126,10 +144,12 @@ private struct LedgerToolbar: View {
                     toggle(value, current: filter.actor) { filter.actor = $0 }
                 }
             }
-            if !scoped {
+            if allEvents?.wrappedValue ?? true {
                 Section("Steward") {
                     ForEach(table.stewards, id: \.self) { value in
-                        toggle(value, current: filter.steward) { filter.steward = $0 }
+                        toggle(
+                            value, title: table.stewardNames[value], current: filter.steward
+                        ) { filter.steward = $0 }
                     }
                 }
             }
@@ -148,12 +168,19 @@ private struct LedgerToolbar: View {
     }
 
     private func toggle(
-        _ value: String, current: String?, set: @escaping (String?) -> Void
+        _ value: String, title: String? = nil, current: String?,
+        set: @escaping (String?) -> Void
     ) -> some View {
-        Button {
+        scopeChoice(title ?? value, selected: current == value) {
             set(current == value ? nil : value)
-        } label: {
-            if current == value { Label(value, systemImage: "checkmark") } else { Text(value) }
+        }
+    }
+
+    private func scopeChoice(
+        _ title: String, selected: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            if selected { Label(title, systemImage: "checkmark") } else { Text(title) }
         }
     }
 }
@@ -162,6 +189,8 @@ private struct LedgerRows: View {
     var table: LedgerTable
     var showsSteward: Bool
     @Binding var selected: String?
+    /// Switches a steward's tab to every event, from the end-of-list line.
+    var showAll: (() -> Void)?
     @AryaState private var expanded: Set<String> = []
 
     private func run(_ line: LedgerLine) -> String? {
@@ -219,9 +248,17 @@ private struct LedgerRows: View {
                     if table.rows.count == table.scopedTotal,
                         let note = LedgerText.outOfScope(table)
                     {
-                        Text(note).aryaText(AryaFont.caption, AryaColor.inkFaint)
-                            .padding(.horizontal, AryaSpace.s2)
-                            .padding(.vertical, AryaSpace.s3)
+                        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s1) {
+                            Text("\(note) ·").aryaText(AryaFont.caption, AryaColor.inkFaint)
+                            if let showAll {
+                                Button("Show all", action: showAll)
+                                    .buttonStyle(.plain)
+                                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                                    .help("Show every steward's events and the system's")
+                            }
+                        }
+                        .padding(.horizontal, AryaSpace.s2)
+                        .padding(.vertical, AryaSpace.s3)
                     }
                 }
                 .padding(.horizontal, AryaSpace.s3)
@@ -241,7 +278,8 @@ private struct LedgerRows: View {
             Text(LedgerText.pad(event.type, table.typeWidth))
                 .aryaText(AryaFont.monoSmall, AryaColor.ink).fixedSize()
             if showsSteward {
-                Text(event.steward ?? "—").aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                Text(event.steward.map { table.stewardNames[$0] ?? $0 } ?? "—")
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
                     .lineLimit(1).fixedSize()
             }
             Text(repeatsRun ? "" : LedgerText.runLabel(event, titles: table.runTitles))
