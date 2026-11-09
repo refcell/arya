@@ -69,7 +69,8 @@ M3:
   `casebook import`, `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
 
 ## Log
-- 2026-11-09: tidy checks `CLAUDE.md` = `AGENTS.md`, shell syntax, no workflow files
+- 2026-11-09: example script back on the canonical `responses`/`default` format
+- 2026-11-09: tidy checks `CLAUDE.md` = `AGENTS.md`, shell syntax, no workflow files (8491625)
 - 2026-11-09: README status, usage, and e2e description (260de38)
 - 2026-11-09: example script moved to the adapters lane's `runs`/`steps` format, checked with
   `FakeScript.load` (1600165)

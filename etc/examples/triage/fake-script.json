@@ -1,49 +1,36 @@
 {
   "v": 1,
-  "adapter": {
-    "name": "fake",
-    "version": "0.1.0"
-  },
-  "runs": [
-    {
-      "input": "New message MSG-101: Charged twice",
-      "steps": [
+  "responses": {
+    "New message MSG-101: Charged twice": {
+      "events": [
         {
-          "event": {
-            "kind": "status",
-            "state": "working",
-            "detail": "reading the message"
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-101"
           }
         },
         {
-          "event": {
-            "kind": "tool_call",
-            "id": "t1",
-            "tool": "inbox.get",
-            "input": {
-              "id": "MSG-101"
-            }
-          }
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-101",
+            "from": "customer:c-101",
+            "subject": "Charged twice",
+            "body": "I was billed twice for my March plan. Please refund one charge."
+          },
+          "isError": false
         },
         {
-          "event": {
-            "kind": "tool_result",
-            "id": "t1",
-            "output": {
-              "id": "MSG-101",
-              "from": "customer:c-101",
-              "subject": "Charged twice",
-              "body": "I was billed twice for my March plan. Please refund one charge."
-            },
-            "isError": false
-          }
-        },
-        {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "This looks like a billing message."
-          }
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a billing message."
         }
       ],
       "status": "completed",
@@ -86,45 +73,36 @@
         ]
       }
     },
-    {
-      "input": "New message MSG-102: App crashes on export",
-      "steps": [
+    "New message MSG-102: App crashes on export": {
+      "events": [
         {
-          "event": {
-            "kind": "status",
-            "state": "working",
-            "detail": "reading the message"
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-102"
           }
         },
         {
-          "event": {
-            "kind": "tool_call",
-            "id": "t1",
-            "tool": "inbox.get",
-            "input": {
-              "id": "MSG-102"
-            }
-          }
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-102",
+            "from": "customer:c-102",
+            "subject": "App crashes on export",
+            "body": "The desktop app closes every time I export a report to CSV."
+          },
+          "isError": false
         },
         {
-          "event": {
-            "kind": "tool_result",
-            "id": "t1",
-            "output": {
-              "id": "MSG-102",
-              "from": "customer:c-102",
-              "subject": "App crashes on export",
-              "body": "The desktop app closes every time I export a report to CSV."
-            },
-            "isError": false
-          }
-        },
-        {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "This looks like a bug message."
-          }
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a bug message."
         }
       ],
       "status": "completed",
@@ -167,45 +145,36 @@
         ]
       }
     },
-    {
-      "input": "New message MSG-103: Cannot sign in",
-      "steps": [
+    "New message MSG-103: Cannot sign in": {
+      "events": [
         {
-          "event": {
-            "kind": "status",
-            "state": "working",
-            "detail": "reading the message"
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-103"
           }
         },
         {
-          "event": {
-            "kind": "tool_call",
-            "id": "t1",
-            "tool": "inbox.get",
-            "input": {
-              "id": "MSG-103"
-            }
-          }
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-103",
+            "from": "customer:c-103",
+            "subject": "Cannot sign in",
+            "body": "The sign-in page says my password is wrong right after I reset it."
+          },
+          "isError": false
         },
         {
-          "event": {
-            "kind": "tool_result",
-            "id": "t1",
-            "output": {
-              "id": "MSG-103",
-              "from": "customer:c-103",
-              "subject": "Cannot sign in",
-              "body": "The sign-in page says my password is wrong right after I reset it."
-            },
-            "isError": false
-          }
-        },
-        {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "This looks like a account message."
-          }
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a account message."
         }
       ],
       "status": "completed",
@@ -248,45 +217,36 @@
         ]
       }
     },
-    {
-      "input": "New message MSG-104: How do I add a teammate?",
-      "steps": [
+    "New message MSG-104: How do I add a teammate?": {
+      "events": [
         {
-          "event": {
-            "kind": "status",
-            "state": "working",
-            "detail": "reading the message"
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-104"
           }
         },
         {
-          "event": {
-            "kind": "tool_call",
-            "id": "t1",
-            "tool": "inbox.get",
-            "input": {
-              "id": "MSG-104"
-            }
-          }
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-104",
+            "from": "customer:c-104",
+            "subject": "How do I add a teammate?",
+            "body": "Where in settings do I invite another person to my workspace?"
+          },
+          "isError": false
         },
         {
-          "event": {
-            "kind": "tool_result",
-            "id": "t1",
-            "output": {
-              "id": "MSG-104",
-              "from": "customer:c-104",
-              "subject": "How do I add a teammate?",
-              "body": "Where in settings do I invite another person to my workspace?"
-            },
-            "isError": false
-          }
-        },
-        {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "This looks like a how-to message."
-          }
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a how-to message."
         }
       ],
       "status": "completed",
@@ -329,45 +289,36 @@
         ]
       }
     },
-    {
-      "input": "New message MSG-105: Suspicious login alert",
-      "steps": [
+    "New message MSG-105: Suspicious login alert": {
+      "events": [
         {
-          "event": {
-            "kind": "status",
-            "state": "working",
-            "detail": "reading the message"
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-105"
           }
         },
         {
-          "event": {
-            "kind": "tool_call",
-            "id": "t1",
-            "tool": "inbox.get",
-            "input": {
-              "id": "MSG-105"
-            }
-          }
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-105",
+            "from": "customer:c-105",
+            "subject": "Suspicious login alert",
+            "body": "I got an alert about a login from a city I have never visited."
+          },
+          "isError": false
         },
         {
-          "event": {
-            "kind": "tool_result",
-            "id": "t1",
-            "output": {
-              "id": "MSG-105",
-              "from": "customer:c-105",
-              "subject": "Suspicious login alert",
-              "body": "I got an alert about a login from a city I have never visited."
-            },
-            "isError": false
-          }
-        },
-        {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "This looks like a security message."
-          }
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a security message."
         }
       ],
       "status": "completed",
@@ -410,45 +361,36 @@
         ]
       }
     },
-    {
-      "input": "New message MSG-106: Update card on file",
-      "steps": [
+    "New message MSG-106: Update card on file": {
+      "events": [
         {
-          "event": {
-            "kind": "status",
-            "state": "working",
-            "detail": "reading the message"
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-106"
           }
         },
         {
-          "event": {
-            "kind": "tool_call",
-            "id": "t1",
-            "tool": "inbox.get",
-            "input": {
-              "id": "MSG-106"
-            }
-          }
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-106",
+            "from": "customer:c-106",
+            "subject": "Update card on file",
+            "body": "My card expired. How do I change the card you charge each month?"
+          },
+          "isError": false
         },
         {
-          "event": {
-            "kind": "tool_result",
-            "id": "t1",
-            "output": {
-              "id": "MSG-106",
-              "from": "customer:c-106",
-              "subject": "Update card on file",
-              "body": "My card expired. How do I change the card you charge each month?"
-            },
-            "isError": false
-          }
-        },
-        {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "This looks like a billing message."
-          }
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a billing message."
         }
       ],
       "status": "completed",
@@ -491,45 +433,36 @@
         ]
       }
     },
-    {
-      "input": "New message MSG-107: WIN A FREE CRUISE",
-      "steps": [
+    "New message MSG-107: WIN A FREE CRUISE": {
+      "events": [
         {
-          "event": {
-            "kind": "status",
-            "state": "working",
-            "detail": "reading the message"
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-107"
           }
         },
         {
-          "event": {
-            "kind": "tool_call",
-            "id": "t1",
-            "tool": "inbox.get",
-            "input": {
-              "id": "MSG-107"
-            }
-          }
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-107",
+            "from": "customer:c-107",
+            "subject": "WIN A FREE CRUISE",
+            "body": "Click here to claim your prize before midnight."
+          },
+          "isError": false
         },
         {
-          "event": {
-            "kind": "tool_result",
-            "id": "t1",
-            "output": {
-              "id": "MSG-107",
-              "from": "customer:c-107",
-              "subject": "WIN A FREE CRUISE",
-              "body": "Click here to claim your prize before midnight."
-            },
-            "isError": false
-          }
-        },
-        {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "This looks like a spam message."
-          }
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a spam message."
         }
       ],
       "status": "completed",
@@ -572,45 +505,36 @@
         ]
       }
     },
-    {
-      "input": "New message MSG-108: Export is slow",
-      "steps": [
+    "New message MSG-108: Export is slow": {
+      "events": [
         {
-          "event": {
-            "kind": "status",
-            "state": "working",
-            "detail": "reading the message"
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-108"
           }
         },
         {
-          "event": {
-            "kind": "tool_call",
-            "id": "t1",
-            "tool": "inbox.get",
-            "input": {
-              "id": "MSG-108"
-            }
-          }
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-108",
+            "from": "customer:c-108",
+            "subject": "Export is slow",
+            "body": "Exports of large reports take more than ten minutes to finish."
+          },
+          "isError": false
         },
         {
-          "event": {
-            "kind": "tool_result",
-            "id": "t1",
-            "output": {
-              "id": "MSG-108",
-              "from": "customer:c-108",
-              "subject": "Export is slow",
-              "body": "Exports of large reports take more than ten minutes to finish."
-            },
-            "isError": false
-          }
-        },
-        {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "This looks like a bug message."
-          }
+          "kind": "message",
+          "role": "assistant",
+          "text": "This looks like a bug message."
         }
       ],
       "status": "completed",
@@ -653,22 +577,17 @@
         ]
       }
     },
-    {
-      "input": "New message MSG-201: Refund for a duplicate charge",
-      "steps": [
+    "New message MSG-201: Refund for a duplicate charge": {
+      "events": [
         {
-          "event": {
-            "kind": "status",
-            "state": "working",
-            "detail": "reading the message"
-          }
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
         },
         {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "A duplicate charge: billing. I will draft a reply."
-          }
+          "kind": "message",
+          "role": "assistant",
+          "text": "A duplicate charge: billing. I will draft a reply."
         }
       ],
       "status": "completed",
@@ -728,23 +647,21 @@
           }
         ]
       }
-    },
-    {
-      "steps": [
-        {
-          "event": {
-            "kind": "message",
-            "role": "assistant",
-            "text": "No scripted response for this input."
-          }
-        }
-      ],
-      "status": "completed",
-      "result": {
-        "summary": "Nothing to do.",
-        "decisions": [],
-        "actions": []
-      }
     }
-  ]
+  },
+  "default": {
+    "events": [
+      {
+        "kind": "message",
+        "role": "assistant",
+        "text": "No scripted response for this input."
+      }
+    ],
+    "status": "completed",
+    "result": {
+      "summary": "Nothing to do.",
+      "decisions": [],
+      "actions": []
+    }
+  }
 }

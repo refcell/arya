@@ -24,12 +24,9 @@ private func casebook() throws -> [Object] {
     }
 }
 
-/// Script runs keyed by input text; the run without input is keyed by "".
+/// Script responses keyed by input text.
 private func scriptRuns() throws -> [String: Object] {
-    let runs = objects(try object("fake-script.json")["runs"])
-    var result: [String: Object] = [:]
-    for run in runs { result[run["input"] as? String ?? ""] = run }
-    return result
+    try #require(try object("fake-script.json")["responses"] as? [String: Object])
 }
 
 private func strings(_ value: Any?) -> [String] { value as? [String] ?? [] }

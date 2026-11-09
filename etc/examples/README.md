@@ -29,6 +29,6 @@ records one memory note and one `routed_within_1h` measurement.
 ## Fake adapter script
 
 `fake-script.json` uses the script format of `arya-fake-adapter --script <file>`
-([PROTOCOL.md](../../docs/PROTOCOL.md#fake-adapter-scripts)): one entry in `runs` per case
-input and one for the live input, each with `run/event` steps and a `run/result`, plus a run
-without `input` that answers anything else.
+([PROTOCOL.md](../../docs/PROTOCOL.md#fake-adapter-scripts)): `responses` maps each case input
+and the live input to `run/event` payloads and a `run/result`, and `default` answers anything
+else.
