@@ -156,7 +156,12 @@ struct InspectorView: View {
                         Text(steward.id).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     }
                     section("Effort") {
-                        EffortSelector(selection: effortBinding(steward.id))
+                        let effort = effortBinding(steward.id)
+                        ChoiceRow(
+                            AryaEffort.allCases.map { ($0, $0.label.capitalized) },
+                            selection: effort.wrappedValue
+                        ) { effort.wrappedValue = $0 }
+                        .help(AryaEffort.tooltip)
                     }
                     section("State") {
                         if steward.status == .paused {
@@ -173,19 +178,12 @@ struct InspectorView: View {
                     Text(model.source.label).aryaText(AryaFont.mono, AryaColor.inkMuted)
                 }
                 section("Appearance") {
-                    HStack(spacing: AryaSpace.s2) {
-                        ForEach(AryaAppearance.allCases, id: \.self) { choice in
-                            Button(choice.rawValue.capitalized) {
-                                appearance = choice.rawValue
-                                AryaApp.apply(choice)
-                            }
-                            .buttonStyle(.aryaTertiary)
-                            .foregroundStyle(
-                                appearance == choice.rawValue ? AryaColor.ink : AryaColor.inkFaint
-                            )
-                            .accessibilityAddTraits(
-                                appearance == choice.rawValue ? .isSelected : [])
-                        }
+                    ChoiceRow(
+                        AryaAppearance.allCases.map { ($0, $0.rawValue.capitalized) },
+                        selection: AryaAppearance(stored: appearance)
+                    ) { choice in
+                        appearance = choice.rawValue
+                        AryaApp.apply(choice)
                     }
                 }
             }

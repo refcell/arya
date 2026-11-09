@@ -170,3 +170,7 @@ M4:
   no band); R2 pass; R3 pass, one orange action per screen in dark and light; R4 pass, Improve
   shows all 8 cases and Knowledge no longer clips, thread titles wrap to two lines; R5 pass.
   Pending app-views: the ledger event inspector for a selected row.
+- 2026-11-09: `ChoiceRow` (check mark, no box) for effort and appearance in settings; threads one
+  line, two when selected, full title on hover.
+- Visual check (`just snapshot` settings, run): Effort labeled once with a visible selection,
+  Appearance shows Dark checked; five threads take about 120 pt; R1-R5 pass.

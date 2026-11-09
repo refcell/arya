@@ -121,3 +121,48 @@ struct TextTabButton<ID: Hashable>: View {
         isSelected || isHovering ? AryaColor.ink : AryaColor.inkMuted
     }
 }
+
+/// A short set of exclusive choices as plain text (STYLE.md Choices): the selected one in `ink`
+/// with a check mark, the rest in `inkFaint`. No box, no fill, no second label; the section
+/// label above names it.
+public struct ChoiceRow<Value: Hashable>: View {
+    let options: [(value: Value, title: String)]
+    let selection: Value
+    let choose: (Value) -> Void
+
+    public init(
+        _ options: [(value: Value, title: String)], selection: Value,
+        choose: @escaping (Value) -> Void
+    ) {
+        self.options = options
+        self.selection = selection
+        self.choose = choose
+    }
+
+    public var body: some View {
+        HStack(spacing: AryaSpace.s4) {
+            ForEach(options, id: \.value) { option in
+                let isSelected = option.value == selection
+                Button {
+                    choose(option.value)
+                } label: {
+                    HStack(spacing: AryaSpace.s1) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .semibold))
+                            .opacity(isSelected ? 1 : 0)
+                        Text(option.title)
+                            .aryaText(
+                                isSelected ? AryaFont.bodyStrong : AryaFont.body,
+                                isSelected ? AryaColor.ink : AryaColor.inkFaint)
+                    }
+                    .foregroundStyle(isSelected ? AryaColor.ink : AryaColor.inkFaint)
+                    .frame(height: AryaSize.controlHeight)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(option.title)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+    }
+}

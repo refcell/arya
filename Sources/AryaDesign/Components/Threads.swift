@@ -24,7 +24,7 @@ public struct ThreadRow: View {
                 .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
             Text(title)
                 .aryaText(AryaFont.caption, isSelected ? AryaColor.ink : AryaColor.inkMuted)
-                .lineLimit(2)
+                .lineLimit(isSelected ? 2 : 1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text(time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
@@ -38,6 +38,7 @@ public struct ThreadRow: View {
             in: RoundedRectangle(cornerRadius: AryaRadius.small)
         )
         .contentShape(Rectangle())
+        .help(title)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Run, \(title), \(time)\(needsYou ? ", needs you" : "")")
         .accessibilityAddTraits(isSelected ? .isSelected : [])

@@ -131,7 +131,7 @@ then the name in `body`. Counts are `monoSmall`; the "Needs you" count is `accen
 
 ### Thread row
 
-A run under its steward, indented 18 pt. Title in `caption`/`inkMuted`, up to two lines: the
+A run under its steward, indented 18 pt. Title in `caption`/`inkMuted`, one line (two when selected), the full title on hover: the
 run's summary (`Labeled MSG-201 as billing`), else its trigger, else "run". Never a run number
 or id. The time right-aligned in `monoSmall`/`inkFaint` (`AryaTime` short style). A 6 pt
 `accentFill` dot before the title marks a run waiting on a person.
@@ -141,6 +141,11 @@ or id. The time right-aligned in `monoSmall`/`inkFaint` (`AryaTime` short style)
 Every time goes through `AryaTime`: relative under 24 hours, a date and clock time after.
 Short style for rows and cells (`now`, `4m`, `2h`, `Nov 8`); long style for prose (`just now`,
 `4m ago`, `2h ago`, `Nov 8, 14:27`); `AryaTime.clock` (`14:27`) for transcript gutters.
+
+### Choices
+
+A short exclusive set (effort, appearance) is plain text in one row: the selected option in
+`bodyStrong`/`ink` with a check mark, the rest `body`/`inkFaint`. No box, fill, or second label.
 
 ### Tab bar
 
