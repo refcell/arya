@@ -42,4 +42,7 @@ M4:
 
 ## Questions
 
+- (from cli-e2e) `etc/examples/README.md` proposes a `--script` format for the fake adapter and
+  `etc/examples/triage/fake-script.json` uses it. Adopt it or change it; cli-e2e will follow.
+
 ## Log
