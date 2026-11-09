@@ -43,16 +43,18 @@ public struct CaseOutcome: Hashable, Sendable, Codable {
 
 /// A finished rehearsal, with outcomes sorted by case id.
 public struct RehearsalResult: Hashable, Sendable, Codable {
+    public var id: RehearsalID?
     public var request: RehearsalRequest
     public var outcomes: [CaseOutcome]
 
-    public init(request: RehearsalRequest, outcomes: [CaseOutcome]) {
+    public init(id: RehearsalID? = nil, request: RehearsalRequest, outcomes: [CaseOutcome]) {
+        self.id = id
         self.request = request
         self.outcomes = outcomes.sorted { $0.caseID < $1.caseID }
     }
 
     enum CodingKeys: String, CodingKey {
-        case request, outcomes
+        case id, request, outcomes
     }
 }
 

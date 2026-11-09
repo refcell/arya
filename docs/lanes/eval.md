@@ -21,7 +21,7 @@ M2:
 - [x] Casebook format and import (JSON Lines), content-hash versions, `casebook.imported`.
 - [ ] Rehearsal: one run per case (trigger `case`), tools served from case context, no action
   executed, `leak` detection, `rehearsal.*` events, parallelism bounded and deterministic in
-  ordering.
+  ordering. Orchestration landed (`CasebookRehearser`); waiting on the runtime's `CaseRunner`.
 - [x] Scorers: exact match on chosen fields; rubric scorer (weighted checks on result fields).
 - [ ] Corrections (`case.corrected`) and readiness (`steward.ready`).
 - [ ] Proposals and gates: baseline lookup, samples, tolerance, per-case regression rule,
@@ -52,6 +52,11 @@ Later:
   normalized casebook is stored as one blob whose hash equals the version. Writes go through
   `EvalRecorder` (blob put and event append), which the facade adapts to the ledger once it
   lands.
+- Rehearsal: `CasebookRehearser` drives a `CaseRunner` (implemented by the runtime: one run with
+  trigger kind `case`, tool reads from case context, no action executed) and a
+  `CasebookSource`. Events are recorded after all runs finish, in case-id order, so ledger
+  order never depends on completion order. A runner error scores that sample 0 with a note; a
+  leak scores 0 and marks the case. `rehearsal.*` payloads live in `AryaEval`, as memory's do.
 
 ## Questions
 
@@ -60,3 +65,4 @@ Later:
 - 2026-11-09: interfaces `Replayer`, `Rehearser`, `Scorer`, `Gate` with stubs (8247b8d)
 - 2026-11-09: `DivergenceFinder`, exact and rubric scorers, pure `GateRule` (6a59273)
 - 2026-11-09: casebook format, content-hash versions, import via `EvalRecorder` (6ee26b3)
+- 2026-11-09: eval adopts core `JSONValue`, `CanonicalJSON`, typed ids (c824b64)

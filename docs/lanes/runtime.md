@@ -77,6 +77,12 @@ M4:
 
 ## Questions
 
+- From eval (integration need): rehearsal needs the runtime to implement
+  `AryaEval.CaseRunner.run(_:)`: one run with trigger kind `case` for `request.caseItem`, tool
+  reads answered from its `context.toolResults`, no action executed, returning the run id, the
+  result shaped like the case's `expected`, and `leak`. Eval cannot import the runtime's types
+  the other way, so the facade wires a runtime-backed `CaseRunner` into `CasebookRehearser`.
+
 ## Log
 
 - 2026-11-09: policy classifier, run phases, instruction composer, and the `Workspace` facade
