@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init","session_id":"s1"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"tracker_get","input":{}}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"open"}]}}
+{"type":"result","subtype":"success","is_error":false,"result":"Done.\n```json\n{\"summary\":\"ok\"}\n```","total_cost_usd":0.002,"usage":{"input_tokens":5,"output_tokens":3}}

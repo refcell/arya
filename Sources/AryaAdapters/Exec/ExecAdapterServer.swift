@@ -23,6 +23,8 @@ public actor ExecAdapterServer {
     private var mcpConfigFile: URL?
     private var lastResult: JSONValue?
     private var cost = CostResult()
+    private var finalText: String?
+    private var agentReportedError = false
     private var stopRequested = false
     private var resultSent = false
     private var closed = false
@@ -49,7 +51,7 @@ public actor ExecAdapterServer {
     /// The capabilities this profile reports.
     public nonisolated var capabilities: Capabilities {
         Capabilities(
-            effort: profile.supportedEfforts, send: false, cost: profile.parse == .jsonl,
+            effort: profile.supportedEfforts, send: false, cost: profile.parse != .text,
             transcript: true,
             tools: profile.mcpConfig == .file ? .mcp : .none, sandbox: profile.sandbox)
     }
@@ -191,12 +193,27 @@ public actor ExecAdapterServer {
             dropped += 1
         }
         if dropped > 0 { output.removeFirst(dropped) }
-        guard profile.parse == .jsonl else { return }
-        switch ExecOutput.parse(jsonLine: line) {
-        case .result(let value): lastResult = value
-        case .event(let event): await emit(event)
-        case .cost(let totals): cost = totals
-        case .other: break
+        switch profile.parse {
+        case .text:
+            break
+        case .jsonl:
+            switch ExecOutput.parse(jsonLine: line) {
+            case .result(let value): lastResult = value
+            case .event(let event): await emit(event)
+            case .cost(let totals): cost = totals
+            case .other: break
+            }
+        case .streamJSON:
+            switch ExecOutput.parse(streamJSONLine: line) {
+            case .events(let events):
+                for event in events { await emit(event) }
+            case .final(let text, let isError, let totals):
+                finalText = text
+                agentReportedError = isError
+                cost = totals
+            case .other:
+                break
+            }
         }
     }
 
@@ -206,10 +223,15 @@ public actor ExecAdapterServer {
             return
         }
         var result = lastResult
-        if profile.parse == .text {
+        switch profile.parse {
+        case .text:
             let text = output.joined(separator: "\n")
             if !text.isEmpty { await emit(RunEvent(.message(role: "assistant", text: text))) }
             result = ExecOutput.lastJSONBlock(in: text)
+        case .streamJSON:
+            result = finalText.flatMap(ExecOutput.lastJSONBlock(in:))
+        case .jsonl:
+            break
         }
         guard let result else {
             await emit(RunEvent(.error(message: "the agent \(exit) without a result")))
@@ -223,8 +245,9 @@ public actor ExecAdapterServer {
             await finish(.failed, result: result)
             return
         }
-        if !exit.isClean {
-            await emit(RunEvent(.error(message: "the agent \(exit)")))
+        if !exit.isClean || agentReportedError {
+            let reason = agentReportedError ? "reported an error" : "\(exit)"
+            await emit(RunEvent(.error(message: "the agent \(reason)")))
             await finish(.failed, result: result)
             return
         }
@@ -295,7 +318,7 @@ public enum ExecPrompt {
                     + String(decoding: LineCodec.encodeJSON($0), as: UTF8.self)
             } ?? ""
         switch parse {
-        case .text:
+        case .text, .streamJSON:
             parts.append(
                 "When you are done, reply with the result as one JSON object in a fenced json"
                     + " code block. The last such block is read as the result." + schema)

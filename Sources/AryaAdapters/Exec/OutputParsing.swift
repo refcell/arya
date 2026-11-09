@@ -58,6 +58,70 @@ public enum ExecOutput {
     }
 }
 
+extension ExecOutput {
+    /// What one `stream-json` output line means.
+    public enum StreamJSONLine: Sendable, Hashable {
+        /// An `assistant` or `user` message, as run events (text, thinking, tool use, results).
+        case events([RunEvent])
+        /// The final `result` line: the reply text, whether the agent reported an error, and
+        /// the run's cost (input counts include cache reads and writes).
+        case final(text: String, isError: Bool, cost: CostResult)
+        /// Anything else (`system` lines, unknown types, non-JSON).
+        case other
+    }
+
+    /// `stream-json` parsing of one line.
+    public static func parse(streamJSONLine line: String) -> StreamJSONLine {
+        guard let value = try? CanonicalJSON.decode(JSONValue.self, from: Data(line.utf8)),
+            let type = value["type"]?.stringValue
+        else { return .other }
+        switch type {
+        case "assistant", "user":
+            let blocks = value["message"]?["content"]?.arrayValue ?? []
+            let role = value["message"]?["role"]?.stringValue ?? type
+            return .events(blocks.compactMap { event(fromBlock: $0, role: role) })
+        case "result":
+            let usage = value["usage"]
+            func tokens(_ key: String) -> Int64 { Int64(usage?[key]?.intValue ?? 0) }
+            let input =
+                tokens("input_tokens") + tokens("cache_read_input_tokens")
+                + tokens("cache_creation_input_tokens")
+            let dollars = value["total_cost_usd"]?.doubleValue ?? 0
+            let cost = CostResult(
+                inputTokens: input, outputTokens: tokens("output_tokens"),
+                costMicros: Int64((dollars * 1_000_000).rounded()))
+            let isError = value["is_error"]?.boolValue ?? (value["subtype"] != "success")
+            return .final(
+                text: value["result"]?.stringValue ?? "", isError: isError, cost: cost)
+        default:
+            return .other
+        }
+    }
+
+    private static func event(fromBlock block: JSONValue, role: String) -> RunEvent? {
+        switch block["type"]?.stringValue {
+        case "text":
+            guard let text = block["text"]?.stringValue else { return nil }
+            return RunEvent(.message(role: role, text: text))
+        case "thinking":
+            guard let text = block["thinking"]?.stringValue else { return nil }
+            return RunEvent(.thinking(text: text))
+        case "tool_use":
+            guard let id = block["id"]?.stringValue, let tool = block["name"]?.stringValue
+            else { return nil }
+            return RunEvent(.toolCall(id: id, tool: tool, input: block["input"] ?? .object([:])))
+        case "tool_result":
+            guard let id = block["tool_use_id"]?.stringValue else { return nil }
+            return RunEvent(
+                .toolResult(
+                    id: id, output: block["content"] ?? .null,
+                    isError: block["is_error"]?.boolValue ?? false))
+        default:
+            return nil
+        }
+    }
+}
+
 /// A small JSON Schema checker for `run/start.resultSchema`: `type` (including lists of
 /// types), `properties`, `required`, `additionalProperties: false`, `items`, `enum`, `const`,
 /// `minItems`, and `maxItems`. Other keywords are ignored, so a schema using them is checked

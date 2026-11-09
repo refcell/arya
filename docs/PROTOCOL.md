@@ -196,16 +196,16 @@ in its profile (`adapters.json`), so charters never name models.
 - `arya-fake-adapter --script <file>`: replays a JSON script of events and results keyed by
   input text. Deterministic; used by every test and by the demo.
 - `arya-exec-adapter --profile <name>`: wraps a command-line agent. A profile names the command,
-  arguments per effort, how the prompt is passed (stdin or argument), how MCP tools are passed
-  (a config file in `workdir` or none), and how output is parsed: `text` (the last fenced
-  ```` ```json ```` block is the result) or `jsonl` (one event per line, the last object with a
-  `result` key is the result). Example profiles cover the non-interactive print modes of common
-  command-line agents such as Claude Code and Codex CLI (`AdapterProfiles.examples`:
-  `claude-code` runs `claude -p` with a model alias per effort, arya's tools through
-  `--mcp-config`, and its shell, file-writing, and web tools disallowed; `codex-cli` runs
-  `codex exec --sandbox read-only` with `model_reasoning_effort` per effort and no arya tools).
-  Both report `sandbox: "workdir"` because neither can write outside or reach the network
-  through built-in tools.
+  arguments per effort, how the prompt is passed (stdin or argument), how MCP tools are passed (a
+  config file in `workdir` or none), and how output is parsed: `text` (the last fenced `json` block
+  is the result) or `jsonl` (one event per line, the last object with a `result` key is the result),
+  or `stream-json` (Claude Code's `--output-format stream-json`). Example profiles cover the
+  non-interactive print modes of common command-line agents such as Claude Code and Codex CLI
+  (`AdapterProfiles.examples`: `claude-code` runs `claude -p` with `stream-json` output, a model
+  alias per effort, arya's tools through `--mcp-config`, and its shell, file-writing, and web tools
+  disallowed; `codex-cli` runs `codex exec --sandbox read-only` with `model_reasoning_effort` per
+  effort and no arya tools). Both report `sandbox: "workdir"` because neither can write outside or
+  reach the network through built-in tools.
 
 ```json
 {"v":1,"profiles":{"exec-default":{"command":"claude","promptVia":"stdin","parse":"text",
@@ -221,7 +221,7 @@ in its profile (`adapters.json`), so charters never name models.
 | `args` | arguments per effort (`low`, `medium`, `high`); a missing effort uses `medium`'s, then none |
 | `env` | variables added to the environment arya passes |
 | `promptVia` | exec: `stdin` (default) or `argument` (appended last) |
-| `parse` | exec: `text` (default) or `jsonl` |
+| `parse` | exec: `text` (default), `jsonl`, or `stream-json` |
 | `mcpConfig` | exec: `none` (default) or `file` (a config written into `workdir`; its path replaces `{mcpConfig}` in `args`) |
 | `sandbox` | exec: `workdir` if these arguments confine or disable the agent's write tools, else `none` (default); reported as the `sandbox` capability |
 
@@ -241,12 +241,16 @@ the result in the profile's output form, including `resultSchema` when given. Wi
 the agent starts; `jsonl` lines that are run events are forwarded as they arrive, and with `text`
 the whole output becomes one `message` event at exit. A `jsonl` line
 `{"cost":{"inputTokens":…,"outputTokens":…,"costMicros":…}}` (running totals; absent fields are
-zero) sets the `run/cost` answer, so `jsonl` profiles report `cost: true`. The run is `completed`
-when the agent exits 0 with a result that matches `resultSchema`; otherwise it is `failed` with an
-`error` event saying why (the result, if any, is still sent). `run/stop` terminates the agent and
-the run ends `stopped`. Capabilities: `effort` lists the efforts in `args`, `send` is false, `cost`
-is true for `jsonl`, `tools` is `mcp` for `mcpConfig: "file"`, and `sandbox` comes from the profile.
-The agent's stderr is forwarded to the adapter's stderr. Only the last 8 MiB of output is kept for
+zero) sets the `run/cost` answer, so `jsonl` profiles report `cost: true`. With `stream-json`,
+`assistant` and `user` message blocks become `message`, `thinking`, `tool_call`, and `tool_result`
+events as they arrive; the final `result` line's text supplies the result (its last fenced json
+block), its `total_cost_usd` and `usage` (input counts include cache reads and writes) answer
+`run/cost`, and `is_error` fails the run. The run is `completed` when the agent exits 0 with a
+result that matches `resultSchema`; otherwise it is `failed` with an `error` event saying why (the
+result, if any, is still sent). `run/stop` terminates the agent and the run ends `stopped`.
+Capabilities: `effort` lists the efforts in `args`, `send` is false, `cost` is true for `jsonl` and
+`stream-json`, `tools` is `mcp` for `mcpConfig: "file"`, and `sandbox` comes from the profile. The
+agent's stderr is forwarded to the adapter's stderr. Only the last 8 MiB of output is kept for
 parsing, and `.arya-mcp.json` is deleted when the run ends.
 
 ### Fake adapter scripts

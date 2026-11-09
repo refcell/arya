@@ -47,6 +47,8 @@ M4:
   temp directories.
 - [x] `ReplayAdapter(ledgerPayloads:exit:)` for eval's `arya replay` (pointer in eval's
   Questions).
+- [x] `parse: "stream-json"` for Claude Code (live events, real cost); the `claude-code`
+  example uses it.
 
 ## Decisions
 

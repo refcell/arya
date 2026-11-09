@@ -107,6 +107,9 @@ public enum OutputParser: String, Sendable, Hashable, Codable {
     case text
     /// One JSON object per line; the last object with a `result` key is the result.
     case jsonl
+    /// Claude Code's `--output-format stream-json`: messages become run events, and the final
+    /// `result` line gives the result (its last fenced `json` block), the cost, and failure.
+    case streamJSON = "stream-json"
 }
 
 /// How `arya-exec-adapter` hands `run/start.tools` to the agent.

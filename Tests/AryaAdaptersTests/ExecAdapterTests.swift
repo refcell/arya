@@ -199,3 +199,26 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
     #expect(cost == CostResult(inputTokens: 25, outputTokens: 9, costMicros: 80))
     try await adapter.shutdown()
 }
+
+@Test func streamJSONAgentStreamsEventsResultAndCost() async throws {
+    let fixture = Fixtures.url("stream-json-run.jsonl").path
+    let agent = try FakeAgent("cat > /dev/null\ncat '\(fixture)'")
+    let (transport, endpoint) = InMemoryPipe.make()
+    let server = ExecAdapterServer(
+        profile: agent.profile(parse: .streamJSON), environment: ["PATH": "/usr/bin:/bin"],
+        endpoint: endpoint)
+    Task { await server.serve() }
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    let hello = try await adapter.initialize(InitializeParams(client: Sample.client))
+    #expect(hello.capabilities.cost)
+    let session = try await adapter.start(agent.start()).session
+    let updates = await collect(adapter, until: \.isResult)
+    #expect(
+        updates.compactMap(\.event).map(\.event.kind) == ["status", "tool_call", "tool_result"])
+    let result = try #require(updates.compactMap(\.result).first)
+    #expect(result.status == .completed)
+    #expect(try result.decodedResult().summary == "ok")
+    let cost = try await adapter.cost(SessionParams(session: session))
+    #expect(cost == CostResult(inputTokens: 5, outputTokens: 3, costMicros: 2000))
+    try await adapter.shutdown()
+}

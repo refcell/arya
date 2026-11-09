@@ -4,8 +4,9 @@ extension AdapterProfiles {
     /// Example exec profiles for the non-interactive print modes of common command-line agents,
     /// for a starting `adapters.json`. Both run read-only, so they report `sandbox: workdir`:
     ///
-    /// - `claude-code`: Claude Code's `-p` mode with model aliases per effort, arya's tools
-    ///   through `--mcp-config`, and its shell, file-writing, and web tools disallowed.
+    /// - `claude-code`: Claude Code's `-p` mode with `stream-json` output (live events and
+    ///   cost), model aliases per effort, arya's tools through `--mcp-config`, and its shell,
+    ///   file-writing, and web tools disallowed.
     /// - `codex-cli`: Codex CLI's `exec` mode with `--sandbox read-only` and reasoning effort
     ///   per effort. Its MCP servers come from its own configuration, so `tools` is `none`.
     public static let examples = AdapterProfiles(profiles: [
@@ -17,14 +18,14 @@ extension AdapterProfiles {
         let disallowed = "Bash Edit Write NotebookEdit WebFetch WebSearch"
         func args(_ model: String) -> [String] {
             [
-                "-p", "--model", model, "--mcp-config", "{mcpConfig}", "--disallowedTools",
-                disallowed,
+                "-p", "--output-format", "stream-json", "--verbose", "--model", model,
+                "--mcp-config", "{mcpConfig}", "--disallowedTools", disallowed,
             ]
         }
         return AdapterProfile(
             kind: .exec, command: "claude",
             args: ["low": args("haiku"), "medium": args("sonnet"), "high": args("opus")],
-            promptVia: .stdin, parse: .text, mcpConfig: .file, sandbox: .workdir)
+            promptVia: .stdin, parse: .streamJSON, mcpConfig: .file, sandbox: .workdir)
     }()
 
     static let codexCLI: AdapterProfile = {

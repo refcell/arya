@@ -82,3 +82,40 @@ let resultSchema: JSONValue = [
 func resultSchemaChecks(_ value: JSONValue, _ problem: String?) {
     #expect(ResultSchema.violation(of: resultSchema, by: value) == problem)
 }
+
+@Test func streamJSONLinesAreMapped() {
+    #expect(ExecOutput.parse(streamJSONLine: #"{"type":"system","subtype":"init"}"#) == .other)
+    #expect(ExecOutput.parse(streamJSONLine: "not json") == .other)
+    let assistant = #"""
+        {"type":"assistant","message":{"role":"assistant","content":[
+        {"type":"thinking","thinking":"hm"},{"type":"text","text":"Looking."},
+        {"type":"tool_use","id":"t1","name":"tracker_get","input":{"id":"ISSUE-1"}}]}}
+        """#.replacingOccurrences(of: "\n", with: "")
+    #expect(
+        ExecOutput.parse(streamJSONLine: assistant)
+            == .events([
+                RunEvent(.thinking(text: "hm")),
+                RunEvent(.message(role: "assistant", text: "Looking.")),
+                RunEvent(.toolCall(id: "t1", tool: "tracker_get", input: ["id": "ISSUE-1"])),
+            ]))
+    let user = #"""
+        {"type":"user","message":{"role":"user","content":[
+        {"type":"tool_result","tool_use_id":"t1","content":"open","is_error":false}]}}
+        """#.replacingOccurrences(of: "\n", with: "")
+    #expect(
+        ExecOutput.parse(streamJSONLine: user)
+            == .events([RunEvent(.toolResult(id: "t1", output: "open", isError: false))]))
+    let result = #"""
+        {"type":"result","subtype":"success","is_error":false,"result":"Done.",
+        "total_cost_usd":0.0123,"usage":{"input_tokens":100,"output_tokens":20,
+        "cache_read_input_tokens":800,"cache_creation_input_tokens":50}}
+        """#.replacingOccurrences(of: "\n", with: "")
+    #expect(
+        ExecOutput.parse(streamJSONLine: result)
+            == .final(
+                text: "Done.", isError: false,
+                cost: CostResult(inputTokens: 950, outputTokens: 20, costMicros: 12300)))
+    #expect(
+        ExecOutput.parse(streamJSONLine: #"{"type":"result","subtype":"error_max_turns"}"#)
+            == .final(text: "", isError: true, cost: CostResult()))
+}
