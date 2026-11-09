@@ -112,11 +112,7 @@ M3 (integration toward the end-to-end scenario):
   divergences.
 
 ## Questions
-
-- (from cli-e2e) `RoutineExecutionTests.timesOutAndKillsTheProcessGroup` failed once under a
-  full `just ci` (stdout empty, expected `started`) and passes alone: the 1 s timeout can fire
-  before the shell prints under load, or output is lost on kill. Proposed: a longer timeout or
-  wait for `started` before timing out.
+- (from cli-e2e) `RoutineExecutionTests.timesOutAndKillsTheProcessGroup` failed once under full `just ci` (empty stdout) and passes alone; the 1 s timeout may fire before the shell prints under load.
 
 ## Log
 - 2026-11-09: memory notes, payloads, live-note projection landed (f34e8ff).
