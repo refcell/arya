@@ -4,20 +4,15 @@ import Foundation
 enum HomeChoice: Equatable {
     /// A home directory on disk.
     case home(URL)
-    /// The in-memory preview workspace with sample stewards.
-    case preview
 }
 
-/// Resolves the home once at launch (ARCHITECTURE.md "Home directory"): `--preview` or
-/// `ARYA_PREVIEW=1` picks sample data, then `--home PATH`, then `ARYA_HOME`, then
+/// Resolves the home once at launch (ARCHITECTURE.md "Home directory"): `--home PATH`, then
+/// `ARYA_HOME`, then
 /// `~/Library/Application Support/arya`. Pure, so tests pass in their own inputs.
 enum HomeLocator {
     static func resolve(
         arguments: [String], environment: [String: String], applicationSupport: URL
     ) -> HomeChoice {
-        if arguments.contains("--preview") || environment["ARYA_PREVIEW"] == "1" {
-            return .preview
-        }
         if let flag = arguments.firstIndex(of: "--home"), flag + 1 < arguments.count {
             return .home(
                 URL(fileURLWithPath: (arguments[flag + 1] as NSString).expandingTildeInPath))

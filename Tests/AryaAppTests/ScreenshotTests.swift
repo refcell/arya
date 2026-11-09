@@ -1,26 +1,27 @@
 import AppKit
+import Arya
 import Foundation
 import SwiftUI
 import Testing
 
 @testable import AryaApp
 
-/// Renders the preview shell offscreen. `just screenshots` sets `ARYA_SCREENSHOTS_DIR` to write
-/// PNGs for the README and visual review; otherwise the renders only have to succeed.
+/// Renders the shell offscreen. `just screenshots` seeds the demo home, then sets
+/// `ARYA_SCREENSHOTS_HOME` to it and `ARYA_SCREENSHOTS_DIR` to write PNGs for the README and
+/// visual review. Without them the test renders the fake workspace and writes nothing.
 @MainActor @Suite struct ScreenshotTests {
     @Test(arguments: ["light", "dark"])
     func shellScreenshots(scheme: String) async throws {
-        let now = ShellPreviewWorkspace.referenceDate
-        let store = FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now)
-        let model = AppModel(source: ShellPreviewWorkspace(now: now), featureStore: store)
+        let model = try await makeModel()
         await model.refresh()
-        await store.reload()
-        model.navigation.select(run: "run_0002", steward: "st_triage")
+        await model.featureStore?.reload()
+        let steward = try #require(model.stewards.first { $0.id == "st_triage" })
         var shots: [(String, Destination, StewardTab)] = StewardTab.allCases.map {
-            ($0.rawValue, .steward("st_triage"), $0)
+            ($0.rawValue, .steward(steward.id), $0)
         }
         shots.append(("approvals", .approvals, .stream))
         for (name, destination, tab) in shots {
+            model.navigation.select(steward: steward.id)
             model.navigation.destination = destination
             model.navigation.tab = tab
             let image = try #require(render(model, dark: scheme == "dark"))
@@ -33,13 +34,29 @@ import Testing
         }
     }
 
-    /// PNG bytes of the whole root view at 1120 × 720 pt, drawn through AppKit so scroll
+    /// The seeded demo home when `ARYA_SCREENSHOTS_HOME` is set, else the fake workspace.
+    private func makeModel() async throws -> AppModel {
+        let environment = ProcessInfo.processInfo.environment
+        if let path = environment["ARYA_SCREENSHOTS_HOME"] {
+            let workspace = try await Workspace.open(
+                home: URL(fileURLWithPath: path, isDirectory: true), environment: environment)
+            return AppModel(
+                source: workspace,
+                featureStore: FeatureStore(workspace: FacadeFeatureWorkspace(source: workspace)))
+        }
+        let now = FakeWorkspaceSource.referenceDate
+        return AppModel(
+            source: FakeWorkspaceSource(now: now),
+            featureStore: FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now))
+    }
+
+    /// PNG bytes of the whole root view at 1120 × 800 pt, drawn through AppKit so scroll
     /// views render too.
     private func render(_ model: AppModel, dark: Bool) -> Data? {
-        let view = RootView(model: model, now: { ShellPreviewWorkspace.referenceDate })
+        let view = RootView(model: model)
         let host = NSHostingView(rootView: view)
         host.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-        host.frame = NSRect(x: 0, y: 0, width: 1120, height: 720)
+        host.frame = NSRect(x: 0, y: 0, width: 1120, height: 800)
         host.layoutSubtreeIfNeeded()
         guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else {
             return nil

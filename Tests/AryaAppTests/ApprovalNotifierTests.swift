@@ -14,7 +14,7 @@ import Testing
         ApprovalSummary(
             id: id, kind: .action, steward: "st_triage", run: "run_1",
             actionKind: "close_issue", target: "tracker:ISSUE-9", text: "A duplicate.",
-            status: status, requestedAt: ShellPreviewWorkspace.referenceDate)
+            status: status, requestedAt: FakeWorkspaceSource.referenceDate)
     }
 
     @Test func theFirstLookOnlyPrimes() {
@@ -37,14 +37,14 @@ import Testing
         let question = ApprovalSummary(
             id: "ap_q", kind: .question, steward: "st_spend", run: "run_2",
             text: "Move the batch?", status: .pending,
-            requestedAt: ShellPreviewWorkspace.referenceDate)
+            requestedAt: FakeWorkspaceSource.referenceDate)
         let notice = ApprovalNotifier.notice(for: question, steward: "Spend watcher")
         #expect(notice.title == "Spend watcher has a question")
         #expect(notice.body == "Move the batch?")
     }
 
     @Test func theModelAnnouncesNewApprovals() async {
-        let source = ShellPreviewWorkspace()
+        let source = FakeWorkspaceSource()
         let model = AppModel(source: source)
         let poster = RecordingPoster()
         model.notifications = poster

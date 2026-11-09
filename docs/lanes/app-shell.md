@@ -38,8 +38,11 @@ M3, extended (toward the end-to-end scenario and `just demo`):
   a seeded home.
 - [x] Switch effort, steward state, and runs to facade calls as runtime lands them; delete the
   shell stub paths each replaces.
-- [ ] One preview source: once `just demo` seeds a real home, point `just app-preview` at it and
-  delete both preview stubs (`ShellPreviewWorkspace`, app-views' `PreviewWorkspace`).
+- [x] One preview source: the app has no preview mode; `just demo` seeds a real home,
+  `just screenshots` renders it, and the shell's fake lives in tests (`FakeWorkspaceSource`).
+- [x] README screenshot: `docs/assets/app.png` via `just readme-screenshot`.
+- [ ] Style-fidelity pass: every tab in both schemes against STYLE.md, section by section.
+- [ ] Scheduler login-item toggle and a menu bar status item with the pending count.
 - [x] Steward menu: Start Run (⇧⌘R), Pause, Resume through the facade.
 
 M4:
@@ -65,7 +68,7 @@ M4:
 
 - The app reads the facade through `WorkspaceSource` (`Shell/WorkspaceSource.swift`);
   `Workspace` conforms, and `PreviewWorkspace` is the in-memory stub with invented sample data
-  and a fixed clock. Launch with `--preview` or `ARYA_PREVIEW=1` to use it.
+  and a fixed clock. (Superseded: preview mode is gone; `FakeWorkspaceSource` is test-only.)
 - Navigation contract for app-views: `StewardTab`, `Destination`, `NavigationState`
   (`Shell/Navigation.swift`); feature views take a `FeatureContext` (model, steward, run) and
   are wired in `Features/FeatureRegistry.swift`, which app-views owns from now on.
@@ -79,8 +82,7 @@ M4:
   decision 0026); the app passes its process environment to `Workspace.open` for adapters.
 - Two seams coexist for now: the shell reads summaries through `WorkspaceSource`, and the
   feature views read events through app-views' `FeatureWorkspace`/`FeatureStore`. The shell
-  passes the store in `FeatureContext.store`; preview mode wires app-views' `PreviewWorkspace`
-  next to `ShellPreviewWorkspace` (same `st_triage` run ids). Real homes feed the
+  passes the store in `FeatureContext.store`; real homes feed the
   feature views through `FacadeFeatureWorkspace`.
 - The icon is drawn at bundle time by `etc/app/make-icon.swift` (AppKit, STYLE.md colors) and
   converted with `sips` and `iconutil`, so no binary asset is tracked.
@@ -90,6 +92,8 @@ M4:
 - Notifications announce approvals that became pending since the last refresh; the first load
   only primes, so opening the app never floods. They are enabled only when the app runs from
   its bundle; tests use a recording poster.
+- Rail runs are labelled by start order ("run 14"), since run ids are long and opaque.
+- `just publish` quotes its filter, so regex filters work (`'Arya(App|Design)Tests'`).
 
 ## Questions
 
@@ -116,3 +120,4 @@ M4:
 - 2026-11-09: approval notifications with Approve and Deny actions (b0260e4).
 - 2026-11-09: every steward tab routed to app-views' views; screenshots per tab (78c9c17).
 - 2026-11-09: Steward menu (Start Run, Pause, Resume) through the facade (8258cb7).
+- 2026-11-09: `just publish` quotes its filter (6406b7f).

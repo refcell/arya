@@ -52,15 +52,18 @@ app:
 run-app: app
     open .build/Arya.app
 
-# Build and launch the app on the in-memory preview workspace
-app-preview: app
-    open -n .build/Arya.app --args --preview
-
-# Render the preview shell to .build/screenshots in light and dark
+# Seed the demo home and render every tab of the app on it to .build/screenshots
 screenshots:
-    ARYA_SCREENSHOTS_DIR="$PWD/.build/screenshots" {{ slot }} swift test {{ swift_flags }} \
-      -j {{ jobs }} --filter ScreenshotTests
+    etc/scripts/demo.sh --no-open
+    ARYA_SCREENSHOTS_DIR="$PWD/.build/screenshots" ARYA_SCREENSHOTS_HOME="$PWD/.build/demo-home" \
+      {{ slot }} swift test {{ swift_flags }} -j {{ jobs }} --filter ScreenshotTests
     @ls .build/screenshots
+
+# Refresh docs/assets/app.png (the README screenshot) from the light Stream tab
+readme-screenshot: screenshots
+    mkdir -p docs/assets
+    sips -Z 1600 .build/screenshots/stream-light.png --out docs/assets/app.png >/dev/null
+    @du -k docs/assets/app.png
 
 # End-to-end scenario with the fake adapter and a temporary home (`just e2e --keep` keeps it)
 e2e *args:

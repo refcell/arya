@@ -1,11 +1,13 @@
 import Arya
 import Foundation
 
-/// An in-memory workspace with sample stewards for the shell (rail, header, approvals count),
-/// for development, screenshots, and tests. Its `st_triage` run ids match the feature views'
-/// `PreviewFixtures`, so preview mode shows one consistent steward.
+@testable import AryaApp
+
+/// An in-memory `WorkspaceSource` with invented stewards, runs, and approvals: the shell's test
+/// double. Its `st_triage` run ids match the feature views' `PreviewFixtures`. The app itself
+/// has no preview mode; `just demo` seeds a real home instead.
 /// Writes append ledger entries and wake every event stream, like the real facade.
-actor ShellPreviewWorkspace: WorkspaceSource {
+actor FakeWorkspaceSource: WorkspaceSource {
     nonisolated let label = "Preview"
     private var stewardList: [StewardSummary]
     private var runList: [RunSummary]
@@ -16,9 +18,9 @@ actor ShellPreviewWorkspace: WorkspaceSource {
     private let now: Date
 
     /// - Parameter now: the fixed "current" time sample data is placed around.
-    init(now: Date = ShellPreviewWorkspace.referenceDate, empty: Bool = false) {
+    init(now: Date = FakeWorkspaceSource.referenceDate, empty: Bool = false) {
         self.now = now
-        let sample = empty ? ShellPreviewData.empty : ShellPreviewData.sample(now: now)
+        let sample = empty ? FakeWorkspaceData.empty : FakeWorkspaceData.sample(now: now)
         stewardList = sample.stewards
         runList = sample.runs
         approvalList = sample.approvals
@@ -163,7 +165,7 @@ actor ShellPreviewWorkspace: WorkspaceSource {
 }
 
 /// Sample stewards, runs, and approvals. Every name is invented.
-enum ShellPreviewData {
+enum FakeWorkspaceData {
     struct Sample {
         var stewards: [StewardSummary] = []
         var runs: [RunSummary] = []

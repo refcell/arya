@@ -64,7 +64,6 @@ struct AryaCommands: Commands {
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("Open Home…") { openHome() }.keyboardShortcut("o")
-            Button("Open Preview Workspace") { Task { await session.open(.preview) } }
         }
         CommandGroup(after: .toolbar) {
             Button("Bigger Text") { textScale = Double(TextScale.bigger(textScale)) }

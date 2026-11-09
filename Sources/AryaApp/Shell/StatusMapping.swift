@@ -12,6 +12,12 @@ enum StatusMapping {
         }
     }
 
+    /// A run's rail label, numbered from 1 in start order ("run 14"), because run ids are long
+    /// and opaque. `position` counts from the newest run, as the rail lists them.
+    static func runLabel(position: Int, of count: Int) -> String {
+        "run \(count - position)"
+    }
+
     static func status(of run: RunSummary) -> AryaStatus {
         switch run.status {
         case .running: .running

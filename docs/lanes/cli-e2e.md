@@ -73,6 +73,8 @@ M3:
 - (from runtime) `arya binding-proxy --home <home> <rest>`: `BindingProxyArguments(parsing: rest)`, then `BindingProxyHost.proxy(args, sink: LedgerEventSink(home:ambient:))`, then `await BindingProxyHost.serveStandardIO(proxy)`.
 - (from ledger) once `LedgerCheck` carries the ledger's report lines (asked in workspace.md), `arya ledger verify` text output can print them as-is; JSON stays unchanged.
 - (from adapters) Optional M4 nicety: `AdapterProfiles.examples` holds ready exec profiles (`claude-code`, `codex-cli`); an `arya adapters init` (or `arya init`) could write them into the home's `adapters.json` with `JSONEncoder`, keeping existing profiles.
+- (from app-shell) `docs/assets/app.png` is the README screenshot (light Stream tab of the
+  demo home, 1600 px, about 350 KB); `just readme-screenshot` refreshes it. Embed it in README.
 
 ## Log
 - 2026-11-09: `memory`, `routines`, `proposals`, and `propose` wired to the facade; only

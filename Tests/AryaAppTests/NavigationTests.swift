@@ -51,6 +51,11 @@ import Testing
         #expect(state.destination == .approvals)
     }
 
+    @Test func runsAreNumberedInStartOrder() {
+        #expect(StatusMapping.runLabel(position: 0, of: 14) == "run 14")
+        #expect(StatusMapping.runLabel(position: 13, of: 14) == "run 1")
+    }
+
     @Test func railWidthStaysInBounds() {
         #expect(RailWidth.clamp(100) == 200)
         #expect(RailWidth.clamp(260) == 260)
@@ -60,17 +65,6 @@ import Testing
 
 @Suite struct HomeLocatorTests {
     let support = URL(fileURLWithPath: "/tmp/support", isDirectory: true)
-
-    @Test func previewWins() {
-        let choice = HomeLocator.resolve(
-            arguments: ["AryaApp", "--preview"], environment: ["ARYA_HOME": "/tmp/h"],
-            applicationSupport: support)
-        #expect(choice == .preview)
-        #expect(
-            HomeLocator.resolve(
-                arguments: [], environment: ["ARYA_PREVIEW": "1"], applicationSupport: support)
-                == .preview)
-    }
 
     @Test func homeArgumentBeatsTheEnvironment() {
         let choice = HomeLocator.resolve(

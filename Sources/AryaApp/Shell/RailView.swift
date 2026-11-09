@@ -63,12 +63,13 @@ struct RailView: View {
         }
         .buttonStyle(.plain)
         if isSelected {
-            ForEach(runs.prefix(Self.runLimit)) { run in
+            ForEach(Array(runs.prefix(Self.runLimit).enumerated()), id: \.element.id) {
+                index, run in
                 Button {
                     model.navigation.select(run: run.id, steward: steward.id)
                 } label: {
                     RailRow(
-                        run.id.replacingOccurrences(of: "_", with: " "),
+                        StatusMapping.runLabel(position: index, of: runs.count),
                         status: StatusMapping.status(of: run),
                         trailing: AryaTime.relative(run.startedAt, now: now),
                         isSelected: model.navigation.run == run.id, indent: AryaSpace.s4)

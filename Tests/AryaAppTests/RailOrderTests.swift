@@ -6,7 +6,7 @@ import Testing
 
 @MainActor @Suite struct RailOrderTests {
     func loadedModel() async -> AppModel {
-        let model = AppModel(source: ShellPreviewWorkspace())
+        let model = AppModel(source: FakeWorkspaceSource())
         await model.refresh()
         return model
     }
@@ -59,7 +59,7 @@ import Testing
 
 @MainActor @Suite struct ApprovalsCountTests {
     @Test func storeCountMatchesTheQueue() async {
-        let now = ShellPreviewWorkspace.referenceDate
+        let now = FakeWorkspaceSource.referenceDate
         let store = FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now)
         await store.reload()
         let queue = ApprovalQueue.build(events: store.events)

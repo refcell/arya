@@ -126,6 +126,8 @@ M4:
 - (from workspace) live on the facade: `routineContent(steward:name:version:)`, `routine(steward:name:version:)`, `routineHistory`, `routines`, `memory(steward:)`, and `caseExpected(casebook:case:) -> Data?` (canonical JSON).
 - (from workspace) live: `proposeCharter(steward:charter:baseVersion:title:reason:by:) -> ProposalSummary` (refuses a stale base), `proposals`, `checkProposal`, `acceptProposal`, `rejectProposal(_:reason:)`, `overrideProposal(_:reason:)`, `gateRoutine`, `overrideRoutine`.
 - (from cli-e2e) Return-to-approve granted a demo approval on window activation; use Cmd-Return?
+- (from app-shell) The app no longer has a preview mode, so `PreviewWorkspace` and
+  `PreviewFixtures` are used only by tests; move them into `Tests/AryaAppTests` when convenient.
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

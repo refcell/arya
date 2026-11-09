@@ -7,7 +7,7 @@ import Testing
 @Suite struct FacadeFeatureWorkspaceTests {
     @Test func ledgerEntriesBecomeFeatureEvents() {
         let entry = LedgerEntry(
-            seq: 7, id: "evt_7", at: ShellPreviewWorkspace.referenceDate,
+            seq: 7, id: "evt_7", at: FakeWorkspaceSource.referenceDate,
             type: "approval.requested", steward: "st_triage", run: "run_0002",
             actorKind: "steward", actorID: "st_triage",
             payload: #"{"approval":"ap_1","action":{"id":"a1","kind":"close_issue"}}"#)
@@ -20,7 +20,7 @@ import Testing
 
     @Test func badPayloadsAndActorsDegradeQuietly() {
         let entry = LedgerEntry(
-            seq: 1, id: "evt_1", at: ShellPreviewWorkspace.referenceDate, type: "x",
+            seq: 1, id: "evt_1", at: FakeWorkspaceSource.referenceDate, type: "x",
             actorKind: "robot", actorID: "r", payload: "not json")
         let event = FacadeFeatureWorkspace.event(entry)
         #expect(event.payload == .null)
@@ -28,7 +28,7 @@ import Testing
     }
 
     @Test func writesGoThroughTheFacade() async throws {
-        let source = ShellPreviewWorkspace()
+        let source = FakeWorkspaceSource()
         let workspace = FacadeFeatureWorkspace(source: source)
         let before = try await workspace.events().count
         try await workspace.record(.approve(approval: "ap_1"))
@@ -40,14 +40,14 @@ import Testing
     }
 
     @Test func changesFollowTheLedger() async throws {
-        let source = ShellPreviewWorkspace()
+        let source = FakeWorkspaceSource()
         var iterator = FacadeFeatureWorkspace(source: source).changes().makeAsyncIterator()
         // Three replayed creation events, then the new run.
         for _ in 0..<3 { _ = await iterator.next() }
         await source.startRun(
             RunSummary(
                 id: "run_9", steward: "st_spend", trigger: "manual", charterVersion: 1,
-                status: .running, startedAt: ShellPreviewWorkspace.referenceDate))
+                status: .running, startedAt: FakeWorkspaceSource.referenceDate))
         #expect(await iterator.next() != nil)
     }
 }
