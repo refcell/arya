@@ -30,7 +30,7 @@ let toolCall = FakeScript.Step.event(
 struct RunHarness {
     let sink: MemoryEventSink
     let executor = RecordingExecutor()
-    let loop: RunLoop
+    let loop: RunEngine
     let lifecycle: StewardLifecycle
 
     let approvals: ApprovalQueue
@@ -42,7 +42,7 @@ struct RunHarness {
         let dispatcher = ActionDispatcher(sink: sink, approvals: approvals, executor: executor)
         var factory = FakeFactory(script: FakeScript(runs: [run]))
         if let timeouts { factory.timeouts = timeouts }
-        loop = RunLoop(
+        loop = RunEngine(
             sink: sink, ambient: ambient, adapters: factory, dispatcher: dispatcher,
             approvals: approvals, workdir: { "scratch/\($0.rawValue)" },
             questionPoll: .milliseconds(1))

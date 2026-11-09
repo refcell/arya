@@ -26,7 +26,7 @@ M1:
 - [x] Approval queue: `approval.requested`, grant, deny, expiry; actor is the person who decided.
 - [x] Action executor protocol with a recording executor for tests; `action.executed` and
   `action.failed` carry output.
-- [ ] Restart recovery: interrupted runs become `run.failed(interrupted)`; pending approvals are
+- [x] Restart recovery: interrupted runs become `run.failed(interrupted)`; pending approvals are
   intact. Test by killing a run mid-stream.
 - [x] `host/ask` handling through the approval queue.
 
@@ -101,6 +101,14 @@ M4:
   (`null`), or expired (`null`, recorded by the runtime). Rehearsal answers `null` and asks no
   one. The connection's wall-clock idle timeout can still stop a run whose question waits
   longer than `timeoutSeconds`; see the adapters lane question.
+- The run driver type is `RunEngine` (not `RunLoop`, which Foundation exports). Run projection
+  is `RunBook` with `RunRecord.Status` nested (adapters export `RunStatus`).
+- Restart recovery: every run holds a `RunLease` while its process drives it. `FileRunLeases`
+  `flock`s `<dir>/<run>.lock` (the kernel frees it when the process dies); the facade should
+  use `<home>/cache/runs` and share one leases object between `RunEngine` and `RunRecovery`.
+  `RunRecovery.recover()` records `run.failed {reason: interrupted}` for open runs nobody
+  holds, so a run the CLI is driving is never failed by the app starting. Re-queuing scheduled
+  runs comes with the scheduler.
 - Rehearsal mode (`RunMode.rehearsal(context)`): dispositions are recorded as
   `action.proposed` only. Until the binding proxy serves reads, a leak is a `tool_call` event
   whose `(tool, input)` has no entry in `context.toolResults`.
@@ -139,5 +147,7 @@ M4:
 - 2026-11-09: steward lifecycle on core `Charter`; decision 0022 (19215d3)
 - 2026-11-09: action executor protocol, `RecordingExecutor`, and `ActionDispatcher` (ce6ab45)
 - 2026-11-09: run loop over `Adapter` with live and rehearsal modes, failure reasons, and wire
-  recording; the workspace lane can build `CaseRunner` on `RunLoop.run` with
+  recording; the workspace lane can build `CaseRunner` on `RunEngine.run` with
   `RunMode.rehearsal(case.context)` (bc170c7)
+- 2026-11-09: `host/ask` through the approval queue; adapters lane question on idle timeouts
+  (0d7d127)

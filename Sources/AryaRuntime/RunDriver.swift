@@ -5,7 +5,7 @@ import Foundation
 /// Drives one run: handshake, streaming, result, dispositions, and the closing event.
 final class RunDriver: @unchecked Sendable {
     // Confined to `drive()`, which runs on one task; no state is shared across tasks.
-    private let loop: RunLoop
+    private let loop: RunEngine
     private let request: RunRequest
     private let charter: Charter
     private let run: RunID
@@ -14,7 +14,7 @@ final class RunDriver: @unchecked Sendable {
     private var session: String?
     private var leak = false
 
-    init(loop: RunLoop, request: RunRequest, charter: Charter, run: RunID, instructions: String) {
+    init(loop: RunEngine, request: RunRequest, charter: Charter, run: RunID, instructions: String) {
         self.loop = loop
         self.request = request
         self.charter = charter

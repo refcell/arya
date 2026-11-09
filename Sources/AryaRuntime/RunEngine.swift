@@ -91,7 +91,7 @@ public enum RunError: Error, Equatable, Sendable {
 }
 
 /// Starts runs and drives them to the end.
-public struct RunLoop: Sendable {
+public struct RunEngine: Sendable {
     let sink: any EventSink
     let ambient: Ambient
     let adapters: any AdapterFactory
@@ -99,15 +99,18 @@ public struct RunLoop: Sendable {
     let approvals: ApprovalQueue
     let workdir: @Sendable (RunID) throws -> String
     let questionPoll: Duration
+    let leases: any RunLeases
 
-    /// Creates a run loop. `workdir` returns (and may create) the scratch directory of a run.
+    /// Creates a run engine. `workdir` returns (and may create) the scratch directory of a run.
     /// `questionPoll` is how often a `host/ask` question checks the ledger for an answer.
+    /// `leases` must be shared with `RunRecovery` (file leases across processes).
     public init(
         sink: any EventSink, ambient: Ambient, adapters: any AdapterFactory,
         dispatcher: ActionDispatcher, approvals: ApprovalQueue,
         workdir: @escaping @Sendable (RunID) throws -> String,
-        questionPoll: Duration = .milliseconds(250)
+        questionPoll: Duration = .milliseconds(250), leases: any RunLeases = MemoryRunLeases()
     ) {
+        self.leases = leases
         self.sink = sink
         self.ambient = ambient
         self.adapters = adapters
@@ -126,6 +129,8 @@ public struct RunLoop: Sendable {
         let charter = request.charter ?? steward.charter
         let version = request.charter == nil ? steward.version : 0
         let run = ambient.newID(RunID.self)
+        let lease = try leases.acquire(run)
+        defer { lease.release() }
         let instructions = InstructionComposer.compose(InstructionInputs(charter: charter))
         try await recordStart(run, request, charter, version, instructions)
         let driver = RunDriver(
