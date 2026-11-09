@@ -312,6 +312,12 @@ actor GuardedAdapter: Adapter {
     func answer(_ id: RPCID, _ result: HostAskResult) async throws(AdapterError) {
         try await guarded { () async throws(AdapterError) in try await inner.answer(id, result) }
     }
+
+    func answerDelegation(_ id: RPCID, _ result: HostDelegateResult) async throws(AdapterError) {
+        try await guarded { () async throws(AdapterError) in
+            try await inner.answerDelegation(id, result)
+        }
+    }
 }
 
 /// Answers each execution with the next recorded outcome; never touches a system. Past the

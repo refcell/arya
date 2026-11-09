@@ -57,6 +57,12 @@ public final class FakeAdapter: Adapter {
     public func answer(_ id: RPCID, _ result: HostAskResult) async throws(AdapterError) {
         try await connection.answer(id, result)
     }
+
+    public func answerDelegation(_ id: RPCID, _ result: HostDelegateResult)
+        async throws(AdapterError)
+    {
+        try await connection.answerDelegation(id, result)
+    }
 }
 
 extension AdapterConnection {

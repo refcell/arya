@@ -80,11 +80,23 @@ public actor ReplayAdapter: Adapter {
     }
 
     public func answer(_ id: RPCID, _ result: HostAskResult) async throws(AdapterError) {
+        try reply(id, result, method: RPCMethod.hostAsk)
+    }
+
+    public func answerDelegation(_ id: RPCID, _ result: HostDelegateResult)
+        async throws(AdapterError)
+    {
+        try reply(id, result, method: RPCMethod.hostDelegate)
+    }
+
+    private func reply(_ id: RPCID, _ result: some Encodable, method: String)
+        throws(AdapterError)
+    {
         let value: JSONValue
         do {
             value = try JSONValue(encoding: result)
         } catch {
-            throw .invalidResponse(method: RPCMethod.hostAsk, detail: "\(error)")
+            throw .invalidResponse(method: method, detail: "\(error)")
         }
         try expect(.response(RPCResponse(id: id, result: value)))
         pump()

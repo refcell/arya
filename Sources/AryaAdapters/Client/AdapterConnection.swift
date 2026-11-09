@@ -68,7 +68,8 @@ public actor AdapterConnection: Adapter {
     private var session: String?
     private var resultSeen = false
     private var activity = 0
-    /// `host/ask` requests the host has not answered; the idle timer pauses while any is open.
+    /// `host/ask` and `host/delegate` requests the host has not answered; the idle timer pauses
+    /// while any is open.
     private var openAsks: Set<RPCID> = []
     private var supervisor: Task<Void, Never>?
     private var reader: Task<Void, Never>?
@@ -154,11 +155,23 @@ public actor AdapterConnection: Adapter {
     }
 
     public func answer(_ id: RPCID, _ result: HostAskResult) async throws(AdapterError) {
+        try await reply(id, result, method: RPCMethod.hostAsk)
+    }
+
+    public func answerDelegation(_ id: RPCID, _ result: HostDelegateResult)
+        async throws(AdapterError)
+    {
+        try await reply(id, result, method: RPCMethod.hostDelegate)
+    }
+
+    private func reply(_ id: RPCID, _ result: some Encodable, method: String)
+        async throws(AdapterError)
+    {
         let value: JSONValue
         do {
             value = try JSONValue(encoding: result)
         } catch {
-            throw .invalidResponse(method: RPCMethod.hostAsk, detail: "\(error)")
+            throw .invalidResponse(method: method, detail: "\(error)")
         }
         openAsks.remove(id)
         activity += 1
@@ -271,7 +284,10 @@ public actor AdapterConnection: Adapter {
             supervisor?.cancel()
         }
         for update in meaning.updates {
-            if case .ask(let id, _) = update { openAsks.insert(id) }
+            switch update {
+            case .ask(let id, _), .delegate(let id, _): openAsks.insert(id)
+            default: break
+            }
             continuation.yield(update)
         }
         if let response = meaning.response {

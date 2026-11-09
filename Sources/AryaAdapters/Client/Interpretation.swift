@@ -57,14 +57,20 @@ struct Interpretation {
     }
 
     private static func of(_ request: RPCRequest) -> Interpretation {
-        guard request.method == RPCMethod.hostAsk else {
+        guard request.method == RPCMethod.hostAsk || request.method == RPCMethod.hostDelegate
+        else {
             let error = RPCError(
                 code: RPCErrorCode.methodNotFound, message: "unknown method \(request.method)")
             return Interpretation(reply: RPCResponse(id: request.id, error: error))
         }
         do {
-            let params = try (request.params ?? .null).decode(HostAskParams.self)
-            return Interpretation(updates: [.ask(id: request.id, params)])
+            let params = request.params ?? .null
+            if request.method == RPCMethod.hostDelegate {
+                let delegation = try params.decode(HostDelegateParams.self)
+                return Interpretation(updates: [.delegate(id: request.id, delegation)])
+            }
+            return Interpretation(
+                updates: [.ask(id: request.id, try params.decode(HostAskParams.self))])
         } catch {
             let error = RPCError(code: RPCErrorCode.invalidParams, message: "\(error)")
             return Interpretation(

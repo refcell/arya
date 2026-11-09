@@ -90,7 +90,7 @@ final class RunDriver: @unchecked Sendable {
             switch update {
             case .wire(let record): try await recordWire(record)
             case .result, .exited, .timedOut: break loop
-            case .event, .ask, .protocolError: continue
+            case .event, .ask, .delegate, .protocolError: continue
             }
         }
         let cost = await closeAdapter(adapter, &updates)
@@ -177,6 +177,10 @@ final class RunDriver: @unchecked Sendable {
             case .ask(let id, let params):
                 let answer = try await ask(params)
                 try? await adapter.answer(id, HostAskResult(answer: answer))
+            case .delegate(let id, _):
+                // In-run crews are not wired yet; the agent falls back to run/result delegations.
+                let refusal = HostDelegateResult.refused("use run/result delegations")
+                try? await adapter.answerDelegation(id, refusal)
             case .result(let params):
                 if overdue.isSet {
                     let cost = await closeAdapter(adapter, &updates)

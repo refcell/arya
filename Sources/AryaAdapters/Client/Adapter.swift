@@ -59,6 +59,9 @@ public enum AdapterUpdate: Sendable, Hashable {
     case result(RunResultParams)
     /// A `host/ask` request; reply with ``Adapter/answer(_:_:)``.
     case ask(id: RPCID, HostAskParams)
+    /// A `host/delegate` request; reply with ``Adapter/answerDelegation(_:_:)`` when the child
+    /// run ends.
+    case delegate(id: RPCID, HostDelegateParams)
     /// A stdout line or message that broke the protocol.
     case protocolError(RPCError)
     /// No message arrived within the run's timeout; arya sent `run/stop` with reason
@@ -85,4 +88,6 @@ public protocol Adapter: Sendable {
     func shutdown() async throws(AdapterError)
     /// Answers a `host/ask` request.
     func answer(_ id: RPCID, _ result: HostAskResult) async throws(AdapterError)
+    /// Answers a `host/delegate` request.
+    func answerDelegation(_ id: RPCID, _ result: HostDelegateResult) async throws(AdapterError)
 }

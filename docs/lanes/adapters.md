@@ -55,6 +55,10 @@ M4:
   in the result schema and the triage example.
 - [x] OS sandbox: `run/start.sandbox` (SBPL profile + params), capability `sandbox: "os"`, the
   exec adapter launching under `sandbox-exec`, and `OSSandbox` helpers for the runtime.
+- [x] In-run crews: `host/delegate` (`HostDelegateParams` → `HostDelegateResult`), the
+  `.delegate` update and `answerDelegation`, the fake `delegate` step, and the triage example
+  handing "Draft the refund reply" for MSG-203 to a child run. The runtime wires real fan-out
+  (pointer in runtime's Questions); until then `RunDriver` and `Judge` answer `refused`.
 
 ## Decisions
 
@@ -121,6 +125,10 @@ M4:
   result. macOS logs violations elsewhere, so stderr is the signal an adapter can see.
 - The idle timer sleeps on an injectable `SleepClock` (`AdapterConnection(idleClock:)`, also on
   `FakeAdapter`); tests step it with a manual clock, so idle behavior never depends on load.
+- `host/delegate` mirrors `run/result.delegations` (string `input`, parent's charter and input
+  kind, depth 1, child actions proposed only) and answers when the child ends. No capability
+  flag: a host without it answers `-32601`, and `refused` covers depth and rehearsal limits, so
+  an adapter always has the result-delegation fallback. The idle timer pauses while one is open.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -153,3 +161,5 @@ M4:
   triage messages, billing binding, fallback-never-a-message test (2292097).
 - 2026-11-09: OS sandbox for exec agents (a708516); idleTimerPausesWhileAQuestionIsOpen now
   runs on a manual clock (a mutation that drops the pause fails it in 10 s instead of hanging).
+- 2026-11-09: idle-timer test on a manual clock (41dc71a); `host/delegate` for in-run crews,
+  the fake `delegate` step, and the triage refund-reply delegation.

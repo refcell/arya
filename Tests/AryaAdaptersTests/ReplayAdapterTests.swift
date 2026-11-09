@@ -5,7 +5,8 @@ import Testing
 @testable import AryaAdapters
 
 /// What a host does with an adapter in these tests: initialize, start, answer every question
-/// with "yes", wait for the result, ask the cost, and shut down. Returns every update.
+/// with "yes" and every delegation with ``Sample/childOutcome``, wait for the result, ask the
+/// cost, and shut down. Returns every update.
 func drive(_ adapter: any Adapter, input: String = "triage ISSUE-1") async throws
     -> [AdapterUpdate]
 {
@@ -17,6 +18,9 @@ func drive(_ adapter: any Adapter, input: String = "triage ISSUE-1") async throw
         updates.append(update)
         if case .ask(let id, _) = update {
             try await adapter.answer(id, HostAskResult(answer: "yes"))
+        }
+        if case .delegate(let id, _) = update {
+            try await adapter.answerDelegation(id, Sample.childOutcome)
         }
         if update.isResult || update.exit != nil { break }
     }
@@ -50,6 +54,11 @@ func expectReplayMatches(_ script: FakeScript, timeouts: ConnectionTimeouts = Sa
 @Test func replayReproducesHostAsk() async throws {
     try await expectReplayMatches(
         Sample.script(FakeScript.Response(steps: [.ask(question: "Go?", to: nil)], result: [:])))
+}
+
+@Test func replayReproducesHostDelegate() async throws {
+    let step = FakeScript.Step.delegate(id: "c1", title: "Draft", input: "Draft the reply.")
+    try await expectReplayMatches(Sample.script(FakeScript.Response(steps: [step], result: [:])))
 }
 
 @Test func replayReproducesACrash() async throws {

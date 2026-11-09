@@ -180,6 +180,8 @@ public struct AdapterJudge: CaseJudge {
                 throw EvalError.badVerdict("judge ended without a result")
             case .ask(let id, _):
                 try? await adapter.answer(id, HostAskResult(answer: nil))
+            case .delegate(let id, _):
+                try? await adapter.answerDelegation(id, .refused("judges do not delegate"))
             case .wire, .event, .protocolError:
                 continue
             }

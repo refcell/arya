@@ -15,7 +15,8 @@ public actor FakeAdapterServer {
     private var events: [RunEvent] = []
     private var resultSent = false
     private var nextAsk = 1
-    private var asks: [RPCID: CheckedContinuation<String?, Never>] = [:]
+    /// Requests to arya waiting for a response: the result, or `nil` for an error or shutdown.
+    private var asks: [RPCID: CheckedContinuation<JSONValue?, Never>] = [:]
     private var closed = false
 
     public init(script: FakeScript, endpoint: any AdapterEndpoint) {
@@ -57,8 +58,7 @@ public actor FakeAdapterServer {
             if request.method == RPCMethod.runStart, case .success = outcome { beginRun() }
             if request.method == RPCMethod.shutdown { await close(.exited(0)) }
         case .response(let response):
-            let answer = (try? response.outcome.get())?["answer"]?.stringValue
-            asks.removeValue(forKey: response.id)?.resume(returning: answer)
+            asks.removeValue(forKey: response.id)?.resume(returning: try? response.outcome.get())
         case .notification:
             break
         }
@@ -180,6 +180,10 @@ public actor FakeAdapterServer {
                 let answer = await ask(question: question, to: to)
                 if Task.isCancelled { return }
                 await emit(RunEvent(.message(role: "human", text: answer ?? "")))
+            case .delegate(let id, let title, let input):
+                let outcome = await delegate(id: id, title: title, input: input)
+                if Task.isCancelled { return }
+                await emit(RunEvent(.status(state: "delegated", detail: Self.describe(outcome))))
             case .stdout(let text):
                 await endpoint.write(Data((text + "\n").utf8))
             case .crash(let code):
@@ -205,15 +209,37 @@ public actor FakeAdapterServer {
 
     private func ask(question: String, to: String?) async -> String? {
         guard let session else { return nil }
+        let params = HostAskParams(session: session, question: question, to: to)
+        return await request(RPCMethod.hostAsk, params)?["answer"]?.stringValue
+    }
+
+    private func delegate(id: String, title: String, input: String) async -> HostDelegateResult {
+        guard let session else { return .refused("no session") }
+        let params = HostDelegateParams(session: session, id: id, title: title, input: input)
+        guard let value = await request(RPCMethod.hostDelegate, params) else {
+            return .refused("arya did not run the delegation")
+        }
+        return (try? value.decode(HostDelegateResult.self))
+            ?? .refused("arya answered host/delegate with an unreadable result")
+    }
+
+    /// The `status` detail for a finished delegation: `<status>[ <run>][: <reason>]`.
+    static func describe(_ outcome: HostDelegateResult) -> String {
+        var detail = outcome.status.rawValue
+        if let run = outcome.run { detail += " \(run)" }
+        if let reason = outcome.reason { detail += ": \(reason)" }
+        return detail
+    }
+
+    /// Sends a request to arya and waits for its result (`nil` on an error or shutdown).
+    private func request(_ method: String, _ params: some Encodable) async -> JSONValue? {
         let id = RPCID.string("ask-\(nextAsk)")
         nextAsk += 1
-        let params = HostAskParams(session: session, question: question, to: to)
         guard let value = try? JSONValue(encoding: params) else { return nil }
         return await withCheckedContinuation { waiter in
             asks[id] = waiter
             Task {
-                await self.send(
-                    .request(RPCRequest(id: id, method: RPCMethod.hostAsk, params: value)))
+                await self.send(.request(RPCRequest(id: id, method: method, params: value)))
             }
         }
     }

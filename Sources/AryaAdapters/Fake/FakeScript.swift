@@ -181,6 +181,9 @@ public struct FakeScript: Sendable, Hashable, Codable {
         /// Send `host/ask` and wait for the answer, then emit it as a `message` event with
         /// role `human` (an empty text for a `null` answer).
         case ask(question: String, to: String?)
+        /// Send `host/delegate` and wait until arya answers with the child's outcome, then emit
+        /// a `status` event (state `delegated`) whose detail says how the child ended.
+        case delegate(id: String, title: String, input: String)
         /// Write this raw text as one stdout line (to test protocol errors).
         case stdout(String)
         /// Exit with this status without sending `run/result`.
@@ -189,8 +192,10 @@ public struct FakeScript: Sendable, Hashable, Codable {
         case hang
 
         enum CodingKeys: String, CodingKey {
-            case event, sleepMs, ask, stdout, crash, hang
+            case event, sleepMs, ask, delegate, stdout, crash, hang
         }
+
+        enum DelegateKeys: String, CodingKey { case id, title, input }
 
         enum AskKeys: String, CodingKey { case question, to }
         enum CrashKeys: String, CodingKey { case exitCode }
@@ -206,6 +211,12 @@ public struct FakeScript: Sendable, Hashable, Codable {
                 self = .ask(
                     question: try ask.decode(String.self, forKey: .question),
                     to: try ask.decodeIfPresent(String.self, forKey: .to))
+            } else if c.contains(.delegate) {
+                let d = try c.nestedContainer(keyedBy: DelegateKeys.self, forKey: .delegate)
+                self = .delegate(
+                    id: try d.decode(String.self, forKey: .id),
+                    title: try d.decode(String.self, forKey: .title),
+                    input: try d.decode(String.self, forKey: .input))
             } else if let text = try c.decodeIfPresent(String.self, forKey: .stdout) {
                 self = .stdout(text)
             } else if c.contains(.crash) {
@@ -229,6 +240,11 @@ public struct FakeScript: Sendable, Hashable, Codable {
                 var ask = c.nestedContainer(keyedBy: AskKeys.self, forKey: .ask)
                 try ask.encode(question, forKey: .question)
                 try ask.encodeIfPresent(to, forKey: .to)
+            case .delegate(let id, let title, let input):
+                var d = c.nestedContainer(keyedBy: DelegateKeys.self, forKey: .delegate)
+                try d.encode(id, forKey: .id)
+                try d.encode(title, forKey: .title)
+                try d.encode(input, forKey: .input)
             case .stdout(let text): try c.encode(text, forKey: .stdout)
             case .crash(let code):
                 var crash = c.nestedContainer(keyedBy: CrashKeys.self, forKey: .crash)

@@ -26,9 +26,7 @@ let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     let all = inputs + script.responses.keys.sorted().filter { !inputs.contains($0) }
     #expect(all.count > inputs.count)
     for (index, text) in all.enumerated() {
-        let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
-        _ = try await adapter.start(Sample.start(text, run: "run_\(index)"))
-        let updates = await collect(adapter, until: \.isResult)
+        let updates = try await runAsCrewHost(script, text, run: "run_\(index)")
         let result = try #require(updates.compactMap(\.result).first)
         #expect(result.status == .completed)
         let decoded = try result.decodedResult()
@@ -41,6 +39,55 @@ let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         let seqs = updates.compactMap(\.event).map(\.seq)
         #expect(seqs == Array(1..<(seqs.count + 1)))
     }
+}
+
+/// Runs `text` the way a host with in-run crews does: every `host/delegate` runs the child
+/// input through the same script and is answered with the child's outcome. A child that does
+/// not complete fails the test.
+func runAsCrewHost(_ script: FakeScript, _ text: String, run: String) async throws
+    -> [AdapterUpdate]
+{
+    let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
+    _ = try await adapter.start(Sample.start(text, run: run))
+    var updates: [AdapterUpdate] = []
+    for await update in adapter.updates {
+        updates.append(update)
+        if case .delegate(let id, let params) = update {
+            let child = FakeAdapter(script: script, timeouts: Sample.timeouts)
+            _ = try await child.start(Sample.start(params.input, run: "\(run)_\(params.id)"))
+            let outcome = try #require(
+                await collect(child, until: \.isResult).compactMap(\.result).first)
+            #expect(outcome.status == .completed, "child \(params.id) of \(text)")
+            #expect(!(try outcome.decodedResult().actions.isEmpty), "child \(params.id)")
+            try await adapter.answerDelegation(
+                id,
+                HostDelegateResult(
+                    run: "\(run)_\(params.id)", status: .completed, result: outcome.result))
+        }
+        if update.isResult { break }
+    }
+    return updates
+}
+
+/// The damaged-order message hands "draft the refund reply" to a child run, and the parent
+/// proposes the reply the child drafted.
+@Test func triageExampleDelegatesTheRefundReply() async throws {
+    let examples = repositoryRoot.appendingPathComponent("etc/examples/triage")
+    let script = try FakeScript.load(from: examples.appendingPathComponent("fake-script.json"))
+    let updates = try await runAsCrewHost(
+        script, "New message MSG-203: Damaged order, please refund", run: "run_203")
+    let asked = updates.compactMap { update -> HostDelegateParams? in
+        if case .delegate(_, let params) = update { return params }
+        return nil
+    }
+    #expect(asked.map(\.title) == ["Draft the refund reply"])
+    let firstAsked = try #require(asked.first)
+    let child = try #require(script.response(for: firstAsked.input))
+    let drafted = try #require(child.result).decode(RunResult.self).actions.first
+    let parent = try #require(updates.compactMap(\.result).first).decodedResult()
+    let proposed = parent.actions.first { $0.kind == "reply" }
+    #expect(drafted?.kind == "reply")
+    #expect(proposed?.params == drafted?.params)
 }
 
 /// An input the script does not know reports itself with status events, never an agent

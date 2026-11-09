@@ -31,6 +31,7 @@ arya                                adapter
  │◀── run/event (notification) ×N ─ │
  │── run/send (optional) ─────────▶ │
  │◀── host/ask (optional) ───────── │
+ │◀── host/delegate (optional) ──── │
  │◀── run/result (notification) ─── │
  │── run/cost ────────────────────▶ │
  │── shutdown ────────────────────▶ │  exits 0
@@ -173,7 +174,8 @@ Sent exactly once per run:
 - `delegations` become child runs after this run finishes, followed by one join run
   ([ARCHITECTURE.md](ARCHITECTURE.md#crews)).
   A delegation may add `adapter` (a profile the charter's `crew.adapters` lists), `effort`, and
-  `limits` (as in `run/start`); arya caps each at the parent run's (decision 0043).
+  `limits` (as in `run/start`); arya caps each at the parent run's (decision 0043). To use a
+  child's result before finishing, send `host/delegate` instead.
 - `plan` (optional) is the run's plan as it stood at the end, so a person can see what the run
   set out to do and how far it got. Each step has `id`, `text`, `status` (`pending`,
   `in_progress`, `done`, `skipped`, or `blocked`), and an optional `rationale`. An empty plan
@@ -196,6 +198,29 @@ idle timer is paused; the run's `limits.timeoutSeconds` stays the hard cap, at w
 `null`. arya shows it in the approval queue until it is answered or the run's timeout passes
 (`"answer": null`). In rehearsal and replay the answer comes from the recording; an unrecorded
 question in rehearsal answers `null`.
+
+### `host/delegate`
+
+`{"session":"…","id":"c1","title":"Draft the refund reply","input":"…"}` →
+`{"run":"run_…","status":"completed","result":{…}}`. The adapter hands part of its work to a
+child run and waits for it, so the agent can use the child's result before it finishes (a crew
+inside a run).
+
+arya runs the child like a `run/result` delegation: the parent's charter and input kind, `input`
+as the input text, `parent` set, and its actions recorded as proposed only. The child's actions
+never execute; the parent proposes whatever it keeps in its own `run/result`. The answer comes
+when the child ends.
+
+`status` is `completed`, `stopped`, `failed`, or `refused`. `result` is the child's
+`run/result.result` when it completed, and `reason` explains `failed` and `refused`. arya
+refuses (no child, no `run`) when the run is itself a child or join run (depth 1), and runs at
+most `crew.maxParallel` children at once; more wait their turn. While a delegation is open the
+idle timer is paused; the parent's `limits.timeoutSeconds` stays the hard cap. In replay the
+answer comes from the recording.
+
+A host that does not know `host/delegate` answers `-32601`; an adapter then lists the work in
+`run/result.delegations` instead. An adapter must treat `refused` the same way or finish without
+the child.
 
 ## Errors
 
@@ -322,6 +347,7 @@ else is optional:
 | `event` | emit a `run/event` |
 | `sleepMs` | wait that many milliseconds |
 | `ask` | send `host/ask` (`question`, optional `to`), wait, then emit the answer as a `message` event with role `human` |
+| `delegate` | send `host/delegate` (`id`, `title`, `input`), wait, then emit a `status` event with state `delegated` and detail `<status>[ <run>][: <reason>]` (an error answer reads as `refused`) |
 | `stdout` | write the text as one raw stdout line (a protocol error) |
 | `crash` | exit with `exitCode` without a `run/result` |
 | `hang` | produce nothing until `run/stop` |
@@ -339,12 +365,12 @@ form.
 arya's client (`AdapterConnection` in `AryaAdapters`) enforces the timing rules above: a request
 fails after 30 seconds without a response; after `run/stop`, sent by a person or by the idle
 timeout, the adapter has 10 seconds to send `run/result` before SIGTERM and, 5 seconds later,
-SIGKILL; after `shutdown` it has 5 seconds to exit. The idle timer pauses while a `host/ask` request
-is unanswered; the runtime expires the question at the run's timeout instead. A stdout line that is
-not a JSON-RPC message is recorded as received and reported as a protocol error; the runtime decides
-whether it fails the run. A request from the adapter other than `host/ask` gets `-32601`. A stdout
-line over 8 MiB is cut at 8 MiB (the rest up to the next newline is dropped), so it is recorded cut
-and fails as a protocol error.
+SIGKILL; after `shutdown` it has 5 seconds to exit. The idle timer pauses while a `host/ask` or
+`host/delegate` request is unanswered; the runtime expires it at the run's timeout instead. A stdout
+line that is not a JSON-RPC message is recorded as received and reported as a protocol error; the
+runtime decides whether it fails the run. A request from the adapter other than `host/ask` and
+`host/delegate` gets `-32601`. A stdout line over 8 MiB is cut at 8 MiB (the rest up to the next
+newline is dropped), so it is recorded cut and fails as a protocol error.
 
 ## Replay
 

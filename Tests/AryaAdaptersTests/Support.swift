@@ -5,6 +5,10 @@ import Foundation
 
 /// Shared builders for adapter tests.
 enum Sample {
+    /// How a test host answers `host/delegate`: a completed child with a small result.
+    static let childOutcome = HostDelegateResult(
+        run: "run_child", status: .completed, result: ["summary": "Drafted the reply."])
+
     static let client = PeerInfo(name: "arya", version: "0.1.0")
 
     static func start(_ text: String, run: String = "run_1", timeoutSeconds: Int? = nil)

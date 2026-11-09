@@ -220,4 +220,5 @@ public enum RPCMethod {
     public static let runEvent = "run/event"
     public static let runResult = "run/result"
     public static let hostAsk = "host/ask"
+    public static let hostDelegate = "host/delegate"
 }

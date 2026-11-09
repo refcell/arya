@@ -382,3 +382,58 @@ public struct HostAskResult: Sendable, Hashable, Codable {
         case answer
     }
 }
+
+/// Params of the `host/delegate` request (adapter to arya): run a child of this run on `input`
+/// and answer with its outcome. `id` names the delegation within the run. Like
+/// `run/result.delegations`, the child keeps the parent's charter and input kind.
+public struct HostDelegateParams: Sendable, Hashable, Codable {
+    public var session: String
+    public var id: String
+    public var title: String
+    public var input: String
+
+    public init(session: String, id: String, title: String, input: String) {
+        self.session = session
+        self.id = id
+        self.title = title
+        self.input = input
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case session, id, title, input
+    }
+}
+
+/// How a delegated child run ended, or `refused` when arya did not start one.
+public enum DelegationStatus: String, Sendable, Hashable, Codable {
+    case completed, stopped, failed, refused
+}
+
+/// Result of `host/delegate`, sent when the child run ends. `result` is the child's
+/// `run/result.result` (for `completed`); `reason` explains `failed` and `refused`.
+public struct HostDelegateResult: Sendable, Hashable, Codable {
+    /// The child's run id; absent when refused.
+    public var run: String?
+    public var status: DelegationStatus
+    public var result: JSONValue?
+    public var reason: String?
+
+    public init(
+        run: String? = nil, status: DelegationStatus, result: JSONValue? = nil,
+        reason: String? = nil
+    ) {
+        self.run = run
+        self.status = status
+        self.result = result
+        self.reason = reason
+    }
+
+    /// A refusal: arya did not start a child (depth limit, rehearsal, or no support).
+    public static func refused(_ reason: String) -> HostDelegateResult {
+        HostDelegateResult(status: .refused, reason: reason)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case run, status, result, reason
+    }
+}

@@ -52,6 +52,7 @@ func roundTripParams(method: String, _ params: JSONValue) throws -> JSONValue {
     case RPCMethod.runEvent: try roundTrip(RunEventParams.self, params)
     case RPCMethod.runResult: try roundTrip(RunResultParams.self, params)
     case RPCMethod.hostAsk: try roundTrip(HostAskParams.self, params)
+    case RPCMethod.hostDelegate: try roundTrip(HostDelegateParams.self, params)
     default: throw RPCError(code: RPCErrorCode.methodNotFound, message: method)
     }
 }
@@ -65,6 +66,7 @@ func roundTripResult(method: String, _ result: JSONValue) throws -> JSONValue {
     case RPCMethod.runTranscript: try roundTrip(TranscriptResult.self, result)
     case RPCMethod.runCost: try roundTrip(CostResult.self, result)
     case RPCMethod.hostAsk: try roundTrip(HostAskResult.self, result)
+    case RPCMethod.hostDelegate: try roundTrip(HostDelegateResult.self, result)
     default: throw RPCError(code: RPCErrorCode.methodNotFound, message: method)
     }
 }
@@ -84,7 +86,7 @@ func protocolExampleRoundTrips(_ example: ProtocolExample) throws {
     let expected: Set = [
         RPCMethod.initialize, RPCMethod.runStart, RPCMethod.runSend, RPCMethod.runStop,
         RPCMethod.runTranscript, RPCMethod.runCost, RPCMethod.shutdown, RPCMethod.runEvent,
-        RPCMethod.runResult, RPCMethod.hostAsk,
+        RPCMethod.runResult, RPCMethod.hostAsk, RPCMethod.hostDelegate,
     ]
     #expect(methods == expected)
 }

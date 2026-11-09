@@ -3714,7 +3714,7 @@
       ],
       "status": "completed",
       "result": {
-        "summary": "Labeled MSG-203 as billing, proposed a 24.00 refund for ORDER-1043, and drafted a reply.",
+        "summary": "Labeled MSG-203 as billing, proposed a 24.00 refund for ORDER-1043, and had a child run draft the reply.",
         "plan": [
           {
             "id": "p1",
@@ -3811,6 +3811,62 @@
           {
             "metric": "routed_within_1h",
             "value": 0.95
+          }
+        ]
+      },
+      "steps": [
+        {
+          "delegate": {
+            "id": "draft-refund-reply",
+            "title": "Draft the refund reply",
+            "input": "Draft the refund reply for MSG-203: ORDER-1043 arrived with a cracked screen and a refund of 24.00 is proposed."
+          }
+        }
+      ]
+    },
+    "Draft the refund reply for MSG-203: ORDER-1043 arrived with a cracked screen and a refund of 24.00 is proposed.": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "drafting the reply"
+        },
+        {
+          "kind": "thinking",
+          "text": "Apologize, confirm the refund amount and where it goes, and promise nothing the refund approval has not settled."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Drafted the refund reply for MSG-203.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Draft the reply to the damaged-order message",
+            "status": "done",
+            "rationale": "The parent run asked for a reply it can propose with the refund."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "apologize-and-confirm",
+            "rationale": "The customer sent evidence; the reply should acknowledge it and state the refund plainly.",
+            "why": "A short apology with the refund amount answers the customer's question."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "reply",
+            "binding": "inbox",
+            "target": "inbox:MSG-203",
+            "params": {
+              "text": "Sorry your order arrived damaged. We have asked for a refund of 24.00 to your original payment method."
+            },
+            "rationale": "the drafted reply",
+            "risk": "high",
+            "why": "A sent reply cannot be recalled; the parent proposes it for approval."
           }
         ]
       }
