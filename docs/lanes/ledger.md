@@ -39,11 +39,12 @@ M1:
   projections already live in the runtime (`StewardBook`, `RunBook`, `ApprovalBook`; 0028).
 
 M2:
-- [ ] Projections: metric series per steward, proposals, rehearsals, casebook versions.
+- [x] Projections: metric series per steward, proposals, rehearsals, casebook versions: owned by
+  eval (`ProposalBook`, `RehearsalBook`, its metric-series item) per 0023/0028, on `LedgerProjection`.
 - [x] Projection cache in `cache/` with a header naming the last `seq`; delete-safe.
 
 M3:
-- [ ] Ledger query API for the app's ledger table: filter by steward, run, type, actor; page by
+- [x] Ledger query API for the app's ledger table: filter by steward, run, type, actor; page by
   `seq`.
 
 ## Decisions
@@ -99,6 +100,10 @@ M3:
 - `ProjectionCache(home:)` stores `{"v":1,"name","seq","hash","value"}` per projection in
   `cache/<name>.json` (atomic writes). `current(_:name:)` loads, catches up, and saves; any
   unreadable or stale file is treated as absent, so deleting `cache/` is always safe.
+- Query: `LedgerFilter` (steward, run, exact types, namespaces, actor kind and id; nil or
+  empty matches all) with `LedgerReader.page(_:after:limit:)` (oldest first) and
+  `pageBackward(_:before:limit:)` (opens at the newest). Cursors are `seq`s. Both stream the
+  ledger; the `LedgerIndex` run spans can narrow a run query later if scans get slow.
 - `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
 
 ## Questions
@@ -116,3 +121,4 @@ M3:
 - 2026-11-09: multi-process append test with the AryaLedgerWriter helper (99f6cf4).
 - 2026-11-09: LedgerProjection, Projected, rebuild/catchUp, LedgerIndex (0028); M1 done
   (e1322ae). Interfaces for the ledger-backed EventSink are noted in workspace.md.
+- 2026-11-09: ProjectionCache (8cd1de0); M2 done (eval owns its projections).
