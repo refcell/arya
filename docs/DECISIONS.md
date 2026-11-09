@@ -377,3 +377,16 @@ not there. Adapter processes are not sandboxed yet: agent harnesses need the net
 their own state outside the workdir, so their profile needs per-profile write paths first.
 Why: a steward acting on its own should not be able to write or reach anything its charter
 did not grant.
+
+### 0041 — 2026-11-09 — Publishing: union-merged lane files, a docs-only fast path, and priority
+
+Publishes were losing most of their time to rebase conflicts and full `just ci` runs waiting for
+the two CI slots (decision 0033). Three rules: lane files (`docs/lanes/*.md`) merge with git's
+`union` driver (`.gitattributes`), so appended Log and Questions lines never conflict; lanes
+append and edit only their own lines there. `just publish` takes a fast path when every commit
+ahead of `origin/main` touches only `docs/**` or `*.md`: `just tidy` (format, secrets, denylist)
+and push, rebasing up to ten times, with no build or test, because such changes cannot affect
+the Swift build. It never prompts and prints each step with its elapsed time, so it runs in the
+background; agents publish that way. Until the app redesign (M3.5) passes review, its lanes
+publish freely and other lanes batch to at most one publish every 45-60 minutes. Why: fewer
+full CI runs and no lane-file conflicts free the slots for the work that matters now.

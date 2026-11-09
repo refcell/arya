@@ -31,7 +31,9 @@ byte-identical copy of this file; edit both together (`cp AGENTS.md CLAUDE.md`).
    is rejected, fetch and rebase right away. A rebase without conflicts needs only
    `just tidy && just build && just test <YourModuleTests>` before pushing again, at most three
    times in a row; after that, or after any conflict (keep both sides), run the full `just ci`
-   ([decision 0029](docs/DECISIONS.md)); `just publish <YourModuleTests>` does all of this.
+   ([decision 0029](docs/DECISIONS.md)); `just publish <YourModuleTests>` does all of this, and
+   takes a fast path for docs-only changes ([decision 0041](docs/DECISIONS.md)). Run it in the
+   background: a full check can wait a long time for a CI slot.
    Never force-push `main`. Build and test only through `just`: every swift build or test
    waits for one of two machine-wide CI slots ([decision 0033](docs/DECISIONS.md)), so never
    run `swift build` or `swift test` directly. While developing run `just test
