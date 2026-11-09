@@ -231,3 +231,12 @@ private func triage() -> OutcomeSnapshot {
     #expect(item.risk == "medium")
     #expect(item.reason == "The customer is waiting on a refund.")
 }
+
+@Test func planMarksReadAsStatusNotFailure() {
+    #expect(OutcomePlan.status("blocked") == .blocked)
+    #expect(OutcomePlan.StepStatus.blocked.mark == "◷")
+    #expect(OutcomePlan.StepStatus.blocked.word == "waiting on you")
+    #expect(OutcomePlan.status("skipped") == .dropped)
+    #expect(OutcomePlan.status("failed") == .failed)
+    #expect(OutcomePlan.StepStatus.dropped.mark == OutcomePlan.StepStatus.failed.mark)
+}

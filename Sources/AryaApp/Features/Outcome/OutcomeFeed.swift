@@ -5,16 +5,30 @@ import Foundation
 /// before it.
 struct OutcomePlan: Hashable, Sendable {
     enum StepStatus: String, Hashable, Sendable {
-        case todo, doing, done, dropped, blocked
+        /// `blocked` waits on a person (an approval or an answer); `failed` is a real failure.
+        case todo, doing, done, dropped, blocked, failed
 
-        /// A compact mark for the checklist; the word is spoken to assistive tech.
+        /// A compact mark for the checklist; the word is spoken to assistive tech. Waiting on a
+        /// person uses the same clock as pending approvals.
         var mark: String {
             switch self {
             case .todo: "○"
             case .doing: "◐"
             case .done: "✓"
-            case .dropped: "–"
-            case .blocked: "✕"
+            case .blocked: "◷"
+            case .dropped, .failed: "✕"
+            }
+        }
+
+        /// How the step is spoken and labeled.
+        var word: String {
+            switch self {
+            case .todo: "to do"
+            case .doing: "in progress"
+            case .done: "done"
+            case .blocked: "waiting on you"
+            case .dropped: "dropped"
+            case .failed: "failed"
             }
         }
     }
@@ -73,6 +87,8 @@ struct OutcomePlan: Hashable, Sendable {
         case "pending": .todo
         case "in_progress": .doing
         case "skipped": .dropped
+        case "waiting": .blocked
+        case "error": .failed
         default: word.flatMap(StepStatus.init(rawValue:)) ?? .todo
         }
     }

@@ -167,7 +167,7 @@ struct OutcomePlanSection: View {
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                     Text(step.status.mark)
                         .aryaText(AryaFont.mono, color(step.status))
-                        .accessibilityLabel(step.status.rawValue)
+                        .accessibilityLabel(step.status.word)
                     Text(step.title)
                         .aryaText(
                             AryaFont.body,
@@ -193,7 +193,8 @@ struct OutcomePlanSection: View {
         switch status {
         case .done: AryaColor.positive
         case .doing: AryaColor.ink
-        case .blocked: AryaColor.negative
+        case .blocked: AryaColor.accent
+        case .failed: AryaColor.negative
         case .todo, .dropped: AryaColor.inkFaint
         }
     }

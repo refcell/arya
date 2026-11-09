@@ -121,3 +121,7 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   follows the checklist (default per autonomy, or "Checked actions wait for you" once
   edited). Visual check (offscreen `just snapshot`): new-steward-4 shows label/route low,
   reply medium, close high, and copy matching the checks.
+- 2026-11-09: plan marks: done green ✓, in progress ◐, blocked (waiting on a person)
+  orange ◷ like pending approvals, dropped muted ✕, failed red ✕.
+  Visual check (offscreen `just snapshot`, reseeded demo): plan 2/4 with ◐, ✓✓, and an orange
+  ◷ on the step waiting for approval; 0.96 ON TRACK with a weeks-long sparkline.
