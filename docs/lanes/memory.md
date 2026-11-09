@@ -17,7 +17,7 @@ M1:
 
 M2:
 - [x] Corrections become notes attributed to the correcting person.
-- [ ] Routine library: routines as content-addressed blobs, `routine.proposed`,
+- [x] Routine library: routines as content-addressed blobs, `routine.proposed`,
   `routine.promoted`, `routine.retired`; live version per name as a projection.
 - [ ] Routine diff between versions (line-based, no dependencies) for the app's version view.
 - [ ] Routine execution for the `routine` action kind: run a shell routine in the run's workdir
@@ -49,6 +49,18 @@ M2:
 - A correction note (`MemoryCorrections.note`) is authored by the correcting person (kind
   `human`), points at the `case.corrected` event, the case, and the rehearsal run if any, and is
   tagged `correction` and `case:<id>` so rehearsing that case can retrieve it by tag.
+- A routine version is the lowercase hex SHA-256 of its UTF-8 content, which is also its blob
+  key. Names are 1-64 bytes of `[a-z0-9_.-]` starting with a letter or digit, unique per
+  steward. Languages: `sh` (executable through the `routine` action kind) and `prompt` (text
+  only). Content is at most 256 KiB.
+- `routine.proposed` carries name, version, language, bytes, a one-line summary (reason, else
+  the first `#` comment, else the name), reason, and run; content lives only in the blob.
+  `routine.promoted` names the version and optional proposal; `routine.retired` names the live
+  version it retires.
+- The library projection never applies a contradictory event (promoting an unproposed version,
+  a duplicate proposal, retiring a non-live version); it records a `RoutineAnomaly` instead.
+- Until `AryaLedger` ships a blob store, routines use `RoutineBlobStore` (put/get by SHA-256 key)
+  with an in-memory implementation; loading content re-hashes and rejects a corrupt blob.
 
 ## Questions
 
@@ -58,3 +70,4 @@ M2:
 - 2026-11-09: fixed the intermittent `AryaDesignTests` crash by moving AppKit suites to the
   main actor (9d1f01b).
 - 2026-11-09: corrections become attributed notes (6b0e5fb).
+- 2026-11-09: memory types moved to core id types (aa8dcb6).
