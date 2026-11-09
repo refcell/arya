@@ -116,3 +116,27 @@ private func entry(_ opened: Opened, _ type: String) async throws -> LedgerEntry
     #expect(failed.payload.contains("exited with 3"))
     #expect(failed.payload.contains("nope"))
 }
+
+@Test func messageRunsAndServingRecordProposedRoutines() async throws {
+    let opened = try await Opened([routineRun(script)])
+    var charter = inboxCharter()
+    charter.bindings.append(.person("person:alex", channel: "inbox"))
+    charter.triggers = [.manual, .message(from: "person:alex")]
+    _ = try await opened.workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    _ = try await opened.workspace.markReady(steward: "st_inbox")
+
+    #expect(try await opened.workspace.startServing(every: .milliseconds(5)))
+    #expect(await opened.workspace.isServing)
+    #expect(
+        !(try await opened.workspace.deliverMessage("hi", from: "person:sam", to: "st_inbox")))
+    #expect(
+        try await opened.workspace.deliverMessage(
+            "New message MSG-9", from: "person:alex", to: "st_inbox"))
+    await opened.workspace.settle()
+    await opened.workspace.stopServing()
+    #expect(!(await opened.workspace.isServing))
+
+    let run = try #require(try await opened.workspace.runs(steward: "st_inbox").first)
+    #expect(run.trigger == "message")
+    #expect(try await opened.workspace.routines(steward: "st_inbox").map(\.name) == ["tag-billing"])
+}

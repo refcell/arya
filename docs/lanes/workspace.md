@@ -9,6 +9,21 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 
 ## Backlog
 
+Outcome first (user priority, consumed by the app-outcome lane):
+- [x] `outcome(steward:windows:windowSeconds:) -> OutcomeSummary` (KPI, current, target,
+  direction, success definition, trend, status vs target).
+- [ ] `plan(steward:) -> Plan`: real shape, no items until runtime records plan events.
+- [x] `recap(steward:since:) -> Recap` (goal, outcome, activity since a seq the app keeps,
+  unresolved, pending approvals) and `activity(steward:limit:) -> [ActivityItem]`.
+- [x] `createSteward(_ draft: StewardDraft)` from structured fields; `bindings(steward:)`,
+  `people(steward:)`.
+
+M4:
+- [x] Scheduler control for `arya serve`: `startServing(every:)` (scheduler lock),
+  `stopServing()`, `isServing`, `tick()`, `deliverMessage(_:from:to:)`, `settle()`; triggered
+  runs record proposed routines through the scheduler's `finished` hook.
+- [ ] People bindings: a local inbox (person-binding actions and questions) the app shows.
+
 M1 (the facade still throws `unavailable` for these):
 - [x] A ledger-backed `EventSink` for the home, then stewards, runs, approvals, ledger read,
   and verify through the runtime; restart recovery on `open`.
@@ -45,7 +60,8 @@ M2 (top priority first):
 
 M3:
 - [x] Restart recovery wiring on `open` (interrupted runs fail, pending approvals stay).
-- [ ] Facade-level end-to-end test with the fake adapter that mirrors the M3 scenario.
+- [x] Facade-level end-to-end test with the fake adapter that mirrors the M3 scenario
+  (`ScenarioTests`, on `etc/examples/triage`).
 
 ## Decisions
 
@@ -81,7 +97,6 @@ M3:
 
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
-- (from eval) `RunReplayer(sink:casebooks:).replay(run:)` is on main (36829d4) for `Workspace.replay`.
 - (from runtime) Binding proxy: pass `BindingProxyLaunch(command: <arya executable>, args: ["binding-proxy", "--home", <home>])` as `RunEngine(proxy:)`; `replay` can serve a run's original answers with `ToolRecordings.from(events, run:)` as `ToolSource.recorded`.
 - (from ledger) `LedgerVerification.report` (`headline`, `details`, `lines`, `text`) is a stable, locale-free verify rendering; `LedgerCheck` could carry its `lines` so the CLI and app show where, meaning, and next step.
 - (from ledger) `sink.book(RunBook.self)` (AryaRuntime) serves books from `cache/`; `Workspace.runBook()` could use it instead of folding every event.
@@ -99,6 +114,8 @@ M3:
 - 2026-11-09: routine reads take a steward (`RoutineLibrary` keys by steward and name);
   `caseExpected` returns canonical JSON `Data`, like `charter(_:)`, so the app needs no
   `AryaCore` import
+- 2026-11-09: recap takes the last seen `seq` from the caller; the facade keeps no per-person
+  state
 - 2026-11-09: routine intake runs in the facade after each facade-started live run (runtime
   has no blob store); scheduler-started runs get it when the facade drives `arya serve` (M4)
 - 2026-11-09: routine gates and overrides get a fresh proposal id (routine proposals have no
@@ -117,3 +134,5 @@ M3:
   import, rehearse 7/8, correct case-0006, rehearse 8/8, ready, live run, approval wait,
   approve, executed, metric recorded, series updated, replay zero divergence, verify.
 - 2026-11-09: routine wiring (intake, execution, approvals) and `changes(after:)`; 34 AryaTests.
+- 2026-11-09: outcome-first calls (outcome, plan shape, recap, activity, structured create,
+  bindings, people), serve control, M3 scenario test; 39 AryaTests.

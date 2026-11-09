@@ -135,6 +135,7 @@ M4:
   show full run ids where a short form fits.
 - (from app-shell) Fixed in `ApprovalCard` (decision 0034): Command-Return approves and
   Command-Delete denies; plain Return and Escape do nothing on a card.
+- (from workspace) for the app-outcome lane: `outcome(steward:)`, `plan(steward:)` (empty until runtime plan events), `recap(steward:since:)`, `activity(steward:limit:)`, `createSteward(_: StewardDraft)`, `bindings(steward:)`, `people(steward:)` are live.
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

@@ -65,19 +65,29 @@ struct RoutineActionExecutor: ActionExecutor {
     }
 }
 
-extension Workspace {
-    /// Records the routines a finished live run proposed (`routine.proposed`, the steward as
-    /// actor), storing each body in the home's blobs. Invalid routines and versions already on
-    /// the ledger are skipped. None go live here: `gateRoutine` or a person promotes them.
-    func recordProposedRoutines(_ outcome: RunOutcome, steward: StewardID) async throws {
+/// Records the routines a finished live run proposed (`routine.proposed`, the steward as
+/// actor), storing each body in the home's blobs. Invalid routines and versions already on the
+/// ledger are skipped. None go live here: `gateRoutine` or a person promotes them. Used after
+/// facade-started runs and, through the scheduler's `finished` hook, after triggered ones.
+struct RoutineRecorder: Sendable {
+    let home: URL
+    let sink: LedgerEventSink
+
+    func record(_ outcome: RunOutcome) async throws {
         guard let routines = outcome.result?.routines, !routines.isEmpty else { return }
+        let events = try await sink.events(from: 1)
+        let started = events.last {
+            $0.type == RunEventType.started && $0.draft.run == outcome.run
+        }
+        guard let steward = started?.draft.steward else { return }
         let intake = try RoutineProposals.intake(
             routines.map {
                 ProposedRoutine(
                     name: $0.name, language: $0.language, content: $0.content, reason: $0.reason)
             },
             steward: steward, run: outcome.run,
-            library: try RoutineLibrary(ledger: try reader.events()), store: BlobStore(home: home))
+            library: try RoutineLibrary(ledger: try LedgerReader(home: home).events()),
+            store: BlobStore(home: home))
         for draft in intake.drafts {
             _ = try await sink.append(RuntimeEventDraft(draft))
         }

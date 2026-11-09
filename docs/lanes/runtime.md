@@ -184,6 +184,7 @@ M4:
   effort it used in `run.started`. The workspace lane landed that fold as a small integration
   edit in `Stewards.swift`.
 - (from workspace) integration edit: `RunRequest.routine: CandidateRoutine?` runs a rehearsal with that routine version in place of the live one (`MemoryView.context(candidate:)`); `run.started.routines` records it.
+- (from workspace) integration edit: `Scheduler(engine:finished:)` calls `finished` with each run it started (the facade records proposed routines). Plan events wanted for `Workspace.plan`: proposed `run.plan.updated {items:[{id,text,status: open|doing|done|dropped}], reason?}` from `run/result.plan`; say if you prefer another shape.
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior

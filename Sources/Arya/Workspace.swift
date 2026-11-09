@@ -24,6 +24,10 @@ public actor Workspace {
     let approvalQueue: ApprovalQueue
     let dispatcher: ActionDispatcher
     let engine: RunEngine
+    let routineRecorder: RoutineRecorder
+    let scheduler: Scheduler
+    /// The trigger loop and the home's scheduler lock while this process serves.
+    var serving: (lock: SchedulerLock, task: Task<Void, Never>)?
 
     private init(home: URL, wiring: Wiring) throws {
         self.home = home
@@ -44,6 +48,9 @@ public actor Workspace {
                 return url.path
             },
             questionPoll: wiring.questionPoll, leases: wiring.leases)
+        let recorder = RoutineRecorder(home: home, sink: sink)
+        routineRecorder = recorder
+        scheduler = Scheduler(engine: engine) { outcome in try? await recorder.record(outcome) }
     }
 
     /// Opens the home at `home`, creating its directories when missing, and records
@@ -145,7 +152,7 @@ public actor Workspace {
     public func startRun(steward: String, input: String) async throws -> RunSummary {
         let id = try await existing(steward).id
         let outcome = try await mapped { try await engine.run(.manual(id, text: input)) }
-        try await recordProposedRoutines(outcome, steward: id)
+        try await routineRecorder.record(outcome)
         guard let record = try await runBook().records[outcome.run] else {
             throw WorkspaceError.notFound(outcome.run.rawValue)
         }

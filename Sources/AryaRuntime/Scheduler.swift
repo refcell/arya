@@ -53,13 +53,17 @@ public enum SchedulePlan {
 /// background; `settle()` waits for them. Hold `SchedulerLock` before creating one.
 public actor Scheduler {
     private let engine: RunEngine
+    private let finished: (@Sendable (RunOutcome) async -> Void)?
     private var scheduled: Set<StewardID> = []
     private var tasks: [Int: Task<Void, Never>] = [:]
     private var nextTask = 0
 
     /// Creates a scheduler that starts runs through `engine`.
-    public init(engine: RunEngine) {
+    /// `finished` sees every run the scheduler started once it ends (the facade records the
+    /// routines a run proposed); its errors are the caller's to handle.
+    public init(engine: RunEngine, finished: (@Sendable (RunOutcome) async -> Void)? = nil) {
         self.engine = engine
+        self.finished = finished
     }
 
     /// Starts a scheduled run for every due steward; returns the stewards it started.
@@ -118,10 +122,11 @@ public actor Scheduler {
         let key = nextTask
         nextTask += 1
         let engine = engine
+        let finished = finished
         tasks[key] = Task {
             // A run records its own failures; only ledger errors throw, and the next tick
             // (or a restart's recovery) sees whatever reached the ledger.
-            _ = try? await engine.run(request)
+            if let outcome = try? await engine.run(request) { await finished?(outcome) }
             await done(self)
             await self.forget(key)
         }
