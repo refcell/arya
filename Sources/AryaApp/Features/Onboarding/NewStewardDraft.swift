@@ -105,9 +105,14 @@ struct NewStewardDraft: Hashable, Sendable {
     var wakesOnMessage = true
     var effort = "medium"
     var adapter = "default"
+    /// Set when the flow edits a live charter (`CharterEdit.swift`); it then ends in a
+    /// proposal, never a direct save.
+    var editing: CharterEditing?
+    /// Why the change, for the proposal (edit only).
+    var whyChange = ""
 
-    /// The steward id the facade will record: `st_` and the name's slug.
-    var stewardID: String { "st_" + Self.slug(name) }
+    /// The steward id: the edited steward's, or the facade's `st_` and the name's slug.
+    var stewardID: String { editing?.steward ?? "st_" + Self.slug(name) }
 
     /// What blocks Continue on `step`, phrased for people; empty when the step is complete.
     func problems(_ step: Step) -> [String] {
@@ -138,11 +143,16 @@ struct NewStewardDraft: Hashable, Sendable {
             if Set(ids).count < ids.count { out.append("Each person needs a different name.") }
             return out
         case .schedule:
+            var out: [String] = []
             let minutes = everyMinutes.trimmed
             if !minutes.isEmpty, Int(minutes).map({ $0 >= 0 }) != true {
-                return ["Minutes must be a whole number, or empty for on demand."]
+                out.append("Minutes must be a whole number, or empty for on demand.")
             }
-            return adapter.trimmed.isEmpty ? ["Name the adapter profile to run it with."] : []
+            if adapter.trimmed.isEmpty { out.append("Name the adapter profile to run it with.") }
+            if editing != nil, out.isEmpty, changedFields().isEmpty {
+                out.append("Nothing changed yet.")
+            }
+            return out
         }
     }
 

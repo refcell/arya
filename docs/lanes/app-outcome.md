@@ -54,6 +54,13 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   facade risk read lands)
   and a default from autonomy: asking first checks everything, acting on its own checks only
   high risk. "Never allowed" is a second checklist behind Advanced. Every kind becomes a rule.
+- The charter editor is the New steward steps on the live charter (`CharterEdit.swift`):
+  answers are read from the charter, edits merge back into it keeping every field the steps
+  do not manage (limits, scorer, gate, crew, risk levels, rule notes, other triggers), and it
+  ends in "Propose change" (`proposeCharter`, gated, shown in Improve), never a direct save.
+  Actions with no rule follow the charter default; generated rules that only restate the
+  default are left out; reordering alone is not a change. Opened by Steward > Edit Charter…
+  (⇧⌘E) and `FeatureRegistry.editCharter`, which the settings button should call.
 - The New steward sheet uses no system accent: `NewStewardChoice` (drawn like
   `EffortSelector`) and `NewStewardCheck` replace segmented pickers and the checkbox.
 - Status: on track when the latest daily value meets the target in its direction; at risk
@@ -126,3 +133,7 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   orange ◷ like pending approvals, dropped muted ✕, failed red ✕.
   Visual check (offscreen `just snapshot`, reseeded demo): plan 2/4 with ◐, ✓✓, and an orange
   ◷ on the step waiting for approval; 0.96 ON TRACK with a weeks-long sparkline.
+- 2026-11-09: charter editor on the New steward steps, ending in a gated proposal. Visual
+  check (offscreen `just snapshot`): charter-editor (step 1, prefilled) and charter-editor-5
+  (why + "Change outcome. It goes live once its gate passes." + Propose change), dark and
+  light, pass the 5 requirements.

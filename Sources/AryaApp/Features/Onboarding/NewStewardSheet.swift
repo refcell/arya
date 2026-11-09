@@ -6,7 +6,7 @@ import SwiftUI
 /// behind a disclosure. Creates through the facade's structured `createSteward`.
 struct NewStewardSheet: View {
     @ObservedObject var store: FeatureStore
-    /// Called with the new steward's id once the facade recorded it.
+    /// Called with the steward's id once the facade recorded it (created, or change proposed).
     let created: (String) -> Void
     let cancel: () -> Void
     @AryaState private var draft: NewStewardDraft
@@ -31,10 +31,18 @@ struct NewStewardSheet: View {
 
     private static let stepCount = NewStewardDraft.Step.allCases.count
 
+    private var heading: String {
+        let position = "\(step.rawValue + 1) of \(Self.stepCount)"
+        guard let editing = draft.editing else { return "New steward · \(position)" }
+        return "Edit charter v\(editing.baseVersion) · \(position)"
+    }
+
+    private var finalTitle: String { draft.editing == nil ? "Create steward" : "Propose change" }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s4) {
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                Text("New steward · \(step.rawValue + 1) of \(Self.stepCount)")
+                Text(heading)
                     .aryaText(AryaFont.overline, AryaColor.inkFaint)
                 Text(step.title).aryaText(AryaFont.heading, AryaColor.ink)
                 Text(step.question).aryaText(AryaFont.body, AryaColor.inkMuted)
@@ -67,7 +75,7 @@ struct NewStewardSheet: View {
             if let previous = step.previous {
                 Button("Back") { move(to: previous) }.buttonStyle(.aryaTertiary)
             }
-            Button(step.next == nil ? "Create steward" : "Continue", action: proceed)
+            Button(step.next == nil ? finalTitle : "Continue", action: proceed)
                 .buttonStyle(.aryaPrimary)
                 .keyboardShortcut(.defaultAction)
                 .disabled(saving)
@@ -88,8 +96,11 @@ struct NewStewardSheet: View {
             return move(to: first)
         }
         saving = true
+        let write: FeatureWrite =
+            draft.proposal().map(FeatureWrite.proposeCharter)
+            ?? .createSteward(draft.stewardDraft())
         Task {
-            let ok = await store.perform(.createSteward(draft.stewardDraft()))
+            let ok = await store.perform(write)
             saving = false
             if ok { created(draft.stewardID) }
         }
@@ -278,6 +289,17 @@ struct NewStewardFields: View {
             selection: Binding(
                 get: { AryaEffort(rawValue: draft.effort) ?? .medium },
                 set: { draft.effort = $0.rawValue }))
+        if draft.editing != nil {
+            labeled("Why this change") {
+                CharterTextField(
+                    placeholder: "One sentence for the proposal", text: $draft.whyChange)
+            }
+            if !draft.changedFields().isEmpty {
+                let title = CharterText.title(draft.changedFields())
+                Text("\(title). It goes live once its gate passes.")
+                    .aryaText(AryaFont.caption, AryaColor.inkFaint)
+            }
+        }
         disclosure {
             labeled("Adapter profile") {
                 CharterTextField(placeholder: "default", text: $draft.adapter, mono: true)

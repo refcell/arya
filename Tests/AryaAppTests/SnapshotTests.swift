@@ -92,6 +92,27 @@ import Testing
                     "new-steward-\(step.rawValue + 1)", scheme: scheme, render(page, dark: dark))
             }
         }
+        // The charter editor: the same steps on the live charter, ending in a proposal.
+        if let store = model.featureContext().store,
+            let live = LiveCharter.find(events: store.events, steward: steward.id)
+        {
+            var edit = NewStewardDraft.editing(live)
+            edit.outcome += " Security reports reach the security queue within 15 minutes."
+            edit.whyChange = "Security reports were waiting behind billing questions."
+            let pages: [(String, NewStewardDraft, NewStewardDraft.Step)] = [
+                ("charter-editor", NewStewardDraft.editing(live), .outcome),
+                ("charter-editor-5", edit, .schedule),
+            ]
+            for (name, draft, step) in pages {
+                let page = NewStewardSheet(
+                    store: store, draft: draft, step: step, created: { _ in }, cancel: {}
+                )
+                .frame(width: 560, height: 640, alignment: .top)
+                .frame(width: Self.size.width, height: Self.size.height)
+                .background(AryaColor.canvas)
+                try write(name, scheme: scheme, render(page, dark: dark))
+            }
+        }
 
         let empty = try await emptyModel()
         defer { try? FileManager.default.removeItem(at: empty.home) }

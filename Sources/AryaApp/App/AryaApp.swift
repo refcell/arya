@@ -96,6 +96,9 @@ struct AryaCommands: Commands {
             Button("New Steward…") { session.model?.stewardSheet = NewStewardDraft() }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(session.model == nil)
+            Button("Edit Charter…") { session.model.map(FeatureRegistry.editCharter) }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(session.model?.navigation.steward == nil)
             let steward = session.model?.selectedSteward
             Button("Start Run") { Task { await session.model?.startRun() } }
                 .keyboardShortcut("r", modifiers: [.command, .shift])

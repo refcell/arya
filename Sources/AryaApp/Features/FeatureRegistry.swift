@@ -107,12 +107,24 @@ enum FeatureRegistry {
             NewStewardSheet(
                 store: store, draft: model.stewardSheet ?? NewStewardDraft(),
                 created: { id in
+                    let proposed = model.stewardSheet?.editing != nil
                     model.stewardSheet = nil
                     model.navigation.select(steward: id)
+                    if proposed { model.navigation.tab = .improve }
                     Task { await model.refresh() }
                 },
                 cancel: { model.stewardSheet = nil })
         }
+    }
+
+    /// Opens the charter editor (the New steward steps, prefilled) on the selected steward's
+    /// live charter; it ends in a gated proposal shown in Improve.
+    static func editCharter(_ model: AppModel) {
+        guard let steward = model.navigation.steward,
+            let live = LiveCharter.find(
+                events: model.featureContext().store?.events ?? [], steward: steward)
+        else { return }
+        model.stewardSheet = .editing(live)
     }
 
     /// The first-launch screen when the home has no stewards.
