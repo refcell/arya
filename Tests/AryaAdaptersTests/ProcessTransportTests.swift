@@ -37,13 +37,16 @@ import Testing
 @Test func adapterIgnoringSIGTERMIsKilled() async throws {
     // The shell ignores SIGTERM and its `sleep` child keeps stdout open after the kill.
     let command = AdapterCommand(
-        executable: "/bin/sh", arguments: ["-c", "trap '' TERM; while :; do sleep 1; done"],
+        executable: "/bin/sh",
+        arguments: ["-c", "trap '' TERM; echo ready; while :; do sleep 1; done"],
         environment: ["PATH": "/usr/bin:/bin"])
     let transport = try ProcessTransport.launch(command)
-    try await Task.sleep(for: .milliseconds(100))
+    var inputs = transport.input.makeAsyncIterator()
+    // Terminate only once the trap is in place, however slow the machine is.
+    #expect(await inputs.next() == .line(Data("ready".utf8)))
     await transport.terminate(grace: .milliseconds(200))
     var last: TransportInput?
-    for await input in transport.input { last = input }
+    while let input = await inputs.next() { last = input }
     #expect(last == .ended(.signaled(SIGKILL)))
 }
 
@@ -60,4 +63,21 @@ import Testing
     #expect(try updates.compactMap(\.result).first?.decodedResult().summary == "Nothing to do.")
     try await adapter.shutdown()
     #expect(await adapter.waitForExit() == .exited(0))
+}
+
+@Test func adapterThatStopsReadingStillTimesOut() async throws {
+    // The adapter never reads stdin, so a large request fills the pipe; the request must still
+    // time out, and shutdown must still terminate the adapter.
+    let command = AdapterCommand(
+        executable: "sh", arguments: ["-c", "exec sleep 30"],
+        environment: ["PATH": "/usr/bin:/bin"])
+    var timeouts = Sample.fast
+    timeouts.request = .milliseconds(300)
+    let adapter = try AdapterUnderTest.launch(command, timeouts: timeouts)
+    let big: JSONValue = ["blob": .string(String(repeating: "x", count: 1 << 20))]
+    await #expect(throws: AdapterError.requestTimedOut(method: "run/huge")) {
+        try await adapter.request("run/huge", params: big)
+    }
+    try? await adapter.shutdown()
+    #expect(await adapter.waitForExit() != .exited(0))
 }

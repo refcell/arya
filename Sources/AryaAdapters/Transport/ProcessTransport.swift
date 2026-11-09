@@ -51,6 +51,9 @@ public final class ProcessTransport: AdapterTransport {
     private let continuation: AsyncStream<TransportInput>.Continuation
     private let process: Process
     private let stdin: FileHandle
+    /// Writes to stdin run here, so a peer that stops reading cannot block the caller (or the
+    /// actor calling it, and with it the request timeouts); terminating the peer ends the write.
+    private let stdinQueue = DispatchQueue(label: "arya.adapter.stdin")
     private let state = Locked(ProcessState())
 
     private struct ProcessState {
@@ -170,9 +173,12 @@ public final class ProcessTransport: AdapterTransport {
         continuation.finish()
     }
 
+    /// Queues `line` for stdin and returns; lines are written in order. A failed write means
+    /// the peer is gone, which `.ended` reports, so it is not thrown here.
     public func write(_ line: Data) async throws {
         if state.withLock({ $0.inputClosed }) { throw AdapterError.writeFailed("stdin closed") }
-        try stdin.write(contentsOf: line)
+        let stdin = self.stdin
+        stdinQueue.async { try? stdin.write(contentsOf: line) }
     }
 
     public func closeInput() async {
@@ -180,7 +186,9 @@ public final class ProcessTransport: AdapterTransport {
             defer { state.inputClosed = true }
             return !state.inputClosed
         }
-        if first { try? stdin.close() }
+        // After any queued writes.
+        let stdin = self.stdin
+        if first { stdinQueue.async { try? stdin.close() } }
     }
 
     public func terminate(grace: Duration) async {

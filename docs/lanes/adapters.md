@@ -97,6 +97,9 @@ M4:
   `invalid_result` check gives the same answer.
 - `text` output becomes one `message` event at exit rather than an event per line, so
   transcripts do not fill with partial lines.
+- `ProcessTransport.write` queues the line on a serial stdin queue and returns, so a peer that
+  stops reading cannot block the connection actor or its request timeouts; a failed write is
+  not thrown because `.ended` reports the dead peer.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
