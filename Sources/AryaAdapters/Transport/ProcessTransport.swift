@@ -44,7 +44,8 @@ public struct AdapterCommand: Sendable, Hashable {
 /// An ``AdapterTransport`` over the stdin and stdout of a child process.
 ///
 /// stdout is split into lines; stderr goes to a ``StderrSink``. `.ended` is delivered only
-/// after both the process has exited and stdout has been read to the end, so no line is lost.
+/// after the process has exited and stdout and stderr have been read to the end (or one second
+/// has passed since the exit), so no output is lost.
 public final class ProcessTransport: AdapterTransport {
     public let input: AsyncStream<TransportInput>
     private let continuation: AsyncStream<TransportInput>.Continuation
@@ -55,6 +56,7 @@ public final class ProcessTransport: AdapterTransport {
     private struct ProcessState {
         var splitter = LineSplitter()
         var stdoutDone = false
+        var stderrDone = false
         var exit: AdapterExit?
         var ended = false
         var inputClosed = false
@@ -105,10 +107,11 @@ public final class ProcessTransport: AdapterTransport {
             if data.isEmpty { handle.readabilityHandler = nil }
             self?.readStdout(data)
         }
-        stderrPipe.fileHandleForReading.readabilityHandler = { handle in
+        stderrPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             if data.isEmpty {
                 handle.readabilityHandler = nil
+                self?.stderrEnded()
             } else {
                 stderr.append(data)
             }
@@ -138,19 +141,27 @@ public final class ProcessTransport: AdapterTransport {
         if data.isEmpty { endIfDone() }
     }
 
+    private func stderrEnded() {
+        state.withLock { $0.stderrDone = true }
+        endIfDone()
+    }
+
     private func exited(_ exit: AdapterExit) {
         state.withLock { $0.exit = exit }
         endIfDone()
         // A grandchild that inherited stdout can keep it open after the adapter exits; stop
         // waiting for end-of-file after a short delay so the exit is still reported.
         DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(1)) { [weak self] in
+            self?.state.withLock { $0.stderrDone = true }
             self?.readStdout(Data())
         }
     }
 
     private func endIfDone() {
         let exit = state.withLock { state -> AdapterExit? in
-            guard state.stdoutDone, let exit = state.exit, !state.ended else { return nil }
+            guard state.stdoutDone, state.stderrDone, let exit = state.exit, !state.ended else {
+                return nil
+            }
             state.ended = true
             return exit
         }
