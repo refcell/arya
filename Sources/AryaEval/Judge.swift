@@ -63,7 +63,14 @@ public struct JudgeVerdict: Hashable, Sendable, Codable {
         self.init(value: value, passed: passed, notes: notes)
     }
 
-    var score: CaseScore { CaseScore(value: value, passed: passed, notes: notes) }
+    func score(judge: String) -> CaseScore {
+        let text =
+            notes.isEmpty
+            ? "value \(ResultText.value(.double(value)))" : notes.joined(separator: "; ")
+        return CaseScore(
+            value: value, passed: passed, notes: notes,
+            checks: [CheckResult(label: "judge \(judge)", passed: passed, text: text)])
+    }
 }
 
 /// One sample's judgment as recorded in `rehearsal.case.scored`.

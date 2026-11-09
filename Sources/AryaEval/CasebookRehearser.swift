@@ -180,12 +180,15 @@ public struct CasebookRehearser: Rehearser {
             let verdict = try await judge.judge(request)
             let record = JudgeRecord(
                 sample: job.sample, judge: judge.name, rubric: rubric, verdict: verdict)
-            return (verdict.score, record)
+            return (verdict.score(judge: judge.name), record)
         } catch {
-            let note = "judge failed: \(String(describing: error))"
+            var reason = String(describing: error)
+            if case EvalError.badVerdict(let message) = error { reason = message }
+            let note = "judge failed: \(reason)"
             let record = JudgeRecord(
                 sample: job.sample, judge: judge.name, rubric: rubric, error: note)
-            return (CaseScore(value: 0, passed: false, notes: [note]), record)
+            let check = CheckResult(label: "judge \(judge.name)", passed: false, text: note)
+            return (CaseScore(value: 0, passed: false, notes: [note], checks: [check]), record)
         }
     }
 

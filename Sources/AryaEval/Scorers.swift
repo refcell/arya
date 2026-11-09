@@ -33,8 +33,18 @@ public struct ExactScorer: Scorer {
         }
         let failed = fields.filter { expected.values(at: $0) != actual.values(at: $0) }
         let value = Double(fields.count - failed.count) / Double(fields.count)
+        let checks = fields.map { field in
+            let want = expected.values(at: field)
+            let have = actual.values(at: field)
+            return CheckResult(
+                label: "\(field) matches expected", passed: want == have,
+                text: want == have
+                    ? CaseScore.words(have)
+                    : "expected \(CaseScore.words(want)), got \(CaseScore.words(have))")
+        }
         return CaseScore(
-            value: value, passed: failed.isEmpty, notes: failed.map { "\($0) differs" })
+            value: value, passed: failed.isEmpty, notes: failed.map { "\($0) differs" },
+            checks: checks)
     }
 }
 
@@ -67,6 +77,18 @@ public struct RubricCheck: Hashable, Sendable, Codable {
 
     enum CodingKeys: String, CodingKey {
         case kind, path, value, weight
+    }
+
+    /// The check in words: `decisions.choice matches expected`, `actions.kind is label`.
+    public var label: String {
+        let operand = value.map(ResultText.value) ?? "?"
+        switch kind {
+        case .matchesExpected: return "\(path) matches expected"
+        case .exists: return "\(path) is present"
+        case .absent: return "\(path) is absent"
+        case .equals: return "\(path) is \(operand)"
+        case .contains: return "\(path) contains \(operand)"
+        }
     }
 
     func holds(expected: JSONValue, actual: JSONValue) -> Bool {
@@ -104,15 +126,22 @@ public struct RubricScorer: Scorer {
         }
         var earned = 0.0
         var notes: [String] = []
+        var results: [CheckResult] = []
         for check in checks where check.weight > 0 {
-            if check.holds(expected: expected, actual: actual) {
+            let holds = check.holds(expected: expected, actual: actual)
+            if holds {
                 earned += check.weight
             } else {
                 notes.append("\(check.kind.rawValue) \(check.path) failed")
             }
+            results.append(
+                CheckResult(
+                    label: check.label, passed: holds, weight: check.weight,
+                    text: "found \(CaseScore.words(actual.values(at: check.path)))"))
         }
         let value = earned / total
-        return CaseScore(value: value, passed: value >= passThreshold, notes: notes)
+        return CaseScore(
+            value: value, passed: value >= passThreshold, notes: notes, checks: results)
     }
 }
 

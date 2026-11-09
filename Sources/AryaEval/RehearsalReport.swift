@@ -60,6 +60,10 @@ public struct SampleReport: Hashable, Sendable, Codable {
     public var text: String
     /// The differences in a line, or `matches expected`.
     public var diffText: String
+    /// The score in a line (`CaseScore.text`).
+    public var scoreText: String
+    /// The judge's recorded judgment, when a judge scored the sample.
+    public var judgment: JudgeRecord?
 }
 
 /// One case of a rehearsal, as the app's review screen shows it.
@@ -146,7 +150,9 @@ public struct RehearsalReports: Sendable {
                 run: scored?.runs[safe: index] ?? nil, actual: actual, score: scores[index],
                 diff: diff, text: ResultText.describe(actual),
                 diffText: actual == nil
-                    ? (scores[index].notes.first ?? "no result") : ResultText.describe(diff))
+                    ? (scores[index].notes.first ?? "no result") : ResultText.describe(diff),
+                scoreText: scores[index].text,
+                judgment: scored?.judgments?.first { $0.sample == index })
         }
         return CaseReport(
             caseID: item.id, input: item.input.text, expected: item.expected,

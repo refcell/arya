@@ -79,6 +79,12 @@ private let request = JudgeRequest(
         .map { try EvalPayload.decode(RehearsalCaseScoredPayload.self, $0.payload) }
     #expect(scored.first?.judgments?.first?.judge == "fake")
     #expect(scored.first?.judgments?.first?.rubric == "Synonyms pass.")
+    #expect(result.outcomes.first?.samples.first?.text == "passed (0.9)")
+    #expect(result.outcomes.first?.samples.first?.checks?.first?.label == "judge fake")
+    let report = try await RehearsalReports(sink: sink, casebooks: FixedCasebooks(book: book))
+        .report(try #require(result.id))
+    #expect(report.cases.first?.samples.first?.judgment?.verdict?.value == 0.9)
+    #expect(report.cases.first?.samples.first?.scoreText == "passed (0.9)")
 
     var replayRequest = request
     replayRequest.rehearsal = try #require(result.id)
@@ -106,7 +112,7 @@ private let request = JudgeRequest(
         charter: testCharter)
     let score = try #require(result.outcomes.first?.samples.first)
     #expect(score.value == 0 && !score.passed)
-    #expect(score.notes.first?.hasPrefix("judge failed") == true)
+    #expect(score.text == "failed (0): judge fake: judge failed: value must be a number in 0...1")
     let payload = try await sink.events(from: 1)
         .first { $0.type == EvalEventType.rehearsalCaseScored }
         .map { try EvalPayload.decode(RehearsalCaseScoredPayload.self, $0.payload) }

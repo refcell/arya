@@ -21,7 +21,7 @@ Priority (replay before live, visible in the app):
   rehearsal reports and backtest cases, plus one-line case and comparison summaries.
 - [x] M3.5 backtest scenario fixture (`Fixtures/backtest`): current versus proposed triage
   charter, one improved (case-0006) and one regressed (case-0005) case.
-- [ ] Rubric and judge scorer data for the app: per-check results and judge verdict text.
+- [x] Rubric and judge scorer data for the app: per-check results and judge verdict text.
 
 M1:
 - [x] Interfaces only, so other lanes can compile against them: `Replayer`, `Rehearser`,
@@ -101,6 +101,10 @@ Later:
   measurements). Doubles print without locale formatting. Readiness counts only rehearsals of
   live versions (charter version above 0), so a backtest's proposed side never stands in for
   the live charter.
+- Scores carry optional `checks` (`CheckResult`: label, passed, weight, text). The exact
+  scorer adds one per field, the rubric one per check (`RubricCheck.label`), and a judge one
+  verdict check. `CaseScore.text` is the one-line form; scores recorded before checks fall
+  back to notes. Report samples add `scoreText` and the sample's `judgment`.
 - `GateRule` (pure, decision 0017): a missing baseline or differing case sets fail the gate; a
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
@@ -171,3 +175,4 @@ Later:
 - 2026-11-09: rehearsal-run replay, `RehearsalReports` review model, `AdapterJudge`/`CaseJudge`
 - 2026-11-09: backtest comparison, readiness report, outcome trend read models
 - 2026-11-09: readiness summary line, `ResultText` per-case text, M3.5 backtest scenario fixture
+- 2026-11-09: per-check score data and text for rubric, exact, and judge scorers

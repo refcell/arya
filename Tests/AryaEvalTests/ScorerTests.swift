@@ -27,7 +27,8 @@ private func actual(choice: String, target: String) -> JSONValue {
     let scorer = ExactScorer(fields: ["decisions.choice", "actions.kind", "actions.target"])
     let full = scorer.score(
         expected: expected, actual: actual(choice: "bug", target: "tracker:ISSUE-7"))
-    #expect(full == CaseScore(value: 1, passed: true))
+    #expect(full.value == 1 && full.passed && full.notes.isEmpty)
+    #expect(full.text == "passed (1)")
     let partial = scorer.score(
         expected: expected, actual: actual(choice: "feature", target: "tracker:ISSUE-7"))
     #expect(!partial.passed)
@@ -61,4 +62,31 @@ func rubricChecks(check: RubricCheck, holds: Bool) {
     #expect(score.passed)
     #expect(score.notes == ["absent actions failed"])
     #expect(!RubricScorer(checks: []).score(expected: expected, actual: expected).passed)
+}
+
+@Test func scoresCarryChecksAndOneLineText() {
+    let exact = ExactScorer(fields: ["decisions.choice", "actions.kind"]).score(
+        expected: expected, actual: actual(choice: "feature", target: "tracker:ISSUE-7"))
+    #expect(
+        exact.checks == [
+            CheckResult(
+                label: "decisions.choice matches expected", passed: false,
+                text: "expected bug, got feature"),
+            CheckResult(label: "actions.kind matches expected", passed: true, text: "label"),
+        ])
+    #expect(
+        exact.text
+            == "failed (0.5): decisions.choice matches expected: expected bug, got feature")
+
+    let rubric = RubricScorer(
+        checks: [
+            RubricCheck(kind: .equals, path: "decisions.choice", value: "bug", weight: 3),
+            RubricCheck(kind: .exists, path: "actions.kind", value: nil, weight: 1),
+        ],
+        passThreshold: 0.75
+    ).score(expected: expected, actual: actual(choice: "feature", target: "tracker:ISSUE-7"))
+    #expect(rubric.checks?.map(\.label) == ["decisions.choice is bug", "actions.kind is present"])
+    #expect(rubric.checks?.map(\.weight) == [3, 1])
+    #expect(rubric.text == "failed (0.25): decisions.choice is bug: found feature")
+    #expect(CaseScore(value: 0, passed: false, notes: ["leak"]).text == "failed (0): leak")
 }

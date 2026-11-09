@@ -58,6 +58,8 @@ public struct CaseVariantResult: Hashable, Sendable, Codable {
     public var text: String
     /// The differences in a line, or `matches expected`.
     public var diffText: String
+    /// The first sample's score in a line (`CaseScore.text`).
+    public var scoreText: String
 }
 
 /// One case side by side: what each variant would have done and what actually happened.
@@ -201,7 +203,8 @@ public struct Backtests: Sendable {
             runs: report.samples.map(\.run), actual: first?.actual, score: mean,
             passed: report.passed && !report.leak, leak: report.leak,
             notes: report.samples.flatMap(\.score.notes), diff: first?.diff ?? [],
-            text: first?.text ?? "no result", diffText: first?.diffText ?? "no result")
+            text: first?.text ?? "no result", diffText: first?.diffText ?? "no result",
+            scoreText: first?.scoreText ?? "no score")
     }
 
     static func summary(
