@@ -45,7 +45,8 @@ M2:
 
 M4:
 - [x] Live MCP executor for binding actions; person bindings (local inbox).
-- [ ] `arya serve` loop as a login item; approval notifications.
+- [x] `arya serve` loop (`RuntimeService`) with an `ApprovalNotifier` hook; the login item and
+  posting notifications belong to the CLI and app.
 
 ## Decisions
 
@@ -177,6 +178,9 @@ M4:
   `params` + `target` on a fresh server (closed after); a person binding's action succeeds
   with output `{inbox, channel, target?, params?}`, which is the local inbox entry; `routine`
   actions go to an injected routine executor. The facade swaps it in for `RecordingExecutor`.
+- `RuntimeService` is the process holding `scheduler.lock`: `run(every:)` recovers, then
+  ticks. Each tick expires due approvals, fires due interval triggers, and announces newly
+  pending approvals once to an `ApprovalNotifier`. `deliver` forwards message triggers.
 
 ## Questions
 
@@ -219,3 +223,4 @@ M4:
 - 2026-11-09: binding proxy core (`BindingProxy`, `ToolUpstream`, recorded source)
 - 2026-11-09: binding proxy process upstream, host, launch wiring, and ledger recordings for replay
 - 2026-11-09: `BindingActionExecutor` for MCP and person bindings
+- 2026-11-09: `RuntimeService` (serve loop) with approval announcements
