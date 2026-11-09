@@ -413,3 +413,24 @@ struct Opened {
         Workspace.policyText("rule:label", action: label, charter: stored)
             == "Label actions need approval (charter rule).")
 }
+
+@Test func autonomyHoldsCarryRuntimeRiskAndPlainText() async throws {
+    var result = liveResult
+    result[set: "actions"] = [
+        ["id": "a3", "kind": "reply", "binding": "inbox", "target": "inbox:MSG-9", "risk": "low"]
+    ]
+    var charter = try Charter.load(from: try inboxCharterJSON())
+    charter.policy = Policy()
+    charter.autonomy = .actLow
+    let opened = try await Opened([FakeScript.Run(result: result)])
+    _ = try await opened.workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+
+    let run = try await opened.workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+
+    let approval = try #require(try await opened.workspace.approvals().first)
+    #expect(approval.policyRule == "autonomy:act_low:medium")
+    #expect(approval.risk == "medium")
+    #expect(approval.policyText == "Autonomy act low asks before medium-risk actions.")
+    let detail = try #require(try await opened.workspace.run(run.id))
+    #expect(detail.actions.first?.risk == "medium")
+}

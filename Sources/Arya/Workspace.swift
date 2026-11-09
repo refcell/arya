@@ -204,12 +204,14 @@ public actor Workspace {
         let runs = try await runBook().records
         let wanted = Set(approvals.map(\.run))
         var reasons: [String: String] = [:]
+        var risks: [String: Risk] = [:]
         try reader.forEach { event in
             guard event.type == .actionProposed, let run = event.run?.rawValue,
                 wanted.contains(run)
             else { return }
             let body = try event.payload(as: ActionProposed.self)
             reasons["\(run):\(body.action.id)"] = body.reason
+            risks["\(run):\(body.action.id)"] = body.risk
         }
         let actionIDs = try await approvalQueue.book().records
         let recorded = RecordedResults(try reader.events())
@@ -227,7 +229,8 @@ public actor Workspace {
                         $0, action: action, charter: charters[approval.steward])
                 }
                 let wire = recorded.action(action.id, run: run)
-                out.risk = wire?.risk?.rawValue
+                out.risk =
+                    risks["\(approval.run):\(action.id)"]?.rawValue ?? wire?.risk?.rawValue
                 out.why = wire?.why
             }
             return out
@@ -245,6 +248,12 @@ public actor Workspace {
             }
             if let note = rule?.note, !note.isEmpty { return note }
             return "\(label) actions need approval (charter rule)."
+        }
+        if reason.hasPrefix("autonomy:") {
+            let parts = reason.split(separator: ":").map(String.init)
+            let level = parts.count > 1 ? parts[1].replacingOccurrences(of: "_", with: " ") : ""
+            let risk = parts.count > 2 ? "\(parts[2])-risk " : ""
+            return "Autonomy \(level) asks before \(risk)actions."
         }
         switch reason {
         case "default":

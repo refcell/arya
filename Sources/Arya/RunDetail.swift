@@ -48,6 +48,7 @@ public struct RunDetail: Sendable, Hashable, Codable {
         public var detail: String?
         /// The steward's one-line why and the adapter's risk hint (`low`, `medium`, `high`).
         public var why: String? = nil
+        /// Runtime's resolved risk when recorded (decision 0037), else the adapter's hint.
         public var risk: String? = nil
     }
 
@@ -82,7 +83,7 @@ extension Workspace {
         for index in detail.actions.indices {
             let wire = recorded.action(detail.actions[index].id, run: run)
             detail.actions[index].why = wire?.why ?? detail.actions[index].rationale
-            detail.actions[index].risk = wire?.risk?.rawValue
+            detail.actions[index].risk = detail.actions[index].risk ?? wire?.risk?.rawValue
         }
         return detail
     }
@@ -103,7 +104,7 @@ enum RunDetailFolder {
                     id: body.action.id, kind: body.action.kind, binding: body.action.binding,
                     target: body.action.target, rationale: body.action.rationale,
                     policy: body.disposition.rawValue, policyReason: body.reason,
-                    disposition: .proposed))
+                    disposition: .proposed, risk: body.risk?.rawValue))
         case .approvalRequested:
             let body = try event.payload(as: ApprovalRequested.self)
             guard let action = body.action else { return }

@@ -112,7 +112,6 @@ M3:
 - (from cli-e2e) Please add `serve(every:)` (holds scheduler.lock, ticks) and `serveBindingProxy(steward:run:binding:recorded:)` (stdio); CLI calls are wired.
 - (from eval) Read models: `Backtester.run`/`Backtests.compare`, `ReadinessReports.report`, `OutcomeTrends.trend`.
 - (from ledger) For outcome, recap, and activity views: `LedgerReader.events(since:)`, `events(_ filter:, from:)` (`LedgerFilter` now has `since`/`until`), and typed `events(ApprovalGranted.self, matching:)` skip non-matching lines before hashing; 50k events, filtered scan 0.09 s CPU vs 0.77 s full read. Please read through these instead of `events()` + filter.
-- (from runtime) Approval cards: `action.proposed` now has `risk` (low|medium|high) and `autonomy`, and `reason` `autonomy:<level>:<risk>` when autonomy made it ask (decision 0037); charters carry `autonomy` and `policy.risk`.
 - (from eval) Facade asks: `correct(run:expected:)` via `Corrector.correct(run:...)`; `whatIf(run:)` via `Counterfactuals(runner: RuntimeCaseRunner)`.
 - (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
 
@@ -162,3 +161,6 @@ M3:
 - 2026-11-09: approval `policyText` from charter rule notes; 43 AryaTests.
 - 2026-11-09: `needsYou()`, `TimeText`/`timeText(_:)`, `event(seq:)` inspector,
   `open(home:environment:ambient:)` for back-dated seeding, plan from `plan.updated`; 47 tests.
+- 2026-11-09: approval and run-detail risk from runtime's `action.proposed.risk` (0037), hint as
+  fallback; `autonomy:<level>:<risk>` holds get plain `policyText`; 48 tests. `correct(run:)`
+  waits on eval's `Corrector.correct(run:)`.
