@@ -62,4 +62,7 @@ public enum AdapterError: Error, Sendable, Hashable {
     case writeFailed(String)
     /// The executable could not be started.
     case launchFailed(String)
+    /// Replay: the host wrote something other than the next recorded line. Both are canonical
+    /// JSON lines; `expected` is `"<end of recording>"` when the recording had nothing left.
+    case replayDivergence(expected: String, actual: String)
 }

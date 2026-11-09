@@ -163,7 +163,7 @@ public actor AdapterConnection: Adapter {
     // MARK: Plumbing
 
     private func call<R: Decodable>(
-        _ method: String, _ params: some Encodable, as type: R.Type
+        _ method: String, _ params: some Encodable, as type: R.Type, source: WireSource = .host
     ) async throws(AdapterError) -> R {
         open()
         if let exit { throw .exited(exit) }
@@ -183,7 +183,8 @@ public actor AdapterConnection: Adapter {
         }
         defer { timer.cancel() }
         do {
-            try await write(.request(RPCRequest(id: id, method: method, params: paramsValue)))
+            try await write(
+                .request(RPCRequest(id: id, method: method, params: paramsValue)), source: source)
         } catch {
             slots[id] = nil
             throw error
@@ -216,11 +217,14 @@ public actor AdapterConnection: Adapter {
         }
     }
 
-    private func write(_ message: RPCMessage) async throws(AdapterError) {
+    private func write(_ message: RPCMessage, source: WireSource = .host)
+        async throws(AdapterError)
+    {
         if let exit { throw .exited(exit) }
         let line = LineCodec.encode(message)
-        continuation.yield(
-            .wire(WireRecord(direction: .sent, line: line.dropLast(), message: message)))
+        let record = WireRecord(
+            direction: .sent, source: source, line: line.dropLast(), message: message)
+        continuation.yield(.wire(record))
         do {
             try await transport.write(line)
         } catch {
@@ -252,7 +256,7 @@ public actor AdapterConnection: Adapter {
         if let response = meaning.response {
             resolve(response.id, response.outcome.mapError { .rpc($0) })
         }
-        if let reply = meaning.reply { try? await write(.response(reply)) }
+        if let reply = meaning.reply { try? await write(.response(reply), source: .connection) }
     }
 
     private func finish(_ status: AdapterExit) {
@@ -311,7 +315,9 @@ public actor AdapterConnection: Adapter {
         continuation.yield(.timedOut)
         superviseStop()
         let params = RunStopParams(session: session, reason: .timeout)
-        Task { [weak self] in try? await self?.call(RPCMethod.runStop, params, as: EmptyObject.self)
+        Task { [weak self] in
+            try? await self?.call(
+                RPCMethod.runStop, params, as: EmptyObject.self, source: .connection)
         }
     }
 

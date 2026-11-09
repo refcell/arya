@@ -265,6 +265,15 @@ request is unanswered; the runtime expires the question at the run's timeout ins
 is recorded as received and reported as a protocol error; the runtime decides whether it fails
 the run. A request from the adapter other than `host/ask` gets `-32601`.
 
+## Replay
+
+`ReplayAdapter` serves a recorded conversation for `arya replay`. Each call from the runtime
+must write exactly the next recorded host line (same method, id, and params); the recorded
+adapter lines up to the next host line are then published in order and the call returns its
+recorded response. Lines the connection wrote on its own (the idle-timeout `run/stop`, replies to
+unserved requests, marked `"source":"connection"` in `run.adapter.event`) replay without a call.
+Any other line from the runtime fails with a divergence that shows both lines.
+
 ## Conformance
 
 The conformance suite in `Tests/AryaAdaptersTests` runs the protocol against any adapter

@@ -8,18 +8,41 @@ public enum WireDirection: String, Sendable, Hashable, Codable {
     case received
 }
 
+/// Who wrote a recorded line.
+public enum WireSource: String, Sendable, Hashable, Codable {
+    /// The runtime, through a call on ``Adapter``.
+    case host
+    /// The connection on its own: the idle-timeout `run/stop` and replies to requests the host
+    /// does not serve. Replay produces these itself.
+    case connection
+    /// The adapter.
+    case adapter
+}
+
 /// One line that crossed the connection, exactly as written or read.
 public struct WireRecord: Sendable, Hashable {
     public var direction: WireDirection
+    public var source: WireSource
     /// The bytes of the line, without its newline.
     public var line: Data
     /// The decoded message, or `nil` when the line was not a valid JSON-RPC message.
     public var message: RPCMessage?
 
-    public init(direction: WireDirection, line: Data, message: RPCMessage?) {
+    /// A record; `source` defaults to `.host` for sent lines and `.adapter` for received ones.
+    public init(
+        direction: WireDirection, source: WireSource? = nil, line: Data, message: RPCMessage?
+    ) {
         self.direction = direction
+        self.source = source ?? (direction == .sent ? .host : .adapter)
         self.line = line
         self.message = message
+    }
+
+    /// A record rebuilt from stored bytes, decoding the message again.
+    public init(direction: WireDirection, source: WireSource? = nil, line: Data) {
+        self.init(
+            direction: direction, source: source, line: line,
+            message: try? LineCodec.decode(line))
     }
 }
 

@@ -28,7 +28,7 @@ M1:
   `ARYA_ADAPTER_CMD` when set.
 
 M2:
-- [ ] `ReplayAdapter`: serves recorded `run.adapter.event` messages in order, fails loudly when
+- [x] `ReplayAdapter`: serves recorded `run.adapter.event` messages in order, fails loudly when
   the runtime sends something the recording did not contain.
 - [ ] Adapter profiles (`adapters.json`) types and loading, effort mapping.
 - [ ] `arya-exec-adapter`: `text` and `jsonl` output parsers, prompt via stdin or argument,
@@ -65,6 +65,13 @@ M4:
   example adopted before the decision, is read as an equivalent so neither lane has to churn.
 - The idle timer pauses while any `host/ask` is unanswered (runtime's proposal), so a slow
   answer expires the question, not the run.
+- `WireRecord.source` says who wrote a line: `host` (a runtime call), `connection` (the
+  idle-timeout `run/stop`, replies to unserved requests), or `adapter`. `ReplayAdapter`
+  replays `connection` lines itself, so replay needs no runtime timer. `ledgerPayload` and
+  `init?(ledgerPayload:)` map records to and from `run.adapter.event` payloads, writing
+  `source` only for `connection`.
+- `ReplayAdapter` checks each host line against the recording by decoded message (method,
+  id, params), so ids must match: the runtime makes the same calls in the same order.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -78,3 +85,5 @@ M4:
 - 2026-11-09: adopted the shared fake script format (`responses`/`default`, list form `runs`
   still read; `FakeScript(runs:)` kept for the runtime tests) (43bc3e6); stderr drains before
   exit is reported (e9c7c72).
+- 2026-11-09: idle timer pauses during `host/ask` (cb9c713); in-memory SIGTERM race fixed
+  (237de0a).
