@@ -9,7 +9,7 @@ import AryaCore
 public enum GateRule {
     public static func evaluate(
         baseline: RehearsalResult?, candidate: RehearsalResult, tolerance: Double
-    ) -> GateVerdict {
+    ) -> GateCheckVerdict {
         let candidateMean = mean(candidate)
         guard let baseline else {
             return verdict(false, nil, candidateMean, [], "no baseline rehearsal")
@@ -53,8 +53,8 @@ public enum GateRule {
     static func verdict(
         _ passed: Bool, _ baselineMean: Double?, _ candidateMean: Double, _ regressions: [CaseID],
         _ reason: String
-    ) -> GateVerdict {
-        GateVerdict(
+    ) -> GateCheckVerdict {
+        GateCheckVerdict(
             passed: passed, baselineMean: baselineMean, candidateMean: candidateMean,
             regressions: regressions, reason: reason)
     }

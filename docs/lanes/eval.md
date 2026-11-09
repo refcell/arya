@@ -34,12 +34,13 @@ Later:
 
 ## Decisions
 
-- Eval uses `AryaCore.JSONValue`, `CanonicalJSON`, and typed ids (`RunID`, `StewardID`,
-  `ProposalID`, `CaseID`). Until `AryaCore` publishes `Case` and `GateChecking`, eval keeps
-  `EvalCase` and `EvalGateChecking` (prefixed so modules importing both never see an ambiguous
-  name); each is replaced when the core type lands.
-- Stubs fail safe: replay and rehearsal throw `notImplemented`, the stub scorer fails every case,
-  and the stub gate refuses every proposal.
+- Eval uses core types directly: `JSONValue`, `CanonicalJSON`, typed ids, `Case`, `ScorerSpec`
+  (built into a scorer by `makeScorer()`; an unknown rubric check kind throws), and
+  `GateChecking`/`GateCheckRequest`/`GateCheckVerdict` (`Gate` refines `GateChecking`;
+  `RefusingGate` is the default). Events go through the runtime's `EventSink` with an explicit
+  `RuntimeActor`; blobs go through `EvalBlobStore` until the ledger's blob store lands.
+- Stubs fail safe: replay and rehearsal throw `notImplemented` and the stub scorer fails every
+  case.
 - Replay compares derived events by position (type, then payload in sorted key order), never by
   `seq`, because a replay writes to a scratch ledger. `DivergenceFinder` is pure and landed
   ahead of the runtime-driven replayer.
@@ -48,13 +49,12 @@ Later:
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
 - Casebooks: cases are sorted by id and a casebook's version is the SHA-256 of canonical JSON
   Lines (`CanonicalJSON`), so reordering or reformatting keeps the
-  version. Duplicate ids, `v` other than 1, empty ids, and empty casebooks are rejected. The
-  normalized casebook is stored as one blob whose hash equals the version. Writes go through
-  `EvalRecorder` (blob put and event append), which the facade adapts to the ledger once it
-  lands.
+  version. Lines are validated with `Case.load`; duplicate ids, `v` other than 1, and empty
+  casebooks are rejected. The normalized casebook is stored as one blob whose hash equals the
+  version; `casebook.imported` is attributed to the importing person (default `local`).
 - Rehearsal: `CasebookRehearser` drives a `CaseRunner` (implemented by the runtime: one run with
   trigger kind `case`, tool reads from case context, no action executed) and a
-  `CasebookSource`. Events are recorded after all runs finish, in case-id order, so ledger
+  `CasebookSource`. Events (actor `system`) are recorded after all runs finish, in case-id order, so ledger
   order never depends on completion order. A runner error scores that sample 0 with a note; a
   leak scores 0 and marks the case. `rehearsal.*` payloads live in `AryaEval`, as memory's do.
 
@@ -66,3 +66,4 @@ Later:
 - 2026-11-09: `DivergenceFinder`, exact and rubric scorers, pure `GateRule` (6a59273)
 - 2026-11-09: casebook format, content-hash versions, import via `EvalRecorder` (6ee26b3)
 - 2026-11-09: eval adopts core `JSONValue`, `CanonicalJSON`, typed ids (c824b64)
+- 2026-11-09: `CasebookRehearser` with bounded parallelism and `rehearsal.*` events (1a41c45)

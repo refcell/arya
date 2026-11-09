@@ -9,4 +9,6 @@ public enum AryaEval {
 public enum EvalError: Error, Equatable, Sendable {
     /// The named capability has an interface but no implementation yet.
     case notImplemented(String)
+    /// A charter's rubric names a check kind eval does not implement.
+    case unknownRubricCheck(String)
 }

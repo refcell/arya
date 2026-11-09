@@ -19,14 +19,22 @@ import Testing
     }
 }
 
-@Test func stubsFailSafe() async throws {
-    let score = StubScorer().score(expected: .null, actual: .null)
-    #expect(!score.passed)
-    let request = GateRequest(
-        steward: StewardID(unchecked: "st_triage"), proposal: ProposalID(unchecked: "prop_1"),
-        candidateVersion: 2, casebookVersion: "ab")
-    let verdict = try await StubGate().check(request)
-    #expect(!verdict.passed)
+@Test func stubScorerFailsSafe() {
+    #expect(!StubScorer().score(expected: .null, actual: .null).passed)
+}
+
+@Test func scorerSpecsBuildScorers() throws {
+    let exact = try ScorerSpec.exact(fields: ["choice"]).makeScorer()
+    #expect(exact.score(expected: ["choice": "bug"], actual: ["choice": "bug"]).passed)
+    let rubric = try ScorerSpec.rubric(
+        checks: [RubricCheckSpec(kind: "exists", path: "summary")], passThreshold: 1
+    ).makeScorer()
+    #expect(rubric.score(expected: [:], actual: ["summary": "ok"]).passed)
+    #expect(throws: EvalError.unknownRubricCheck("vibes")) {
+        try ScorerSpec.rubric(
+            checks: [RubricCheckSpec(kind: "vibes", path: "x")], passThreshold: 1
+        ).makeScorer()
+    }
 }
 
 @Test func samplesAreAtLeastOne() {

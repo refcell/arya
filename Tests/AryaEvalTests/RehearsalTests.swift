@@ -1,4 +1,5 @@
 import AryaCore
+import AryaRuntime
 import Foundation
 import Testing
 
@@ -45,17 +46,18 @@ private func makeBook() throws -> Casebook {
     try Casebook(
         name: "triage",
         cases: ["c-3", "c-1", "c-2", "c-4"].map {
-            EvalCase(
-                id: CaseID(rawValue: $0)!, input: ["kind": "case"], expected: ["choice": "bug"])
+            Case(
+                id: CaseID(rawValue: $0)!, input: CaseInput(text: "issue"),
+                expected: ["choice": "bug"])
         })
 }
 
 private func rehearser(
-    _ runner: ScriptedRunner, _ recorder: MemoryRecorder, parallel: Int
+    _ runner: ScriptedRunner, _ sink: MemoryEventSink, parallel: Int
 ) throws -> CasebookRehearser {
     CasebookRehearser(
         runner: runner, casebooks: FixedCasebooks(book: try makeBook()),
-        scorer: ExactScorer(fields: ["choice"]), recorder: recorder, ambient: .fixed(),
+        scorer: ExactScorer(fields: ["choice"]), sink: sink, ambient: .fixed(),
         maxParallel: parallel)
 }
 
@@ -65,11 +67,11 @@ private func rehearser(
             "c-1": ["choice": "bug"], "c-2": ["choice": "feature"], "c-3": ["choice": "bug"],
         ],
         leaks: ["c-3"])
-    let recorder = MemoryRecorder()
+    let sink = MemoryEventSink(ambient: .fixed())
     let request = RehearsalRequest(
         steward: StewardID(unchecked: "st_triage"), charterVersion: 2, casebookVersion: "x",
         samples: 2)
-    let result = try await rehearser(runner, recorder, parallel: 3).rehearse(request)
+    let result = try await rehearser(runner, sink, parallel: 3).rehearse(request)
 
     #expect(await runner.peak <= 3)
     #expect(await runner.calls.count == 8)
@@ -81,7 +83,7 @@ private func rehearser(
     #expect(result.outcomes.map(\.leak) == [false, false, true, false])
     #expect(result.outcomes[3].samples[0].notes == ["run failed: RunnerFailure()"])
 
-    let events = await recorder.events
+    let events = try await sink.events(from: 1)
     #expect(
         events.map(\.type) == [
             "rehearsal.started", "rehearsal.case.scored", "rehearsal.case.scored",
@@ -107,11 +109,11 @@ private func rehearser(
         steward: StewardID(unchecked: "st_triage"), charterVersion: 1, casebookVersion: "x")
     var logs: [[String]] = []
     for parallel in [1, 4] {
-        let recorder = MemoryRecorder()
-        _ = try await rehearser(ScriptedRunner(answers: answers), recorder, parallel: parallel)
+        let sink = MemoryEventSink(ambient: .fixed())
+        _ = try await rehearser(ScriptedRunner(answers: answers), sink, parallel: parallel)
             .rehearse(request)
         logs.append(
-            try await recorder.events.map { try CanonicalJSON.string($0.payload) })
+            try await sink.events(from: 1).map { try CanonicalJSON.string($0.payload) })
     }
     #expect(logs[0] == logs[1])
 }

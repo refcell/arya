@@ -1,11 +1,12 @@
 import AryaCore
+import AryaRuntime
 
 /// One rehearsal run to perform: a case, sampled once, under the given charter version.
 public struct CaseRunRequest: Hashable, Sendable {
     public var steward: StewardID
     public var charterVersion: Int
     public var rehearsal: RehearsalID
-    public var caseItem: EvalCase
+    public var caseItem: Case
     /// Sample index, starting at 0.
     public var sample: Int
 }
@@ -37,24 +38,25 @@ public protocol CasebookSource: Sendable {
 }
 
 /// Rehearses a steward on a casebook: every case `samples` times, at most `maxParallel` runs
-/// at once. Events are recorded after all runs finish, in case-id order, so the ledger order
-/// does not depend on which run finished first. A run that throws scores 0 for that sample.
+/// at once. Events (actor `system`) are recorded after all runs finish, in case-id order, so
+/// the ledger order does not depend on which run finished first. A run that throws scores 0
+/// for that sample.
 public struct CasebookRehearser: Rehearser {
     public var runner: any CaseRunner
     public var casebooks: any CasebookSource
     public var scorer: any Scorer
-    public var recorder: any EvalRecorder
+    public var sink: any EventSink
     public var ambient: Ambient
     public var maxParallel: Int
 
     public init(
         runner: any CaseRunner, casebooks: any CasebookSource, scorer: any Scorer,
-        recorder: any EvalRecorder, ambient: Ambient, maxParallel: Int = 1
+        sink: any EventSink, ambient: Ambient, maxParallel: Int = 1
     ) {
         self.runner = runner
         self.casebooks = casebooks
         self.scorer = scorer
-        self.recorder = recorder
+        self.sink = sink
         self.ambient = ambient
         self.maxParallel = max(1, maxParallel)
     }
@@ -140,7 +142,9 @@ public struct CasebookRehearser: Rehearser {
     }
 
     func record(_ type: String, _ steward: StewardID, _ payload: some Encodable) async throws {
-        try await recorder.append(
-            type: type, steward: steward, payload: try CanonicalJSON.jsonValue(payload))
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: type, steward: steward, actor: .system,
+                payload: try CanonicalJSON.jsonValue(payload)))
     }
 }

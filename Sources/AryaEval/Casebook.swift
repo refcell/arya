@@ -2,43 +2,6 @@ import AryaCore
 import CryptoKit
 import Foundation
 
-/// One past unit of work, as stored in a casebook line (see ARCHITECTURE.md, "Charters and
-/// cases"). Local to `AryaEval` until `AryaCore.Case` lands.
-public struct EvalCase: Hashable, Sendable, Codable {
-    public var v: Int
-    public var id: CaseID
-    public var input: JSONValue
-    public var context: JSONValue
-    public var expected: JSONValue
-    public var source: String?
-
-    public init(
-        id: CaseID, input: JSONValue, context: JSONValue = .object([:]), expected: JSONValue,
-        source: String? = nil
-    ) {
-        self.v = 1
-        self.id = id
-        self.input = input
-        self.context = context
-        self.expected = expected
-        self.source = source
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case v, id, input, context, expected, source
-    }
-
-    public init(from decoder: any Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        v = try c.decode(Int.self, forKey: .v)
-        id = try c.decode(CaseID.self, forKey: .id)
-        input = try c.decode(JSONValue.self, forKey: .input)
-        context = try c.decodeIfPresent(JSONValue.self, forKey: .context) ?? .object([:])
-        expected = try c.decode(JSONValue.self, forKey: .expected)
-        source = try c.decodeIfPresent(String.self, forKey: .source)
-    }
-}
-
 /// Why a casebook could not be read. Line numbers start at 1.
 public enum CasebookError: Error, Equatable, Sendable {
     case invalidLine(line: Int, reason: String)
@@ -51,28 +14,19 @@ public enum CasebookError: Error, Equatable, Sendable {
 /// of the normalized content, so reordering lines or reformatting JSON keeps the version.
 public struct Casebook: Hashable, Sendable {
     public var name: String
-    public var cases: [EvalCase]
+    public var cases: [Case]
     public var version: String
 
     /// Parses JSON Lines: one case per line; blank lines are ignored.
     public static func parse(name: String, data: Data) throws -> Casebook {
-        let decoder = JSONDecoder()
-        var cases: [EvalCase] = []
+        var cases: [Case] = []
         var seen = Set<CaseID>()
         let lines = data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: false)
         for (offset, raw) in lines.enumerated() {
             let line = offset + 1
             let bytes = Data(raw)
             if bytes.allSatisfy({ $0 == 0x20 || $0 == 0x09 || $0 == 0x0D }) { continue }
-            let item: EvalCase
-            do {
-                item = try decoder.decode(EvalCase.self, from: bytes)
-            } catch {
-                throw CasebookError.invalidLine(line: line, reason: "not a case object")
-            }
-            guard item.v == 1 else {
-                throw CasebookError.unsupportedVersion(line: line, version: item.v)
-            }
+            let item = try parseLine(bytes, line: line)
             guard seen.insert(item.id).inserted else {
                 throw CasebookError.duplicateID(item.id.rawValue)
             }
@@ -82,7 +36,26 @@ public struct Casebook: Hashable, Sendable {
         return try Casebook(name: name, cases: cases)
     }
 
-    public init(name: String, cases: [EvalCase]) throws {
+    /// Decodes and validates one line with `Case.load`.
+    static func parseLine(_ bytes: Data, line: Int) throws -> Case {
+        do {
+            return try Case.load(from: bytes)
+        } catch CaseError.invalid(let issues) {
+            if issues.contains(where: { $0.path == "v" }),
+                let probe = try? JSONDecoder().decode(VersionProbe.self, from: bytes)
+            {
+                throw CasebookError.unsupportedVersion(line: line, version: probe.v)
+            }
+            let reason = issues.map(\.description).joined(separator: "; ")
+            throw CasebookError.invalidLine(line: line, reason: reason)
+        } catch {
+            throw CasebookError.invalidLine(line: line, reason: "not a case object")
+        }
+    }
+
+    private struct VersionProbe: Decodable { var v: Int }
+
+    public init(name: String, cases: [Case]) throws {
         self.name = name
         self.cases = cases.sorted { $0.id < $1.id }
         self.version = Self.hash(try Self.normalized(self.cases))
@@ -94,7 +67,7 @@ public struct Casebook: Hashable, Sendable {
         try Self.normalized(cases)
     }
 
-    static func normalized(_ cases: [EvalCase]) throws -> Data {
+    static func normalized(_ cases: [Case]) throws -> Data {
         var out = Data()
         for item in cases {
             out.append(try CanonicalJSON.encode(item))

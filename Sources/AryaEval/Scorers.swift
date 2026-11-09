@@ -115,3 +115,22 @@ public struct RubricScorer: Scorer {
         return CaseScore(value: value, passed: value >= passThreshold, notes: notes)
     }
 }
+
+extension ScorerSpec {
+    /// The scorer a charter asks for. Throws on a rubric check kind eval does not know.
+    public func makeScorer() throws -> any Scorer {
+        switch self {
+        case .exact(let fields):
+            return ExactScorer(fields: fields)
+        case .rubric(let specs, let threshold):
+            let checks = try specs.map { spec in
+                guard let kind = RubricCheck.Kind(rawValue: spec.kind) else {
+                    throw EvalError.unknownRubricCheck(spec.kind)
+                }
+                return RubricCheck(
+                    kind: kind, path: spec.path, value: spec.value, weight: spec.weight)
+            }
+            return RubricScorer(checks: checks, passThreshold: threshold)
+        }
+    }
+}
