@@ -87,3 +87,4 @@ M4:
   exit is reported (e9c7c72).
 - 2026-11-09: idle timer pauses during `host/ask` (cb9c713); in-memory SIGTERM race fixed
   (237de0a).
+- 2026-11-09: `ReplayAdapter`, `WireRecord.source`, ledger payload mapping (c9c43a8).

@@ -134,6 +134,7 @@ M4:
   folds it into `charter.effort` without bumping the version, so the next run records the
   effort it used in `run.started`. The workspace lane landed that fold as a small integration
   edit in `Stewards.swift`.
+- (from adapters) Record wire lines with `WireRecord.ledgerPayload` (adds `source: "connection"` for the idle `run/stop` and auto-replies, and puts non-JSON lines in `raw` as `RunAdapterEvent` expects); `arya replay` rebuilds them with `WireRecord(ledgerPayload:)` and feeds `ReplayAdapter(records:exit:)` (c9c43a8).
 
 ## Log
 
