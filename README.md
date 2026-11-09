@@ -6,7 +6,9 @@
 [![Status](https://img.shields.io/badge/status-pre--alpha-orange?style=for-the-badge)](#status)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 
-![The arya app showing a triage steward's run: two actions ran, a reply waits for approval](docs/assets/stream-light.png)
+![The steward Overview: the routed-within-an-hour metric at 0.96 against a 0.95 target, the plan, and recent actions with their reasons](docs/assets/overview-dark.png)
+
+![A run holding a customer reply for approval, with the reason, the guardrail, and the risk](docs/assets/run-approval-dark.png)
 
 arya runs persistent AI agents, called stewards, that each own an outcome instead of a task. You
 give a steward an outcome, a success metric, and guardrails, connect it to your systems (through
@@ -16,8 +18,6 @@ ones for approval, observes the results, and improves through changes that are t
 past cases before they go live. Every run, decision, and action is recorded in an append-only
 ledger you can audit and replay. arya is local-first, works with any agent harness, and comes
 with a native macOS app.
-
-<!-- App screenshot or GIF goes here once `just demo` lands (docs/ROADMAP.md, M3). -->
 
 > [!WARNING]
 > Pre-alpha. The components are being built now. `just e2e` shows how far the end-to-end
