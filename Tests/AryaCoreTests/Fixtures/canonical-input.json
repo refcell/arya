@@ -1,0 +1,9 @@
+{
+  "zebra": [3, 2, {"b": null, "a": [true, false, []]}],
+  "url": "https://example.com/a/b",
+  "ключ": "значение",
+  "émoji": "😀",
+  "Zed": {"nested": {"deep": [[1, [2, [3.25]]], {}]}},
+  "a": -12,
+  "ab": "line\nbreak\ttab \"quoted\" back\\slash"
+}

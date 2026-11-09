@@ -11,11 +11,11 @@ verifies in one pass, and projects into the state the runtime and app read. Desi
 ## Backlog
 
 M1:
-- [ ] `AryaCore` ids: `StewardID`, `RunID`, `EventID`, `ApprovalID`, `CaseID` (prefixed strings
+- [x] `AryaCore` ids: `StewardID`, `RunID`, `EventID`, `ApprovalID`, `CaseID` (prefixed strings
   such as `st_`, `run_`, `ev_`), `Codable` as plain strings.
-- [ ] `Ambient`: clock, id generator, seeded RNG; `live`, `fixed(start:step:seed:)`, and
+- [x] `Ambient`: clock, id generator, seeded RNG; `live`, `fixed(start:step:seed:)`, and
   `recorded(...)` variants; a test that two `fixed` ambients produce identical sequences.
-- [ ] Canonical JSON encoder (keys sorted by UTF-8 bytes, no whitespace, `/` unescaped) with
+- [x] Canonical JSON encoder (keys sorted by UTF-8 bytes, no whitespace, `/` unescaped) with
   golden tests, including unicode keys and nested arrays.
 - [ ] `Charter` (with `CharterBinding`, `Trigger`, `Policy`, `Limits`, `Scorer`, `GateConfig`,
   `Effort`) and `Case`, matching the JSON in ARCHITECTURE.md, with validation errors and golden
@@ -45,6 +45,17 @@ M3:
   `seq`.
 
 ## Decisions
+
+- Ids are `PrefixedID` structs (`st_`, `run_`, `ev_`, `ap_`, `prop_`, `reh_`, `mem_`); generated
+  bodies are 26-character ULIDs (48-bit ms time, 80 random bits, Crockford base32). `CaseID`
+  has no prefix because case ids come from imported data (`case-0007`).
+- Times are `Timestamp` (Int64 ms since the epoch), coded as `YYYY-MM-DDTHH:MM:SS.mmmZ` with
+  pure calendar arithmetic, never a locale-dependent formatter.
+- `Ambient` is a final class (stateful, lock-guarded). `fixed` ids reuse the last clock reading
+  without advancing it. Every reading is logged for `drainReadings()`, the source of `env.read`.
+  `recorded` never traps: mismatches are collected and answered from a fixed fallback.
+- Canonical JSON goes through `JSONValue`: integers that fit `Int64` stay exact, integral
+  doubles within 2^53 print without a fraction, others use Swift's shortest form (`1e-07`).
 
 ## Questions
 
