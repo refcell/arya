@@ -16,6 +16,7 @@ public enum RoutineError: Error, Equatable, Sendable {
     case emptyContent
     case contentTooLarge(bytes: Int, limit: Int)
     case invalidVersion(String)
+    case duplicateName(String)
 }
 
 /// Routine names and versions.

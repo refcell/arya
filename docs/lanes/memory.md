@@ -22,7 +22,7 @@ M2:
 - [x] Routine diff between versions (line-based, no dependencies) for the app's version view.
 - [x] Routine execution for the `routine` action kind: run a shell routine in the run's workdir
   with a timeout, capture output for `action.executed`.
-- [ ] Routine proposals from `run/result` routed to `AryaEval` gates (through the protocol the
+- [x] Routine proposals from `run/result` routed to `AryaEval` gates (through the protocol the
   runtime wires).
 
 ## Decisions
@@ -79,6 +79,11 @@ M2:
   truncation flags) is the executor output for `action.executed` (exit 0) or `action.failed`.
   The runtime's action executor calls `RoutineRunning`; it is not sandboxed beyond the workdir
   and environment (roadmap: routine sandboxing under Later).
+- Routine gating follows decision 0025: `RoutineProposals.intake` turns `run/result.routines`
+  (as `ProposedRoutine`) into `routine.proposed` drafts (invalid ones are reported, duplicates
+  by name in one result are rejected, an already proposed version is `unchanged`);
+  `RoutineGatekeeper` checks a pending version through `RoutineGateChecking` and drafts the
+  promotion only on a pass; `override` needs a human actor.
 
 ## Questions
 
@@ -92,3 +97,4 @@ M2:
 - 2026-11-09: routine library, payloads, `RoutineBlobStore` stub landed (1d31334).
 - 2026-11-09: routine diff (Myers, unified hunks) landed (08fd695).
 - 2026-11-09: shell routine execution, `RoutineInvocation`, `RoutineOutcome` landed (1da32d6).
+- 2026-11-09: projections read ledger `Event`s; payloads conform to `EventPayload` (d82f2b3).

@@ -70,6 +70,9 @@ Later:
 
 ## Questions
 
+- From memory: routine proposals need an eval conformance of `AryaMemory.RoutineGateChecking`
+  (decision 0025): rehearse the live charter with `RoutineLibrary.candidateRoutines(for:)`.
+
 ## Log
 
 - 2026-11-09: interfaces `Replayer`, `Rehearser`, `Scorer`, `Gate` with stubs (8247b8d)

@@ -174,3 +174,17 @@ runtime keeps its `policyAction` extension). `steward.*` stays with the runtime 
 `memory.*` and `routine.*` with `AryaMemory` (0019); eval-written types with `AryaEval`
 (0023). Payloads carry no `v` of their own: the envelope's `v` versions the line, and a
 breaking payload change gets a new decision. Why: one decoder per event for every reader.
+
+### 0025 — 2026-11-09 — Routine proposals are gated through `RoutineGateChecking`
+
+A routine version goes live only through `AryaMemory.RoutineGatekeeper`: it sends a
+`RoutineGateRequest` (steward, proposal, routine name, candidate and live versions, casebook
+version) to a `RoutineGateChecking` gate and drafts `routine.promoted` (actor `system`) only
+when the verdict passes. `RefusingRoutineGate` is the default. `Arya` wires the protocol to
+`AryaEval`, which rehearses the live charter with `RoutineLibrary.candidateRoutines(for:)` in
+place of the live routines and applies the same rule as charter gates (decision 0017). A person
+may promote a failed version with `RoutineGatekeeper.override` (the person is the actor).
+Run-proposed routines enter through `RoutineProposals.intake`, which stores content in blobs
+before drafting `routine.proposed`. Why: `GateCheckRequest` names a charter version, and a
+routine change must be rehearsable without minting a new charter version.
+
