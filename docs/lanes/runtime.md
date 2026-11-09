@@ -155,6 +155,13 @@ M4:
 - Routine policy (decision 0032): rules `routine:<name>@<version>` decide a version; a bare
   `routine:<name>` can only deny; everything else asks. The dispatcher gets live routine
   versions from the run's memory context (`dispose(..., routines:)`).
+- Binding proxy core: `BindingProxy` (actor) answers MCP `initialize`, `ping`, `tools/list`,
+  and `tools/call` over newline-delimited JSON-RPC. It lists only `binding.read` tools and
+  refuses others with `-32602`, unrecorded. Calls are recorded as `run.tool.call
+  {id: <binding>:<rpc id>, binding, tool, input}` and `run.tool.result {id, output, isError}`
+  (actor: system). `ToolSource.live` forwards to a `ToolUpstream`. `.recorded` answers from
+  `RecordedToolResult`s whose tool is `<binding>.<tool>` (or bare) with an equal input; a miss
+  answers `isError` and sets `leak`.
 
 ## Questions
 
@@ -191,3 +198,4 @@ M4:
 - 2026-11-09: crews: child runs bounded by `crew.maxParallel`, then one join run
 - 2026-11-09: memory snapshot and routines in `run.started`, `memory.added` from live runs, wire lines via `WireRecord.ledgerPayload`
 - 2026-11-09: routine approval per name and version (decision 0032)
+- 2026-11-09: binding proxy core (`BindingProxy`, `ToolUpstream`, recorded source)
