@@ -247,3 +247,4 @@ M4:
 - 2026-11-09: integration fix in `RunReplayer`: replays sandbox when the recorded run did
 - 2026-11-09: email and chat relays for person bindings (decision 0042)
 - 2026-11-09: `RuntimeService` pulls relay bindings each tick when given `relays`
+- 2026-11-09: default risk by action kind (`Risk.defaults`), `Workspace.risk` read (0037)

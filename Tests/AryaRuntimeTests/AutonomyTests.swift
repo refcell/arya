@@ -42,9 +42,11 @@ private func act(_ kind: String, _ binding: String? = "tracker", hint: Risk? = n
     #expect(p.risk(of: act("label")) == .low)
     #expect(p.risk(of: act("comment")) == .high)  // action+binding beats action
     #expect(p.risk(of: act("send", "mail")) == .high)
-    #expect(p.risk(of: act("close")) == .medium)  // unlisted
+    #expect(p.risk(of: act("close")) == .high)  // unlisted: the kind's default
     #expect(p.risk(of: act("label", hint: .high)) == .high)
-    #expect(p.risk(of: act("close", hint: .low)) == .medium)  // a hint never lowers
+    #expect(p.risk(of: act("close", hint: .low)) == .high)  // a hint never lowers
+    #expect(p.risk(of: act("triage")) == .medium)  // unknown kind
+    #expect(p.risk(of: act("triage", hint: .low)) == .medium)
 }
 
 @Test func autonomyDecidesWhenNoRuleAndRulesOnlyTighten() {
@@ -135,4 +137,18 @@ private func act(_ kind: String, _ binding: String? = "tracker", hint: Risk? = n
     let proposed = try #require(try await harness.last(ActionEventType.proposed))
     #expect(proposed.payload["action"]?["why"] == "so the owner sees it")
     #expect(proposed.payload["action"]?["risk"] == "high")
+}
+
+@Test func kindsHaveDefaultRisks() {
+    let expected: [Risk: [String]] = [
+        .low: ["label", "route", "tag", "note"], .medium: ["reply", "message", "email", "other"],
+        .high: ["refund", "close", "delete", "pay", "merge"],
+    ]
+    for (risk, kinds) in expected {
+        for kind in kinds { #expect(Risk.default(forKind: kind) == risk, "\(kind)") }
+    }
+    // A charter entry beats the default; a routine is unknown unless named.
+    let policy = Policy(risk: [RiskRule(action: "close", level: .low)])
+    #expect(policy.risk(ofAction: "close") == .low)
+    #expect(policy.risk(ofAction: "routine", routineName: "digest") == .medium)
 }

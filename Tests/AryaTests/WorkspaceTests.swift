@@ -434,3 +434,22 @@ struct Opened {
     let detail = try #require(try await opened.workspace.run(run.id))
     #expect(detail.actions.first?.risk == "medium")
 }
+
+@Test func riskReadsTheCharterThenTheKindDefaults() async throws {
+    let opened = try await Opened()
+    let workspace = opened.workspace
+    #expect(try await workspace.risk(kind: "label") == "low")
+    #expect(try await workspace.risk(kind: "reply") == "medium")
+    #expect(try await workspace.risk(kind: "refund") == "high")
+    #expect(try await workspace.risk(kind: "triage") == "medium")
+    var charter = inboxCharter()
+    charter.id = StewardID(unchecked: "st_inbox")
+    charter.bindings = [.mcp("inbox", command: "inbox-mcp", actions: ["reply"])]
+    charter.policy.risk = [RiskRule(action: "reply", level: .high)]
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    #expect(try await workspace.risk(kind: "reply", steward: "st_inbox") == "high")
+    #expect(try await workspace.risk(kind: "label", steward: "st_inbox") == "low")
+    await #expect(throws: WorkspaceError.notFound("st_none")) {
+        try await workspace.risk(kind: "label", steward: "st_none")
+    }
+}

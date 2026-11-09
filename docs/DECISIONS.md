@@ -334,6 +334,11 @@ still asks (0032). `action.proposed` records `risk` and `autonomy`, and its `rea
 `Risk`, `Autonomy`, and `RiskRule` live in `AryaCore`; the new fields are omitted when unset,
 so existing charters and lines encode byte for byte as before. Why: a steward that owns an
 outcome should act on safe steps by itself and ask only where the risk warrants it.
+Amended: with no `policy.risk` entry an action's kind sets its default risk (`Risk.defaults`:
+`label`, `route`, `tag`, `note` low; `reply`, `message`, `email` medium; `refund`, `close`,
+`delete`, `pay`, `merge` high; any other kind medium), and the adapter's hint can still only
+raise it, so a hint never makes a refund look safe. `Workspace.risk(kind:binding:steward:)`
+reads the same resolution for the New steward sign-off list and approvals.
 
 ### 0038 — 2026-11-09 — Visual checks use offscreen snapshots
 

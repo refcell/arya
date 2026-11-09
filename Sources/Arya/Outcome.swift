@@ -250,6 +250,19 @@ extension Workspace {
         return met ? .onTrack : .offTrack
     }
 
+    // MARK: Risk
+
+    /// The risk of an action `kind` through `binding` as the runtime resolves it (decision 0037):
+    /// the steward's charter `policy.risk`, else the kind's default (`Risk.defaults`). With no
+    /// `steward` (a steward being drafted), the defaults alone.
+    public func risk(kind: String, binding: String? = nil, steward: String? = nil) async throws
+        -> String
+    {
+        var policy = Policy()
+        if let steward { policy = try await existing(steward).charter.policy }
+        return policy.risk(ofAction: kind, binding: binding).rawValue
+    }
+
     // MARK: Plan
 
     /// The steward's current plan: the newest runtime `plan.updated` for it, with the run

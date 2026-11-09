@@ -120,25 +120,12 @@ public struct ActionPolicy: Sendable, Hashable {
         return Self.limit(base, by: autonomy, risk: risk(of: action))
     }
 
-    /// The risk of an action (decision 0037): the most specific `policy.risk` entry (action
-    /// and binding, then action, then binding alone; first listed among equals), `medium`
-    /// when none matches, raised (never lowered) by the adapter's hint.
+    /// The risk of an action (`Policy.risk(ofAction:)`, decision 0037).
     public func risk(of action: PolicyAction) -> Risk {
-        let name =
-            action.kind == Self.routineKind ? action.routineName.map { "routine:\($0)" } : nil
-        let kinds = Set([action.kind] + (name.map { [$0] } ?? []))
-        let both = riskRules.first {
-            $0.action.map(kinds.contains) == true && $0.binding != nil
-                && $0.binding == action.binding
-        }
-        let byAction = riskRules.first {
-            $0.action.map(kinds.contains) == true && $0.binding == nil
-        }
-        let byBinding = riskRules.first {
-            $0.action == nil && $0.binding != nil && $0.binding == action.binding
-        }
-        let charter = (both ?? byAction ?? byBinding)?.level ?? .medium
-        return max(charter, action.riskHint ?? .low)
+        Policy(risk: riskRules).risk(
+            ofAction: action.kind, binding: action.binding,
+            routineName: action.kind == Self.routineKind ? action.routineName : nil,
+            hint: action.riskHint)
     }
 
     /// What `autonomy` allows for `risk`.
