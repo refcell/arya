@@ -52,6 +52,19 @@ actor PreviewWorkspace: FeatureWorkspace {
             emit(
                 request, "approval.denied", .localUser,
                 ["approval": .string(approval), "reason": .string(reason)])
+        case .acceptProposal(let id):
+            let created = try openProposal(id, gate: true)
+            emit(created, "proposal.accepted", .localUser, ["proposal": .string(id)])
+        case .rejectProposal(let id, let reason):
+            let created = try openProposal(id, gate: nil)
+            emit(
+                created, "proposal.rejected", .localUser,
+                ["proposal": .string(id), "reason": .string(reason)])
+        case .overrideProposal(let id, let reason):
+            let created = try openProposal(id, gate: false)
+            let payload: FeatureJSON = ["proposal": .string(id), "reason": .string(reason)]
+            emit(created, "proposal.overridden", .localUser, payload)
+            emit(created, "proposal.accepted", .localUser, payload)
         }
         notify()
         return Array(log[start...])
@@ -90,6 +103,29 @@ actor PreviewWorkspace: FeatureWorkspace {
         }
         if decided { throw FeatureWriteError.alreadyDecided(approval) }
         return request
+    }
+
+    /// The proposal's creation event, if it is still open and its latest gate result is
+    /// `gate` (nil accepts any result, including none).
+    private func openProposal(_ id: String, gate: Bool?) throws -> FeatureEvent {
+        guard
+            let created = log.first(where: {
+                $0.type == "proposal.created" && $0.payload["id"]?.string == id
+            })
+        else { throw FeatureWriteError.unknownProposal(id) }
+        let related = log.filter { $0.payload["proposal"]?.string == id }
+        if related.contains(where: { ["proposal.accepted", "proposal.rejected"].contains($0.type) })
+        {
+            throw FeatureWriteError.proposalClosed(id)
+        }
+        guard let gate else { return created }
+        let passed = related.last(where: { $0.type == "proposal.gated" })?.payload["passed"]?.bool
+        if gate && passed != true { throw FeatureWriteError.gateNotPassed(id) }
+        if !gate && passed != false {
+            throw passed == true
+                ? FeatureWriteError.gatePassed(id) : FeatureWriteError.gateNotPassed(id)
+        }
+        return created
     }
 
     private func emit(

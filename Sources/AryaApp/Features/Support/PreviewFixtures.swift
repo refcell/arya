@@ -30,6 +30,8 @@ enum PreviewFixtures {
     static let finishedRun = "run_0001"
     static let liveRun = "run_0002"
     static let pendingApproval = "ap_0001"
+    static let passingProposal = "pr_0001"
+    static let failingProposal = "pr_0002"
 
     static func triage(now: Date) -> [FeatureEvent] {
         var log = FeatureEventBuilder(start: now.addingTimeInterval(-3600))
@@ -39,6 +41,7 @@ enum PreviewFixtures {
         finished(&log, adapter: adapter)
         let live = liveRun
         log.add("run.started", run: live, after: 1200, ["trigger": ["kind": "interval"]])
+        proposals(&log)
         log.add(
             "run.adapter.event", run: live, actor: adapter,
             ["event": ["kind": "status", "state": "working", "detail": "Reading new issues"]])
@@ -74,6 +77,36 @@ enum PreviewFixtures {
         log.add(
             "run.finished", run: run,
             ["status": "completed", "summary": "Labeled ISSUE-7 and asked to assign it."])
+    }
+
+    private static func proposals(_ log: inout FeatureEventBuilder) {
+        let system = FeatureActor(kind: .system, id: "arya")
+        log.add(
+            "proposal.created", actor: .localUser, after: 30,
+            [
+                "id": .string(passingProposal), "kind": "charter", "candidateVersion": 2,
+                "title": "Ask before labeling security reports",
+                "reason": "Security reports need a person's eyes first.",
+            ])
+        log.add(
+            "proposal.gated", actor: system, after: 40,
+            [
+                "proposal": .string(passingProposal), "passed": true, "baselineMean": 0.9,
+                "candidateMean": 0.92, "regressions": [], "reason": "no regression",
+            ])
+        log.add(
+            "proposal.created", run: finishedRun, after: 10,
+            [
+                "id": .string(failingProposal), "kind": "routine", "title": "label-duplicates",
+                "reason": "Duplicates come up in most runs.",
+            ])
+        log.add(
+            "proposal.gated", actor: system, after: 40,
+            [
+                "proposal": .string(failingProposal), "passed": false, "baselineMean": 0.9,
+                "candidateMean": 0.8, "regressions": ["case-0003", "case-0007"],
+                "reason": "2 cases regressed",
+            ])
     }
 
     private static func actions(_ log: inout FeatureEventBuilder, run: String) {

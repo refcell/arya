@@ -14,7 +14,7 @@ M3 (start now against the app-shell stub workspace):
 - [x] Approval queue and approval cards: action, rationale, target, approve and deny with the
   local user recorded as actor.
 - [x] Ledger table: filter by steward, run, type, actor; event detail; Verify button with result.
-- [ ] Changes tab: proposals with gate results, accept, reject, override (recorded).
+- [x] Changes tab: proposals with gate results, accept, reject, override (recorded).
 - [ ] Memory view: notes with provenance, retract.
 - [ ] Routines view: names, live version, history, version diff.
 - [ ] Rehearsals view: per-case results, expected versus actual, correction, Mark ready.
@@ -52,6 +52,11 @@ M3 (start now against the app-shell stub workspace):
   (`kind:id`); rows are newest first. Verify is a secondary button (the accent stays on
   approvals) and its result stays visible until the next check.
 
+- Changes: `proposal.created` `{id, kind, title, reason, candidateVersion?}`,
+  `proposal.gated` with `GateCheckVerdict` fields, and `proposal.accepted|rejected|overridden`
+  `{proposal, reason?}`. Accept needs a passing gate; Override is offered only for a failed
+  gate and records `proposal.overridden` then `proposal.accepted`, both by the local user.
+
 ## Questions
 
 - (from cli-e2e) `RunStreamModel` reads `approval.requested` as `{id, action: "<id>"}`, but the
@@ -63,3 +68,4 @@ M3 (start now against the app-shell stub workspace):
   fixtures), interim components, `AryaAppTests` target (c0b8bcd).
 - 2026-11-09: approval queue and cards, inline in the stream (db99d35); switched to AryaDesign
   components (d20b497).
+- 2026-11-09: ledger table with filters, event detail, and verify (8d48473).

@@ -86,6 +86,14 @@ final class FeatureStore: ObservableObject {
             return "Approval \(id) no longer exists. Reload the queue and try again."
         case FeatureWriteError.alreadyDecided(let id):
             return "Approval \(id) was already decided. Its result is in the ledger."
+        case FeatureWriteError.unknownProposal(let id):
+            return "Proposal \(id) no longer exists. Reload the changes and try again."
+        case FeatureWriteError.proposalClosed(let id):
+            return "Proposal \(id) was already accepted or rejected."
+        case FeatureWriteError.gateNotPassed(let id):
+            return "Proposal \(id) has not passed its gate. Rehearse it again, or override."
+        case FeatureWriteError.gatePassed(let id):
+            return "Proposal \(id) passed its gate; accept it instead of overriding."
         default:
             return "Could not read the workspace: \(error.localizedDescription)"
         }

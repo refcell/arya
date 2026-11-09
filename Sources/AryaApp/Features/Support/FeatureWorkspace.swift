@@ -5,6 +5,10 @@ import Foundation
 enum FeatureWrite: Hashable, Sendable {
     case approve(approval: String)
     case deny(approval: String, reason: String)
+    case acceptProposal(String)
+    case rejectProposal(String, reason: String)
+    /// Accepts a proposal whose gate failed; recorded as `proposal.overridden`.
+    case overrideProposal(String, reason: String)
 }
 
 /// The result of checking the ledger's hash chain.
@@ -31,4 +35,8 @@ protocol FeatureWorkspace: Sendable {
 enum FeatureWriteError: Error, Hashable, Sendable {
     case unknownApproval(String)
     case alreadyDecided(String)
+    case unknownProposal(String)
+    case proposalClosed(String)
+    case gateNotPassed(String)
+    case gatePassed(String)
 }
