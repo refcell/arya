@@ -25,9 +25,11 @@ struct RuntimeCaseRunner: CaseRunner {
         runRequest.routine = request.routine.map {
             CandidateRoutine(name: $0.name, version: $0.version)
         }
-        let outcome = try await loop.run(runRequest)
+        // A delegating case runs its crew in rehearsal mode and is scored on the join's result.
+        let outcome = try await loop.runWithCrew(runRequest, charter: request.charter)
         return CaseRunOutcome(
-            run: outcome.run, result: try Self.shape(outcome.result), leak: outcome.leak)
+            run: outcome.run, result: try Self.shape(outcome.finalResult),
+            leak: outcome.leakedAnywhere)
     }
 
     /// The charter to hand the run loop: `nil` when the request rehearses the live charter, so

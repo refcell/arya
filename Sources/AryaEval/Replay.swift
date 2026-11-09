@@ -43,8 +43,11 @@ public struct ReplayReport: Hashable, Sendable, Codable {
     public var run: RunID
     public var comparedEvents: Int
     public var divergence: Divergence?
+    /// For a run that delegated: its child runs and then its join run, each replayed.
+    public var crew: [ReplayReport]?
 
-    public var passed: Bool { divergence == nil }
+    /// No divergence in the run or in any run of its crew.
+    public var passed: Bool { divergence == nil && (crew ?? []).allSatisfy(\.passed) }
 
     public init(run: RunID, comparedEvents: Int, divergence: Divergence?) {
         self.run = run
@@ -53,7 +56,7 @@ public struct ReplayReport: Hashable, Sendable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case run, comparedEvents, divergence
+        case run, comparedEvents, divergence, crew
     }
 }
 

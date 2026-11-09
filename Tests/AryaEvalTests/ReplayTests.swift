@@ -344,7 +344,7 @@ private struct WhatIfRunner: CaseRunner {
         proposed: BacktestVariant(charterVersion: 0, charter: inboxCharter()))
     #expect(same.ready)
     #expect(same.runs.map(\.run) == [run])
-    #expect(same.summary == "Ready: casebook 1/1, none of last 1 runs would change")
+    #expect(same.summary == "Ready: casebook 1/1, the last run would not change")
 
     var proposed = inboxCharter()
     proposed.guardrails = ["Invoice questions are how-to."]
@@ -354,7 +354,7 @@ private struct WhatIfRunner: CaseRunner {
     #expect(!changed.ready)
     #expect(changed.runs.map(\.verdict) == [.regressed])
     #expect(changed.regressions == ["c1", "run \(run.rawValue)"])
-    #expect(changed.summary == "Not ready: c1 would regress; 1 of last 1 runs would change")
+    #expect(changed.summary == "Not ready: c1 would regress; the last run would change")
     #expect(
         changed.regressionLines.first
             == "c1: decisions[0].choice: expected billing, got how-to")
@@ -372,7 +372,7 @@ private struct WhatIfRunner: CaseRunner {
         proposed: BacktestVariant(charterVersion: 0, charter: proposed))
     #expect(fixed.runs.map(\.verdict) == [.improved])
     #expect(fixed.ready)
-    #expect(fixed.summary == "Ready: casebook 1/1, 1 of last 1 runs would improve")
+    #expect(fixed.summary == "Ready: casebook 1/1, the last run would improve")
 }
 
 @Test func facadeCorrectionFindsTheStewardsCasebook() async throws {

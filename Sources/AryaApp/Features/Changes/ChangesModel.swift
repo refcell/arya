@@ -47,7 +47,8 @@ struct ChangeList: Hashable, Sendable {
         var overridden: Set<String> = []
         for event in events where steward == nil || event.steward == steward {
             let p = event.payload
-            if event.type == "proposal.created", let id = p["id"]?.string {
+            // The ledger names the proposal `proposal`; older fixtures use `id`.
+            if event.type == "proposal.created", let id = p["proposal"]?.string ?? p["id"]?.string {
                 items[id] = created(id, event)
                 order.append(id)
                 continue
@@ -69,15 +70,20 @@ struct ChangeList: Hashable, Sendable {
 
     private static func created(_ id: String, _ event: FeatureEvent) -> ProposalItem {
         let p = event.payload
+        // The facade stores the title as the first line of `reason`.
+        let firstLine = p["reason"]?.string?.split(separator: "\n").first.map(String.init)
         return ProposalItem(
-            id: id, kind: p["kind"]?.string ?? "charter", title: p["title"]?.string ?? id,
+            id: id, kind: p["kind"]?.string ?? "charter",
+            title: p["title"]?.string ?? firstLine ?? id,
             reason: p["reason"]?.string ?? "",
             candidateVersion: p["candidateVersion"]?.number.map { Int($0) },
             steward: event.steward, run: event.run, author: event.actor, createdAt: event.at)
     }
 
-    private static func gate(_ p: FeatureJSON) -> GateResult {
-        GateResult(
+    private static func gate(_ payload: FeatureJSON) -> GateResult {
+        // `proposal.gated` nests the result under `verdict`; older fixtures put it at the top.
+        let p = payload["verdict"] ?? payload
+        return GateResult(
             passed: p["passed"]?.bool ?? false, baselineMean: p["baselineMean"]?.number,
             candidateMean: p["candidateMean"]?.number ?? 0,
             regressions: p["regressions"]?.strings ?? [],

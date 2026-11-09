@@ -17,6 +17,8 @@ public struct ReplaySummary: Sendable, Hashable, Codable {
         /// Recorded and replayed events as canonical JSON (`{"type","payload"}`), or empty.
         public var recorded: String
         public var replayed: String
+        /// The crew child or join run it is in; `nil` for the replayed run itself.
+        public var crewRun: String?
     }
 
     /// Run id.
@@ -45,7 +47,19 @@ extension Workspace {
         }
         return ReplaySummary(
             run: id, events: report.comparedEvents,
-            divergences: try report.divergence.map { [try ReplaySummary.Difference($0)] } ?? [])
+            divergences: try Self.differences(report))
+    }
+
+    /// The run's first difference, then the first difference of each crew run that diverged.
+    static func differences(_ report: ReplayReport) throws -> [ReplaySummary.Difference] {
+        var found = try report.divergence.map { [try ReplaySummary.Difference($0)] } ?? []
+        for member in report.crew ?? [] {
+            guard let divergence = member.divergence else { continue }
+            var difference = try ReplaySummary.Difference(divergence)
+            difference.crewRun = member.run.rawValue
+            found.append(difference)
+        }
+        return found
     }
 }
 

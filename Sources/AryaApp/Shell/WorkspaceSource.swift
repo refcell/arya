@@ -124,10 +124,15 @@ extension Workspace: WorkspaceSource {
             // The facade checks the reviewed rehearsal and live charter version itself.
             _ = try await markReady(steward: steward, by: person)
         case .proposeCharter(let proposal):
-            _ = try await proposeCharter(
+            let proposed = try await proposeCharter(
                 steward: proposal.steward, charter: try Self.canonical(proposal.charter),
                 baseVersion: proposal.baseVersion, title: proposal.title, reason: proposal.reason,
                 by: person)
+            // Gate it on the casebook right away, as the CLI does; live readiness is on demand.
+            // A steward without a casebook keeps the proposal open.
+            do {
+                _ = try await checkProposal(proposed.id)
+            } catch WorkspaceError.notFound {}
         case .startRun(let steward, let input):
             _ = try await startRun(steward: steward, input: input)
         case .rehearse(let steward, let casebook):

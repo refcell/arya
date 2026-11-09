@@ -36,8 +36,9 @@ public struct LiveReadiness: Hashable, Sendable, Codable {
     /// security, got account` or `run run_…: with the change it would have: …`.
     public var regressionLines: [String]
     public var ready: Bool
-    /// One sentence, shown verbatim: `Ready: casebook 8/8, none of the last 20 runs would
-    /// change` or `Not ready: case-0005 would regress; 2 of last 20 runs would change`.
+    /// One sentence, shown verbatim (`ReadinessCounts.sentence`): `Ready: casebook 8/8, none of
+    /// last 20 runs would change` or `Not ready: case-0005 would regress; 2 of last 20 runs would
+    /// change`.
     public var summary: String
 }
 
@@ -75,34 +76,19 @@ public struct LiveReadinessGate: Sendable {
     ) -> LiveReadiness {
         let cases = casebook.cases.filter { $0.change == .regressed }
         let bad = runs.filter { $0.verdict == .regressed || $0.verdict == .failed }
-        let ready = casebook.verdict.passed && bad.isEmpty
+        let counts = ReadinessCounts(
+            passed: casebook.proposed.passed, total: casebook.cases.count,
+            gatePassed: casebook.verdict.passed, gateReason: casebook.verdict.reason,
+            regressedCases: cases.map(\.caseID.rawValue), checked: runs.count,
+            changed: runs.filter { $0.verdict == .regressed }.count,
+            failed: runs.filter { $0.verdict == .failed }.count,
+            improved: runs.filter { $0.verdict == .improved }.count)
         return LiveReadiness(
             steward: steward, proposal: proposal, casebook: casebook, runs: runs,
             regressions: cases.map(\.caseID.rawValue) + bad.map { "run \($0.run.rawValue)" },
             regressionLines: cases.map { "\($0.caseID.rawValue): \($0.proposed.diffText)" }
                 + bad.map { "run \($0.run.rawValue): \($0.whatIf.summary)" },
-            ready: ready, summary: sentence(ready, casebook, cases, bad, runs))
-    }
-
-    static func sentence(
-        _ ready: Bool, _ casebook: BacktestComparison, _ cases: [BacktestCase],
-        _ bad: [RunCheck], _ runs: [RunCheck]
-    ) -> String {
-        let last = "of last \(runs.count) runs"
-        let improved = runs.filter { $0.verdict == .improved }.count
-        if ready {
-            let change =
-                improved > 0 ? "\(improved) \(last) would improve" : "none \(last) would change"
-            return "Ready: casebook \(casebook.proposed.passed)/\(casebook.cases.count), \(change)"
-        }
-        var parts: [String] = []
-        if !cases.isEmpty {
-            let ids = cases.map(\.caseID.rawValue)
-            parts.append(ids.joined(separator: ", ") + " would regress")
-        }
-        if !bad.isEmpty { parts.append("\(bad.count) \(last) would change") }
-        if parts.isEmpty { parts.append(casebook.verdict.reason) }
-        return "Not ready: " + parts.joined(separator: "; ")
+            ready: counts.ready, summary: counts.sentence)
     }
 
     static func verdict(_ whatIf: RunCounterfactual) -> RunVerdict {
@@ -135,5 +121,80 @@ public struct LiveReadinessGate: Sendable {
             }
         }
         return Array(finished.reversed().prefix(max(0, limit)))
+    }
+}
+
+/// What the live-readiness sentence says, as counts.
+public struct ReadinessCounts: Hashable, Sendable {
+    /// Casebook cases the proposed charter passes, of `total`.
+    public var passed: Int
+    public var total: Int
+    public var gatePassed: Bool
+    /// The casebook gate's reason when it failed, for example `mean below baseline`.
+    public var gateReason: String
+    public var regressedCases: [String]
+    /// Recent live runs checked, and how many would change, fail, or improve.
+    public var checked: Int
+    public var changed: Int
+    public var failed: Int
+    public var improved: Int
+
+    public init(
+        passed: Int, total: Int, gatePassed: Bool, gateReason: String = "",
+        regressedCases: [String] = [], checked: Int, changed: Int = 0, failed: Int = 0,
+        improved: Int = 0
+    ) {
+        self.passed = passed
+        self.total = total
+        self.gatePassed = gatePassed
+        self.gateReason = gateReason
+        self.regressedCases = regressedCases
+        self.checked = checked
+        self.changed = changed
+        self.failed = failed
+        self.improved = improved
+    }
+
+    public var ready: Bool { gatePassed && changed == 0 && failed == 0 }
+
+    /// One sentence for the Improve screen, shown verbatim. Ready:
+    /// `Ready: casebook 8/8, none of last 20 runs would change` (or `2 of last 20 runs would
+    /// improve`, `the last run would not change`, `no recent runs to check`). Not ready, in this
+    /// order: `case-0005 would regress` (at most three ids, then `and N more`), `casebook gate
+    /// failed: <reason>` when no case regressed, `2 of last 20 runs would change`, and
+    /// `1 of last 20 runs would fail`, joined with `; `.
+    public var sentence: String {
+        if ready { return "Ready: casebook \(passed)/\(total), " + readyRuns }
+        var parts: [String] = []
+        if !regressedCases.isEmpty {
+            parts.append(Self.list(regressedCases) + " would regress")
+        } else if !gatePassed {
+            parts.append(
+                gateReason.isEmpty ? "casebook gate failed" : "casebook gate failed: \(gateReason)")
+        }
+        if changed > 0 { parts.append(count(changed, "change")) }
+        if failed > 0 { parts.append(count(failed, "fail")) }
+        return "Not ready: " + parts.joined(separator: "; ")
+    }
+
+    var readyRuns: String {
+        if checked == 0 { return "no recent runs to check" }
+        if improved > 0 { return count(improved, "improve") }
+        return checked == 1
+            ? "the last run would not change" : "none of last \(checked) runs would change"
+    }
+
+    func count(_ some: Int, _ verb: String) -> String {
+        checked == 1
+            ? "the last run would \(verb)" : "\(some) of last \(checked) runs would \(verb)"
+    }
+
+    /// `a`, `a and b`, `a, b and c`, `a, b, c and 2 more`.
+    static func list(_ ids: [String]) -> String {
+        if ids.count > 3 {
+            return ids.prefix(3).joined(separator: ", ") + " and \(ids.count - 3) more"
+        }
+        if ids.count == 1 { return ids[0] }
+        return ids.dropLast().joined(separator: ", ") + " and " + ids[ids.count - 1]
     }
 }

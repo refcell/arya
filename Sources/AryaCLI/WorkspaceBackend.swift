@@ -289,9 +289,14 @@ extension WorkspaceBackend {
             try await workspace.proposeCharter(
                 steward: steward, charter: data, baseVersion: live.charterVersion)
         }
-        // Rehearse and gate it on the steward's newest casebook, as the command promises.
+        // Rehearse and gate it on the steward's newest casebook, as the command promises; a
+        // steward without a casebook keeps the proposal open.
         let gated = try await call("checkProposal") {
-            try await workspace.checkProposal(summary.id)
+            do {
+                return try await workspace.checkProposal(summary.id)
+            } catch WorkspaceError.notFound {
+                return summary
+            }
         }
         return Mapping.proposal(gated)
     }

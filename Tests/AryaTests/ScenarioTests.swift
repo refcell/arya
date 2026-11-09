@@ -76,3 +76,52 @@ private func exampleFile(_ name: String) throws -> Data {
     #expect(try await workspace.replay(run: run.id).divergences == [])
     #expect(try await workspace.verifyLedger().ok)
 }
+
+/// Picks the example script by the charter's adapter profile, as the demo's adapters.json does.
+private struct ProfileFactory: AdapterFactory {
+    var scripts: [String: FakeScript]
+
+    func makeAdapter(for charter: Charter, run: RunID) async throws -> any Adapter {
+        FakeAdapter(script: scripts[charter.adapter] ?? FakeScript(runs: []))
+    }
+}
+
+/// The demo home's Improve screen (etc/scripts/demo.sh): after the first rehearsal the demo
+/// proposes charter-v2.json, so Improve lists one gated proposal for st_triage, with its gate
+/// sentence, and the live-readiness check names the regressed case.
+@Test func demoImproveScreenHasAGatedProposal() async throws {
+    let decoder = JSONDecoder()
+    let home = TempHome()
+    let workspace = try await Workspace.open(
+        home: home.url,
+        wiring: Wiring(
+            ambient: .fixed(stepMillis: 1),
+            adapters: ProfileFactory(scripts: [
+                "fake-triage": try decoder.decode(
+                    FakeScript.self, from: try exampleFile("fake-script.json")),
+                "fake-triage-v2": try decoder.decode(
+                    FakeScript.self, from: try exampleFile("fake-script-v2.json")),
+            ]),
+            executor: RecordingExecutor(), leases: MemoryRunLeases(),
+            questionPoll: .milliseconds(1)))
+    _ = try await workspace.createSteward(charter: try exampleFile("charter.json"))
+    _ = try await workspace.importCasebook(
+        steward: "st_triage", data: try exampleFile("casebook.jsonl"), name: "triage")
+    _ = try await workspace.rehearse(steward: "st_triage")
+    let proposed = try await workspace.proposeCharter(
+        steward: "st_triage", charter: try exampleFile("charter-v2.json"), baseVersion: 1)
+    let gated = try await workspace.checkProposal(proposed.id)
+    #expect(gated.status == "failed")
+    #expect(gated.verdict?.regressions == ["case-0005"])
+
+    let improve = try await workspace.improve(steward: "st_triage")
+    #expect(improve.proposals.count >= 1)
+    #expect(improve.proposals.first?.proposal.id == proposed.id)
+    #expect(improve.proposals.first?.gate.isEmpty == false)
+
+    let readiness = try await workspace.liveReadiness(proposal: proposed.id)
+    #expect(!readiness.ready)
+    #expect(readiness.improved == ["case-0006"])
+    #expect(readiness.summary == "Not ready: case-0005 would regress")
+    #expect(readiness.regressions.first?.hasPrefix("case-0005: ") == true)
+}

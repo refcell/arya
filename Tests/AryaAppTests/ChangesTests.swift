@@ -70,3 +70,29 @@ private let failing = PreviewFixtures.failingProposal
     #expect(list.open.map(\.id) == [failing])
     #expect(list.closed.first?.state == .accepted(by: .localUser, overridden: false))
 }
+
+/// The shapes the ledger actually records (`ProposalCreatedPayload`, `ProposalGatedPayload`).
+@Test func ledgerShapedProposalsShowWithTheirGate() {
+    var log = FeatureEventBuilder(start: now)
+    log.add(
+        "proposal.created",
+        [
+            "proposal": "prop_1", "kind": "charter", "baseVersion": 1, "candidateVersion": 2,
+            "reason": "Treat card questions as how-to\nThey are not billing.",
+        ])
+    log.add(
+        "proposal.gated",
+        [
+            "proposal": "prop_1", "casebook": "cb_1",
+            "verdict": [
+                "passed": false, "baselineMean": 0.9583, "candidateMean": 0.9583,
+                "regressions": ["case-0005"], "reason": "case regressed",
+            ],
+        ])
+    let list = ChangeList.build(events: log.events)
+    let item = list.open[0]
+    #expect(list.open.map(\.id) == ["prop_1"])
+    #expect(item.title == "Treat card questions as how-to")
+    #expect(item.canOverride)
+    #expect(ChangesText.regressions(item.gate) == "Regressed: case-0005")
+}

@@ -137,12 +137,26 @@ extension RunRequest {
     var isCrewChild: Bool { parent != nil && input.kind != .join }
 
     /// True when this run's delegations become a crew.
-    var fansOut: Bool { parent == nil && input.kind != .join && mode == .live }
+    var fansOut: Bool {
+        parent == nil && input.kind != .join && mode == .live && crewPolicy == .run
+    }
+
+    /// A child or join run of this request's crew, keeping its mode, rehearsal tag, and
+    /// candidate routine.
+    func crewMember(_ input: RunInput, parent: RunID) -> RunRequest {
+        var member = RunRequest(
+            steward: steward, input: input, mode: mode, actor: .system, parent: parent,
+            charter: charter, rehearsal: rehearsal)
+        member.routine = routine
+        return member
+    }
 }
 
 extension RunEngine {
-    /// Runs the children of `parent` and then its join run.
-    func runCrew(
+    /// Runs the children of `parent` and then its join run. Children and the join keep the
+    /// request's mode, rehearsal tag, and candidate routine, so a caller (eval) can run a
+    /// rehearsal's crew in rehearsal mode; `run` fans out only live runs on its own.
+    public func runCrew(
         _ delegations: [RunResult.Delegation], parent: RunID, request: RunRequest,
         charter: Charter
     ) async throws -> CrewOutcome {
@@ -158,10 +172,8 @@ extension RunEngine {
                         delegation: delegation.id, title: delegation.title,
                         refused: refusal.reason), request.steward, parent)
             case .success(let budget):
-                var child = RunRequest(
-                    steward: request.steward,
-                    input: RunInput(kind: request.input.kind, text: delegation.input),
-                    mode: .live, actor: .system, parent: parent, charter: request.charter)
+                var child = request.crewMember(
+                    RunInput(kind: request.input.kind, text: delegation.input), parent: parent)
                 child.crew = budget
                 child.id = ambient.newID(RunID.self)
                 launches.append((index, child))
@@ -198,9 +210,7 @@ extension RunEngine {
         }
         let text = String(
             decoding: try CanonicalJSON.encode(["children": reports]), as: UTF8.self)
-        let join = RunRequest(
-            steward: request.steward, input: RunInput(kind: .join, text: text), mode: .live,
-            actor: .system, parent: parent, charter: request.charter)
+        let join = request.crewMember(RunInput(kind: .join, text: text), parent: parent)
         let children = results.keys.sorted().compactMap { results[$0] }
         return CrewOutcome(children: children, join: try await run(join))
     }

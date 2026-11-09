@@ -26,12 +26,47 @@ public struct RunReplayer: Replayer {
         self.casebooks = casebooks
     }
 
+    /// Replays `run` and, when it delegated, each recorded child run and then its join run, in
+    /// ledger order. The run itself replays without fanning out; the join replays from its
+    /// recorded input, which carries the recorded child results.
     public func replay(run: RunID) async throws -> ReplayReport {
         let events = try await sink.events(from: 1)
+        var report = try await replayOne(run, events)
+        let members = try Self.crewMembers(of: run, in: events)
+        if !members.isEmpty {
+            var crew: [ReplayReport] = []
+            for member in members { crew.append(try await replayOne(member, events)) }
+            report.crew = crew
+        }
+        return report
+    }
+
+    func replayOne(_ run: RunID, _ events: [RuntimeEvent]) async throws -> ReplayReport {
         let recording = try RunRecording(run: run, events: events)
-        let request = try await recording.request(casebooks: casebooks)
+        var request = try await recording.request(casebooks: casebooks)
+        request.crewPolicy = .skip
+        request.crew = try Self.budget(of: run, in: events)
         let replayed = try await drive(recording, request)
         return Self.compare(run: run, recorded: recording.runEvents, replayed: replayed)
+    }
+
+    /// The budget a crew child ran with, from the parent's `run.delegated` naming it.
+    static func budget(of run: RunID, in events: [RuntimeEvent]) throws -> CrewBudget? {
+        for event in events where event.type == RunDelegated.type.rawValue {
+            let body = try EvalPayload.decode(RunDelegated.self, event.payload)
+            if body.child == run {
+                return CrewBudget(adapter: body.adapter, effort: body.effort, limits: body.limits)
+            }
+        }
+        return nil
+    }
+
+    /// The child and join runs whose parent is `run`, in the order they started.
+    static func crewMembers(of run: RunID, in events: [RuntimeEvent]) throws -> [RunID] {
+        try events.filter { $0.type == RunEventType.started }.compactMap { event in
+            let body = try EvalPayload.decode(RunStarted.self, event.payload)
+            return body.parent == run ? event.draft.run : nil
+        }
     }
 
     /// Runs the engine on the recorded inputs and returns the events it appended for the run.

@@ -43,6 +43,15 @@ Priority (replay before live, visible in the app):
   `arya propose` now runs the gate, as its help says.
 - [x] Judge example (`etc/examples/triage/judge`): a tone and policy rubric with recorded
   verdicts served by `CaseVerdicts`; scores read as one sentence each, 7/8 pass.
+- [x] Crews in rehearsal: `RunEngine.runWithCrew` runs a delegating case's children and join
+  in rehearsal mode, and the case is scored on the join's result (`RunOutcome.finalResult`).
+- [x] Crews in replay: the parent replays without fanning out, then each child and the join
+  (from its recorded input, i.e. the recorded child results); `ReplayReport.crew`.
+- [x] Editor proposals get the same gate: the app gates on propose like the CLI, and the
+  facade's `liveReadiness(proposal:recent:)` gives the sentence and regression lines.
+- [x] Readiness sentence wording pinned by `readinessSentenceWording` (`ReadinessCounts`).
+- [x] Improve showed no proposals: the app read `proposal.created.id` and a top-level gate;
+  the ledger has `proposal` and `verdict`. Fixed, with ledger-shaped and demo-flow tests.
 
 M1:
 - [x] Interfaces only, so other lanes can compile against them: `Replayer`, `Rehearser`,
@@ -141,6 +150,12 @@ Later:
 - Harvest: corrections win over denials and the latest correction wins; a denied action is
   removed from the expected actions; runs already in the casebook are skipped, and rehearsal
   runs are never harvested.
+- Crews: runtime keeps rehearsals from fanning out on their own; eval opts in per case, so a
+  delegating case is judged on its final outcome. Replay never starts a fresh crew
+  (`RunRequest.crew = .skip`) and compares every member run separately.
+- Readiness sentence: no trailing period; `the last run` for one run; `no recent runs to check`
+  for none; at most three regressed case ids, then `and N more`; failed runs are counted apart
+  from changed runs.
 - `GateRule` (pure, decision 0017): a missing baseline or differing case sets fail the gate; a
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
@@ -217,3 +232,6 @@ Later:
 - 2026-11-09: facade wrapper `Corrector.correct(run:expected:note:person:)`
 - 2026-11-09: readiness sentence and regression lines, demo charter v2 fixture
 - 2026-11-09: demo proposes charter v2 and gates it, judge example, `CaseVerdicts`
+- 2026-11-09: crews in rehearsal and replay, editor proposals gated, readiness wording, Improve proposals fix
+- 2026-11-09: Visual check (just snapshot, demo home): Improve lists the v2 proposal, "Score 0.96 against a
+  baseline of 0.96", "Regressed: case-0005"; its title is the id because `arya propose` takes no title.

@@ -130,7 +130,7 @@ M3:
 - (from cli-e2e) A fleet read for M3.5, one call for every steward: state, metric value against
   target and on-track status, pending approvals, last run, next wake. The demo home now seeds
   three stewards (on track, behind, paused); `arya steward list` would show it too.
-
+- (from eval) Added `liveReadiness(proposal:recent:)`; case runner scores crews on the join result.
 
 ## Log
 

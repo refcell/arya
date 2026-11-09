@@ -67,6 +67,9 @@ public struct RunRequest: Sendable, Hashable {
     /// The run id to use instead of a fresh one (a crew child's id is recorded on
     /// `run.delegated` before it starts).
     var id: RunID?
+    /// Whether a live top-level run's delegations become a crew (default `.run`). A replay
+    /// skips it and replays each recorded child and join run on its own.
+    public var crewPolicy: CrewPolicy = .run
 
     /// Creates a request.
     public init(
@@ -96,6 +99,14 @@ public struct RunRequest: Sendable, Hashable {
     public static func manual(_ steward: StewardID, text: String) -> RunRequest {
         RunRequest(steward: steward, input: .init(kind: .manual, text: text))
     }
+}
+
+/// Whether `RunEngine.run` fans a live top-level run's delegations out into a crew.
+public enum CrewPolicy: Sendable, Hashable {
+    /// Run the crew (children, then the join).
+    case run
+    /// Return after the run itself; the caller handles any crew.
+    case skip
 }
 
 /// Which rehearsal, case, and sample a run belongs to.
