@@ -7,7 +7,7 @@ prompt on stdin, in a scratch working directory.
 | Profile | Command | Output | arya's tools | Effort |
 | --- | --- | --- | --- | --- |
 | `claude-code` | `claude -p` | `stream-json`: live events and cost | `--mcp-config` file | model per effort |
-| `codex-cli` | `codex exec --sandbox read-only` | plain text | none (its own config) | reasoning effort |
+| `codex-cli` | `codex exec --json --sandbox read-only` | JSON events and token counts | none (its own config) | reasoning effort |
 
 Both run read-only: Claude Code with its shell, file-writing, and web tools disallowed, Codex
 CLI in its read-only sandbox. Proposed actions still go through the charter's policy.

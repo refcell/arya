@@ -24,15 +24,15 @@
       "kind": "exec",
       "command": "codex",
       "args": {
-        "low": ["exec", "--sandbox", "read-only", "--skip-git-repo-check", "-c",
+        "low": ["exec", "--json", "--sandbox", "read-only", "--skip-git-repo-check", "-c",
           "model_reasoning_effort=low", "-"],
-        "medium": ["exec", "--sandbox", "read-only", "--skip-git-repo-check", "-c",
+        "medium": ["exec", "--json", "--sandbox", "read-only", "--skip-git-repo-check", "-c",
           "model_reasoning_effort=medium", "-"],
-        "high": ["exec", "--sandbox", "read-only", "--skip-git-repo-check", "-c",
+        "high": ["exec", "--json", "--sandbox", "read-only", "--skip-git-repo-check", "-c",
           "model_reasoning_effort=high", "-"]
       },
       "promptVia": "stdin",
-      "parse": "text",
+      "parse": "codex-json",
       "mcpConfig": "none",
       "sandbox": "workdir"
     }
