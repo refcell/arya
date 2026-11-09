@@ -72,7 +72,8 @@ extension CLI {
             }
         case .bindingProxy:
             try await backend.serveBindingProxy(
-                run: values["run"] ?? "", binding: values["binding"] ?? "")
+                steward: values["steward"] ?? "", run: values["run"] ?? "",
+                binding: values["binding"] ?? "", recorded: values["recorded"])
         default:
             throw .usage("unknown command: \(invocation.command.rawValue)")
         }

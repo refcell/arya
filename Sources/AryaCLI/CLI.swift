@@ -95,7 +95,24 @@ enum CLI {
         case .casebookImport, .casebookList, .rehearse, .correct, .ready, .propose, .proposals,
             .metrics, .memory, .routines, .replay, .bindingProxy:
             try await dispatchImprovement(invocation, backend: backend, output: output)
+        case .serve:
+            try await backend.serve(every: try Self.every(invocation))
+        case .serveInstall:
+            let report = try await backend.installLoginItem(every: try Self.every(invocation))
+            try output.emit(report, json: json, text: TextRender.loginItem)
+        case .serveUninstall:
+            try output.emit(
+                try await backend.uninstallLoginItem(), json: json, text: TextRender.loginItem)
         }
+    }
+
+    /// `--every <seconds>`: a positive whole number, 60 by default.
+    static func every(_ invocation: Invocation) throws(CLIError) -> Int {
+        guard let text = invocation.values["every"] else { return 60 }
+        guard let seconds = Int(text), seconds > 0 else {
+            throw .usage("--every needs a positive number of seconds, got \(text)")
+        }
+        return seconds
     }
 }
 

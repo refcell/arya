@@ -200,7 +200,22 @@ extension FakeBackend {
             ] : []
         return ReplayReport(run: run, events: 12, divergences: divergences)
     }
-    func serveBindingProxy(run: String, binding: String) async throws(CLIError) {
-        record("proxy \(run) \(binding)")
+    func serveBindingProxy(steward: String, run: String, binding: String, recorded: String?)
+        async throws(CLIError)
+    {
+        record("proxy \(steward) \(run) \(binding) \(recorded ?? "live")")
+    }
+    func serve(every: Int) async throws(CLIError) { record("serve \(every)") }
+    func installLoginItem(every: Int) async throws(CLIError) -> LoginItemReport {
+        record("install \(every)")
+        return LoginItemReport(
+            label: LaunchAgent.label, state: .installed, plist: "/tmp/agents/a.plist",
+            program: ["arya", "serve"], log: "/tmp/demo/logs/serve.log")
+    }
+    func uninstallLoginItem() async throws(CLIError) -> LoginItemReport {
+        record("uninstall")
+        return LoginItemReport(
+            label: LaunchAgent.label, state: .removed, plist: "/tmp/agents/a.plist",
+            program: nil, log: nil)
     }
 }

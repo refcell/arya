@@ -139,6 +139,18 @@ enum TextRender {
         return table.lines
     }
 
+    static func loginItem(_ report: LoginItemReport) -> [String] {
+        switch report.state {
+        case .installed:
+            [
+                "login item installed: \(report.plist)",
+                "runs: \((report.program ?? []).joined(separator: " "))",
+                "log: \(report.log ?? "-")",
+            ]
+        case .removed: ["login item removed: \(report.plist)"]
+        }
+    }
+
     static func verify(_ report: VerifyReport) -> [String] {
         let counts = "\(report.events) events"
         if report.isValid { return ["ledger ok: \(counts)"] }

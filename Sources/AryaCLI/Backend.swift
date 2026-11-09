@@ -60,6 +60,10 @@ protocol CLIBackend: ImprovementBackend {
     func showSteward(_ id: String) async throws(CLIError) -> StewardDetail
     func startRun(steward: String, input: String?) async throws(CLIError) -> RunReport
     func showRun(_ id: String) async throws(CLIError) -> RunReport
+    /// Fires triggers every `every` seconds until the process stops.
+    func serve(every: Int) async throws(CLIError)
+    func installLoginItem(every: Int) async throws(CLIError) -> LoginItemReport
+    func uninstallLoginItem() async throws(CLIError) -> LoginItemReport
     func listApprovals(steward: String?, scope: ApprovalScope) async throws(CLIError)
         -> [ApprovalRow]
     func decide(approval: String, decision: ApprovalDecision, note: String?)

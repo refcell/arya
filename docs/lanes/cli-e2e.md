@@ -12,7 +12,7 @@ the README, and the tidy scan.
 M1:
 - [x] Argument parsing without dependencies: subcommands, flags, `--help`, `--home`, `--json`
   output for every listing.
-- [ ] `arya init`, `arya steward create|list|show`, `arya run`, `arya approvals`,
+- [x] `arya init`, `arya steward create|list|show`, `arya run`, `arya approvals`,
   `arya approve|deny`, `arya ledger tail|verify`. Parsed, rendered, and tested against a fake
   backend and wired to `Workspace` through `WorkspaceBackend`; each turns green as its facade
   call lands (`init` works today).
@@ -20,22 +20,32 @@ M1:
   casebook of invented past issues.
 
 M2:
-- [ ] `arya replay`, `arya casebook import|list`, `arya rehearse`, `arya correct`, `arya ready`,
+- [x] `arya replay`, `arya casebook import|list`, `arya rehearse`, `arya correct`, `arya ready`,
   `arya propose`, `arya proposals`, `arya metrics`, `arya memory`, `arya routines`,
   `arya binding-proxy`. Parsed, rendered (text and `--json`, `ImprovementModels.swift`), and
-  tested. Wired to the facade: `casebook import|list`, `rehearse`, `correct`, `ready`,
-  `metrics`, and `run show`; `replay`, `propose`, `proposals`, `memory`, `routines`, and
-  `binding-proxy` report the facade call they wait for (workspace lane).
-- [ ] `just e2e` (CLI only, fake adapter, temporary home): create, rehearse, correct, ready,
+  tested, and wired to the facade; `binding-proxy` (now with `--steward` and `--recorded`, as
+  the runtime launches it) waits for `Workspace.serveBindingProxy`.
+- [x] `just e2e` (CLI only, fake adapter, temporary home): create, rehearse, correct, ready,
   run, approve, replay with zero divergence, `ledger verify`; non-zero exit on any failure.
 
 M3:
 - [ ] Extend `just e2e` with the app's facade calls used by the views.
 - [x] `just demo`: seed a demo home from `etc/examples` and open the app on it.
-- [ ] README: replace the placeholder with a screenshot and GIF of the demo, update the Status
+- [x] README: replace the placeholder with a screenshot and GIF of the demo, update the Status
   table and Usage as commands land.
 - [x] `etc/scripts/tidy.sh` upkeep: line length, formatting, secret patterns, zero
   dependencies, `CLAUDE.md` identical to `AGENTS.md`.
+- [ ] README GIF of the demo (optional; the screenshot is in).
+
+M4:
+- [x] `etc/examples/adapters/`: `claude-code` and `codex-cli` exec profiles, equal to
+  `AdapterProfiles.examples` (a test keeps them in sync).
+- [ ] `arya serve [--every]`: parsed and tested; waits for `Workspace.serve(every:)`.
+- [x] `arya serve install|uninstall`: a LaunchAgent (`app.arya.serve`) that runs
+  `arya --home <home> serve` at login, logs to `<home>/logs/serve.log`, restarts on failure.
+- [ ] Extend `just e2e` with `serve` once it lands: a charter with an interval trigger fires a
+  scheduled run within one tick.
+- [ ] Example charter with an MCP binding through `binding-proxy`, once the proxy is wired.
 
 ## Decisions
 
@@ -77,6 +87,9 @@ M3:
   demo home, 1600 px, about 350 KB); `just readme-screenshot` refreshes it. Embed it in README.
 
 ## Log
+- 2026-11-09: M4 start: adapter profile examples, `arya serve install|uninstall` login item,
+  `serve` and `binding-proxy` waiting on facade calls (asked in workspace.md). Previous push
+  65544bf.
 - 2026-11-09: `memory`, `routines`, `proposals`, and `propose` wired to the facade; only
   `binding-proxy` waits. `just e2e` passes all 15 steps. README shows a light-mode app
   screenshot of the demo home (`docs/assets/stream-light.png`, captured with `screencapture -l`

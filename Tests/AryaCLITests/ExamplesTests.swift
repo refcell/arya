@@ -128,3 +128,9 @@ private func bindingActions(_ charter: Object) -> [String: [String]] {
         _ = try Case.load(from: Data(line.utf8))
     }
 }
+
+@Test func adapterProfileExamplesMatchTheLibrary() throws {
+    let url = repoRoot.appendingPathComponent("etc/examples/adapters/adapters.json")
+    let book = try AdapterProfiles.load(from: url)
+    #expect(book == AdapterProfiles.examples)
+}

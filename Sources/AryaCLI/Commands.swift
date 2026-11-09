@@ -23,6 +23,9 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case routines
     case replay
     case bindingProxy = "binding-proxy"
+    case serve
+    case serveInstall = "serve install"
+    case serveUninstall = "serve uninstall"
 }
 
 /// A command's path, help text, and accepted arguments.
@@ -190,13 +193,30 @@ enum CommandTable {
             id: .bindingProxy, summary: "Serve one binding's read tools over stdio (used by runs)",
             options: [
                 OptionSpec(
+                    name: "steward", kind: .value(placeholder: "id"), isRequired: true,
+                    help: "the run's steward"),
+                OptionSpec(
                     name: "run", kind: .value(placeholder: "id"), isRequired: true,
                     help: "the run the calls belong to"),
                 OptionSpec(
                     name: "binding", kind: .value(placeholder: "id"), isRequired: true,
                     help: "the charter binding to serve"),
+                OptionSpec(
+                    name: "recorded", kind: .value(placeholder: "file"),
+                    help: "answer from recorded tool results (rehearsal and replay)"),
             ]),
+        CommandSpec(
+            id: .serve, summary: "Fire scheduled and message triggers until stopped",
+            options: [everyOption]),
+        CommandSpec(
+            id: .serveInstall, summary: "Run `arya serve` for this home at login (LaunchAgent)",
+            options: [everyOption]),
+        CommandSpec(id: .serveUninstall, summary: "Remove the `arya serve` login item"),
     ]
+
+    private static let everyOption = OptionSpec(
+        name: "every", kind: .value(placeholder: "seconds"),
+        help: "seconds between scheduler ticks (default 60)")
 
     private static let stewardArgument = PositionalSpec(name: "steward", help: "steward id")
 

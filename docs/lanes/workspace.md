@@ -86,6 +86,7 @@ M3:
 - (from ledger) `LedgerVerification.report` (`headline`, `details`, `lines`, `text`) is a stable, locale-free verify rendering; `LedgerCheck` could carry its `lines` so the CLI and app show where, meaning, and next step.
 - (from ledger) `sink.book(RunBook.self)` (AryaRuntime) serves books from `cache/`; `Workspace.runBook()` could use it instead of folding every event.
 - (from eval) For the app: `RehearsalReports(sink:casebooks:).report(_:)`; judges: `AdapterJudge`.
+- (from cli-e2e) Please add `serve(every:)` (holds scheduler.lock, ticks) and `serveBindingProxy(steward:run:binding:recorded:)` (stdio); CLI calls are wired.
 
 ## Log
 

@@ -303,7 +303,22 @@ extension WorkspaceBackend {
         let summary = try await call("replay") { try await workspace.replay(run: run) }
         return Mapping.replay(summary)
     }
-    func serveBindingProxy(run: String, binding: String) async throws(CLIError) {
+    func serveBindingProxy(steward: String, run: String, binding: String, recorded: String?)
+        async throws(CLIError)
+    {
         throw missing("bindingProxy")
+    }
+
+    func serve(every: Int) async throws(CLIError) { throw missing("serve") }
+
+    func installLoginItem(every: Int) async throws(CLIError) -> LoginItemReport {
+        let binary =
+            Bundle.main.executableURL?.resolvingSymlinksInPath().path ?? CommandLine.arguments[0]
+        let agent = LaunchAgent(binary: binary, home: home.path, every: every)
+        return try LoginItems.user().install(agent)
+    }
+
+    func uninstallLoginItem() async throws(CLIError) -> LoginItemReport {
+        try LoginItems.user().uninstall()
     }
 }

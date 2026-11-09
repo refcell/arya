@@ -19,7 +19,7 @@ import Testing
         ["memory", "st_triage", "--all"],
         ["routines", "st_triage"],
         ["replay", "run_1"],
-        ["binding-proxy", "--run", "run_1", "--binding", "inbox"],
+        ["binding-proxy", "--steward", "st_triage", "--run", "run_1", "--binding", "inbox"],
     ]
     for line in lines {
         let (status, capture) = await runCLI(line, backend: backend)
@@ -31,7 +31,8 @@ import Testing
             "casebooks st_triage", "rehearse st_triage -", "rehearse st_triage past",
             "correct st_triage case-0006 billing -", "ready st_triage",
             "propose st_triage v2.json", "proposals -", "metrics st_triage routed_within_1h",
-            "memory st_triage all", "routines st_triage", "replay run_1", "proxy run_1 inbox",
+            "memory st_triage all", "routines st_triage", "replay run_1",
+            "proxy st_triage run_1 inbox live",
         ])
 }
 
@@ -95,7 +96,10 @@ import Testing
     defer { try? FileManager.default.removeItem(at: home) }
     let capture = Capture()
     let status = await CLI.run(
-        ["--home", home.path, "binding-proxy", "--run", "run_1", "--binding", "inbox"],
+        [
+            "--home", home.path, "binding-proxy", "--steward", "st_triage", "--run", "run_1",
+            "--binding", "inbox",
+        ],
         context: testContext,
         output: capture.output, backend: { WorkspaceBackend(home: $0) })
     #expect(status == .unavailable)

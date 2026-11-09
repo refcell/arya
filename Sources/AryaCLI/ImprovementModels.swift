@@ -155,7 +155,8 @@ protocol ImprovementBackend: Sendable {
     func routines(steward: String) async throws(CLIError) -> [RoutineRow]
     func replay(run: String) async throws(CLIError) -> ReplayReport
     /// Serves until stdin closes.
-    func serveBindingProxy(run: String, binding: String) async throws(CLIError)
+    func serveBindingProxy(steward: String, run: String, binding: String, recorded: String?)
+        async throws(CLIError)
 }
 
 /// Which memory notes a listing includes.
