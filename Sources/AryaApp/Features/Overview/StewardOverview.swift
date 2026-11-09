@@ -44,6 +44,11 @@ struct StewardOverview: Hashable, Sendable {
             openProposals: proposals.count)
     }
 
+    /// "run_01M70Y0DYPH7X28Z" as "01M70Y0DYP", short enough for one line.
+    static func shortRun(_ id: String) -> String {
+        String((id.hasPrefix("run_") ? id.dropFirst(4) : Substring(id)).prefix(10))
+    }
+
     /// "Charter v1 · not ready · last run run_0002 running · 1 approval waiting".
     var summary: String {
         var parts: [String] = []
@@ -52,7 +57,9 @@ struct StewardOverview: Hashable, Sendable {
             parts.append(ready ? "ready" : "not ready")
         }
         if let lastRun {
-            parts.append("last run \(lastRun)" + (lastRunStatus.map { " \($0)" } ?? ""))
+            parts.append(
+                "last run \(StewardOverview.shortRun(lastRun))"
+                    + (lastRunStatus.map { " \($0)" } ?? ""))
         } else {
             parts.append("no runs yet")
         }

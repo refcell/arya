@@ -165,12 +165,14 @@ private struct RunStreamProjector {
         case "run.tool.call": applyToolCall(event, p)
         case "run.tool.result": applyToolResult(event, p)
         case "run.decision":
+            // `{decision: RecordedDecision}`; older recordings put the fields at the top.
+            let d = p["decision"] ?? p
             add(
                 event,
                 .decision(
-                    id: p["id"]?.string ?? event.id, choice: p["choice"]?.string ?? "",
-                    rationale: p["rationale"]?.string ?? "",
-                    alternatives: p["alternatives"]?.strings ?? []))
+                    id: d["id"]?.string ?? event.id, choice: d["choice"]?.string ?? "",
+                    rationale: d["rationale"]?.string ?? "",
+                    alternatives: d["alternatives"]?.strings ?? []))
         case "action.proposed": applyProposed(event)
         case "run.finished":
             let state = p["status"]?.string ?? "completed"
@@ -305,4 +307,37 @@ private struct RunStreamProjector {
 extension FeatureJSON {
     /// A string as itself, anything else as compact JSON.
     fileprivate var compactOutput: String { string ?? compactText }
+}
+
+/// The two sides of the run's split pane.
+enum StreamPane: Hashable, Sendable {
+    /// Conversation, reasoning, status, and decisions: compact rows on the left.
+    case conversation
+    /// Tool calls, results, and actions: compact cards on the right.
+    case work
+}
+
+extension StreamStep {
+    var pane: StreamPane {
+        switch kind {
+        case .toolCall, .action: return .work
+        default: return .conversation
+        }
+    }
+
+    /// The approval this step is waiting on, if any.
+    var pendingApproval: String? {
+        if case .action(let action) = kind, case .awaitingApproval(let id) = action.outcome {
+            return id
+        }
+        return nil
+    }
+}
+
+extension RunStream {
+    var conversation: [StreamStep] { steps.filter { $0.pane == .conversation } }
+    /// Work steps waiting for a person, pinned at the top of the work pane.
+    var waiting: [StreamStep] { steps.filter { $0.pendingApproval != nil } }
+    /// The other work steps, in order.
+    var work: [StreamStep] { steps.filter { $0.pane == .work && $0.pendingApproval == nil } }
 }

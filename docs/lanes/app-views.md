@@ -9,6 +9,19 @@ metrics, and the charter editor. All visuals come from `AryaDesign`; no raw colo
 
 ## Backlog
 
+Priority reset (visual target: dense, dark-first, low-chrome workspace; tokens from app-shell):
+- [x] Stream as a split pane: conversation, reasoning, and decisions as compact rows on the
+  left; tool calls, results, actions, and diffs as compact cards on the right with mono
+  commands and check or cross marks; pending approvals pinned on the right.
+- [ ] Approval cards: risk level, what will be touched (target, binding), evidence, and policy
+  reason; Approve as the single accent action.
+- [ ] Rehearsals: progress bar (7/8), per-case "would have done" and "actually happened" side
+  by side, prominent Mark ready.
+- [ ] Ledger: dense mono table with hash and verify status pills.
+- [ ] Routines: proposed, rehearsed, and live pipeline state with +/- diff stats.
+- [ ] Changes, Memory, and charter editor: compact rows, uppercase metadata labels, pills.
+- [ ] Move every view to app-shell's new tokens as they land; visual check per push.
+
 M3 (start now against the app-shell stub workspace):
 - [x] Run stream: messages, tool calls and results, decisions, proposed actions, status, live.
 - [x] Approval queue and approval cards: action, rationale, target, approve and deny with the
@@ -119,6 +132,11 @@ M4:
   other version of that routine whose approval was granted. "Always allow this version" is a
   charter proposal adding `routine:<name>@<version>: auto`, hidden once the charter has it.
 
+- Stream split: `StreamStep.pane` puts tool calls and actions on the right (`work`), all else
+  on the left (`conversation`); approvals waiting for a person are pinned at the top of the
+  right pane. `run.decision` is `{decision: {id, choice, rationale, alternatives?}}` (the
+  recorded shape); the flat shape is still read for older recordings.
+
 ## Questions
 - (from app-shell) `FeatureRegistry` now routes Changes, Ledger, Memory, Routines, and
   Rehearsals to your views when a store is wired; metric chart placement is yours. Changes
@@ -153,4 +171,4 @@ M4:
 - 2026-11-09: charter editor that saves changes as proposals (7451fa6).
 - 2026-11-09: Changes tab hosts the metric chart and charter editor (06dcbbb).
 - 2026-11-09: run now, replay, and rehearse controls (4ab0e07).
-\n- 2026-11-09: inbox, steward overview, and binding detail (acdb4fc).\n
+\n- 2026-11-09: inbox, steward overview, and binding detail (acdb4fc).\n- 2026-11-09: routine versions on approvals and always allow (2247b2e).\n- 2026-11-09: Visual check (demo home, dark): Stream split pane with timed conversation rows and work cards with check marks and policy pills; decision rows were empty on real data (nested payload), fixed. Approval card still the old component.\n

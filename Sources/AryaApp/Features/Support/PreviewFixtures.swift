@@ -128,9 +128,11 @@ enum PreviewFixtures {
         log.add(
             "run.decision", run: run,
             [
-                "id": "d1", "choice": "bug",
-                "rationale": "The report describes a timeout on an existing page.",
-                "alternatives": ["question", "feature"],
+                "decision": [
+                    "id": "d1", "choice": "bug",
+                    "rationale": "The report describes a timeout on an existing page.",
+                    "alternatives": ["question", "feature"],
+                ]
             ])
         actions(&log, run: run)
         log.add(
@@ -184,7 +186,7 @@ enum PreviewFixtures {
         _ log: inout FeatureEventBuilder, run: String, choice: String, target: String
     ) {
         log.add("run.started", run: run, ["trigger": "case", "rehearsal": true])
-        log.add("run.decision", run: run, ["id": "d1", "choice": .string(choice)])
+        log.add("run.decision", run: run, ["decision": ["id": "d1", "choice": .string(choice)]])
         log.add(
             "action.proposed", run: run,
             [

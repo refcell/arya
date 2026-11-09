@@ -52,7 +52,7 @@ private let now = FeatureTestClock.now
     #expect(overview.charterVersion == 1)
     #expect(overview.lastRun == PreviewFixtures.liveRun)
     #expect(overview.waitingQuestions == 1)
-    #expect(overview.summary.hasPrefix("Charter v1 · not ready · last run run_0002 running"))
+    #expect(overview.summary.hasPrefix("Charter v1 · not ready · last run 0002 running"))
     #expect(overview.summary.contains("1 question for people"))
     let empty = StewardOverview.build(events: [], steward: "st_none")
     #expect(empty.summary == "no runs yet")

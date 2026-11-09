@@ -26,18 +26,25 @@ struct RunStreamView: View {
                 "No steps yet.",
                 guidance: "Steps appear here as the run reads, decides, and proposes.")
         } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: AryaSpace.s4) {
-                    StatusLine(status: stream.status)
-                    FeatureWriteErrorLine(store: store)
-                    ForEach(stream.steps) { step in
-                        StreamStepRow(step: step, now: store.now, context: context(stream))
-                            .transition(.opacity)
+            HStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AryaSpace.s2) {
+                        StatusLine(status: stream.status)
+                        FeatureWriteErrorLine(store: store)
+                        ConversationPane(steps: stream.conversation, now: store.now)
                     }
+                    .padding(AryaSpace.s4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
-                .padding(AryaSpace.s5)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minWidth: AryaSize.readingWidth / 2, maxWidth: .infinity)
+                AryaHairline(.vertical)
+                ScrollView {
+                    WorkPane(stream: stream, now: store.now, context: context(stream))
+                        .padding(AryaSpace.s4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(minWidth: AryaSize.readingWidth / 2, maxWidth: .infinity)
+                .background(AryaColor.surface)
             }
             .background(AryaColor.canvas)
         }
@@ -80,27 +87,6 @@ private struct StatusLine: View {
             }
         }
         .accessibilityElement(children: .combine)
-    }
-}
-
-/// One step: gutter number, title, time, and an optional body.
-struct StreamStepRow: View {
-    var step: StreamStep
-    var now: Date
-    var context: StepContext
-
-    var body: some View {
-        StepRow(
-            sequence: step.number, time: FeatureTime.relative(step.at, now: now),
-            absoluteTime: FeatureTime.absolute(step.at),
-            isRunning: StreamStepText.isRunning(step.kind)
-        ) {
-            StepTitle(kind: step.kind)
-        } detail: {
-            StepBody(step: step, now: now, context: context)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(StreamStepText.spoken(step, now: now))
     }
 }
 
@@ -208,85 +194,7 @@ enum StreamStepText {
     }
 }
 
-private struct StepTitle: View {
-    var kind: StreamStep.Kind
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-            if let label = StreamStepText.label(kind) {
-                Text(label).aryaText(AryaFont.caption, AryaColor.inkFaint)
-            }
-            title
-        }
-    }
-
-    @ViewBuilder private var title: some View {
-        let text = StreamStepText.title(kind)
-        switch kind {
-        case .toolCall, .action: Text(text).aryaText(AryaFont.mono, AryaColor.ink)
-        case .decision: Text(text).aryaText(AryaFont.heading, AryaColor.ink)
-        case .error, .failed: Text(text).aryaText(AryaFont.bodyStrong, AryaColor.negative)
-        case .thinking, .status: Text(text).aryaText(AryaFont.body, AryaColor.inkMuted)
-        default: Text(text).aryaText(AryaFont.bodyStrong, AryaColor.ink)
-        }
-    }
-}
-
-private struct StepBody: View {
-    var step: StreamStep
-    var now: Date
-    var context: StepContext
-
-    var body: some View {
-        switch step.kind {
-        case .toolCall(let call): ToolCallBody(call: call)
-        case .decision(let id, _, let rationale, let alternatives):
-            VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                muted(rationale)
-                if !alternatives.isEmpty {
-                    muted("Also considered: " + alternatives.joined(separator: ", "))
-                }
-                Text(id).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-            }
-        case .action(let action):
-            if case .awaitingApproval(let approval) = action.outcome {
-                ApprovalItemCard(
-                    item: StreamStepText.approval(action, approval, step: step, context: context),
-                    now: now, decide: context.decide, store: context.store)
-            } else {
-                actionBody(action)
-            }
-        default: EmptyView()
-        }
-    }
-
-    private func actionBody(_ action: ProposedActionStep) -> some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s1) {
-            HStack(spacing: AryaSpace.s2) {
-                muted(action.rationale)
-                Spacer(minLength: AryaSpace.s2)
-                if let policy = AryaPolicy(rawValue: action.policy) { PolicyChip(policy) }
-            }
-            Text(StreamStepText.actionCaption(action))
-                .aryaText(AryaFont.caption, outcomeColor(action.outcome))
-            if let run = action.routine { RoutineRunBody(run: run) }
-        }
-    }
-
-    private func muted(_ text: String) -> some View {
-        Text(text).aryaText(AryaFont.body, AryaColor.inkMuted).lineLimit(3)
-    }
-
-    private func outcomeColor(_ outcome: ActionOutcome) -> Color {
-        switch outcome {
-        case .executed: return AryaColor.positive
-        case .failed, .rejected, .denied: return AryaColor.negative
-        default: return AryaColor.inkFaint
-        }
-    }
-}
-
-private struct ToolCallBody: View {
+struct ToolCallBody: View {
     var call: ToolCallStep
 
     var body: some View {
@@ -303,7 +211,7 @@ private struct ToolCallBody: View {
 }
 
 /// A routine's result: caption, then standard output and error when there is any.
-private struct RoutineRunBody: View {
+struct RoutineRunBody: View {
     var run: RoutineRun
 
     var body: some View {

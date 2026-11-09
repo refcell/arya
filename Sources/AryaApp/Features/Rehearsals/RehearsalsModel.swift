@@ -19,7 +19,8 @@ struct CaseOutcome: Hashable, Sendable {
         for event in events where event.run == run {
             switch event.type {
             case "run.decision":
-                if let choice = event.payload["choice"]?.string { outcome.decisions.append(choice) }
+                let decision = event.payload["decision"] ?? event.payload
+                if let choice = decision["choice"]?.string { outcome.decisions.append(choice) }
             case "action.proposed":
                 outcome.actions.append(action(event.payload["action"] ?? [:]))
             default: continue
