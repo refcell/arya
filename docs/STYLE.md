@@ -41,7 +41,8 @@ Dark is the default and opens whatever the system setting; Light is a choice in 
 | `rule` | `#1F1F21` | `#E4E4E7` | the hairline (white at about 8% on dark) |
 | `ruleStrong` | `#2C2C30` | `#D4D4D8` | quiet button and field outlines |
 | `accent` | `#F97316` | `#B4390A` | primary action, attention counts, the live dot |
-| `accentInk` | `#0C0C0D` | `#FFFFFF` | text on an `accent` fill |
+| `accentFill` | `#F97316` | `#F97316` | the primary button fill and attention dots, one orange |
+| `accentInk` | `#0C0C0D` | `#0C0C0D` | text on an `accentFill` fill |
 | `positive` | `#4ADE80` | `#166534` | check marks, added lines, passing values |
 | `negative` | `#F87171` | `#B91C1C` | cross marks, removed lines, failures |
 | `warning` | `#FBBF24` | `#8A5405` | stale or at-risk values |
@@ -130,10 +131,16 @@ then the name in `body`. Counts are `monoSmall`; the "Needs you" count is `accen
 
 ### Thread row
 
-A run under its steward, indented 18 pt. Title in `mono`/`inkMuted`, truncated: the run's
-one-line summary (`billing · routed MSG-201`), else its trigger input, else "manual run". Never
-a run number or id. A relative time right-aligned in `monoSmall`/`inkFaint` (`2m`, `1h`, `3d`).
-A 6 pt `accent` dot before the title marks a run waiting on a person.
+A run under its steward, indented 18 pt. Title in `caption`/`inkMuted`, up to two lines: the
+run's summary (`Labeled MSG-201 as billing`), else its trigger, else "run". Never a run number
+or id. The time right-aligned in `monoSmall`/`inkFaint` (`AryaTime` short style). A 6 pt
+`accentFill` dot before the title marks a run waiting on a person.
+
+### Time
+
+Every time goes through `AryaTime`: relative under 24 hours, a date and clock time after.
+Short style for rows and cells (`now`, `4m`, `2h`, `Nov 8`); long style for prose (`just now`,
+`4m ago`, `2h ago`, `Nov 8, 14:27`); `AryaTime.clock` (`14:27`) for transcript gutters.
 
 ### Tab bar
 
@@ -176,7 +183,7 @@ titles naming the action.
 
 26 pt tall, 4 pt radius, 12 pt horizontal padding, `bodyStrong`.
 
-- **Primary**: `accent` fill, `accentInk` text. One per screen.
+- **Primary**: `accentFill` fill, `accentInk` text. One per screen.
 - **Quiet**: no fill, 1 px `ruleStrong` outline, `ink` text. Text-only quiet buttons
   (`inkMuted`, `ink` on hover) are for inline actions.
 - Pressed 70% opacity; disabled `inkFaint` text and no fill; focus a 2 pt `accent` ring.

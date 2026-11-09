@@ -56,6 +56,7 @@ run-app: app
 # Reuses .build/demo-home when present; `just demo --no-open` reseeds it.
 snapshot:
     [ -d .build/demo-home ] || etc/scripts/demo.sh --no-open
+    rm -rf .build/snapshots
     ARYA_SNAPSHOT_DIR="$PWD/.build/snapshots" ARYA_SNAPSHOT_HOME="$PWD/.build/demo-home" \
       {{ slot }} swift test {{ swift_flags }} -j {{ jobs }} --filter SnapshotTests
     @ls .build/snapshots

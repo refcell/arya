@@ -52,7 +52,8 @@ public enum AryaEffort: String, CaseIterable, Sendable, Identifiable {
 /// Relative and absolute timestamps as STYLE.md writes them ("2m ago", "9 Nov 2026, 14:02").
 /// Pure functions of their inputs so views and tests stay deterministic.
 public enum AryaTime {
-    /// A relative time for lists: "just now", "2m ago", "3h ago", "5d ago".
+    /// A relative time for lists: "just now", "2m ago", "3h ago", "5d ago". New code uses
+    /// `label(_:now:)`, which switches to a clock time after a day.
     public static func relative(_ date: Date, now: Date) -> String {
         let seconds = Int(now.timeIntervalSince(date))
         if seconds < 60 { return "just now" }

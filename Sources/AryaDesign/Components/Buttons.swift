@@ -48,7 +48,7 @@ struct AryaButtonBody: View {
 
     private var fill: Color {
         guard kind == .primary else { return .clear }
-        return isEnabled ? AryaColor.accent : .clear
+        return isEnabled ? AryaColor.accentFill : .clear
     }
 }
 

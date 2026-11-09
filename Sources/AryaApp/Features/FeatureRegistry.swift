@@ -5,6 +5,20 @@ import SwiftUI
 /// the app-views lane replaces each placeholder with its real view. Keep signatures stable.
 @MainActor
 enum FeatureRegistry {
+    /// Two sections of a merged tab in one scrolling column: each takes its natural height
+    /// (its own scroll view sized to its content), so neither clips the other.
+    static func stacked(
+        @ViewBuilder _ first: () -> some View, @ViewBuilder second: () -> some View
+    ) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                first().fixedSize(horizontal: false, vertical: true)
+                AryaHairline()
+                second().fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     /// The view for a steward tab.
     @ViewBuilder
     static func view(for tab: StewardTab, context: FeatureContext) -> some View {
@@ -22,9 +36,9 @@ enum FeatureRegistry {
             }
         case .improve:
             if let store = context.store, let steward = context.steward?.id {
-                VStack(alignment: .leading, spacing: 0) {
+                stacked {
                     RehearsalsView(store: store, steward: steward)
-                    AryaHairline()
+                } second: {
                     ChangesTab(store: store, steward: steward)
                 }
             } else {
@@ -34,9 +48,9 @@ enum FeatureRegistry {
             }
         case .knowledge:
             if let store = context.store {
-                VStack(alignment: .leading, spacing: 0) {
+                stacked {
                     MemoryView(store: store, steward: context.steward?.id)
-                    AryaHairline()
+                } second: {
                     RoutinesView(store: store, steward: context.steward?.id)
                 }
             } else {

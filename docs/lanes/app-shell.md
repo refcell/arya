@@ -162,3 +162,10 @@ M4:
   owns the one primary action) and Appearance is quiet text, not a blue segmented control; R4
   pass, four tabs, threads titled by summary, a run shows only its transcript; R5 pass, sans
   only. Open for app-views: ledger columns truncate (`run.a…event`, `1h…go`).
+- 2026-11-09: merged tabs scroll as one column, '+' by the wordmark, threads in sans up to two
+  lines, `AryaTime.label` (relative under 24 h, clock after), `accentFill` (one orange in both
+  schemes), and `just snapshot` clears old PNGs and adds `window` (chrome), `ledger`, `settings`.
+- Visual check (`just snapshot`, 11 states): R1 pass in `window` (traffic lights on the canvas,
+  no band); R2 pass; R3 pass, one orange action per screen in dark and light; R4 pass, Improve
+  shows all 8 cases and Knowledge no longer clips, thread titles wrap to two lines; R5 pass.
+  Pending app-views: the ledger event inspector for a selected row.

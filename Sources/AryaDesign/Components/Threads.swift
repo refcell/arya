@@ -1,8 +1,8 @@
 import Foundation
 import SwiftUI
 
-/// A run under its steward in the sidebar (STYLE.md Thread row): its one-line summary in mono,
-/// truncated, and a relative time. A run waiting on a person shows an accent dot.
+/// A run under its steward in the sidebar (STYLE.md Thread row): its summary in the sans caption
+/// face, up to two lines, and a relative time. A run waiting on a person shows an accent dot.
 public struct ThreadRow: View {
     let title: String
     let time: String
@@ -17,20 +17,22 @@ public struct ThreadRow: View {
     }
 
     public var body: some View {
-        HStack(spacing: AryaSpace.s2) {
+        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
             Circle()
-                .fill(needsYou ? AryaColor.accent : .clear)
+                .fill(needsYou ? AryaColor.accentFill : .clear)
                 .frame(width: AryaSize.statusDot, height: AryaSize.statusDot)
+                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
             Text(title)
-                .aryaText(AryaFont.mono, isSelected ? AryaColor.ink : AryaColor.inkMuted)
-                .lineLimit(1)
+                .aryaText(AryaFont.caption, isSelected ? AryaColor.ink : AryaColor.inkMuted)
+                .lineLimit(2)
                 .truncationMode(.tail)
-            Spacer(minLength: AryaSpace.s2)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Text(time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
         }
         .padding(.leading, AryaSize.threadIndent - AryaSize.statusDot)
         .padding(.trailing, AryaSpace.s2)
-        .frame(height: AryaSize.rowHeight)
+        .padding(.vertical, AryaSpace.s1)
+        .frame(minHeight: AryaSize.rowHeight)
         .background(
             isSelected ? AryaColor.selection : .clear,
             in: RoundedRectangle(cornerRadius: AryaRadius.small)
@@ -41,13 +43,9 @@ public struct ThreadRow: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    /// A compact relative time for thread rows: "now", "4m", "2h", "3d".
+    /// A compact time for thread rows (`AryaTime.label(_:now:style: .short)`).
     public static func shortTime(_ date: Date, now: Date) -> String {
-        let seconds = max(0, Int(now.timeIntervalSince(date)))
-        if seconds < 60 { return "now" }
-        if seconds < 3600 { return "\(seconds / 60)m" }
-        if seconds < 86_400 { return "\(seconds / 3600)h" }
-        return "\(seconds / 86_400)d"
+        AryaTime.label(date, now: now, style: .short)
     }
 }
 

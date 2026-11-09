@@ -11,7 +11,7 @@ import Testing
         #expect(AryaColorToken.accent.dark.description == "#F97316")
         #expect(AryaColorToken.canvas.light.description == "#FAFAFA")
         #expect(AryaColorToken.accent.light.description == "#B4390A")
-        #expect(AryaColorToken.allCases.count == 15)
+        #expect(AryaColorToken.allCases.count == 16)
     }
 
     @Test func theAppearanceDefaultsToDark() {
@@ -66,7 +66,7 @@ import Testing
             }
         }
         let fills: [(AryaColorToken, AryaColorToken)] = [
-            (.accentInk, .accent), (.ink, .positiveWash), (.ink, .negativeWash),
+            (.accentInk, .accentFill), (.ink, .positiveWash), (.ink, .negativeWash),
             (.positive, .positiveWash), (.negative, .negativeWash), (.canvas, .ink),
         ]
         for (text, fill) in fills {

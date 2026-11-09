@@ -39,14 +39,27 @@ struct RailView: View {
     /// threads under the selected one (STYLE.md Layout).
     var content: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("arya")
-                .aryaText(AryaFont.monoStrong, AryaColor.ink)
-                .padding(.horizontal, AryaSpace.s2)
-                .frame(height: AryaSize.rowHeight)
-                .padding(.bottom, AryaSpace.s3)
+            HStack(spacing: AryaSpace.s2) {
+                Text("arya").aryaText(AryaFont.monoStrong, AryaColor.ink)
+                Spacer(minLength: 0)
+                Button {
+                    model.stewardSheet = NewStewardDraft()
+                } label: {
+                    Image(systemName: "plus").font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.aryaTertiary)
+                .foregroundStyle(AryaColor.inkMuted)
+                .help("New steward")
+                .accessibilityLabel("New steward")
+            }
+            .padding(.horizontal, AryaSpace.s2)
+            .frame(height: AryaSize.rowHeight)
+            .padding(.bottom, AryaSpace.s3)
             needsYouRow
-            RailGroupLabel("Stewards")
-                .padding(.bottom, AryaSpace.s1)
+            if !model.stewards.isEmpty {
+                RailGroupLabel("Stewards")
+                    .padding(.bottom, AryaSpace.s1)
+            }
             ForEach(model.stewards) { steward in
                 stewardRows(steward)
             }

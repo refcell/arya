@@ -35,6 +35,9 @@ import Testing
             try write(name, scheme: scheme, render(RootView(model: model), dark: dark))
         }
         try page("overview") { $0.tab = .overview }
+        model.navigation = NavigationState()
+        model.navigation.select(steward: steward.id)
+        try write("window", scheme: scheme, renderInWindow(RootView(model: model), dark: dark))
         if let quiet { try page("run") { $0.select(run: quiet.id, steward: steward.id) } }
         if let waiting {
             try page("run-approval") { $0.select(run: waiting.id, steward: steward.id) }
@@ -42,10 +45,9 @@ import Testing
         try page("needs-you") { $0.showApprovals() }
         try page("improve") { $0.tab = .improve }
         try page("knowledge") { $0.tab = .knowledge }
-        try page("ledger-inspector") {
-            $0.tab = .ledger
-            $0.inspector = true
-        }
+        // The event inspector for a selected ledger row joins this set when app-views ships it.
+        try page("ledger") { $0.tab = .ledger }
+        try page("settings") { $0.inspector = true }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()
         model.navigation.select(steward: steward.id)
@@ -97,6 +99,31 @@ import Testing
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try png.write(to: url)
+    }
+
+    /// PNG bytes of the view inside a real window frame with the app's chrome (transparent
+    /// title bar, full-size content, traffic lights), so the title-bar rule can be judged. The
+    /// window is never ordered on screen and the process may not activate, so nothing appears.
+    private func renderInWindow(_ view: some View, dark: Bool) -> Data? {
+        NSApplication.shared.setActivationPolicy(.prohibited)
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: Self.size),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+        window.backgroundColor = AryaColorToken.canvas.nsColor
+        window.contentView = NSHostingView(
+            rootView: view.environment(\.colorScheme, dark ? .dark : .light))
+        guard let frame = window.contentView?.superview else { return nil }
+        frame.layoutSubtreeIfNeeded()
+        guard let bitmap = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) else {
+            return nil
+        }
+        frame.cacheDisplay(in: frame.bounds, to: bitmap)
+        return bitmap.representation(using: .png, properties: [:])
     }
 
     /// PNG bytes of a view at `size`, drawn through AppKit so scroll views render too.

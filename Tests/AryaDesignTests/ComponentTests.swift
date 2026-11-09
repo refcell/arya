@@ -68,7 +68,6 @@ import Testing
         #expect(ThreadRow.shortTime(now, now: now) == "now")
         #expect(ThreadRow.shortTime(now.addingTimeInterval(-240), now: now) == "4m")
         #expect(ThreadRow.shortTime(now.addingTimeInterval(-7200), now: now) == "2h")
-        #expect(ThreadRow.shortTime(now.addingTimeInterval(-259_200), now: now) == "3d")
     }
 
     @Test func sparklinePointsFillTheRect() {

@@ -42,7 +42,7 @@ public enum AryaColorToken: String, CaseIterable, Sendable {
     case canvas, raised, selection
     case ink, inkMuted, inkFaint
     case rule, ruleStrong
-    case accent, accentInk
+    case accent, accentFill, accentInk
     case positive, positiveWash, negative, negativeWash, warning
 
     /// The value in the dark scheme, the app's default.
@@ -57,6 +57,7 @@ public enum AryaColorToken: String, CaseIterable, Sendable {
         case .rule: AryaRGB(0x1F1F21)
         case .ruleStrong: AryaRGB(0x2C2C30)
         case .accent: AryaRGB(0xF97316)
+        case .accentFill: AryaRGB(0xF97316)
         case .accentInk: AryaRGB(0x0C0C0D)
         case .positive: AryaRGB(0x4ADE80)
         case .positiveWash: AryaRGB(0x0E1F14)
@@ -78,7 +79,8 @@ public enum AryaColorToken: String, CaseIterable, Sendable {
         case .rule: AryaRGB(0xE4E4E7)
         case .ruleStrong: AryaRGB(0xD4D4D8)
         case .accent: AryaRGB(0xB4390A)
-        case .accentInk: AryaRGB(0xFFFFFF)
+        case .accentFill: AryaRGB(0xF97316)
+        case .accentInk: AryaRGB(0x0C0C0D)
         case .positive: AryaRGB(0x166534)
         case .positiveWash: AryaRGB(0xE9F9EE)
         case .negative: AryaRGB(0xB91C1C)
@@ -125,6 +127,8 @@ public enum AryaColor {
     public static let rule = AryaColorToken.rule.color
     public static let ruleStrong = AryaColorToken.ruleStrong.color
     public static let accent = AryaColorToken.accent.color
+    /// The same orange in both schemes, for the primary button fill and attention dots.
+    public static let accentFill = AryaColorToken.accentFill.color
     public static let accentInk = AryaColorToken.accentInk.color
     public static let positive = AryaColorToken.positive.color
     public static let positiveWash = AryaColorToken.positiveWash.color
