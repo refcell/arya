@@ -102,3 +102,14 @@ M3:
 
 
 ## Log
+- 2026-11-09: ids, Timestamp, Ambient, JSONValue, canonical JSON landed in AryaCore (5fdc638).
+- 2026-11-09: Charter, Case, GateChecking with validation and goldens (5b7d61a).
+- 2026-11-09: Event envelope, Actor, EventType, line sealing (decision 0012), EventPayload
+  and ledger-owned payloads (2a48f1f).
+- 2026-11-09: run.*, action.*, approval.* payloads owned here (0024); ProposedAction moved to
+  AryaCore (93c62fe).
+- 2026-11-09: LedgerStore (flock appends, rollover, torn-line repair) and BlobStore (d6b8f0c).
+- 2026-11-09: LedgerReader with follow stream, LedgerVerifier (c725446).
+- 2026-11-09: multi-process append test with the AryaLedgerWriter helper (99f6cf4).
+- 2026-11-09: LedgerProjection, Projected, rebuild/catchUp, LedgerIndex (0028); M1 done
+  (e1322ae). Interfaces for the ledger-backed EventSink are noted in workspace.md.
