@@ -214,68 +214,10 @@ struct OutcomeState: Hashable, Sendable {
     }
 }
 
-/// Times as the Overview writes them: clock times, never "just now" on every row.
+/// The Overview's recap rule; times themselves go through `AryaTime.label`.
 enum OutcomeTime {
-    /// How long a person must have been away before the recap paragraph shows.
+    /// The recap appears only after this long away.
     static let recapGapSeconds: TimeInterval = 15 * 60
-
-    /// One rule per screen, shared with the sidebar threads: relative under 24 hours ("now",
-    /// "2m", "3h", as `ThreadRow.shortTime`), then "yesterday 14:02", "Mon 14:02" within a
-    /// week, else "9 Nov".
-    static func short(_ date: Date, now: Date, timeZone: TimeZone = .current) -> String {
-        if now.timeIntervalSince(date) < 86_400 { return ThreadRow.shortTime(date, now: now) }
-        let calendar = calendar(timeZone)
-        let clock = clockTime(date, calendar)
-        let days = dayDistance(date, now, calendar)
-        switch days {
-        case ...0: return clock
-        case 1: return "yesterday \(clock)"
-        case 2...6: return "\(weekday(date, calendar)) \(clock)"
-        default: return dayMonth(date, calendar)
-        }
-    }
-
-    /// "Since 14:02", "Since yesterday", "Since Monday", or "Since 9 Nov".
-    static func since(_ date: Date, now: Date, timeZone: TimeZone = .current) -> String {
-        let calendar = calendar(timeZone)
-        switch dayDistance(date, now, calendar) {
-        case ...0: return "Since \(clockTime(date, calendar))"
-        case 1: return "Since yesterday"
-        case 2...6: return "Since \(weekday(date, calendar, long: true))"
-        default: return "Since \(dayMonth(date, calendar))"
-        }
-    }
-
-    private static func calendar(_ timeZone: TimeZone) -> Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        return calendar
-    }
-
-    private static func dayDistance(_ date: Date, _ now: Date, _ calendar: Calendar) -> Int {
-        let start = calendar.startOfDay(for: date)
-        let end = calendar.startOfDay(for: now)
-        return calendar.dateComponents([.day], from: start, to: end).day ?? 0
-    }
-
-    private static func clockTime(_ date: Date, _ calendar: Calendar) -> String {
-        let parts = calendar.dateComponents([.hour, .minute], from: date)
-        return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
-    }
-
-    private static func weekday(_ date: Date, _ calendar: Calendar, long: Bool = false) -> String {
-        let names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-        let name = names[(calendar.component(.weekday, from: date) - 1) % 7]
-        return long ? name : String(name.prefix(3))
-    }
-
-    private static func dayMonth(_ date: Date, _ calendar: Calendar) -> String {
-        let months = [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-        ]
-        let parts = calendar.dateComponents([.day, .month], from: date)
-        return "\(parts.day ?? 1) \(months[((parts.month ?? 1) - 1) % 12])"
-    }
 }
 
 /// Text for the Outcome tab, kept apart from layout so it can be tested.

@@ -42,8 +42,10 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 - The sparkline spaces samples evenly by index (daily means, or each reading while there
   is under two days). A flat tail means equal readings: the demo's 20 readings fall on one
   day and the last dozen are 0.80; cli-e2e is asked for backdated history.
-- Times follow one rule with the sidebar: relative under 24 h, clock time after
-  (`OutcomeTime.short`), proposed to app-shell as a shared AryaDesign formatter.
+- Times use `AryaTime.label` (short in row gutters, long in prose); the recap reads "Since
+  you looked 21m ago: …". No local formatters.
+- The New steward sheet uses no system accent: `NewStewardChoice` (drawn like
+  `EffortSelector`) and `NewStewardCheck` replace segmented pickers and the checkbox.
 - Status: on track when the latest daily value meets the target in its direction; at risk
   when it falls short by at most 5% of the target; otherwise off track; no target or no
   readings say so.
@@ -93,3 +95,7 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   Visual check (offscreen `just screenshots`, demo home): outcome line 0.80 / 0.95 with
   sparkline and OFF TRACK label, plan 4/4 with why it changed, Recent with whys, one orange
   Review (the header copy is gone on main).
+- 2026-11-09: moved to `AryaTime.label`; "Changed 21m ago"; New steward steps 2-5 render
+  in `just snapshot` (`new-steward-2…5`) with ink controls in place of system blue, and Effort
+  is labeled once. Visual check (offscreen `just snapshot`): overview, new-steward 1-5 dark and
+  light pass the 5 requirements.

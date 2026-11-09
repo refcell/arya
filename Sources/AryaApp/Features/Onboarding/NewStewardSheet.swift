@@ -17,12 +17,14 @@ struct NewStewardSheet: View {
 
     init(
         store: FeatureStore, draft: NewStewardDraft = NewStewardDraft(),
+        step: NewStewardDraft.Step = .outcome,
         created: @escaping (String) -> Void, cancel: @escaping () -> Void
     ) {
         self.store = store
         self.created = created
         self.cancel = cancel
         _draft = AryaState(initialValue: draft)
+        _step = AryaState(initialValue: step)
     }
 
     private static let stepCount = NewStewardDraft.Step.allCases.count
@@ -134,11 +136,8 @@ struct NewStewardFields: View {
                 CharterTextField(placeholder: "0.95", text: $draft.target, mono: true)
             }
             labeled("Better when") {
-                Picker("Better when", selection: $draft.direction) {
-                    Text("higher").tag("up")
-                    Text("lower").tag("down")
-                }
-                .pickerStyle(.segmented).labelsHidden().fixedSize()
+                NewStewardChoice(
+                    selection: $draft.direction, options: [("up", "higher"), ("down", "lower")])
             }
         }
         disclosure {
@@ -153,10 +152,9 @@ struct NewStewardFields: View {
             CharterTextField(placeholder: "Never close a conversation.", text: $draft.guardrails)
         }
         labeled("By default it should") {
-            Picker("Autonomy", selection: $draft.autonomy) {
-                ForEach(NewStewardDraft.Autonomy.allCases, id: \.self) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.segmented).labelsHidden().fixedSize()
+            NewStewardChoice(
+                selection: $draft.autonomy,
+                options: NewStewardDraft.Autonomy.allCases.map { ($0, $0.label) })
         }
         labeled("Always needs your sign-off (actions, comma separated)") {
             CharterTextField(placeholder: "reply, assign", text: $draft.signOff, mono: true)
@@ -186,15 +184,13 @@ struct NewStewardFields: View {
                 CharterTextField(placeholder: "15", text: $draft.everyMinutes, mono: true)
                     .frame(width: AryaSize.newStewardNumberWidth)
             }
-            Toggle("Also when a person writes to it", isOn: $draft.wakesOnMessage)
-                .aryaText(AryaFont.body, AryaColor.ink)
+            NewStewardCheck("Also when a person writes to it", isOn: $draft.wakesOnMessage)
+                .frame(height: AryaSize.controlHeight)
         }
-        labeled("Effort") {
-            EffortSelector(
-                selection: Binding(
-                    get: { AryaEffort(rawValue: draft.effort) ?? .medium },
-                    set: { draft.effort = $0.rawValue }))
-        }
+        EffortSelector(
+            selection: Binding(
+                get: { AryaEffort(rawValue: draft.effort) ?? .medium },
+                set: { draft.effort = $0.rawValue }))
         disclosure {
             labeled("Adapter profile") {
                 CharterTextField(placeholder: "default", text: $draft.adapter, mono: true)
@@ -245,4 +241,73 @@ struct FirstLaunchView: View {
 extension AryaSize {
     static let newStewardHeight: CGFloat = 420
     static let newStewardNumberWidth: CGFloat = 96
+}
+
+/// A quiet segmented choice drawn like `EffortSelector` (ink fill for the selection), so the
+/// sheet shows no system accent color.
+struct NewStewardChoice<Value: Hashable>: View {
+    @Binding var selection: Value
+    let options: [(Value, String)]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(options.enumerated()), id: \.offset) { index, option in
+                if index > 0 { AryaHairline(.vertical, color: AryaColor.ruleStrong) }
+                segment(option.0, option.1)
+            }
+        }
+        .frame(height: AryaSize.controlHeight)
+        .clipShape(RoundedRectangle(cornerRadius: AryaRadius.small))
+        .overlay {
+            RoundedRectangle(cornerRadius: AryaRadius.small)
+                .strokeBorder(AryaColor.ruleStrong, lineWidth: 1)
+        }
+        .fixedSize()
+    }
+
+    private func segment(_ value: Value, _ label: String) -> some View {
+        let isSelected = value == selection
+        return Button {
+            selection = value
+        } label: {
+            Text(label)
+                .aryaText(
+                    isSelected ? AryaFont.bodyStrong : AryaFont.body,
+                    isSelected ? AryaColor.canvas : AryaColor.inkMuted
+                )
+                .padding(.horizontal, AryaSpace.s3)
+                .frame(maxHeight: .infinity)
+                .background(isSelected ? AryaColor.ink : .clear)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// A checkbox in ink: a mono mark and a label, no system accent color.
+struct NewStewardCheck: View {
+    let title: String
+    @Binding var isOn: Bool
+
+    init(_ title: String, isOn: Binding<Bool>) {
+        self.title = title
+        self._isOn = isOn
+    }
+
+    var body: some View {
+        Button {
+            isOn.toggle()
+        } label: {
+            HStack(spacing: AryaSpace.s2) {
+                Text(isOn ? "[x]" : "[ ]").aryaText(AryaFont.mono, AryaColor.ink)
+                Text(title).aryaText(AryaFont.body, AryaColor.ink)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
 }

@@ -34,7 +34,7 @@ enum OutcomeRecapText {
         guard recap.runsSince > 0 || !recap.actionsSince.isEmpty || waiting != nil else {
             return nil
         }
-        var text = OutcomeTime.since(seenAt, now: now, timeZone: timeZone)
+        var text = "Since you looked \(AryaTime.label(seenAt, now: now, timeZone: timeZone))"
         let news = since(recap)
         let list = news.replacing(" · ", with: ", ")
         text += news == "nothing new" ? ", nothing new ran." : ": \(list)."
@@ -109,7 +109,7 @@ struct OutcomeActivityRow: View {
                         .aryaText(AryaFont.body, AryaColor.inkFaint)
                         .lineLimit(1)
                     Spacer(minLength: AryaSpace.s2)
-                    Text(OutcomeTime.short(item.at, now: now))
+                    Text(AryaTime.label(item.at, now: now, style: .short))
                         .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                         .help(AryaTime.absolute(item.at, timeZone: .current))
                 }

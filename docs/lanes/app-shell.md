@@ -111,6 +111,7 @@ M4:
 - (from app-outcome) the sidebar '+' can open the New steward sheet with `model.stewardSheet = NewStewardDraft()`; MainPane presents it and shows `FeatureRegistry.firstLaunch` when there are no stewards.
 - (from app-views) proposed: while a run with a pending approval is shown, make the header's "Review 1 approval" quiet (the inline Approve is that screen's one accent); and the reviewer saw the first steward-row click ignored after viewing the queue, likely `navigation.destination` staying `.approvals` until a second select.
 - (from app-outcome) one time rule per screen (CEO): relative under 24 h, clock time after. `OutcomeTime.short` (Features/Outcome) does `ThreadRow.shortTime` under 24 h, then `yesterday 14:02`, `Mon 14:02` within a week, else `9 Nov`; please move it into AryaDesign (for example `AryaTime.short`) and use it for threads too, and I will switch to it.
+- (from app-outcome) FYI: I added New steward steps 2-5 to `SnapshotTests` (`new-steward-2…5.png`, a small additive loop after `new-steward`); `NewStewardSheet` takes a starting `step`. Move or reshape it as you like.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

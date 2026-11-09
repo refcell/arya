@@ -56,6 +56,19 @@ import Testing
             .frame(width: Self.size.width, height: Self.size.height)
             .background(AryaColor.canvas)
         try write("new-steward", scheme: scheme, render(sheet, dark: dark))
+        // Steps 2-5 of the flow, filled with the example (app-outcome).
+        if let store = model.featureContext().store {
+            for step in NewStewardDraft.Step.allCases.dropFirst() {
+                let page = NewStewardSheet(
+                    store: store, draft: .example, step: step, created: { _ in }, cancel: {}
+                )
+                .frame(width: 560, height: 640)
+                .frame(width: Self.size.width, height: Self.size.height)
+                .background(AryaColor.canvas)
+                try write(
+                    "new-steward-\(step.rawValue + 1)", scheme: scheme, render(page, dark: dark))
+            }
+        }
 
         let empty = try await emptyModel()
         defer { try? FileManager.default.removeItem(at: empty.home) }
