@@ -316,7 +316,8 @@ must write exactly the next recorded host line (same method, id, and params); th
 adapter lines up to the next host line are then published in order and the call returns its
 recorded response. Lines the connection wrote on its own (the idle-timeout `run/stop`, replies to
 unserved requests, marked `"source":"connection"` in `run.adapter.event`) replay without a call.
-Any other line from the runtime fails with a divergence that shows both lines.
+Any other line from the runtime fails with a divergence that shows both lines. Build one from a
+run's `run.adapter.event` payloads in ledger order with `ReplayAdapter(ledgerPayloads:exit:)`.
 
 ## Conformance
 

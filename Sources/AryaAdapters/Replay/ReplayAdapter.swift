@@ -30,6 +30,18 @@ public actor ReplayAdapter: Adapter {
         self.recordedExit = exit
     }
 
+    /// A replay of a run's `run.adapter.event` payloads, in ledger order. Returns `nil` when a
+    /// payload is not a wire record (see ``WireRecord/init(ledgerPayload:)``), so a damaged
+    /// recording fails before replay starts.
+    public init?(ledgerPayloads: [JSONValue], exit: AdapterExit = .exited(0)) {
+        var records: [WireRecord] = []
+        for payload in ledgerPayloads {
+            guard let record = WireRecord(ledgerPayload: payload) else { return nil }
+            records.append(record)
+        }
+        self.init(records: records, exit: exit)
+    }
+
     public func initialize(_ params: InitializeParams) async throws(AdapterError)
         -> InitializeResult
     {

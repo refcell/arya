@@ -109,4 +109,7 @@ func expectReplayMatches(_ script: FakeScript, timeouts: ConnectionTimeouts = Sa
     let records = try payloads.map { try #require(WireRecord(ledgerPayload: $0)) }
     let exit = try #require(recorded.last?.exit)
     #expect(try await drive(ReplayAdapter(records: records, exit: exit)) == recorded)
+    let fromPayloads = try #require(ReplayAdapter(ledgerPayloads: payloads, exit: exit))
+    #expect(try await drive(fromPayloads) == recorded)
+    #expect(ReplayAdapter(ledgerPayloads: payloads + [["direction": "sideways"]]) == nil)
 }

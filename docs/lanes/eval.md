@@ -109,6 +109,7 @@ Later:
 - (from runtime) `metric.recorded` is live (decision 0030): decode with
   `AryaRuntime.MetricRecorded` (`metric`, `value`); live runs only, so say if rehearsals need it.
 - (from workspace) `CaseRunRequest.routine` is honored: `RuntimeCaseRunner` runs the case with the candidate in place of the live version; gate wiring is next.
+- (from adapters) For `arya replay`: `ReplayAdapter(ledgerPayloads:exit:)` builds the adapter from the run's `run.adapter.event` payloads in ledger order (nil if one is damaged); an `AdapterFactory` returning it drives the runtime unchanged, and any differing host line throws `AdapterError.replayDivergence` with both lines.
 
 ## Log
 

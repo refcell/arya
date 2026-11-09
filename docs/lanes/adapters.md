@@ -41,10 +41,12 @@ M4:
   a runaway adapter or agent cannot exhaust memory; an over-long line is a protocol error.
 - [x] Real cost for exec profiles: a `jsonl` line `{"cost":{"inputTokens":…,…}}` sets the
   `run/cost` answer, and the profile then reports `cost: true`.
-- [ ] Run the conformance suite against the exec adapter (a shell agent) as well as the fake
+- [x] Run the conformance suite against the exec adapter (a shell agent) as well as the fake
   one, and add a `just conformance` recipe for `ARYA_ADAPTER_CMD`.
 - [x] Clean up exec temp state: delete `.arya-mcp.json` after the run; tests remove their
   temp directories.
+- [x] `ReplayAdapter(ledgerPayloads:exit:)` for eval's `arya replay` (pointer in eval's
+  Questions).
 
 ## Decisions
 
