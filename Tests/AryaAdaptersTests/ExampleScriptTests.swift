@@ -8,7 +8,8 @@ import Testing
 let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     .deletingLastPathComponent().deletingLastPathComponent()
 
-/// The triage example's fake script answers every casebook input with a valid result.
+/// The triage example's fake script answers every casebook input, and every scripted message,
+/// with a valid result.
 @Test func triageExampleScriptAnswersEveryCase() async throws {
     let examples = repositoryRoot.appendingPathComponent("etc/examples/triage")
     let script = try FakeScript.load(from: examples.appendingPathComponent("fake-script.json"))
@@ -21,7 +22,10 @@ let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
                 .stringValue)
     }
     #expect(!inputs.isEmpty)
-    for (index, text) in inputs.enumerated() {
+    // Every casebook input, plus the scripted messages only the demo and live runs use.
+    let all = inputs + script.responses.keys.sorted().filter { !inputs.contains($0) }
+    #expect(all.count > inputs.count)
+    for (index, text) in all.enumerated() {
         let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
         _ = try await adapter.start(Sample.start(text, run: "run_\(index)"))
         let updates = await collect(adapter, until: \.isResult)

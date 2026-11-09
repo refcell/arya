@@ -31,6 +31,18 @@
       ]
     },
     {
+      "id": "billing",
+      "kind": "mcp",
+      "command": "billing-mcp",
+      "args": [],
+      "read": [
+        "order"
+      ],
+      "actions": [
+        "refund"
+      ]
+    },
+    {
       "id": "person:sam",
       "kind": "person",
       "channel": "inbox"
@@ -58,6 +70,10 @@
       },
       {
         "action": "reply",
+        "decision": "ask"
+      },
+      {
+        "action": "refund",
         "decision": "ask"
       },
       {

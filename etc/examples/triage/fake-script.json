@@ -2612,6 +2612,270 @@
           }
         ]
       }
+    },
+    "New message MSG-202: Where is my package?": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-202"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-202",
+            "from": "customer:c-202",
+            "subject": "Where is my package?",
+            "body": "My order ORDER-2207 was due on Monday and the tracking page has not changed in four days."
+          },
+          "isError": false
+        },
+        {
+          "kind": "thinking",
+          "text": "A delivery delay with an order number: shipping, not billing."
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This is a shipping question about a late order."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-202 as shipping and routed it to the shipping queue.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-202",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "The customer asks about a late delivery."
+          },
+          {
+            "id": "p3",
+            "text": "Label it shipping and route it to shipping",
+            "status": "done"
+          },
+          {
+            "id": "p4",
+            "text": "Look up the carrier's tracking status",
+            "status": "skipped",
+            "rationale": "this charter has no carrier binding"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "shipping",
+            "rationale": "The message asks where an order is.",
+            "why": "The order is four days late and tracking has stalled."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-202",
+            "params": {
+              "label": "shipping"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-202",
+            "params": {
+              "queue": "shipping"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The shipping queue owns delivery questions."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-203: Damaged order, please refund": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-203"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-203",
+            "from": "customer:c-203",
+            "subject": "Damaged order, please refund",
+            "body": "Order ORDER-1043 arrived with a cracked screen. Photos attached. I would like a refund of 24.00."
+          },
+          "isError": false
+        },
+        {
+          "kind": "tool_call",
+          "id": "t2",
+          "tool": "inbox.search",
+          "input": {
+            "query": "from:customer:c-203 refund"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t2",
+          "output": {
+            "messages": []
+          },
+          "isError": false
+        },
+        {
+          "kind": "thinking",
+          "text": "First refund request from this customer, with photos; the amount matches the order."
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "A damaged order with evidence. I will propose a refund and a reply, both for approval."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled MSG-203 as billing, proposed a 24.00 refund for ORDER-1043, and drafted a reply.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-203",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Check the customer's refund history",
+            "status": "done",
+            "rationale": "no earlier refund requests"
+          },
+          {
+            "id": "p3",
+            "text": "Label it billing and route it to billing",
+            "status": "done"
+          },
+          {
+            "id": "p4",
+            "text": "Refund 24.00 for ORDER-1043",
+            "status": "pending",
+            "rationale": "waits for approval"
+          },
+          {
+            "id": "p5",
+            "text": "Tell the customer the refund is on its way",
+            "status": "pending",
+            "rationale": "waits for approval"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "The customer asks for money back for a damaged item.",
+            "why": "A refund request for a damaged order, with photos."
+          },
+          {
+            "id": "d2",
+            "choice": "refund",
+            "rationale": "Evidence attached, amount matches the order, no earlier refunds.",
+            "why": "The claim is documented and this is the customer's first refund."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-203",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-203",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The billing queue owns refunds."
+          },
+          {
+            "id": "a3",
+            "kind": "refund",
+            "binding": "billing",
+            "target": "billing:ORDER-1043",
+            "params": {
+              "order": "ORDER-1043",
+              "amount": "24.00",
+              "currency": "USD"
+            },
+            "rationale": "damaged on arrival",
+            "risk": "high",
+            "why": "Money leaves the account and cannot be pulled back."
+          },
+          {
+            "id": "a4",
+            "kind": "reply",
+            "binding": "inbox",
+            "target": "inbox:MSG-203",
+            "params": {
+              "text": "Sorry your order arrived damaged. We have asked for a refund of 24.00 to your original payment method."
+            },
+            "rationale": "acknowledge the customer",
+            "risk": "high",
+            "why": "The customer hears back right away; a sent reply cannot be recalled."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
     }
   },
   "default": {
