@@ -879,19 +879,1781 @@
           }
         ]
       }
+    },
+    "New message MSG-110: Invoice shows the wrong company name": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-110"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-110",
+            "from": "customer:c-110",
+            "subject": "Invoice shows the wrong company name",
+            "body": "Invoice shows the wrong company name."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a billing message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent an invoice with the wrong company name to billing; routed after the one-hour mark.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-110",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "It is about a charge, invoice, or refund."
+          },
+          {
+            "id": "p3",
+            "text": "Label it billing and route it to billing",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "\"Invoice shows the wrong company name\" reads as a billing message.",
+            "why": "It is about a charge, invoice, or refund."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-110",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-110",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The billing queue owns billing messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.0
+          }
+        ]
+      }
+    },
+    "New message MSG-111: Dark mode resets after update": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-111"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-111",
+            "from": "customer:c-111",
+            "subject": "Dark mode resets after update",
+            "body": "Dark mode resets after update."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a bug message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Filed a dark-mode reset after the update as a bug for engineering.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-111",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "Something in the product is broken."
+          },
+          {
+            "id": "p3",
+            "text": "Label it bug and route it to engineering",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "bug",
+            "rationale": "\"Dark mode resets after update\" reads as a bug message.",
+            "why": "Something in the product is broken."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-111",
+            "params": {
+              "label": "bug"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-111",
+            "params": {
+              "queue": "bug"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The engineering queue owns bug messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-112: Locked out after password reset": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-112"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-112",
+            "from": "customer:c-112",
+            "subject": "Locked out after password reset",
+            "body": "Locked out after password reset."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a account message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Routed a lockout after a password reset to accounts, late because the inbox was busy.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-112",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "The customer needs a change to their account."
+          },
+          {
+            "id": "p3",
+            "text": "Label it account and route it to accounts",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "account",
+            "rationale": "\"Locked out after password reset\" reads as a account message.",
+            "why": "The customer needs a change to their account."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-112",
+            "params": {
+              "label": "account"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-112",
+            "params": {
+              "queue": "account"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The accounts queue owns account messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.0
+          }
+        ]
+      }
+    },
+    "New message MSG-113: Where is the usage report?": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-113"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-113",
+            "from": "customer:c-113",
+            "subject": "Where is the usage report?",
+            "body": "Where is the usage report?."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a how-to message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Pointed a usage-report question to the help-center queue.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-113",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "The customer asks how to do something."
+          },
+          {
+            "id": "p3",
+            "text": "Label it how-to and route it to help center",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "how-to",
+            "rationale": "\"Where is the usage report?\" reads as a how-to message.",
+            "why": "The customer asks how to do something."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-113",
+            "params": {
+              "label": "how-to"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-113",
+            "params": {
+              "queue": "how-to"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The help center queue owns how-to messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-114: Charged after I cancelled": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-114"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-114",
+            "from": "customer:c-114",
+            "subject": "Charged after I cancelled",
+            "body": "Charged after I cancelled."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a billing message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent a charge after cancellation to billing.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-114",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "It is about a charge, invoice, or refund."
+          },
+          {
+            "id": "p3",
+            "text": "Label it billing and route it to billing",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "\"Charged after I cancelled\" reads as a billing message.",
+            "why": "It is about a charge, invoice, or refund."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-114",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-114",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The billing queue owns billing messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-115: Search returns nothing for old items": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-115"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-115",
+            "from": "customer:c-115",
+            "subject": "Search returns nothing for old items",
+            "body": "Search returns nothing for old items."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a bug message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Filed empty search results for older items as a bug; routed late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-115",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "Something in the product is broken."
+          },
+          {
+            "id": "p3",
+            "text": "Label it bug and route it to engineering",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "bug",
+            "rationale": "\"Search returns nothing for old items\" reads as a bug message.",
+            "why": "Something in the product is broken."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-115",
+            "params": {
+              "label": "bug"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-115",
+            "params": {
+              "queue": "bug"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The engineering queue owns bug messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.0
+          }
+        ]
+      }
+    },
+    "New message MSG-116: Change the email on my account": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-116"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-116",
+            "from": "customer:c-116",
+            "subject": "Change the email on my account",
+            "body": "Change the email on my account."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a account message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Routed an account email change to accounts.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-116",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "The customer needs a change to their account."
+          },
+          {
+            "id": "p3",
+            "text": "Label it account and route it to accounts",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "account",
+            "rationale": "\"Change the email on my account\" reads as a account message.",
+            "why": "The customer needs a change to their account."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-116",
+            "params": {
+              "label": "account"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-116",
+            "params": {
+              "queue": "account"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The accounts queue owns account messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-120: Two-factor codes never arrive": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-120"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-120",
+            "from": "customer:c-120",
+            "subject": "Two-factor codes never arrive",
+            "body": "Two-factor codes never arrive."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a security message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Escalated missing two-factor codes to security.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-120",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "It may be an attempt to get into the account."
+          },
+          {
+            "id": "p3",
+            "text": "Label it security and route it to security",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "security",
+            "rationale": "\"Two-factor codes never arrive\" reads as a security message.",
+            "why": "It may be an attempt to get into the account."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-120",
+            "params": {
+              "label": "security"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-120",
+            "params": {
+              "queue": "security"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The security queue owns security messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-121: Need a receipt for March": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-121"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-121",
+            "from": "customer:c-121",
+            "subject": "Need a receipt for March",
+            "body": "Need a receipt for March."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a billing message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent a March receipt request to billing.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-121",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "It is about a charge, invoice, or refund."
+          },
+          {
+            "id": "p3",
+            "text": "Label it billing and route it to billing",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "\"Need a receipt for March\" reads as a billing message.",
+            "why": "It is about a charge, invoice, or refund."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-121",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-121",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The billing queue owns billing messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-122: Sync stops on large folders": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-122"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-122",
+            "from": "customer:c-122",
+            "subject": "Sync stops on large folders",
+            "body": "Sync stops on large folders."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a bug message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Filed sync stopping on large folders as a bug for engineering.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-122",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "Something in the product is broken."
+          },
+          {
+            "id": "p3",
+            "text": "Label it bug and route it to engineering",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "bug",
+            "rationale": "\"Sync stops on large folders\" reads as a bug message.",
+            "why": "Something in the product is broken."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-122",
+            "params": {
+              "label": "bug"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-122",
+            "params": {
+              "queue": "bug"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The engineering queue owns bug messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-123: How do I export to CSV?": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-123"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-123",
+            "from": "customer:c-123",
+            "subject": "How do I export to CSV?",
+            "body": "How do I export to CSV?."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a how-to message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Pointed a CSV export question to the help center; routed late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-123",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "The customer asks how to do something."
+          },
+          {
+            "id": "p3",
+            "text": "Label it how-to and route it to help center",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "how-to",
+            "rationale": "\"How do I export to CSV?\" reads as a how-to message.",
+            "why": "The customer asks how to do something."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-123",
+            "params": {
+              "label": "how-to"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-123",
+            "params": {
+              "queue": "how-to"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The help center queue owns how-to messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.0
+          }
+        ]
+      }
+    },
+    "New message MSG-124: Refund for an annual plan": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-124"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-124",
+            "from": "customer:c-124",
+            "subject": "Refund for an annual plan",
+            "body": "Refund for an annual plan."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a billing message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent an annual-plan refund to billing and noted that these belong there.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-124",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "It is about a charge, invoice, or refund."
+          },
+          {
+            "id": "p3",
+            "text": "Label it billing and route it to billing",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "\"Refund for an annual plan\" reads as a billing message.",
+            "why": "It is about a charge, invoice, or refund."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-124",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-124",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The billing queue owns billing messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ],
+        "memories": [
+          {
+            "text": "Refund requests for annual plans go to billing, not accounts.",
+            "tags": [
+              "billing",
+              "refunds"
+            ]
+          }
+        ]
+      }
+    },
+    "New message MSG-125: CLAIM YOUR PRIZE NOW": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-125"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-125",
+            "from": "customer:c-125",
+            "subject": "CLAIM YOUR PRIZE NOW",
+            "body": "CLAIM YOUR PRIZE NOW."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a spam message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Moved a prize-claim message to spam.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-125",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "It is unsolicited and asks for nothing real."
+          },
+          {
+            "id": "p3",
+            "text": "Label it spam and route it to spam",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "spam",
+            "rationale": "\"CLAIM YOUR PRIZE NOW\" reads as a spam message.",
+            "why": "It is unsolicited and asks for nothing real."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-125",
+            "params": {
+              "label": "spam"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-125",
+            "params": {
+              "queue": "spam"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The spam queue owns spam messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-130: Upgrade charged at the old price": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-130"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-130",
+            "from": "customer:c-130",
+            "subject": "Upgrade charged at the old price",
+            "body": "Upgrade charged at the old price."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a billing message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent an upgrade charged at the old price to billing.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-130",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "It is about a charge, invoice, or refund."
+          },
+          {
+            "id": "p3",
+            "text": "Label it billing and route it to billing",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "\"Upgrade charged at the old price\" reads as a billing message.",
+            "why": "It is about a charge, invoice, or refund."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-130",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-130",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The billing queue owns billing messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-131: Notifications arrive twice": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-131"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-131",
+            "from": "customer:c-131",
+            "subject": "Notifications arrive twice",
+            "body": "Notifications arrive twice."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a bug message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Filed duplicate notifications as a bug for engineering.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-131",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "Something in the product is broken."
+          },
+          {
+            "id": "p3",
+            "text": "Label it bug and route it to engineering",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "bug",
+            "rationale": "\"Notifications arrive twice\" reads as a bug message.",
+            "why": "Something in the product is broken."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-131",
+            "params": {
+              "label": "bug"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-131",
+            "params": {
+              "queue": "bug"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The engineering queue owns bug messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-132: Add a second admin": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-132"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-132",
+            "from": "customer:c-132",
+            "subject": "Add a second admin",
+            "body": "Add a second admin."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a how-to message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Pointed an add-a-second-admin question to the help center.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-132",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "The customer asks how to do something."
+          },
+          {
+            "id": "p3",
+            "text": "Label it how-to and route it to help center",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "how-to",
+            "rationale": "\"Add a second admin\" reads as a how-to message.",
+            "why": "The customer asks how to do something."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-132",
+            "params": {
+              "label": "how-to"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-132",
+            "params": {
+              "queue": "how-to"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The help center queue owns how-to messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-133: Unknown device signed in": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-133"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-133",
+            "from": "customer:c-133",
+            "subject": "Unknown device signed in",
+            "body": "Unknown device signed in."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a security message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Escalated an unknown device sign-in to security.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-133",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "It may be an attempt to get into the account."
+          },
+          {
+            "id": "p3",
+            "text": "Label it security and route it to security",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "security",
+            "rationale": "\"Unknown device signed in\" reads as a security message.",
+            "why": "It may be an attempt to get into the account."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-133",
+            "params": {
+              "label": "security"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-133",
+            "params": {
+              "queue": "security"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The security queue owns security messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "New message MSG-134: Duplicate charge on the 3rd": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-134"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-134",
+            "from": "customer:c-134",
+            "subject": "Duplicate charge on the 3rd",
+            "body": "Duplicate charge on the 3rd."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a billing message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent a duplicate charge to billing and proposed a routine to flag these early.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-134",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Choose a category",
+            "status": "done",
+            "rationale": "It is about a charge, invoice, or refund."
+          },
+          {
+            "id": "p3",
+            "text": "Label it billing and route it to billing",
+            "status": "done"
+          },
+          {
+            "id": "p4",
+            "text": "Propose a routine that flags duplicate charges",
+            "status": "done",
+            "rationale": "Three duplicate-charge messages arrived this week."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "\"Duplicate charge on the 3rd\" reads as a billing message.",
+            "why": "It is about a charge, invoice, or refund."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-134",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-134",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The billing queue owns billing messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 1.0
+          }
+        ],
+        "routines": [
+          {
+            "name": "flag-duplicate-charges",
+            "language": "sh",
+            "content": "#!/bin/sh\n# Print the files whose text mentions a duplicate or double charge.\ngrep -il 'duplicate\\|charged twice\\|double charge' \"$@\"\n",
+            "reason": "Three duplicate-charge messages this week; a routine can flag them before triage."
+          }
+        ]
+      }
     }
   },
   "default": {
     "events": [
       {
-        "kind": "message",
-        "role": "assistant",
-        "text": "No scripted response for this input."
+        "kind": "status",
+        "state": "working",
+        "detail": "checking the inbox"
+      },
+      {
+        "kind": "tool_call",
+        "id": "t1",
+        "tool": "inbox.search",
+        "input": {
+          "query": "is:unread"
+        }
+      },
+      {
+        "kind": "tool_result",
+        "id": "t1",
+        "output": {
+          "messages": []
+        },
+        "isError": false
+      },
+      {
+        "kind": "status",
+        "state": "idle",
+        "detail": "no new messages"
       }
     ],
     "status": "completed",
     "result": {
-      "summary": "Nothing to do.",
+      "summary": "Checked the inbox; no new messages to triage.",
+      "plan": [
+        {
+          "id": "p1",
+          "text": "Check the inbox for unread messages",
+          "status": "done",
+          "rationale": "A manual or scheduled run starts by looking for new work."
+        }
+      ],
       "decisions": [],
       "actions": []
     }

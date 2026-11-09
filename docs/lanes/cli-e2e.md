@@ -46,6 +46,11 @@ M4:
 - [ ] Extend `just e2e` with `serve` once it lands: a charter with an interval trigger fires a
   scheduled run within one tick.
 - [ ] Example charter with an MCP binding through `binding-proxy`, once the proxy is wired.
+- [x] Demo steward that looks weeks old: plan, why, and risk in every scripted run, 18
+  history runs with varied summaries, a correction, a memory, and a routine proposal; the
+  fallback is a hideable status event.
+- [ ] Spread the demo history over three weeks of metric windows once the facade takes a clock
+  (asked in workspace.md).
 
 ## Decisions
 
@@ -89,6 +94,8 @@ M4:
 - (from adapters) `etc/examples/triage/fake-script.json` results now include `plan`, decision and action `why`, and action `risk` (per the CEO); `just e2e` still passes 15 of 15.
 
 ## Log
+- 2026-11-09: M3.5 section in ROADMAP (1a1d360). Demo steward enriched: history runs with `plan`,
+  `why`, and `risk` (adapters lane format), `history.txt` replayed by `just demo`, fallback is a status event.
 - 2026-11-09: M4 start: adapter profile examples, `arya serve install|uninstall` login item,
   `serve` and `binding-proxy` waiting on facade calls (asked in workspace.md). Previous push
   65544bf.

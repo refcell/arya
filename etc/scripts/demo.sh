@@ -4,8 +4,8 @@
 #   demo.sh             reseed .build/demo-home, build Arya.app, and open it on the demo home
 #   demo.sh --no-open   reseed only (used to check the seeding)
 #
-# The demo home holds the triage steward, its casebook and rehearsals when those commands are
-# available, two live runs, and one reply waiting for approval in the app's queue. Commands
+# The demo home holds the triage steward, its casebook, two rehearsals and a correction, the
+# runs from history.txt, two more live runs, and one reply waiting for approval in the queue. Commands
 # that are not available yet (exit 69) are reported and skipped.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -56,6 +56,12 @@ seed "correct case-0006" correct st_triage case-0006 --choice billing \
   --note "A question about the card on file is a billing question."
 seed "rehearse it again" rehearse st_triage
 seed "mark it ready" ready st_triage
+# Weeks of past messages, oldest first: decisions, a few late routings, one memory, and one
+# routine proposal (etc/examples/triage/history.txt).
+while IFS= read -r message; do
+  [ -n "$message" ] || continue
+  seed "run: ${message#New message }" run st_triage --input "$message"
+done <"$example/history.txt"
 seed "run it on a past message" run st_triage --input "New message MSG-102: App crashes on export"
 seed "run it on a new message" run st_triage \
   --input "New message MSG-201: Refund for a duplicate charge"
