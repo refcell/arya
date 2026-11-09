@@ -16,7 +16,7 @@ M1:
   (note ids) is what `run.started` records. Golden tests.
 
 M2:
-- [ ] Corrections become notes attributed to the correcting person.
+- [x] Corrections become notes attributed to the correcting person.
 - [ ] Routine library: routines as content-addressed blobs, `routine.proposed`,
   `routine.promoted`, `routine.retired`; live version per name as a projection.
 - [ ] Routine diff between versions (line-based, no dependencies) for the app's version view.
@@ -46,8 +46,14 @@ M2:
   with `MemoryProjection.resolve`, which also finds notes retracted after the run started.
 - `MemoryRetrieval.render` is the memory section of composed instructions (`Memory:` then one
   `- id [tags]: text` line per note).
+- A correction note (`MemoryCorrections.note`) is authored by the correcting person (kind
+  `human`), points at the `case.corrected` event, the case, and the rehearsal run if any, and is
+  tagged `correction` and `case:<id>` so rehearsing that case can retrieve it by tag.
 
 ## Questions
 
 ## Log
 - 2026-11-09: memory notes, payloads, live-note projection landed (f34e8ff).
+- 2026-11-09: deterministic retrieval, `MemorySnapshot`, render landed (69f080a).
+- 2026-11-09: fixed the intermittent `AryaDesignTests` crash by moving AppKit suites to the
+  main actor (9d1f01b).
