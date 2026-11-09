@@ -15,9 +15,6 @@ struct WorkspaceBackend: CLIBackend {
             let start = Timestamp(millis: Int64((clock.timeIntervalSince1970 * 1000).rounded()))
             let ambient = Ambient.fixed(
                 start: start, stepMillis: 1, seed: UInt64.random(in: 1...UInt64.max))
-            // `fixed` ids reuse the last clock reading, which is 0 before the first one; read
-            // once so an id made first (a run's) still sorts by time.
-            _ = ambient.now()
             return try await call("open") {
                 try await Workspace.open(home: home, ambient: ambient)
             }

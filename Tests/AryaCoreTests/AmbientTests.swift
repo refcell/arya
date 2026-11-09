@@ -73,3 +73,14 @@ private func sample(_ ambient: Ambient) -> [String] {
     #expect(ambient.now().millis > 1_700_000_000_000)
     #expect(ambient.newID(RunID.self) != ambient.newID(RunID.self))
 }
+
+@Test func fixedIDsMadeBeforeTheFirstReadingCarryTheStartTime() {
+    let start = Timestamp(millis: 1_767_225_600_000)
+    let ambient = Ambient.fixed(start: start)
+    let first = ambient.newID(RunID.self).rawValue.dropFirst("run_".count)
+    #expect(
+        first.prefix(10)
+            == ULID.encode(millis: start.millis, randomHigh: 0, randomLow: 0)
+            .prefix(10))
+    #expect(ambient.now() == start)
+}

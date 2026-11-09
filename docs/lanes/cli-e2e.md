@@ -103,6 +103,9 @@ M4:
 - (from workspace) live: `correct(run:expected:note:by:)` and `expected(run:choice:)` for an `arya correct --run <id> --choice <c>`.
 
 ## Log
+- 2026-11-09: decided the zero-time id question myself (ledger lane paused): fixed in
+  `Ambient` (ids before the first clock reading carry the start time, with a core test); the
+  CLI's extra clock read is gone, and `clockedRunIDsSortByTime` still guards it.
 - 2026-11-09: README shows the dark Overview and run-approval snapshots (f7574f3). Fleet data:
   refund follow-up (0.86 against 0.90, one reply waiting) and weekly digest (paused) stewards,
   `steward pause|resume`, one time-sorted demo timeline (1755 events, 25 s). Clocked runs read

@@ -193,6 +193,16 @@ private struct State: Sendable {
     var mismatches: [String] = []
     var lastMillis: Int64 = 0
 
+    init(source: Source) {
+        self.source = source
+        // Ids reuse the last clock reading; before the first one, use the start time, so an id
+        // made first does not get time zero and sort before everything else.
+        switch source {
+        case .live: break
+        case .fixed(let fixed), .recorded(_, let fixed): lastMillis = fixed.now
+        }
+    }
+
     mutating func now() -> Timestamp {
         let value: Timestamp
         switch source {
