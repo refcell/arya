@@ -187,7 +187,8 @@ public struct RunEngine: Sendable {
             InstructionInputs(charter: charter, context: context))
         try await recordStart(run, request, charter, version, instructions, context)
         let driver = RunDriver(
-            loop: self, request: request, charter: charter, run: run, instructions: instructions)
+            loop: self, request: request, charter: charter, run: run, instructions: instructions,
+            routines: context.routineVersions)
         return try await driver.drive()
     }
 

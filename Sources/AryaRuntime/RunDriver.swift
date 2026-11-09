@@ -12,13 +12,18 @@ final class RunDriver: @unchecked Sendable {
     private let charter: Charter
     private let run: RunID
     private let instructions: String
+    private let routines: [String: String]
     private var phase = RunPhase.started
     private var session: String?
     private var leak = false
     private var turns = 0
     private let overdue = Flag()
 
-    init(loop: RunEngine, request: RunRequest, charter: Charter, run: RunID, instructions: String) {
+    init(
+        loop: RunEngine, request: RunRequest, charter: Charter, run: RunID, instructions: String,
+        routines: [String: String]
+    ) {
+        self.routines = routines
         self.loop = loop
         self.request = request
         self.charter = charter
@@ -266,11 +271,14 @@ final class RunDriver: @unchecked Sendable {
     private func dispose(_ actions: [ProposedAction]) async throws -> [ActionDisposal] {
         switch request.mode {
         case .live where request.isCrewChild:
-            return try await loop.dispatcher.recordOnly(actions, charter: charter, run: run)
+            return try await loop.dispatcher.recordOnly(
+                actions, charter: charter, run: run, routines: routines)
         case .live:
-            return try await loop.dispatcher.dispose(actions, charter: charter, run: run)
+            return try await loop.dispatcher.dispose(
+                actions, charter: charter, run: run, routines: routines)
         case .rehearsal:
-            return try await loop.dispatcher.recordOnly(actions, charter: charter, run: run)
+            return try await loop.dispatcher.recordOnly(
+                actions, charter: charter, run: run, routines: routines)
         }
     }
 

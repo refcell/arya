@@ -104,13 +104,15 @@ public struct ActionDispatcher: Sendable {
 
     /// Disposes each action of a run in order: `action.proposed`, then execution,
     /// `approval.requested`, or `action.rejected`.
+    /// `routines` are the live routine versions by name that the run started with.
     public func dispose(
-        _ actions: [ProposedAction], charter: Charter, run: RunID
+        _ actions: [ProposedAction], charter: Charter, run: RunID,
+        routines: [String: String] = [:]
     ) async throws -> [ActionDisposal] {
         let policy = ActionPolicy(charter: charter)
         var disposals: [ActionDisposal] = []
         for action in actions {
-            let verdict = policy.classify(action.policyAction)
+            let verdict = policy.classify(action.policyAction(routines: routines))
             try await append(
                 ActionEventType.proposed, charter.id, run, .steward(charter.id),
                 ActionProposed(
@@ -135,13 +137,15 @@ public struct ActionDispatcher: Sendable {
 
     /// Records `action.proposed` with its disposition for each action and nothing else: no
     /// execution, no approval, no rejection. Used by rehearsal (decision 0015).
+    /// `routines` are the live routine versions by name that the run started with.
     public func recordOnly(
-        _ actions: [ProposedAction], charter: Charter, run: RunID
+        _ actions: [ProposedAction], charter: Charter, run: RunID,
+        routines: [String: String] = [:]
     ) async throws -> [ActionDisposal] {
         let policy = ActionPolicy(charter: charter)
         var disposals: [ActionDisposal] = []
         for action in actions {
-            let verdict = policy.classify(action.policyAction)
+            let verdict = policy.classify(action.policyAction(routines: routines))
             try await append(
                 ActionEventType.proposed, charter.id, run, .steward(charter.id),
                 ActionProposed(

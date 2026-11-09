@@ -253,3 +253,15 @@ timeout, the run's workdir, and a clean environment. A macOS `sandbox-exec` prof
 routines is planned for M4, no longer under Later. Why: routines are code a steward wrote for
 itself, so a person approves them by default until real sandboxing lands.
 
+
+### 0032 — 2026-11-09 — Routines are approved per name and version
+
+The approval policy for routines is per routine, not per action kind; this replaces the
+kind-level `routine` rule of 0031 (its runner limits and M4 sandboxing stand). A `routine`
+action names its routine in `params.name`, and the runtime looks up that routine's live
+version from the run's start. A policy rule `routine:<name>@<version>` decides that version
+(`auto`, `ask`, or `deny`). A bare `routine:<name>` rule may only deny, and then it covers every
+version. Every other routine is `ask`, whatever `policy.default` or a kind-level `routine` rule
+says, so a new version asks again until the charter names it. A routine with no name or no
+live version is denied (`no_routine_name`, `unknown_routine:<name>`). Why: a routine is code
+the steward wrote; approving a name must not silently approve the next version of it.

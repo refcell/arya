@@ -152,6 +152,9 @@ M4:
   Wire lines are recorded with adapters' `WireRecord.ledgerPayload`.
 - Books adopt `LedgerProjection` with `catchUp` and `ProjectionCache` (decision 0028); the
   ledger lane makes that edit in runtime files and the runtime reviews it.
+- Routine policy (decision 0032): rules `routine:<name>@<version>` decide a version; a bare
+  `routine:<name>` can only deny; everything else asks. The dispatcher gets live routine
+  versions from the run's memory context (`dispose(..., routines:)`).
 
 ## Questions
 
@@ -186,3 +189,4 @@ M4:
 - 2026-11-09: triggers and scheduler (`SchedulePlan`, `Scheduler`, `SchedulerLock`); interrupted scheduled runs re-queue
 - 2026-11-09: crews: child runs bounded by `crew.maxParallel`, then one join run
 - 2026-11-09: memory snapshot and routines in `run.started`, `memory.added` from live runs, wire lines via `WireRecord.ledgerPayload`
+- 2026-11-09: routine approval per name and version (decision 0032)

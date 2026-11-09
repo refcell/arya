@@ -19,7 +19,15 @@ public enum ApprovalEventType {
 
 extension ProposedAction {
     /// The policy view of this action.
-    public var policyAction: PolicyAction { PolicyAction(kind: kind, binding: binding) }
+    public var policyAction: PolicyAction { policyAction(routines: [:]) }
+
+    /// The policy view of this action, with live routine versions by name for `routine`.
+    public func policyAction(routines: [String: String]) -> PolicyAction {
+        let name = kind == ActionPolicy.routineKind ? params?["name"]?.stringValue : nil
+        return PolicyAction(
+            kind: kind, binding: binding, routineName: name,
+            routineVersion: name.flatMap { routines[$0] })
+    }
 }
 
 /// What a person is asked to decide.

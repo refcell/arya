@@ -38,11 +38,20 @@ public struct PolicyAction: Sendable, Hashable {
     public var kind: String
     /// The charter binding that would carry it out; `nil` for `routine`.
     public var binding: String?
+    /// For `routine`: the routine name (`params.name`).
+    public var routineName: String?
+    /// For `routine`: the routine's live version, `nil` when it has none.
+    public var routineVersion: String?
 
     /// Creates a policy view of an action.
-    public init(kind: String, binding: String?) {
+    public init(
+        kind: String, binding: String?, routineName: String? = nil,
+        routineVersion: String? = nil
+    ) {
         self.kind = kind
         self.binding = binding
+        self.routineName = routineName
+        self.routineVersion = routineVersion
     }
 }
 
@@ -89,6 +98,7 @@ public struct ActionPolicy: Sendable, Hashable {
     /// (arya could not carry it out); then the first matching rule (kind, and binding when the
     /// rule names one); then the default.
     public func classify(_ action: PolicyAction) -> PolicyVerdict {
+        if action.kind == Self.routineKind { return classifyRoutine(action) }
         if let refusal = structuralRefusal(action) {
             return PolicyVerdict(disposition: .deny, reason: refusal)
         }
@@ -98,9 +108,31 @@ public struct ActionPolicy: Sendable, Hashable {
         return PolicyVerdict(disposition: defaultDisposition, reason: "default")
     }
 
+    /// Routines are approved per name and version (decision 0032): a `routine:<name>@<version>`
+    /// rule decides that version; a `routine:<name>` rule may only deny (every version); any
+    /// other routine asks, whatever `policy.default` or a kind-level `routine` rule says, so a
+    /// new version asks until the charter names it. A routine with no name or no live version
+    /// is denied (arya could not run it).
+    private func classifyRoutine(_ action: PolicyAction) -> PolicyVerdict {
+        guard let name = action.routineName, !name.isEmpty else {
+            return PolicyVerdict(disposition: .deny, reason: "no_routine_name")
+        }
+        guard let version = action.routineVersion else {
+            return PolicyVerdict(disposition: .deny, reason: "unknown_routine:\(name)")
+        }
+        let pinned = "routine:\(name)@\(version)"
+        if let rule = rules.first(where: { $0.action == pinned }) {
+            return PolicyVerdict(disposition: rule.decision, reason: "rule:\(pinned)")
+        }
+        let named = "routine:\(name)"
+        if rules.contains(where: { $0.action == named && $0.decision == .deny }) {
+            return PolicyVerdict(disposition: .deny, reason: "rule:\(named)")
+        }
+        return PolicyVerdict(disposition: .ask, reason: "routine_default")
+    }
+
     private func structuralRefusal(_ action: PolicyAction) -> String? {
         if action.kind.isEmpty { return "empty_kind" }
-        if action.kind == Self.routineKind { return nil }
         guard let binding = action.binding, !binding.isEmpty else { return "no_binding" }
         guard let allowed = bindingActions[binding] else { return "unknown_binding:\(binding)" }
         guard allowed.contains(action.kind) else {

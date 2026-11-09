@@ -138,3 +138,4 @@ M3 (integration toward the end-to-end scenario):
 - 2026-11-09: workspace Questions note on memory read models (c1b03ad).
 - 2026-11-09: routine timeout test no longer depends on load (bb0b561).
 - 2026-11-09: decision 0031 (routine policy and M4 sandboxing); lane retired.
+- 2026-11-09: decision 0032 (by runtime): routine approval is per name and version, replacing 0031's kind-level rule.
