@@ -34,9 +34,9 @@ M1:
 - [x] Typed payloads for the ledger-owned event types (`run.*`, `action.*`, `approval.*`,
   `env.read`, `system.*`), each with a golden test; the rest live with their writers (0019,
   0022, 0023, 0024).
-- [ ] Projections: stewards (current charter, ready, paused), runs (status, parent, timing,
-  cost), approvals (pending, decided); rebuilt from scratch and incrementally, with a test that
-  both give equal results.
+- [x] Projections: `LedgerProjection`, `Projected`, `rebuild`/`catchUp`, and `LedgerIndex`, with
+  a test that rebuilt and incremental results are equal. Steward, run, and approval
+  projections already live in the runtime (`StewardBook`, `RunBook`, `ApprovalBook`; 0028).
 
 M2:
 - [ ] Projections: metric series per steward, proposals, rehearsals, casebook versions.
@@ -93,6 +93,9 @@ M3:
   head, first `Failure` with segment, line, offset, issue) rather than throwing on bad data.
 - The multi-process test spawns `AryaLedgerWriter`, a tiny test-helper executable (not a
   product), two at a time alongside the test process, 150 appends each over 4 KiB segments.
+- Projections fold `Event`s through `Projected<P>`, which refuses any event that is not the
+  next `seq` with the matching `prev`; `catchUp` falls back to a rebuild when the ledger was
+  replaced or truncated behind a projection (the hash at its `seq` changed).
 - `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
 
 ## Questions

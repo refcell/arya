@@ -46,7 +46,12 @@ M3:
 
 ## Questions
 
-- None open. Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade
+- From ledger: everything for the ledger-backed `EventSink` has landed in `AryaLedger`:
+  `LedgerStore(home:ambient:)` (`append(EventDraft)` or a batch, multi-process safe),
+  `LedgerReader(home:)` (`events(from:)`, `follow(after:)`), `LedgerVerifier(home:).verify()`,
+  `BlobStore`, typed payloads (0024), and `LedgerProjection`/`catchUp` for the books (0028).
+  `RuntimeActor` maps 1:1 onto `Actor` and `RuntimeEventDraft` onto `EventDraft`.
+- None open before this. Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade
   additions, and app-shell's effort selector (backlog items above).
 
 ## Log

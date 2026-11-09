@@ -209,3 +209,15 @@ path that makes a candidate live: it requires a passing gate or a person's overr
 proposal written against an older live version (`stale`), and records
 `steward.charter.updated` followed by `proposal.accepted`. Why: a proposal must not loosen its
 own gate, and a gate must never pass for lack of a baseline.
+
+### 0028 — 2026-11-09 — Domain projections live with their writers on `LedgerProjection`
+
+`AryaLedger` provides `LedgerProjection` (`init()`, `apply(Event)`), `Projected<P>` (value plus
+the last folded `seq` and `hash`, refusing gaps and forks), and `LedgerReader.rebuild` and
+`catchUp` (incremental, rebuilding from scratch if the ledger no longer continues from the
+projection). The steward, run, and approval projections stay where they already are
+(`StewardBook`, `RunBook`, `ApprovalBook` in `AryaRuntime`), like memory, proposals, and
+rehearsals in their modules; they adopt `LedgerProjection` when the workspace lane wires the
+ledger-backed `EventSink`. The ledger itself projects only `LedgerIndex` (counts, per-steward
+counts, run spans). Why: the same reason as 0019, 0022, and 0023 (one owner per shape), and
+duplicate projections in two modules would drift.
