@@ -1,6 +1,7 @@
 # Lane: runtime
 
-Owns `Sources/AryaRuntime`, `Sources/Arya`, `Tests/AryaRuntimeTests`, and `Tests/AryaTests`.
+Owns `Sources/AryaRuntime` and `Tests/AryaRuntimeTests`. The `Workspace` facade (`Sources/Arya`,
+`Tests/AryaTests`) moved to the [workspace lane](workspace.md).
 
 Goal: **stewards that run reliably and never act without permission.** Steward lifecycle, the
 run loop that turns a trigger into ledger events, the policy and approval queue, action

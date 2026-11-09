@@ -11,7 +11,8 @@ lanes read it to find interfaces. `Tests/<Module>Tests` belongs to the lane that
 | --- | --- | --- |
 | ledger | [ledger.md](ledger.md) | `Sources/AryaCore`, `Sources/AryaLedger`, `Tests/AryaCoreTests`, `Tests/AryaLedgerTests` |
 | adapters | [adapters.md](adapters.md) | `Sources/AryaAdapters`, `Sources/AryaFakeAdapter`, `Sources/AryaExecAdapter`, `Tests/AryaAdaptersTests`, `docs/PROTOCOL.md` |
-| runtime | [runtime.md](runtime.md) | `Sources/AryaRuntime`, `Sources/Arya`, `Tests/AryaRuntimeTests`, `Tests/AryaTests` |
+| runtime | [runtime.md](runtime.md) | `Sources/AryaRuntime`, `Tests/AryaRuntimeTests` |
+| workspace | [workspace.md](workspace.md) | `Sources/Arya`, `Tests/AryaTests` |
 | memory | [memory.md](memory.md) | `Sources/AryaMemory`, `Tests/AryaMemoryTests` |
 | eval | [eval.md](eval.md) | `Sources/AryaEval`, `Tests/AryaEvalTests` |
 | app-shell | [app-shell.md](app-shell.md) | `Sources/AryaDesign`, `Sources/AryaApp/App`, `Sources/AryaApp/Shell`, `Tests/AryaDesignTests`, `etc/app`, `docs/STYLE.md` |
@@ -26,9 +27,9 @@ rebase conflicts. A change to `AGENTS.md` is copied to `CLAUDE.md` in the same c
 
 ```
 ledger ─▶ adapters ─┐
-   │                ├─▶ runtime ─▶ eval ─▶ cli-e2e
-   └────▶ memory ───┘       │
-                            └─▶ app-shell ─▶ app-views
+   │                ├─▶ runtime ─▶ eval ─▶ workspace ─▶ cli-e2e
+   └────▶ memory ───┘                          │
+                                               └─▶ app-shell ─▶ app-views
 ```
 
 Do not wait for an upstream lane. Code against the interface described in
