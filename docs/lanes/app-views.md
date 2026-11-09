@@ -16,7 +16,7 @@ M3 (start now against the app-shell stub workspace):
 - [x] Ledger table: filter by steward, run, type, actor; event detail; Verify button with result.
 - [x] Changes tab: proposals with gate results, accept, reject, override (recorded).
 - [x] Memory view: notes with provenance, retract.
-- [ ] Routines view: names, live version, history, version diff.
+- [x] Routines view: names, live version, history, version diff.
 - [ ] Rehearsals view: per-case results, expected versus actual, correction, Mark ready.
 - [ ] Metric chart: the steward's outcome metric over time against its target (Swift Charts).
 - [ ] Charter editor: outcome, metric, guardrails, bindings, triggers, policy, effort; saving
@@ -63,6 +63,11 @@ M3 (start now against the app-shell stub workspace):
   `{v, note, reason?}` (AryaMemory's payloads). Retract asks for no reason yet; retracted notes
   stay listed behind "Show retracted" because the ledger keeps them.
 
+- Routines read AryaMemory's `routine.proposed|promoted|retired`. Bodies come from
+  `FeatureWorkspace.routineContent` (a default reports them unavailable; the facade call is
+  requested in the workspace lane's Questions). The diff is a small LCS line diff in one hunk,
+  rendered by `DiffBlock`; it compares the newest version with the live one by default.
+
 ## Questions
 
 ## Log
@@ -73,3 +78,4 @@ M3 (start now against the app-shell stub workspace):
 - 2026-11-09: ledger table with filters, event detail, and verify (8d48473).
 - 2026-11-09: changes tab with gate results, accept, reject, override (c3960b2).
 - 2026-11-09: payload readers switched to the runtime's shapes; question cleared (4c7a2d4).
+- 2026-11-09: memory view with provenance and retract (f71088f).

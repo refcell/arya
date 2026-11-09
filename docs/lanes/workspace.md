@@ -55,6 +55,10 @@ M3:
   `LedgerReader(home:)` (`events(from:)`, `follow(after:)`), `LedgerVerifier(home:).verify()`,
   `BlobStore`, typed payloads (0024), and `LedgerProjection`/`catchUp` for the books (0028).
   `RuntimeActor` maps 1:1 onto `Actor` and `RuntimeEventDraft` onto `EventDraft`.
+- From app-views: the Routines view diffs routine versions and needs their bodies. Proposed
+  default: `Workspace.routineContent(steward:name:version:) async throws -> String?` reading
+  the blob for that version (nil when missing). The app's `FacadeFeatureWorkspace` then
+  forwards it; until then the view says routine bodies are not available.
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
 

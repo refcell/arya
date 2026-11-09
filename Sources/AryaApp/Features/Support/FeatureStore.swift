@@ -80,7 +80,7 @@ final class FeatureStore: ObservableObject {
     /// Clears the last write error.
     func dismissWriteError() { writeError = nil }
 
-    static func describe(_ error: any Error) -> String {
+    nonisolated static func describe(_ error: any Error) -> String {
         switch error {
         case FeatureWriteError.unknownApproval(let id):
             return "Approval \(id) no longer exists. Reload the queue and try again."
@@ -94,6 +94,8 @@ final class FeatureStore: ObservableObject {
             return "Proposal \(id) has not passed its gate. Rehearse it again, or override."
         case FeatureWriteError.gatePassed(let id):
             return "Proposal \(id) passed its gate; accept it instead of overriding."
+        case FeatureReadError.unavailable(let what):
+            return "This workspace cannot show \(what) yet."
         case FeatureWriteError.unknownNote(let id):
             return "Memory note \(id) no longer exists. Reload memory and try again."
         case FeatureWriteError.alreadyRetracted(let id):

@@ -34,6 +34,18 @@ enum PreviewFixtures {
     static let failingProposal = "pr_0002"
     static let stewardNote = "note_0001"
     static let correctionNote = "note_0002"
+    static let routineName = "label-duplicates"
+    static let routineV1 = "sha256:1a2b3c"
+    static let routineV2 = "sha256:4d5e6f"
+
+    /// Routine bodies by version, standing in for the blob store.
+    static let routineBodies: [String: String] = [
+        routineV1: "#!/bin/sh\n# Label issues whose title matches an open one.\n"
+            + "tracker search --open --title \"$1\"\nexit 0\n",
+        routineV2: "#!/bin/sh\n# Label issues whose title matches an open one.\n"
+            + "tracker search --open --title \"$1\" --limit 5\ntracker label duplicate\n"
+            + "exit 0\n",
+    ]
 
     static func triage(now: Date) -> [FeatureEvent] {
         var log = FeatureEventBuilder(start: now.addingTimeInterval(-3600))
@@ -45,6 +57,7 @@ enum PreviewFixtures {
         log.add("run.started", run: live, after: 1200, ["trigger": "interval"])
         proposals(&log)
         memory(&log)
+        routines(&log)
         log.add(
             "run.adapter.event", run: live, actor: adapter,
             wire(1, ["kind": "status", "state": "working", "detail": "Reading new issues"]))
@@ -95,6 +108,27 @@ enum PreviewFixtures {
         log.add(
             "run.finished", run: run,
             ["status": "completed", "summary": "Labeled ISSUE-7 and asked to assign it."])
+    }
+
+    private static func routines(_ log: inout FeatureEventBuilder) {
+        let system = FeatureActor(kind: .system, id: "arya")
+        log.add(
+            "routine.proposed", run: finishedRun, after: 5,
+            [
+                "v": 1, "name": .string(routineName), "version": .string(routineV1),
+                "language": "sh", "bytes": 82, "summary": "Find likely duplicates",
+                "run": .string(finishedRun),
+            ])
+        log.add(
+            "routine.promoted", actor: system, after: 60,
+            ["v": 1, "name": .string(routineName), "version": .string(routineV1)])
+        log.add(
+            "routine.proposed", run: finishedRun, after: 5,
+            [
+                "v": 1, "name": .string(routineName), "version": .string(routineV2),
+                "language": "sh", "bytes": 115, "summary": "Label duplicates directly",
+                "reason": "Duplicates come up in most runs.", "run": .string(finishedRun),
+            ])
     }
 
     private static func memory(_ log: inout FeatureEventBuilder) {

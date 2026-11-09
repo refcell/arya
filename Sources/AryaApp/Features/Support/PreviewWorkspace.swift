@@ -8,17 +8,26 @@ actor PreviewWorkspace: FeatureWorkspace {
     private var clock: Date
     private var nextID = 1
     private var broken: (seq: Int, reason: String)?
+    private var routines: [String: String]
     private var subscribers: [Int: AsyncStream<Void>.Continuation] = [:]
     private var nextSubscriber = 0
 
-    init(events: [FeatureEvent], now: Date) {
+    /// - Parameter routines: routine bodies keyed by version.
+    init(events: [FeatureEvent], now: Date, routines: [String: String] = [:]) {
         log = events
         clock = now
+        self.routines = routines
     }
 
     /// The fixture workspace used by previews and the stub app.
     static func triage(now: Date) -> PreviewWorkspace {
-        PreviewWorkspace(events: PreviewFixtures.triage(now: now), now: now)
+        PreviewWorkspace(
+            events: PreviewFixtures.triage(now: now), now: now,
+            routines: PreviewFixtures.routineBodies)
+    }
+
+    func routineContent(steward: String, name: String, version: String) -> String? {
+        routines[version]
     }
 
     func events() -> [FeatureEvent] { log }

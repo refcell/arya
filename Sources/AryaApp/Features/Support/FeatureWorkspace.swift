@@ -30,8 +30,23 @@ protocol FeatureWorkspace: Sendable {
     func record(_ write: FeatureWrite) async throws -> [FeatureEvent]
     /// Checks the ledger's hash chain.
     func verify() async throws -> FeatureVerifyResult
+    /// The body of one routine version (a content-addressed blob), or nil if it is missing.
+    func routineContent(steward: String, name: String, version: String) async throws -> String?
     /// Yields once whenever new events may be available.
     func changes() -> AsyncStream<Void>
+}
+
+extension FeatureWorkspace {
+    /// Workspaces without a blob read report that routine bodies are not available yet.
+    func routineContent(steward: String, name: String, version: String) async throws -> String? {
+        throw FeatureReadError.unavailable("routine bodies")
+    }
+}
+
+/// Errors from feature reads.
+enum FeatureReadError: Error, Hashable, Sendable {
+    /// The workspace cannot provide this yet.
+    case unavailable(String)
 }
 
 /// Errors from feature writes.
