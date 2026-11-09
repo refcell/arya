@@ -59,6 +59,10 @@ screenshots:
 e2e *args:
     etc/scripts/e2e.sh {{ args }}
 
+# Seed a demo home from etc/examples and open the app on it (`just demo --no-open` seeds only)
+demo *args:
+    etc/scripts/demo.sh {{ args }}
+
 # Rebase, check, and push to main under push races: just publish AryaCLITests
 publish filter:
     etc/scripts/publish.sh {{ filter }}
