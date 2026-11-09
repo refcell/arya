@@ -326,3 +326,60 @@ struct Opened {
     #expect(seen.allSatisfy { $0 > shown })
     #expect(seen == seen.sorted())
 }
+
+@Test func approvalsCarryContentSourceAndPolicyRule() async throws {
+    var result = liveResult
+    result[set: "actions"] = [
+        [
+            "id": "a3", "kind": "reply", "binding": "inbox", "target": "inbox:MSG-9",
+            "rationale": "Confirm the refund.",
+            "params": ["body": "Hi, the duplicate charge is refunded.\nThanks for waiting."],
+        ],
+        [
+            "id": "a4", "kind": "route", "binding": "inbox", "target": "inbox:MSG-9",
+            "params": ["queue": "billing", "priority": 2],
+        ],
+    ]
+    var charter = try Charter.load(from: try inboxCharterJSON())
+    charter.policy = Policy(rules: [Policy.Rule(action: "route", decision: .ask)])
+    let opened = try await Opened([FakeScript.Run(result: result)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    let input = "New message MSG-9: Refund for a duplicate charge\nSecond line."
+    let run = try await workspace.startRun(steward: "st_inbox", input: input)
+    #expect(run.title == "Billing question; labeled, routed, reply drafted.")
+
+    let pending = try await workspace.approvals()
+    #expect(pending.count == 2)
+    let reply = try #require(pending.first { $0.actionKind == "reply" })
+    #expect(reply.content == "Hi, the duplicate charge is refunded.\nThanks for waiting.")
+    #expect(reply.source == input)
+    #expect(reply.policyRule == "default")
+    #expect(reply.risk == nil)
+    let route = try #require(pending.first { $0.actionKind == "route" })
+    #expect(route.content == "priority: 2\nqueue: billing")
+    #expect(route.policyRule == "rule:route")
+    #expect(try await workspace.approval(reply.id) == reply)
+    #expect(try await workspace.approve(reply.id).source == input)
+
+    let detail = try #require(try await workspace.run(run.id))
+    let decision: DecisionSummary = try #require(detail.decisions.first)
+    #expect(decision.choice == "billing")
+    #expect(decision.why == "Mentions a double charge.")
+}
+
+@Test func runTitlesAndRunNowWithoutInput() async throws {
+    #expect(
+        RunSummary.title(summary: nil, input: "\n  New message MSG-9  \nmore")
+            == "New message MSG-9")
+    let long = String(repeating: "word ", count: 30)
+    let title = RunSummary.title(summary: long, input: "")
+    #expect(title.count <= 60)
+    #expect(title.hasSuffix("\u{2026}"))
+    #expect(!title.contains("  "))
+
+    let opened = try await Opened([FakeScript.Run(input: "Manual run.", result: ["summary": ""])])
+    _ = try await opened.workspace.createSteward(charter: try inboxCharterJSON())
+    let run = try await opened.workspace.startRun(steward: "st_inbox")
+    #expect(run.title == "Manual run.")
+}

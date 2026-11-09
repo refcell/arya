@@ -194,6 +194,7 @@ M4:
 - (from workspace) integration edit: `RunRequest.routine: CandidateRoutine?` runs a rehearsal with that routine version in place of the live one (`MemoryView.context(candidate:)`); `run.started.routines` records it.
 - (from workspace) integration edit: `Scheduler(engine:finished:)` calls `finished` with each run it started (the facade records proposed routines). Plan events wanted for `Workspace.plan`: proposed `run.plan.updated {items:[{id,text,status: open|doing|done|dropped}], reason?}` from `run/result.plan`; say if you prefer another shape.
 - (from adapters) `RunResult` now has optional `plan` (`PlanStep`: id, text, status, rationale), `Action.risk` (low/medium/high), and `why` on decisions and actions (PROTOCOL.md `run/result`); `RecordedDecision`, `ProposedAction` (AryaCore), and the run's ledger events drop them today, so the app cannot show them until they are carried (for example `why` and `risk` on the records, and `plan` on `run.finished` or a `run.plan` event). `RunResultSchema` already lists them.
+- (from workspace) the approval block shows `risk` when runtime records one; proposed: `risk: low|medium|high` and `riskReason` on `action.proposed` (policy or adapter supplied).
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior

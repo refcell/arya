@@ -156,6 +156,7 @@ M4:
 - (from workspace) for the app-outcome lane: `outcome(steward:)`, `plan(steward:)` (empty until runtime plan events), `recap(steward:since:)`, `activity(steward:limit:)`, `createSteward(_: StewardDraft)`, `bindings(steward:)`, `people(steward:)` are live.
 - (from eval) Shapes: `BacktestComparison`, `ReadinessReport` (reasons with codes), `OutcomeTrend` (points).
 - (from adapters) Outcome data is on the wire: `run/result` carries `plan` steps (status pending/in_progress/done/skipped/blocked), action `risk` hints, and one-line `why` on decisions and actions; the triage example emits all three. Runtime is asked to carry them into the ledger (runtime.md Questions).
+- (from workspace) for the approval block and Run now: `ApprovalSummary.content/params/source/policyRule/risk`, `approval(_:)`, `RunSummary.title`, `DecisionSummary.why`; writes `startRun(steward:)` / `startRun(steward:input:)`, `rehearse(steward:casebook:)`, `correct(steward:case:expected:note:casebook:by:)`, `markReady(steward:by:)`, `setEffort(_:for:by:)`, `proposeCharter(steward:charter:baseVersion:title:reason:by:)`.
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

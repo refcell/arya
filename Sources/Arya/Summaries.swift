@@ -80,6 +80,9 @@ public struct RunSummary: Sendable, Hashable, Codable, Identifiable {
     public var costMicros: Int
     /// Number of actions proposed.
     public var actionsProposed: Int
+    /// A short human title: the result summary, else the input's first line, trimmed to
+    /// about 60 characters.
+    public var title: String = ""
 
     /// Creates a summary.
     public init(
@@ -150,6 +153,17 @@ public struct ApprovalSummary: Sendable, Hashable, Codable, Identifiable {
     public var decidedBy: String?
     /// When it was requested.
     public var requestedAt: Date
+    /// The full proposed content as text, for actions: a `body`, `text`, or `message` param
+    /// verbatim, else one `key: value` line per param.
+    public var content: String?
+    /// The action's params as canonical JSON, for actions with params.
+    public var params: String?
+    /// The item the run worked on (the run's input text, for example the message it read).
+    public var source: String?
+    /// The policy verdict that held it, for example `default` or `rule:reply`.
+    public var policyRule: String?
+    /// Risk as runtime assesses it, once runtime records one.
+    public var risk: String?
 
     /// Creates a summary.
     public init(

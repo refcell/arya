@@ -9,6 +9,12 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 
 ## Backlog
 
+Approval block and run threads (redesign):
+- [x] `ApprovalSummary.content` (params as text), `params`, `source` (the run input),
+  `policyRule`; `risk` stays nil until runtime records one; `approval(_:)` for one item.
+- [x] `RunSummary.title` (summary, else the input's first line, about 60 characters);
+  `DecisionSummary` (`choice`, `why`); `startRun(steward:)` with no input.
+
 Outcome first (user priority, consumed by the app-outcome lane):
 - [x] `outcome(steward:windows:windowSeconds:) -> OutcomeSummary` (KPI, current, target,
   direction, success definition, trend, status vs target).
@@ -138,3 +144,5 @@ M3:
 - 2026-11-09: routine wiring (intake, execution, approvals) and `changes(after:)`; 34 AryaTests.
 - 2026-11-09: outcome-first calls (outcome, plan shape, recap, activity, structured create,
   bindings, people), serve control, M3 scenario test; 39 AryaTests.
+- 2026-11-09: approval content, source, policy rule; run titles; decision why; run now
+  without input; 41 AryaTests.

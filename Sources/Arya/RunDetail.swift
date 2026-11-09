@@ -2,6 +2,9 @@ import AryaCore
 import AryaLedger
 import Foundation
 
+/// A decision as the app shows it: the choice and why.
+public typealias DecisionSummary = RunDetail.Decision
+
 /// One run with its decisions and the disposition of each proposed action, as `arya run` and
 /// the run view show it. Built from the run's ledger events.
 public struct RunDetail: Sendable, Hashable, Codable {
@@ -10,6 +13,8 @@ public struct RunDetail: Sendable, Hashable, Codable {
         public var id: String
         public var choice: String
         public var rationale: String?
+        /// Why the steward chose it (the rationale), for display.
+        public var why: String? { rationale }
     }
 
     /// What happened to one proposed action.

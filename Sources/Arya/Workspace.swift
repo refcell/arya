@@ -149,9 +149,17 @@ public actor Workspace {
 
     /// Starts a manual run with `input` as its text and waits until it finishes or fails.
     /// Approvals it requests stay pending after it returns.
+    /// Starts a manual live run with no input ("Run now"): the input is "Manual run.".
+    public func startRun(steward: String) async throws -> RunSummary {
+        try await startRun(steward: steward, input: "")
+    }
+
+    /// Starts a manual live run and waits for it to end. Blank input becomes "Manual run.".
     public func startRun(steward: String, input: String) async throws -> RunSummary {
         let id = try await existing(steward).id
-        let outcome = try await mapped { try await engine.run(.manual(id, text: input)) }
+        let blank = input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let text = blank ? "Manual run." : input
+        let outcome = try await mapped { try await engine.run(.manual(id, text: text)) }
         try await routineRecorder.record(outcome)
         guard let record = try await runBook().records[outcome.run] else {
             throw WorkspaceError.notFound(outcome.run.rawValue)
@@ -171,7 +179,39 @@ public actor Workspace {
     /// Approvals, oldest first; pending only unless `includeDecided` is true.
     public func approvals(includeDecided: Bool = false) async throws -> [ApprovalSummary] {
         let book = try await approvalQueue.book()
-        return (includeDecided ? book.all : book.pending).map(ApprovalSummary.init)
+        return try await detailed(
+            (includeDecided ? book.all : book.pending).map(ApprovalSummary.init))
+    }
+
+    /// One approval with its content, source item, and policy rule, or `nil`.
+    public func approval(_ id: String) async throws -> ApprovalSummary? {
+        guard let record = try await approvalQueue.book().records[ApprovalID(unchecked: id)]
+        else { return nil }
+        return try await detailed([ApprovalSummary(record)]).first
+    }
+
+    /// Adds each approval's source item (its run's input) and the policy verdict that held it.
+    func detailed(_ approvals: [ApprovalSummary]) async throws -> [ApprovalSummary] {
+        guard !approvals.isEmpty else { return approvals }
+        let runs = try await runBook().records
+        let wanted = Set(approvals.map(\.run))
+        var reasons: [String: String] = [:]
+        try reader.forEach { event in
+            guard event.type == .actionProposed, let run = event.run?.rawValue,
+                wanted.contains(run)
+            else { return }
+            let body = try event.payload(as: ActionProposed.self)
+            reasons["\(run):\(body.action.id)"] = body.reason
+        }
+        let actionIDs = try await approvalQueue.book().records
+        return approvals.map { approval in
+            var out = approval
+            out.source = runs[RunID(unchecked: approval.run)]?.input
+            if case .action(let action)? = actionIDs[ApprovalID(unchecked: approval.id)]?.subject {
+                out.policyRule = reasons["\(approval.run):\(action.id)"]
+            }
+            return out
+        }
     }
 
     /// Grants a pending approval; an action then executes with the steward's live charter and
@@ -187,7 +227,7 @@ public actor Workspace {
             let charter = try await existing(record.steward.rawValue).charter
             _ = try await dispatcher.executeGranted(record, charter: charter)
         }
-        return ApprovalSummary(record)
+        return try await detailed([ApprovalSummary(record)])[0]
     }
 
     /// Denies a pending approval (`approval.denied`, then `action.rejected`).
@@ -199,7 +239,7 @@ public actor Workspace {
             throw WorkspaceError.rejected("\(id) is already \(record.status.rawValue)")
         }
         try await dispatcher.rejectDecided(record)
-        return ApprovalSummary(record)
+        return try await detailed([ApprovalSummary(record)])[0]
     }
 
     // MARK: Ledger
