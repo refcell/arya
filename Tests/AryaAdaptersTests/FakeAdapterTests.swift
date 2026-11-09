@@ -203,3 +203,24 @@ func requestParams(_ message: RPCMessage) -> JSONValue? {
     if case .request(let request) = message { return request.params }
     return nil
 }
+
+@Test func idleTimerPausesWhileAQuestionIsOpen() async throws {
+    let script = Sample.script(
+        FakeScript.Response(steps: [.ask(question: "Proceed?", to: nil)], result: [:]))
+    var timeouts = Sample.fast
+    timeouts.idle = .milliseconds(50)
+    let adapter = FakeAdapter(script: script, timeouts: timeouts)
+    _ = try await adapter.start(Sample.start("x"))
+    var updates: [AdapterUpdate] = []
+    for await update in adapter.updates {
+        updates.append(update)
+        if case .ask(let id, _) = update {
+            // Answer well after the idle timeout would have fired.
+            try await Task.sleep(for: .milliseconds(250))
+            try await adapter.answer(id, HostAskResult(answer: "yes"))
+        }
+        if update.isResult { break }
+    }
+    #expect(!updates.contains(.timedOut))
+    #expect(updates.compactMap(\.result).first?.status == .completed)
+}

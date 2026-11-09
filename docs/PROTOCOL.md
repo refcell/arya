@@ -259,7 +259,8 @@ form.
 arya's client (`AdapterConnection` in `AryaAdapters`) enforces the timing rules above: a request
 fails after 30 seconds without a response; after `run/stop`, sent by a person or by the idle
 timeout, the adapter has 10 seconds to send `run/result` before SIGTERM and, 5 seconds later,
-SIGKILL; after `shutdown` it has 5 seconds to exit. A stdout line that is not a JSON-RPC message
+SIGKILL; after `shutdown` it has 5 seconds to exit. The idle timer pauses while a `host/ask`
+request is unanswered; the runtime expires the question at the run's timeout instead. A stdout line that is not a JSON-RPC message
 is recorded as received and reported as a protocol error; the runtime decides whether it fails
 the run. A request from the adapter other than `host/ask` gets `-32601`.
 

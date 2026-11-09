@@ -63,18 +63,18 @@ M4:
   decided by the project lead; failure and timing controls (`steps`, `cost`, `startError`,
   `ignoreStop`) are optional additions to a response. The list form `runs`, which the triage
   example adopted before the decision, is read as an equivalent so neither lane has to churn.
+- The idle timer pauses while any `host/ask` is unanswered (runtime's proposal), so a slow
+  answer expires the question, not the run.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
 ## Questions
 
-- (from runtime) While a `host/ask` request is unanswered, should the connection's idle timer
-  pause? Today a person who takes longer than `limits.timeoutSeconds` to answer makes the run
-  fail with `timeout` instead of the question expiring. Proposed default: pause the idle timer
-  while any `host/ask` is outstanding; the runtime already expires the question at the run's
-  timeout and answers `null`.
 ## Log
 - 2026-11-09: protocol types, JSON-RPC messages, golden tests (dc550be)
 - 2026-11-09: `Adapter`, `AdapterConnection`, `ProcessTransport`, `FakeAdapter`,
   `arya-fake-adapter`, conformance suite (bd040dc). Runtime: construct `FakeAdapter(script:)`
   or `AdapterConnection.launch(_:)` and record every `.wire` update.
+- 2026-11-09: adopted the shared fake script format (`responses`/`default`, list form `runs`
+  still read; `FakeScript(runs:)` kept for the runtime tests) (43bc3e6); stderr drains before
+  exit is reported (e9c7c72).

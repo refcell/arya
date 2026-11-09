@@ -52,6 +52,8 @@ public actor AdapterConnection: Adapter {
     private var session: String?
     private var resultSeen = false
     private var activity = 0
+    /// `host/ask` requests the host has not answered; the idle timer pauses while any is open.
+    private var openAsks: Set<RPCID> = []
     private var supervisor: Task<Void, Never>?
     private var reader: Task<Void, Never>?
 
@@ -137,6 +139,8 @@ public actor AdapterConnection: Adapter {
         } catch {
             throw .invalidResponse(method: RPCMethod.hostAsk, detail: "\(error)")
         }
+        openAsks.remove(id)
+        activity += 1
         try await write(.response(RPCResponse(id: id, result: value)))
     }
 
@@ -241,7 +245,10 @@ public actor AdapterConnection: Adapter {
             resultSeen = true
             supervisor?.cancel()
         }
-        for update in meaning.updates { continuation.yield(update) }
+        for update in meaning.updates {
+            if case .ask(let id, _) = update { openAsks.insert(id) }
+            continuation.yield(update)
+        }
         if let response = meaning.response {
             resolve(response.id, response.outcome.mapError { .rpc($0) })
         }
@@ -290,7 +297,7 @@ public actor AdapterConnection: Adapter {
                 try? await Task.sleep(for: idle)
                 guard !Task.isCancelled, let self else { return }
                 let now = await self.activity
-                if now == seen {
+                if now == seen, await self.openAsks.isEmpty {
                     await self.idleExpired()
                     return
                 }
