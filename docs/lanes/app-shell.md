@@ -30,9 +30,9 @@ M3, extended (toward the end-to-end scenario and `just demo`):
   feature views, not only preview mode.
 - [x] Text size: View menu Bigger, Smaller, Actual Size (⌘+, ⌘−, ⌘0 style) driving
   `aryaTextScale`, persisted in user defaults.
-- [ ] Keyboard: reading-order focus (rail, header, tabs, pane), arrow keys in the rail, Return
-  approves and Escape denies the focused approval card.
-- [ ] `just screenshots`: render the preview shell offscreen to PNGs in both schemes for the
+- [x] Keyboard: arrow keys move through the rail in reading order (`RailOrder`).
+- [ ] Keyboard: Return approves and Escape denies the focused approval card (with app-views).
+- [x] `just screenshots`: render the preview shell offscreen to PNGs in both schemes for the
   README and for visual review.
 - [x] `just app-preview` and a `--home PATH` launch argument so `just demo` can open the app on
   a seeded home.
@@ -84,6 +84,9 @@ M4:
   feature views through `FacadeFeatureWorkspace`.
 - The icon is drawn at bundle time by `etc/app/make-icon.swift` (AppKit, STYLE.md colors) and
   converted with `sips` and `iconutil`, so no binary asset is tracked.
+- Screenshots draw `RootView` through `NSHostingView.cacheDisplay`, because `ImageRenderer`
+  skips scroll views. With a feature store wired, the rail's approvals count comes from the
+  same events as the queue (`StoreApprovalsRow`).
 
 ## Questions
 
@@ -100,3 +103,4 @@ M4:
   (c1b00af). For app-views: `FeatureRegistry` now hosts `RunStreamView` and
   `ApprovalQueueView` through `FeatureContext.store`; it is yours to extend.
 - 2026-11-09: facade-backed `FacadeFeatureWorkspace` for real homes (7abeedf).
+- 2026-11-09: text size commands, `--home`, `just app-preview` (0ab37da).

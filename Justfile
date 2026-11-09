@@ -50,6 +50,11 @@ run-app: app
 app-preview: app
     open -n .build/Arya.app --args --preview
 
+# Render the preview shell to .build/screenshots in light and dark
+screenshots:
+    ARYA_SCREENSHOTS_DIR="$PWD/.build/screenshots" swift test {{ swift_flags }} --filter ScreenshotTests
+    @ls .build/screenshots
+
 # End-to-end scenario with the fake adapter and a temporary home (`just e2e --keep` keeps it)
 e2e *args:
     etc/scripts/e2e.sh {{ args }}
