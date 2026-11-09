@@ -1,3 +1,4 @@
+import AryaCore
 import Foundation
 import Testing
 
@@ -22,28 +23,55 @@ func stewardAuthor(_ id: String = "st_triage") -> MemoryAuthor {
     MemoryAuthor(kind: .steward, id: id)
 }
 
-func makeNote(_ id: String, _ text: String, tags: [String] = [], run: String? = "run_1")
+func makeNote(_ id: NoteID, _ text: String, tags: [String] = [], run: RunID? = "run_1")
     throws -> MemoryNote
 {
     try MemoryNote(
         id: id, text: text, tags: tags,
-        provenance: MemoryProvenance(run: run, event: "ev_\(id)", author: stewardAuthor()))
+        provenance: MemoryProvenance(
+            run: run, event: EventID(unchecked: "ev_\(id.body)"), author: stewardAuthor()))
 }
 
-func addedEvent(seq: Int, steward: String = "st_triage", note: MemoryNote) throws
+func addedEvent(seq: Int, steward: StewardID = "st_triage", note: MemoryNote) throws
     -> MemoryEventRecord
 {
     let payload = try JSONEncoder().encode(MemoryAddedPayload(note: note))
     return MemoryEventRecord(
-        seq: seq, id: "ev_\(seq)", steward: steward, type: MemoryEventType.added,
+        seq: seq, id: EventID(unchecked: "ev_\(seq)"), steward: steward,
+        type: MemoryEventType.added,
         payload: payload)
 }
 
-func retractedEvent(seq: Int, steward: String = "st_triage", note: String) throws
+func retractedEvent(seq: Int, steward: StewardID = "st_triage", note: NoteID) throws
     -> MemoryEventRecord
 {
     let payload = try JSONEncoder().encode(MemoryRetractedPayload(note: note, reason: "stale"))
     return MemoryEventRecord(
-        seq: seq, id: "ev_\(seq)", steward: steward, type: MemoryEventType.retracted,
+        seq: seq, id: EventID(unchecked: "ev_\(seq)"), steward: steward,
+        type: MemoryEventType.retracted,
         payload: payload)
+}
+
+/// Literal ids keep fixtures readable. Test-only; library code validates ids.
+extension NoteID: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) { self.init(unchecked: value) }
+}
+
+extension StewardID: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) { self.init(unchecked: value) }
+}
+
+extension RunID: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) { self.init(unchecked: value) }
+}
+
+extension EventID: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) { self.init(unchecked: value) }
+}
+
+extension CaseID: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        guard let id = CaseID(rawValue: value) else { fatalError("bad case id \(value)") }
+        self = id
+    }
 }

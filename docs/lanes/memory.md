@@ -31,7 +31,7 @@ M2:
   (decision 0019): `AryaLedger` cannot import `AryaMemory`, and one owner avoids duplicate types.
 - Until `AryaLedger` publishes `Event`, projections read `MemoryEventRecord` (seq, id, steward,
   run, type, payload bytes). The envelope converts to it; the record goes once that lands.
-- Ids are plain strings in memory types for now; they move to `AryaCore` id types when those land.
+- Memory types use `AryaCore` ids (`NoteID` `mem_`, `StewardID`, `RunID`, `EventID`, `CaseID`).
 - Note text is trimmed, non-empty, at most 4096 UTF-8 bytes. Tags are trimmed, lowercased,
   deduplicated, and sorted by UTF-8 bytes. Decoding validates the same way.
 - A retracted note id stays retracted: a later `memory.added` with the same id is ignored, as is
@@ -57,3 +57,4 @@ M2:
 - 2026-11-09: deterministic retrieval, `MemorySnapshot`, render landed (69f080a).
 - 2026-11-09: fixed the intermittent `AryaDesignTests` crash by moving AppKit suites to the
   main actor (9d1f01b).
+- 2026-11-09: corrections become attributed notes (6b0e5fb).

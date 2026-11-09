@@ -1,3 +1,5 @@
+import AryaCore
+
 /// What a run asks memory for: tags of interest and size caps. Sizes are UTF-8 bytes of note
 /// text, so results do not depend on the Unicode version of the toolchain.
 public struct MemoryQuery: Codable, Sendable, Equatable {
@@ -27,9 +29,9 @@ public struct MemoryQuery: Codable, Sendable, Equatable {
 /// The notes a run saw, in the order it saw them. `run.started` records it for replay.
 public struct MemorySnapshot: Codable, Sendable, Equatable {
     public var v: Int
-    public var notes: [String]
+    public var notes: [NoteID]
 
-    public init(notes: [String]) {
+    public init(notes: [NoteID]) {
         self.v = 1
         self.notes = notes
     }
@@ -44,7 +46,7 @@ public struct MemorySnapshot: Codable, Sendable, Equatable {
 
 /// Reasons a recorded snapshot cannot be resolved.
 public enum MemorySnapshotError: Error, Equatable, Sendable {
-    case unknownNote(String)
+    case unknownNote(NoteID)
 }
 
 /// Deterministic retrieval: no model, no clock, no randomness.
@@ -60,7 +62,7 @@ public enum MemoryRetrieval {
         }.sorted { a, b in
             if a.matches != b.matches { return a.matches > b.matches }
             if a.note.seq != b.note.seq { return a.note.seq > b.note.seq }
-            return Array(a.note.note.id.utf8).lexicographicallyPrecedes(b.note.note.id.utf8)
+            return a.note.note.id < b.note.note.id
         }
         var taken: [LiveNote] = []
         var used = 0
@@ -87,17 +89,17 @@ public enum MemoryRetrieval {
 
 extension MemoryProjection {
     /// Retrieves a steward's live notes for a run.
-    public func retrieve(steward: String, query: MemoryQuery) -> [LiveNote] {
+    public func retrieve(steward: StewardID, query: MemoryQuery) -> [LiveNote] {
         MemoryRetrieval.retrieve(liveNotes(steward: steward), query: query)
     }
 
     /// The snapshot to record on `run.started`.
-    public func snapshot(steward: String, query: MemoryQuery) -> MemorySnapshot {
+    public func snapshot(steward: StewardID, query: MemoryQuery) -> MemorySnapshot {
         MemorySnapshot(notes: retrieve(steward: steward, query: query).map(\.note.id))
     }
 
     /// Resolves a recorded snapshot to notes, in order, including notes retracted since.
-    public func resolve(_ snapshot: MemorySnapshot, steward: String)
+    public func resolve(_ snapshot: MemorySnapshot, steward: StewardID)
         throws(MemorySnapshotError) -> [LiveNote]
     {
         try snapshot.notes.map { id throws(MemorySnapshotError) in

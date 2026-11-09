@@ -1,3 +1,5 @@
+import AryaCore
+
 /// Ledger event types owned by the memory module.
 public enum MemoryEventType {
     public static let added = "memory.added"
@@ -23,10 +25,10 @@ public struct MemoryAddedPayload: Codable, Sendable, Equatable {
 /// Payload of `memory.retracted`: hides a note from future runs. The note stays in the ledger.
 public struct MemoryRetractedPayload: Codable, Sendable, Equatable {
     public var v: Int
-    public var note: String
+    public var note: NoteID
     public var reason: String?
 
-    public init(note: String, reason: String? = nil) {
+    public init(note: NoteID, reason: String? = nil) {
         self.v = 1
         self.note = note
         self.reason = reason

@@ -16,7 +16,6 @@ import Testing
 
     @Test func rejectsInvalidNotes() {
         #expect(throws: MemoryNoteError.emptyText) { try makeNote("mem_1", "  \n ") }
-        #expect(throws: MemoryNoteError.emptyID) { try makeNote("", "text") }
         let long = String(repeating: "a", count: MemoryNote.maxTextBytes + 1)
         #expect(throws: MemoryNoteError.textTooLong(bytes: long.utf8.count, limit: 4096)) {
             try makeNote("mem_1", long)

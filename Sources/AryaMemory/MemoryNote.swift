@@ -1,3 +1,5 @@
+import AryaCore
+
 /// Who wrote a memory note. Mirrors the ledger's actor kinds without depending on them.
 public enum MemoryAuthorKind: String, Codable, Sendable, Equatable {
     case human
@@ -28,13 +30,13 @@ public struct MemoryAuthor: Codable, Sendable, Equatable, Hashable {
 /// Where a memory note came from: the run and event that produced it, an optional case (for
 /// corrections), and its author.
 public struct MemoryProvenance: Codable, Sendable, Equatable, Hashable {
-    public var run: String?
-    public var event: String?
-    public var caseID: String?
+    public var run: RunID?
+    public var event: EventID?
+    public var caseID: CaseID?
     public var author: MemoryAuthor
 
     public init(
-        run: String? = nil, event: String? = nil, caseID: String? = nil,
+        run: RunID? = nil, event: EventID? = nil, caseID: CaseID? = nil,
         author: MemoryAuthor
     ) {
         self.run = run
@@ -53,7 +55,6 @@ public struct MemoryProvenance: Codable, Sendable, Equatable, Hashable {
 
 /// Reasons a memory note is rejected.
 public enum MemoryNoteError: Error, Equatable, Sendable {
-    case emptyID
     case emptyText
     case textTooLong(bytes: Int, limit: Int)
 }
@@ -64,17 +65,16 @@ public struct MemoryNote: Codable, Sendable, Equatable, Hashable {
     /// Largest accepted note text, in UTF-8 bytes.
     public static let maxTextBytes = 4096
 
-    public var id: String
+    public var id: NoteID
     public var text: String
     public var tags: [String]
     public var provenance: MemoryProvenance
 
     /// Creates a validated note.
-    public init(id: String, text: String, tags: [String] = [], provenance: MemoryProvenance)
+    public init(id: NoteID, text: String, tags: [String] = [], provenance: MemoryProvenance)
         throws(MemoryNoteError)
     {
         let trimmed = text.trimmingWhitespace()
-        guard !id.isEmpty else { throw .emptyID }
         guard !trimmed.isEmpty else { throw .emptyText }
         let bytes = trimmed.utf8.count
         guard bytes <= Self.maxTextBytes else {
@@ -97,7 +97,7 @@ public struct MemoryNote: Codable, Sendable, Equatable, Hashable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         do {
             try self.init(
-                id: c.decode(String.self, forKey: .id),
+                id: c.decode(NoteID.self, forKey: .id),
                 text: c.decode(String.self, forKey: .text),
                 tags: c.decodeIfPresent([String].self, forKey: .tags) ?? [],
                 provenance: c.decode(MemoryProvenance.self, forKey: .provenance))

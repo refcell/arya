@@ -1,12 +1,13 @@
+import AryaCore
 import Foundation
 
 /// A note that is live (added and not retracted), with the ledger `seq` that added it.
 public struct LiveNote: Sendable, Equatable, Hashable {
-    public var steward: String
+    public var steward: StewardID
     public var seq: Int
     public var note: MemoryNote
 
-    public init(steward: String, seq: Int, note: MemoryNote) {
+    public init(steward: StewardID, seq: Int, note: MemoryNote) {
         self.steward = steward
         self.seq = seq
         self.note = note
@@ -17,10 +18,10 @@ public struct LiveNote: Sendable, Equatable, Hashable {
 /// types are ignored, so the projection can be fed the whole ledger.
 public struct MemoryProjection: Sendable, Equatable {
     /// Live notes keyed by steward, then by note id.
-    private var live: [String: [String: LiveNote]] = [:]
+    private var live: [StewardID: [NoteID: LiveNote]] = [:]
     /// Every note ever added per steward, retracted or not: a retracted id is never revived,
     /// and a recorded snapshot can always be resolved.
-    private var added: [String: [String: LiveNote]] = [:]
+    private var added: [StewardID: [NoteID: LiveNote]] = [:]
     /// The last applied ledger `seq`.
     public private(set) var lastSeq = 0
 
@@ -53,29 +54,29 @@ public struct MemoryProjection: Sendable, Equatable {
     }
 
     /// Live notes of a steward, oldest first.
-    public func liveNotes(steward: String) -> [LiveNote] {
+    public func liveNotes(steward: StewardID) -> [LiveNote] {
         (live[steward] ?? [:]).values.sorted { $0.seq < $1.seq }
     }
 
     /// The live note with this id, if any.
-    public func note(steward: String, id: String) -> LiveNote? {
+    public func note(steward: StewardID, id: NoteID) -> LiveNote? {
         live[steward]?[id]
     }
 
     /// A note ever added to this steward, even if it was retracted since.
-    public func addedNote(steward: String, id: String) -> LiveNote? {
+    public func addedNote(steward: StewardID, id: NoteID) -> LiveNote? {
         added[steward]?[id]
     }
 
     /// Stewards with at least one live note, sorted.
-    public var stewards: [String] {
+    public var stewards: [StewardID] {
         live.filter { !$0.value.isEmpty }.keys.sorted()
     }
 
     private func requireSteward(_ event: MemoryEventRecord) throws(MemoryProjectionError)
-        -> String
+        -> StewardID
     {
-        guard let steward = event.steward, !steward.isEmpty else {
+        guard let steward = event.steward else {
             throw .missingSteward(seq: event.seq)
         }
         return steward
@@ -85,7 +86,7 @@ public struct MemoryProjection: Sendable, Equatable {
         -> T
     {
         do {
-            return try JSONDecoder().decode(T.self, from: event.payload)
+            return try CanonicalJSON.decode(T.self, from: event.payload)
         } catch {
             throw .invalidPayload(seq: event.seq, type: event.type)
         }
