@@ -53,12 +53,17 @@ import Testing
     draft.connections = [
         .init(id: "inbox", command: "inbox-mcp", actions: ["label", "reply", "refund"], isOn: true)
     ]
-    draft.risks = ["label": "low", "refund": "high"]
+    #expect(draft.risk("label") == "low")
     #expect(draft.risk("reply") == "medium")
+    #expect(draft.risk("refund") == "high")
+    #expect(draft.risk("archive") == "medium")
+    #expect(draft.signOffHint == NewStewardDraft.Autonomy.ask.hint)
     #expect(draft.actionKinds.filter(draft.needsSignOff) == ["label", "reply", "refund"])
     draft.autonomy = .auto
     #expect(draft.actionKinds.filter(draft.needsSignOff) == ["refund"])
+    #expect(draft.signOffHint == NewStewardDraft.Autonomy.auto.hint)
     draft.setSignOff("reply", true)
+    #expect(draft.signOffHint == "Checked actions wait for you; the rest run on their own.")
     #expect(draft.actionKinds.filter(draft.needsSignOff) == ["reply", "refund"])
     draft.setNever("refund", true)
     #expect(draft.stewardDraft().rules.map(\.decision) == ["auto", "ask", "deny"])

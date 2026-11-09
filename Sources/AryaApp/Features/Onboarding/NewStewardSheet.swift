@@ -161,7 +161,7 @@ struct NewStewardFields: View {
                         draft.signOff = nil
                     }),
                 options: NewStewardDraft.Autonomy.allCases.map { ($0, $0.label) })
-            Text(draft.autonomy.hint).aryaText(AryaFont.caption, AryaColor.inkFaint)
+            Text(draft.signOffHint).aryaText(AryaFont.caption, AryaColor.inkFaint)
         }
         labeled("Needs your sign-off") {
             if draft.actionKinds.isEmpty {

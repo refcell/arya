@@ -46,7 +46,7 @@ struct NewStewardDraft: Hashable, Sendable {
         /// What the choice does: it only sets where the sign-off checklist starts.
         var hint: String {
             switch self {
-            case .ask: "Every action starts checked; uncheck the ones it may do on its own."
+            case .ask: "Every action asks you first; uncheck the ones it may do on its own."
             case .auto: "Only high-risk actions start checked; the rest run on their own."
             }
         }
@@ -167,12 +167,24 @@ struct NewStewardDraft: Hashable, Sendable {
     /// The action kinds the chosen connections offer, in order.
     var actionKinds: [String] { Self.unique(chosenConnections.flatMap(\.actions)) }
 
-    /// The runtime's default risk when no charter entry names an action (decision 0037).
+    /// The runtime's default risk by action kind (mirrored until the facade risk read lands;
+    /// switch to it then), and `medium` for any other kind.
+    static let defaultRisks = [
+        "label": "low", "route": "low", "reply": "medium", "close": "high", "refund": "high",
+    ]
     static let defaultRisk = "medium"
 
     /// `low`, `medium`, or `high`, as the runtime would resolve it: the workspace's charter
-    /// entry or recorded resolution for the kind, else the runtime default.
-    func risk(_ kind: String) -> String { risks[kind] ?? Self.defaultRisk }
+    /// entry or recorded resolution for the kind, else the runtime default for the kind.
+    func risk(_ kind: String) -> String {
+        risks[kind] ?? Self.defaultRisks[kind] ?? Self.defaultRisk
+    }
+
+    /// One muted line under autonomy that matches the checklist as it stands.
+    var signOffHint: String {
+        if signOff != nil { return "Checked actions wait for you; the rest run on their own." }
+        return autonomy.hint
+    }
 
     /// Whether `kind` waits for a person: as picked, else everything when asking first, and
     /// only high-risk actions when acting on its own.

@@ -49,7 +49,9 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   from other stewards' charters, switched on (a custom command sits behind Advanced). People
   are a name and a channel picker per row with a quiet "+ Add person". Sign-off is a checklist
   of action kinds with each one's risk as the runtime resolves it (a charter `policy.risk`
-  entry, else the risk recorded on `action.proposed`, else `medium`; one source with approvals)
+  entry, else the risk recorded on `action.proposed`, else runtime's default by kind: label
+  and route low, reply medium, close and refund high, other kinds medium; mirrored until the
+  facade risk read lands)
   and a default from autonomy: asking first checks everything, acting on its own checks only
   high risk. "Never allowed" is a second checklist behind Advanced. Every kind becomes a rule.
 - The New steward sheet uses no system accent: `NewStewardChoice` (drawn like
@@ -115,3 +117,7 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   resolution, else `medium`), so `reply` reads medium in the wizard and in approvals.
 - 2026-11-09: autonomy shows one muted line saying it only sets where the sign-off list
   starts; never rows dim fully; snapshot frame centered (form about 18% down).
+- 2026-11-09: wizard risk mirrors runtime's default-by-kind table; the autonomy line
+  follows the checklist (default per autonomy, or "Checked actions wait for you" once
+  edited). Visual check (offscreen `just snapshot`): new-steward-4 shows label/route low,
+  reply medium, close high, and copy matching the checks.
