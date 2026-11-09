@@ -53,8 +53,9 @@ app bundle script.
 ## M3.5 — App parity (done when the app reads as a working steward, not a log viewer)
 
 The M3 checklist passes, but the app was far from the target experience. Owners are in
-parentheses; status as of 2026-11-09. "Landed" means on main; the redesigned screens still await
-review.
+parentheses; status as of 2026-11-09, evening. "Landed" means on main. The reviewer passed the
+redesigned Overview and run-approval screens; the other screens still await review. `just e2e`
+(33 steps, under a minute) drives the facade flows behind these screens headlessly.
 
 - Restyle (app-shell, app-views). Landed in a clean single-canvas style instead of the dense
   dark layout first listed (decision 0036): hidden title bar, four tabs, one accent.
@@ -65,21 +66,30 @@ review.
   workspace). Landed, with structured create in the facade and real connection, people, and
   sign-off controls.
 - Planning that adapts (runtime, adapters). Partly landed: runs return a plan, and stewards keep
-  it across runs (`plan.updated`, decision 0035); re-planning within a run
-  is open.
+  it across runs (`plan.updated`, decision 0035), and plan steps waiting on a person show the
+  approval clock; re-planning within a run is open.
 - Risk and autonomy levels with explained approvals (runtime, app-views). Landed (decision
-  0037): actions carry risk, stewards an autonomy level, and approvals show the guardrail and why they were held.
+  0037): actions carry risk (with defaults per action kind), stewards an autonomy level, and
+  approvals say in a sentence which rule or autonomy level held them (`arya approvals` shows it
+  too).
 - Backtest comparison and readiness visible (eval, app-views). Partly landed: backtest,
-  readiness, and trend read models and a live readiness gate exist, and Improve shows rehearsals
-  and proposals; a side-by-side backtest comparison view is open.
+  readiness, and trend read models and a live readiness gate exist; Improve shows rehearsals,
+  proposals with their regressions, and What if (a run under another charter); a side-by-side
+  backtest comparison view is open.
 - Onboarding to systems and people, and a context view of people, history, and decisions
   (app-outcome, runtime, memory work through workspace). Partly landed: the New steward flow
-  connects systems and people, and a Knowledge screen read exists; the context view is open.
+  connects systems and people; the Knowledge tab lists memory with live retract, and correcting
+  a run from its thread records it as a case and a memory. A context view of people and history
+  is open.
 - People channels: local inbox, email, and chat (runtime, app-outcome). Partly landed: the
-  runtime's local inbox and a Needs you list; email and chat bindings are open (M4).
+  runtime's local inbox, a Needs you list, and email and chat relayed through MCP bindings for
+  people; app screens for those channels are open.
 - Sandboxed routines and adapters (runtime). Landed: routines, binding servers, and exec agents
   run under an OS sandbox profile in the run workdir, and replay uses a sandboxed engine.
-- Fleet view of sub-agents (app-views). Open.
+- Fleet view of sub-agents (app-views, workspace). Partly landed: the sidebar shows each
+  steward's health, the demo seeds three stewards (on track, behind, paused), and stewards can be
+  paused and resumed (app and `arya steward pause|resume`); a fleet read in the facade and the
+  fleet view itself are open, and sub-agents within a steward (its crew) are not shown.
 - Schedule and long-running work view (app-outcome). Partly landed: the runtime exposes each
   steward's next wake and recent trigger outcomes; the view is open.
 
