@@ -116,3 +116,6 @@ M4:
 - 2026-11-09: adapter profiles (b1cb086); `arya-exec-adapter` with `text`/`jsonl` parsing,
   prompt delivery, MCP config, and `ResultSchema` checks (cd8bf50). Runtime may reuse
   `ResultSchema.violation(of:by:)` for `invalid_result`.
+- 2026-11-09: example profiles (07db438), bounded reads and exec cleanup (5f18ae2), jsonl cost
+  (52bdc83), conformance over fake and exec plus `just conformance` (3d88e82),
+  `ReplayAdapter(ledgerPayloads:exit:)` (21f7c6c), `stream-json` parsing (cd5b17e).
