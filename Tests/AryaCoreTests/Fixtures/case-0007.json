@@ -1,0 +1,7 @@
+{"v":1,"id":"case-0007","input":{"kind":"case","text":"New issue: login page times out"},
+ "context":{"toolResults":[{"tool":"tracker.get","input":{"id":"ISSUE-7"},
+                            "output":{"id":"ISSUE-7","title":"Login page times out"}}],
+            "memory":[]},
+ "expected":{"decisions":[{"choice":"bug"}],
+             "actions":[{"kind":"label","target":"tracker:ISSUE-7"}]},
+ "source":"imported from an export of closed issues"}

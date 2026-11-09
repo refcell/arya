@@ -17,7 +17,7 @@ M1:
   `recorded(...)` variants; a test that two `fixed` ambients produce identical sequences.
 - [x] Canonical JSON encoder (keys sorted by UTF-8 bytes, no whitespace, `/` unescaped) with
   golden tests, including unicode keys and nested arrays.
-- [ ] `Charter` (with `CharterBinding`, `Trigger`, `Policy`, `Limits`, `Scorer`, `GateConfig`,
+- [x] `Charter` (with `CharterBinding`, `Trigger`, `Policy`, `Limits`, `Scorer`, `GateConfig`,
   `Effort`) and `Case`, matching the JSON in ARCHITECTURE.md, with validation errors and golden
   fixtures. `GateChecking` protocol.
 - [ ] `Event` envelope and `Actor`; the write rule from decision 0012; golden test of one line.
@@ -56,6 +56,17 @@ M3:
   `recorded` never traps: mismatches are collected and answered from a fixed fallback.
 - Canonical JSON goes through `JSONValue`: integers that fit `Int64` stay exact, integral
   doubles within 2^53 print without a fraction, others use Swift's shortest form (`1e-07`).
+- `Charter` has no version field: versions are ledger facts (the `steward.*` payloads carry
+  them). Optional sections decode to defaults (`policy.default` `ask`, triggers `[manual]`,
+  effort `medium`, crew 1, limits 40/900/2000000, gate 1/0). `validate()` returns every issue
+  with a field path instead of throwing on the first.
+- The charter's scorer config is `ScorerSpec` and rubric checks are `RubricCheckSpec` (kind as
+  a string) because `AryaEval` owns `Scorer` and `RubricCheck`. `Trigger` kinds: `interval`,
+  `manual`, `message` (optional `from` person binding). Policy rules may name a `binding`; a
+  binding-specific rule beats a general one.
+- `GateChecking` takes `GateCheckRequest` and returns `GateCheckVerdict`, named so they do not
+  clash with eval's `GateRequest`/`GateVerdict`; `RefusingGate` is the fail-safe default.
+- `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
 
 ## Questions
 
