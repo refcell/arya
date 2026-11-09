@@ -43,12 +43,8 @@ enum FeatureRegistry {
                     guidance: "Rehearsals and proposed charter changes appear here.")
             }
         case .knowledge:
-            if let store = context.store {
-                stacked {
-                    MemoryView(store: store, steward: context.steward?.id)
-                } second: {
-                    RoutinesView(store: store, steward: context.steward?.id)
-                }
+            if let store = context.store, let steward = context.steward?.id {
+                KnowledgeTab(store: store, steward: steward)
             } else {
                 EmptyState(
                     "No knowledge yet.",
@@ -58,6 +54,13 @@ enum FeatureRegistry {
             if let store = context.store {
                 LedgerView(
                     store: store, steward: context.steward?.id,
+                    selection: Binding(
+                        get: { context.model.navigation.ledgerEvent },
+                        set: { event in
+                            // One right-hand panel at a time: an event closes settings.
+                            if event != nil { context.model.navigation.inspector = false }
+                            context.model.navigation.ledgerEvent = event
+                        }),
                     openRun: { run, steward in
                         context.model.navigation.select(run: run, steward: steward)
                     })

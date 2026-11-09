@@ -20,6 +20,8 @@ final class FeatureStore: ObservableObject {
     @Published private(set) var isVerifying = false
     /// The reference time for relative timestamps. Tests and previews pin it.
     @Published var now: Date
+    /// The Knowledge screen per steward, kept so the tab draws at once on return.
+    @Published var knowledge: [String: FeatureKnowledge] = [:]
 
     init(workspace: any FeatureWorkspace, now: Date = Date()) {
         self.workspace = workspace

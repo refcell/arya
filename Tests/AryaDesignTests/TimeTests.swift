@@ -28,5 +28,6 @@ import Testing
         #expect(short(7200) == "2h")
         #expect(short(3 * 86_400) == "Nov 6")
         #expect(AryaTime.clock(now, timeZone: utc) == "14:53")
+        #expect(AryaTime.clock(now, seconds: true, timeZone: utc) == "14:53:20")
     }
 }

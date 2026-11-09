@@ -47,9 +47,21 @@ import Testing
             "needs-you-autonomy", scheme: scheme,
             render(RootView(model: await autonomyModel()), dark: dark))
         try page("improve") { $0.tab = .improve }
+        // Offscreen renders run no tasks, so load what the Knowledge tab would.
+        if let store = model.featureStore {
+            store.knowledge[steward.id] = try? await store.workspace.knowledge(steward: steward.id)
+        }
         try page("knowledge") { $0.tab = .knowledge }
         // The event inspector for a selected ledger row joins this set when app-views ships it.
         try page("ledger") { $0.tab = .ledger }
+        if case .loaded(let events) = model.featureStore?.state,
+            let event = events.last(where: { $0.steward == steward.id })
+        {
+            try page("ledger-inspector") {
+                $0.tab = .ledger
+                $0.ledgerEvent = event.id
+            }
+        }
         try page("settings") { $0.inspector = true }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()

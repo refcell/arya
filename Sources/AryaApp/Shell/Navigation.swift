@@ -38,6 +38,8 @@ struct NavigationState: Hashable, Sendable {
     var tab: StewardTab = .overview
     /// Whether the right-hand inspector (settings and detail) is open.
     var inspector = false
+    /// The ledger event whose inspector is open on the Ledger tab.
+    var ledgerEvent: String?
 
     /// The selected steward id, if a steward pane is showing.
     var steward: String? {
@@ -57,6 +59,7 @@ struct NavigationState: Hashable, Sendable {
         if steward != id {
             run = nil
             tab = .overview
+            ledgerEvent = nil
         }
         destination = .steward(id)
     }

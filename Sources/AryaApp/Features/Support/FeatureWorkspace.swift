@@ -138,6 +138,8 @@ protocol FeatureWorkspace: Sendable {
     func improveSummary(steward: String) async throws -> FeatureImproveSummary
     /// One event's inspector detail (hash chain, run position, readable payload), or nil.
     func eventDetail(seq: Int) async throws -> FeatureEventDetail?
+    /// The Knowledge screen for one steward, written by the workspace.
+    func knowledge(steward: String) async throws -> FeatureKnowledge
     /// Yields once whenever new events may be available.
     func changes() -> AsyncStream<Void>
 }
@@ -157,6 +159,11 @@ extension FeatureWorkspace {
     /// the ledger itself.
     func improveSummary(steward: String) async throws -> FeatureImproveSummary {
         throw FeatureReadError.unavailable("improve summary")
+    }
+
+    /// Workspaces without a Knowledge read report it unavailable.
+    func knowledge(steward: String) async throws -> FeatureKnowledge {
+        throw FeatureReadError.unavailable("knowledge")
     }
 
     /// Workspaces without an event read report it unavailable; the inspector then shows the

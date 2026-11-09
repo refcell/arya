@@ -55,7 +55,7 @@ run-app: app
 # Render every key app state offscreen to .build/snapshots (no window; decision 0038).
 # Reuses .build/demo-home when present; `just demo --no-open` reseeds it.
 snapshot:
-    [ -d .build/demo-home ] || etc/scripts/demo.sh --no-open
+    etc/scripts/demo-current.sh
     rm -rf .build/snapshots
     ARYA_SNAPSHOT_DIR="$PWD/.build/snapshots" ARYA_SNAPSHOT_HOME="$PWD/.build/demo-home" \
       {{ slot }} swift test {{ swift_flags }} -j {{ jobs }} --filter SnapshotTests

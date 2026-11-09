@@ -34,6 +34,8 @@ protocol WorkspaceSource: Sendable {
     func eventDetail(seq: Int) async throws -> FeatureEventDetail?
     /// The Improve screen's sentences.
     func improveSummary(steward: String) async throws -> FeatureImproveSummary
+    /// The Knowledge screen's notes and routines.
+    func knowledgeSummary(steward: String) async throws -> FeatureKnowledge
 }
 
 extension WorkspaceSource {
@@ -55,6 +57,10 @@ extension WorkspaceSource {
 
     func improveSummary(steward: String) async throws -> FeatureImproveSummary {
         throw FeatureReadError.unavailable("improve summary")
+    }
+
+    func knowledgeSummary(steward: String) async throws -> FeatureKnowledge {
+        throw FeatureReadError.unavailable("knowledge")
     }
 }
 
@@ -139,6 +145,26 @@ extension Workspace: WorkspaceSource {
             step: detail.step.map {
                 FeatureEventDetail.Step(
                     run: $0.run, index: $0.index, count: $0.count, title: $0.title)
+            })
+    }
+
+    func knowledgeSummary(steward: String) async throws -> FeatureKnowledge {
+        let view = try await knowledge(steward: steward)
+        return FeatureKnowledge(
+            notes: view.notes.map {
+                FeatureKnowledge.Note(
+                    id: $0.note.id, text: $0.note.text, provenance: $0.provenance,
+                    time: $0.time.relative, absoluteTime: $0.time.absolute, run: $0.note.run)
+            },
+            routines: view.routines.map { item in
+                FeatureKnowledge.Routine(
+                    name: item.routine.name, summary: item.routine.summary,
+                    versions: item.versions.map {
+                        FeatureKnowledge.Version(
+                            version: $0.version, summary: $0.summary, approval: $0.approval,
+                            time: $0.time.relative)
+                    },
+                    isLive: item.routine.liveVersion != nil, pending: item.routine.pending)
             })
     }
 

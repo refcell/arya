@@ -179,3 +179,12 @@ M4:
   autonomy (`autonomy:suggest:low`), not a rule.
 - Visual check (`just snapshot` needs-you-autonomy): one orange action, the held action, its why
   and "held by autonomy suggest low · risk low"; R1-R5 pass. Wording of that line is app-views'.
+- 2026-11-09: Knowledge tab (handed over from app-views) rebuilt on `knowledge(steward:)` as one
+  column: notes as a sentence plus one muted provenance line, Retract on hover and in the context
+  menu, ids only behind the context menu; routines as rows (mono name, one status word) that
+  expand to their versions. Old Memory and Routines views removed. Ledger row selection lives in
+  navigation (`ledgerEvent`) and closes settings; `just snapshot` reseeds the demo home when its
+  seed inputs change (`etc/scripts/demo-current.sh`) and adds `ledger-inspector`;
+  `AryaTime.clock(_:seconds:)`.
+- Visual check (`just snapshot` knowledge, ledger-inspector, dark and light): Knowledge R1-R5 pass,
+  no chips, pills, buttons, or ids; ledger shows the event inspector on reseeded, dated data.

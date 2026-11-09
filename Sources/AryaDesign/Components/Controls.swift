@@ -166,3 +166,18 @@ public struct ChoiceRow<Value: Hashable>: View {
         }
     }
 }
+
+/// The small chevron before an expandable row: right when closed, down when open.
+public struct DisclosureChevron: View {
+    let isExpanded: Bool
+
+    public init(isExpanded: Bool) { self.isExpanded = isExpanded }
+
+    public var body: some View {
+        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(AryaColor.inkFaint)
+            .frame(width: AryaSpace.s3)
+            .accessibilityHidden(true)
+    }
+}

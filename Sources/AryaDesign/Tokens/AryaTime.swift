@@ -30,9 +30,12 @@ extension AryaTime {
         return clock(date, format: style == .short ? "MMM d" : "MMM d, HH:mm", timeZone: timeZone)
     }
 
-    /// Clock time alone, "14:27", for step gutters in a transcript.
-    public static func clock(_ date: Date, timeZone: TimeZone = .current) -> String {
-        clock(date, format: "HH:mm", timeZone: timeZone)
+    /// Clock time alone, "14:27", for step gutters in a transcript; "14:27:05" with `seconds`
+    /// where steps land within the same minute.
+    public static func clock(
+        _ date: Date, seconds: Bool = false, timeZone: TimeZone = .current
+    ) -> String {
+        clock(date, format: seconds ? "HH:mm:ss" : "HH:mm", timeZone: timeZone)
     }
 
     private static func clock(_ date: Date, format: String, timeZone: TimeZone) -> String {
