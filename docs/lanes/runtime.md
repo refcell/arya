@@ -23,7 +23,7 @@ M1:
 - [x] Policy: classify each action as `auto`, `ask`, or `deny` with `policy.default` = `ask`;
   table-driven tests.
 - [x] Approval queue: `approval.requested`, grant, deny, expiry; actor is the person who decided.
-- [ ] Action executor protocol with a recording executor for tests; `action.executed` and
+- [x] Action executor protocol with a recording executor for tests; `action.executed` and
   `action.failed` carry output.
 - [ ] Restart recovery: interrupted runs become `run.failed(interrupted)`; pending approvals are
   intact. Test by killing a run mid-stream.
@@ -79,6 +79,13 @@ M4:
   `paused`, retire needs not `retired`. Adds `steward.resumed` (decision 0022).
   `ActionDisposition` is now an alias of core `PolicyDecision`; `ActionPolicy(charter:)` and
   `InstructionInputs(charter:)` map a charter.
+- Actions: `action.proposed {action, disposition, reason}` (actor: steward), then
+  `action.executed {action, approval?, output}`, `action.failed {action, approval?, error,
+  output?}`, or `action.rejected {action, approval?, reason}` (actor: system). `action` in the
+  outcome payloads is the result-local action id; the envelope's `run` makes it unique.
+  Executors never throw; failures are outcomes so they are always recorded. A granted action
+  executes with the steward's live charter binding; denied or expired approvals record
+  `action.rejected` with reason `approval_denied` / `approval_expired`.
 
 ## Questions
 
@@ -99,3 +106,4 @@ M4:
   API (stubs throwing `unavailable`) landed; cli-e2e and app lanes can code against
   `Sources/Arya` (0d5c02b)
 - 2026-11-09: `EventSink` seam with an in-memory double and the approval queue (9d8e381)
+- 2026-11-09: steward lifecycle on core `Charter`; decision 0022 (19215d3)

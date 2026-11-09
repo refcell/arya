@@ -1,0 +1,215 @@
+import AryaCore
+
+// Agents propose, arya disposes (decision 0005). The dispatcher records every proposed action,
+// classifies it with the charter's policy, and then executes it (`auto`), queues it for a
+// person (`ask`), or rejects it (`deny`). Executor output lands on `action.executed` or
+// `action.failed`, which replay serves back as recorded inputs.
+
+/// Ledger event types for actions.
+public enum ActionEventType {
+    /// A run proposed an action; carries its disposition.
+    public static let proposed = "action.proposed"
+    /// arya carried the action out.
+    public static let executed = "action.executed"
+    /// Carrying the action out failed.
+    public static let failed = "action.failed"
+    /// Policy or a person refused the action.
+    public static let rejected = "action.rejected"
+}
+
+/// One action to carry out.
+public struct ExecutionRequest: Sendable, Hashable {
+    /// Steward that proposed it.
+    public var steward: StewardID
+    /// Run that proposed it.
+    public var run: RunID
+    /// The action.
+    public var action: ProposedAction
+    /// The charter binding that carries it out; `nil` for `routine`.
+    public var binding: CharterBinding?
+    /// The approval that released it, for `ask` actions.
+    public var approval: ApprovalID?
+
+    /// Creates a request.
+    public init(
+        steward: StewardID, run: RunID, action: ProposedAction, binding: CharterBinding?,
+        approval: ApprovalID? = nil
+    ) {
+        self.steward = steward
+        self.run = run
+        self.action = action
+        self.binding = binding
+        self.approval = approval
+    }
+}
+
+/// What an executor reports.
+public enum ExecutionOutcome: Sendable, Hashable {
+    /// Done; `output` is what the system answered.
+    case succeeded(output: JSONValue)
+    /// Not done; `error` says why, `output` holds anything the system answered.
+    case failed(error: String, output: JSONValue?)
+}
+
+/// Carries out actions against bindings and routines. Implementations never throw: every
+/// failure is an outcome so it can be recorded.
+public protocol ActionExecutor: Sendable {
+    /// Carries out one action.
+    func execute(_ request: ExecutionRequest) async -> ExecutionOutcome
+}
+
+/// An executor for tests and rehearsal-like dry runs: it records each request and answers from
+/// a table keyed by action kind, defaulting to success with `{"ok": true}`.
+public actor RecordingExecutor: ActionExecutor {
+    /// Requests in the order they arrived.
+    public private(set) var requests: [ExecutionRequest] = []
+    private let outcomes: [String: ExecutionOutcome]
+
+    /// Creates an executor that answers `outcomes[kind]` for each action kind.
+    public init(outcomes: [String: ExecutionOutcome] = [:]) {
+        self.outcomes = outcomes
+    }
+
+    public func execute(_ request: ExecutionRequest) async -> ExecutionOutcome {
+        requests.append(request)
+        return outcomes[request.action.kind] ?? .succeeded(output: ["ok": true])
+    }
+}
+
+struct ActionProposedPayload: Codable, Hashable {
+    var action: ProposedAction
+    var disposition: PolicyDecision
+    var reason: String
+
+    enum CodingKeys: String, CodingKey {
+        case action, disposition, reason
+    }
+}
+
+struct ActionOutcomePayload: Codable, Hashable {
+    var action: String
+    var approval: ApprovalID?
+    var output: JSONValue?
+    var error: String?
+    var reason: String?
+
+    enum CodingKeys: String, CodingKey {
+        case action, approval, output, error, reason
+    }
+}
+
+/// The disposition of one proposed action, as the dispatcher recorded it.
+public struct ActionDisposal: Sendable, Hashable {
+    /// The action.
+    public var action: ProposedAction
+    /// Policy's verdict.
+    public var verdict: PolicyVerdict
+    /// The approval it waits on, for `ask`.
+    public var approval: ApprovalID?
+    /// The executor's outcome, for `auto`.
+    public var outcome: ExecutionOutcome?
+}
+
+/// Records, classifies, and carries out proposed actions.
+public struct ActionDispatcher: Sendable {
+    private let sink: any EventSink
+    private let approvals: ApprovalQueue
+    private let executor: any ActionExecutor
+
+    /// Creates a dispatcher.
+    public init(sink: any EventSink, approvals: ApprovalQueue, executor: any ActionExecutor) {
+        self.sink = sink
+        self.approvals = approvals
+        self.executor = executor
+    }
+
+    /// Disposes each action of a run in order: `action.proposed`, then execution,
+    /// `approval.requested`, or `action.rejected`.
+    public func dispose(
+        _ actions: [ProposedAction], charter: Charter, run: RunID
+    ) async throws -> [ActionDisposal] {
+        let policy = ActionPolicy(charter: charter)
+        var disposals: [ActionDisposal] = []
+        for action in actions {
+            let verdict = policy.classify(action.policyAction)
+            try await append(
+                ActionEventType.proposed, charter.id, run, .steward(charter.id),
+                ActionProposedPayload(
+                    action: action, disposition: verdict.disposition, reason: verdict.reason))
+            var disposal = ActionDisposal(action: action, verdict: verdict)
+            switch verdict.disposition {
+            case .auto:
+                let request = ExecutionRequest(
+                    steward: charter.id, run: run, action: action,
+                    binding: action.binding.flatMap(charter.binding))
+                disposal.outcome = try await execute(request)
+            case .ask:
+                disposal.approval =
+                    try await approvals.request(.action(action), steward: charter.id, run: run).id
+            case .deny:
+                try await reject(action.id, charter.id, run, reason: verdict.reason)
+            }
+            disposals.append(disposal)
+        }
+        return disposals
+    }
+
+    /// Carries out the action of a granted approval, using the steward's live charter.
+    public func executeGranted(_ record: ApprovalRecord, charter: Charter) async throws
+        -> ExecutionOutcome
+    {
+        guard case .action(let action) = record.subject, record.status == .granted else {
+            throw ApprovalError.alreadyDecided(record.id, record.status)
+        }
+        return try await execute(
+            ExecutionRequest(
+                steward: record.steward, run: record.run, action: action,
+                binding: action.binding.flatMap(charter.binding), approval: record.id))
+    }
+
+    /// Records `action.rejected` for the action of a denied or expired approval.
+    public func rejectDecided(_ record: ApprovalRecord) async throws {
+        guard case .action(let action) = record.subject else { return }
+        try await reject(
+            action.id, record.steward, record.run, reason: "approval_\(record.status.rawValue)",
+            approval: record.id)
+    }
+
+    private func execute(_ request: ExecutionRequest) async throws -> ExecutionOutcome {
+        let outcome = await executor.execute(request)
+        let payload: ActionOutcomePayload
+        let type: String
+        switch outcome {
+        case .succeeded(let output):
+            type = ActionEventType.executed
+            payload = ActionOutcomePayload(
+                action: request.action.id, approval: request.approval, output: output)
+        case .failed(let error, let output):
+            type = ActionEventType.failed
+            payload = ActionOutcomePayload(
+                action: request.action.id, approval: request.approval, output: output,
+                error: error)
+        }
+        try await append(type, request.steward, request.run, .system, payload)
+        return outcome
+    }
+
+    private func reject(
+        _ action: String, _ steward: StewardID, _ run: RunID, reason: String,
+        approval: ApprovalID? = nil
+    ) async throws {
+        try await append(
+            ActionEventType.rejected, steward, run, .system,
+            ActionOutcomePayload(action: action, approval: approval, reason: reason))
+    }
+
+    private func append(
+        _ type: String, _ steward: StewardID, _ run: RunID, _ actor: RuntimeActor,
+        _ payload: some Encodable
+    ) async throws {
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: type, steward: steward, run: run, actor: actor,
+                payload: try Payload.encode(payload)))
+    }
+}
