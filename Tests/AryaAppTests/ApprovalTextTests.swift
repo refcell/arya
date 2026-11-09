@@ -53,3 +53,38 @@ private struct TextsWorkspace: FeatureWorkspace {
     await canned.reload()
     #expect(canned.approvalTexts["ap_9"]?.change == "label: none → bug")
 }
+
+private func step(_ kind: String, target: String, _ params: FeatureJSON) -> ProposedActionStep {
+    ProposedActionStep(
+        actionID: "a1", kind: kind, target: target, summary: "", rationale: "", policy: "ask",
+        outcome: .awaitingApproval(approval: "ap_1"), params: params)
+}
+
+@Test func structuredParamsReadAsOneSentence() {
+    let refund = step(
+        "refund", target: "shop:customer-7",
+        ["amount": 24, "currency": "USD", "order": "ORDER-1043"])
+    #expect(ActionSummary.sentence(refund) == "Refund 24.00 USD on ORDER-1043")
+    let priority = step("set_priority", target: "inbox:MSG-9", ["level": "high", "notify": true])
+    #expect(
+        ActionSummary.sentence(priority) == "Set priority inbox:MSG-9 with level high, notify true")
+    #expect(ActionSummary.sentence(step("archive", target: "inbox:MSG-9", [:])) == nil)
+}
+
+private struct DetailWorkspace: FeatureWorkspace {
+    func events() async throws -> [FeatureEvent] { [] }
+    func record(_ write: FeatureWrite) async throws -> [FeatureEvent] { [] }
+    func verify() async throws -> FeatureVerifyResult { .intact(events: 0) }
+    func changes() -> AsyncStream<Void> { AsyncStream { $0.finish() } }
+    func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
+        FeatureEventDetail(payloadText: "{}", hash: "sha256:aa\(seq)", prev: "", step: nil)
+    }
+}
+
+@MainActor @Test func inspectorChainValuesComeFromTheWorkspace() async {
+    let store = FeatureStore(workspace: DetailWorkspace(), now: FeatureTestClock.now)
+    await store.loadEventDetail(seq: 1)
+    #expect(store.eventDetails[1]?.hash == "sha256:aa1")
+    #expect(LedgerText.chainValue("", label: "Prev") == "none (first event)")
+    #expect(LedgerText.chainValue("sha256:bb", label: "Hash") == "sha256:bb")
+}

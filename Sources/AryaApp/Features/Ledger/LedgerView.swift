@@ -1,3 +1,4 @@
+import AppKit
 import AryaDesign
 import SwiftUI
 
@@ -263,7 +264,7 @@ private struct LedgerInspector: View {
     var title: String?
     var openRun: ((String, String) -> Void)?
     var close: () -> Void
-    @AryaState private var detail: FeatureEventDetail?
+    private var detail: FeatureEventDetail? { store.eventDetails[event.seq] }
 
     var body: some View {
         ScrollView {
@@ -283,14 +284,12 @@ private struct LedgerInspector: View {
                 MachineText(detail?.payloadText ?? event.payload.prettyText)
                 field("Seq", String(event.seq))
                 field("Id", event.id)
-                field("Hash", detail?.hash ?? (event.hash.isEmpty ? "—" : event.hash))
-                if let prev = detail?.prev, !prev.isEmpty { field("Prev", prev) }
+                chain("Hash", detail?.hash ?? event.hash)
+                chain("Prev", detail?.prev ?? "")
             }
             .padding(AryaSpace.s4)
         }
-        .task(id: event.seq) {
-            detail = try? await store.workspace.eventDetail(seq: event.seq)
-        }
+        .task(id: event.seq) { await store.loadEventDetail(seq: event.seq) }
     }
 
     @ViewBuilder private var runLink: some View {
@@ -307,6 +306,26 @@ private struct LedgerInspector: View {
                     Text(words).aryaText(AryaFont.body, AryaColor.ink)
                 }
             }
+        }
+    }
+
+    /// A hash-chain value on one line, truncated in the middle; the full value is on hover,
+    /// selectable, and in the context menu. The first event's prev is the empty string.
+    private func chain(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(label).aryaText(AryaFont.overline, AryaColor.inkFaint)
+            Text(LedgerText.chainValue(value, label: label))
+                .aryaText(AryaFont.monoSmall, value.isEmpty ? AryaColor.inkFaint : AryaColor.ink)
+                .lineLimit(1).truncationMode(.middle)
+                .textSelection(.enabled)
+                .help(value)
+                .contextMenu {
+                    Button("Copy \(label.lowercased())") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(value, forType: .string)
+                    }
+                    .disabled(value.isEmpty)
+                }
         }
     }
 

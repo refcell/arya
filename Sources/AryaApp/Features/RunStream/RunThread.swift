@@ -185,10 +185,21 @@ struct InlineApproval: View {
                     if let change = texts?.change {
                         Text(change).aryaText(AryaFont.mono, AryaColor.ink)
                             .textSelection(.enabled)
-                    } else {
-                        ForEach(action.paramLines, id: \.self) {
-                            Text($0).aryaText(AryaFont.mono, AryaColor.ink)
+                    } else if let summary = ActionSummary.sentence(action) {
+                        Text(summary).aryaText(AryaFont.body, AryaColor.ink)
+                            .textSelection(.enabled)
+                    }
+                }
+                if !action.paramLines.isEmpty {
+                    DisclosureGroup {
+                        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                            ForEach(action.paramLines, id: \.self) {
+                                Text($0).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                                    .textSelection(.enabled)
+                            }
                         }
+                    } label: {
+                        Text("Details").aryaText(AryaFont.caption, AryaColor.inkMuted)
                     }
                 }
                 if let source {
@@ -340,5 +351,53 @@ struct MachineText: View {
             .textSelection(.enabled)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// One sentence for what an action would do, composed from its kind, target, and params when
+/// the workspace gives no change line: "Refund 24.00 USD on ORDER-1043".
+enum ActionSummary {
+    private static let amountKeys = ["amount", "total", "value"]
+    private static let referenceKeys = ["order", "order_id", "invoice", "ticket", "account"]
+    private static let contentKeys: Set<String> = ["text", "body", "message", "comment"]
+
+    static func sentence(_ action: ProposedActionStep) -> String? {
+        guard case .object(let params) = action.params else { return nil }
+        let verb =
+            action.kind.prefix(1).uppercased()
+            + action.kind.dropFirst()
+            .replacingOccurrences(of: "_", with: " ")
+        let reference = referenceKeys.lazy.compactMap { scalar(params[$0]) }.first
+        let place = reference ?? (action.target.isEmpty ? nil : action.target)
+        if let key = amountKeys.first(where: { params[$0] != nil }),
+            let amount = money(params[key])
+        {
+            let currency = scalar(params["currency"]).map { " \($0)" } ?? ""
+            return "\(verb) \(amount)\(currency)" + (place.map { " on \($0)" } ?? "")
+        }
+        let used = Set(referenceKeys + ["currency"]).union(contentKeys)
+        let rest = params.keys.sorted().filter { !used.contains($0) }.compactMap { key in
+            scalar(params[key]).map { "\(key.replacingOccurrences(of: "_", with: " ")) \($0)" }
+        }
+        guard !rest.isEmpty else { return nil }
+        return "\(verb)" + (place.map { " \($0)" } ?? "") + " with " + rest.joined(separator: ", ")
+    }
+
+    private static func money(_ value: FeatureJSON?) -> String? {
+        switch value {
+        case .number(let number)?: String(format: "%.2f", number)
+        case .string(let text)?: Double(text).map { String(format: "%.2f", $0) } ?? text
+        default: nil
+        }
+    }
+
+    private static func scalar(_ value: FeatureJSON?) -> String? {
+        switch value {
+        case .string(let text)?: text
+        case .bool(let flag)?: String(flag)
+        case .number(let number)?:
+            number.rounded() == number ? String(Int(number)) : String(number)
+        default: nil
+        }
     }
 }

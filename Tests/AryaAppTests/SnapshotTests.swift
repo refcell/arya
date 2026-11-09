@@ -57,6 +57,8 @@ import Testing
         if case .loaded(let events) = model.featureStore?.state,
             let event = events.last(where: { $0.steward == steward.id })
         {
+            // The inspector's hash and prev come from an async read; load it before drawing.
+            await model.featureStore?.loadEventDetail(seq: event.seq)
             try page("ledger-inspector") {
                 $0.tab = .ledger
                 $0.ledgerEvent = event.id

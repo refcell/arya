@@ -21,6 +21,8 @@ final class FeatureStore: ObservableObject {
     /// The workspace's policy sentence and change line for each pending approval, by id;
     /// empty when the workspace cannot provide them.
     @Published private(set) var approvalTexts: [String: FeatureApprovalText] = [:]
+    /// Event details read from the workspace (payload text, hash, prev, run step), by seq.
+    @Published private(set) var eventDetails: [Int: FeatureEventDetail] = [:]
     /// The reference time for relative timestamps. Tests and previews pin it.
     @Published var now: Date
     /// The Knowledge screen per steward, kept so the tab draws at once on return.
@@ -58,6 +60,14 @@ final class FeatureStore: ObservableObject {
     /// Records a write and reloads. Returns whether it succeeded; failures land in
     /// `writeError`.
     @discardableResult
+    /// Reads one event's detail once; ledger events never change, so it stays cached.
+    func loadEventDetail(seq: Int) async {
+        guard eventDetails[seq] == nil,
+            let detail = try? await workspace.eventDetail(seq: seq)
+        else { return }
+        eventDetails[seq] = detail
+    }
+
     func perform(_ write: FeatureWrite) async -> Bool {
         do {
             try await workspace.record(write)

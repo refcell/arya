@@ -111,6 +111,12 @@ struct LedgerTable: Hashable, Sendable {
 
 /// Text for the ledger view, kept apart from layout so it can be tested.
 enum LedgerText {
+    /// A hash or prev for the inspector; an empty prev marks the first event.
+    static func chainValue(_ value: String, label: String) -> String {
+        guard value.isEmpty else { return value }
+        return label == "Prev" ? "none (first event)" : "—"
+    }
+
     /// "Showing 3 of 42 events".
     static func count(_ table: LedgerTable) -> String {
         if table.rows.count == table.total { return "\(table.total) events" }
