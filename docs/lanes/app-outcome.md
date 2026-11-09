@@ -30,9 +30,8 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 
 ## Decisions
 
-- Visual checks are offscreen snapshots only (CEO, user directive): PNGs rendered into
-  `.build/` with `just screenshots` or a test-target render on demo data. Never open the app
-  or show a window.
+- Visual checks are offscreen snapshots only (CEO, user directive; decision 0038): `just
+  snapshot` PNGs in `.build/snapshots`. Never open the app or show a window.
 
 - Visual target (CEO): one dark canvas, no boxes or cards, structure from whitespace and
   type, monospace for machine text, small uppercase labels, one orange accent for the
@@ -40,6 +39,11 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 - The Overview projects from ledger events in the `FeatureStore` (live refresh, works on the
   preview fixtures) until the facade's `plan` is real; types are prefixed `Outcome*` and the
   facade's `OutcomeSummary` stays the facade's name.
+- The sparkline spaces samples evenly by index (daily means, or each reading while there
+  is under two days). A flat tail means equal readings: the demo's 20 readings fall on one
+  day and the last dozen are 0.80; cli-e2e is asked for backdated history.
+- Times follow one rule with the sidebar: relative under 24 h, clock time after
+  (`OutcomeTime.short`), proposed to app-shell as a shared AryaDesign formatter.
 - Status: on track when the latest daily value meets the target in its direction; at risk
   when it falls short by at most 5% of the target; otherwise off track; no target or no
   readings say so.
@@ -85,3 +89,7 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   waiting rows open the approval; plans read the runtime's `plan.updated {items, reason}`.
 - 2026-11-09: Plan hidden until the steward has one; recap drops the last-run sentence (it
   is the first Recent row); risk and why fall back to each run's recorded `run/result`.
+- 2026-11-09: one time rule with the sidebar (relative under 24 h, then clock time).
+  Visual check (offscreen `just screenshots`, demo home): outcome line 0.80 / 0.95 with
+  sparkline and OFF TRACK label, plan 4/4 with why it changed, Recent with whys, one orange
+  Review (the header copy is gone on main).

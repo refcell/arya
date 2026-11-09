@@ -196,10 +196,11 @@ private func triage() -> OutcomeSnapshot {
 @Test func timesAreClockTimesNotJustNow() throws {
     let utc = try #require(TimeZone(identifier: "UTC"))
     // 1_800_000_000 is Friday 15 Jan 2027, 08:00 UTC.
-    #expect(OutcomeTime.short(now.addingTimeInterval(-30), now: now, timeZone: utc) == "07:59")
+    #expect(OutcomeTime.short(now.addingTimeInterval(-30), now: now, timeZone: utc) == "now")
+    #expect(OutcomeTime.short(now.addingTimeInterval(-7200), now: now, timeZone: utc) == "2h")
     #expect(
-        OutcomeTime.short(now.addingTimeInterval(-86_400), now: now, timeZone: utc)
-            == "yesterday 08:00")
+        OutcomeTime.short(now.addingTimeInterval(-86_401), now: now, timeZone: utc)
+            == "yesterday 07:59")
     #expect(
         OutcomeTime.short(now.addingTimeInterval(-3 * 86_400), now: now, timeZone: utc)
             == "Tue 08:00")

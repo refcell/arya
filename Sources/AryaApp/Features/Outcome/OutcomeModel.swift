@@ -1,3 +1,4 @@
+import AryaDesign
 import Foundation
 
 /// How a steward is doing against its target, as the Outcome tab's status pill shows it.
@@ -218,8 +219,11 @@ enum OutcomeTime {
     /// How long a person must have been away before the recap paragraph shows.
     static let recapGapSeconds: TimeInterval = 15 * 60
 
-    /// "14:02" today, "yesterday 14:02", "Mon 14:02" within a week, else "9 Nov".
+    /// One rule per screen, shared with the sidebar threads: relative under 24 hours ("now",
+    /// "2m", "3h", as `ThreadRow.shortTime`), then "yesterday 14:02", "Mon 14:02" within a
+    /// week, else "9 Nov".
     static func short(_ date: Date, now: Date, timeZone: TimeZone = .current) -> String {
+        if now.timeIntervalSince(date) < 86_400 { return ThreadRow.shortTime(date, now: now) }
         let calendar = calendar(timeZone)
         let clock = clockTime(date, calendar)
         let days = dayDistance(date, now, calendar)
