@@ -104,6 +104,11 @@ private func weeksHome() throws -> (TempHome, Timestamp) {
     let lastWeek = start.adding(milliseconds: (50_000 - 10_080) * 60_000)
     let since = try cpuSeconds { counts.append(try reader.events(since: lastWeek).count) }
     let full = try cpuSeconds { counts.append(try reader.events().count) }
+    let index = try reader.rebuild(LedgerIndex.self)
+    let lateSteward = try cpuSeconds {
+        _ = try reader.pageBackward(LedgerFilter(steward: steward), limit: 50, index: index)
+    }
+    print("PERF 50k: newest 50 of one steward, indexed \(format(lateSteward))")
     print(
         "PERF 50k: filtered \(format(filtered)); namespace \(format(typed)); "
             + "last week \(format(since)); full \(format(full)); counts \(counts)")

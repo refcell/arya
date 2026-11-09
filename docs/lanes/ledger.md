@@ -77,7 +77,16 @@ Next (lane-extended, in order):
 - [x] (7b) Projection digests and seeds: `Checkpoints.record(…, caches:)` writes
   `archive/seeds/<through>/<name>.json`; `ProjectionCache.current` seeds from the newest
   trusted, digest-matching seed on a compacted ledger, else throws `ProjectionError.archived`.
-- [ ] (8) Use the `LedgerIndex` run spans to narrow `page(_:)` run queries when scans get slow.
+- [x] (8) Index-narrowed queries: `LedgerIndex.stewards` spans and `firstPossibleSeq`;
+  `page`/`pageBackward(…, index:)` and `events(_:index:)` start at the run's or steward's first
+  event (a stale index is safe). 50k probe: newest 50 of one steward 0.17 s (the probe's
+  stewards start near seq 1, so this is the sieve cost; late runs skip their prefix).
+
+Next (lane-extended toward M3.5 app parity, in order):
+- [ ] (9) Newest-first reads without a full forward pass: read segments newest to oldest (tail
+  windows per segment) for `pageBackward` and "last N of type T" (recap, activity).
+- [ ] (10) Per-steward counters for status widgets in `LedgerIndex`: runs finished/failed,
+  approvals open/granted/denied, last metric value, so the sidebar reads one cached index.
 
 ## Decisions
 
@@ -186,7 +195,8 @@ Next (lane-extended, in order):
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
-- 2026-11-09: (7b) done: projection seeds and seeding on compacted ledgers.
+- 2026-11-09: (8) done: index-narrowed queries; backlog extended with (9) and (10).
+- 2026-11-09: (7b) done: projection seeds and seeding on compacted ledgers (89b5dd0).
 - 2026-11-09: (7a) done: compaction to `archive/`, `verifyArchive`, covering anchors (6e8e9bc).
 - 2026-11-09: (6) done: `system.checkpoint`, `Checkpoints`, verify anchoring (`unanchored`,
   `badCheckpoint`) with report text. Verify of 5,000 events 0.11 s CPU (ef55a14).

@@ -126,3 +126,35 @@ private func filters() -> [LedgerFilter] {
     #expect(page.events == Array(expected))
     #expect(page.next == expected.first?.seq)
 }
+
+@Test func indexNarrowedQueriesEqualPlainOnes() throws {
+    let home = try TempHome()
+    defer { home.cleanup() }
+    let all = try seeded(home)
+    let reader = LedgerReader(home: home.url)
+    // Built over the first 60 events only: a stale index must still give the same answers.
+    var stale = Projected<LedgerIndex>()
+    for event in all.prefix(60) { try stale.apply(event) }
+    let store = try LedgerStore(home: home.url, ambient: .fixed(), segmentLimitBytes: 1500)
+    let late = StewardID(rawValue: "st_late")!
+    let lateRun = RunID(body: "late")!
+    try store.append(EventDraft(type: .runDecision, actor: .system, steward: late, run: lateRun))
+    let fresh = try reader.rebuild(LedgerIndex.self)
+    #expect(fresh.value.stewards[late]?.firstSeq == 121)
+    let queries =
+        filters() + [
+            LedgerFilter(steward: late), LedgerFilter(run: lateRun),
+            LedgerFilter(steward: inbox, run: runB, types: [.systemStarted]),
+        ]
+    for index in [stale, fresh] {
+        for filter in queries {
+            #expect(try reader.events(filter, index: index) == reader.events(filter, from: 1))
+            #expect(
+                try reader.page(filter, after: 3, limit: 4, index: index)
+                    == reader.page(filter, after: 3, limit: 4))
+            #expect(
+                try reader.pageBackward(filter, before: 100, limit: 4, index: index)
+                    == reader.pageBackward(filter, before: 100, limit: 4))
+        }
+    }
+}

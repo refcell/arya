@@ -18,23 +18,44 @@ public struct LedgerIndex: LedgerProjection, Hashable, Codable {
         }
     }
 
+    /// Where a steward's events are.
+    public struct StewardSpan: Hashable, Sendable, Codable {
+        public var firstSeq: Int64
+        public var lastSeq: Int64
+        public var firstAt: Timestamp
+        public var lastAt: Timestamp
+
+        enum CodingKeys: String, CodingKey { case firstSeq, lastSeq, firstAt, lastAt }
+    }
+
     public private(set) var events: Int64 = 0
     public private(set) var countsByType: [EventType: Int] = [:]
     public private(set) var eventsBySteward: [StewardID: Int] = [:]
     public private(set) var runs: [RunID: RunSpan] = [:]
+    public private(set) var stewards: [StewardID: StewardSpan] = [:]
     public private(set) var firstAt: Timestamp?
     public private(set) var lastAt: Timestamp?
 
     public init() {}
 
     enum CodingKeys: String, CodingKey {
-        case events, countsByType, eventsBySteward, runs, firstAt, lastAt
+        case events, countsByType, eventsBySteward, runs, stewards, firstAt, lastAt
     }
 
     public mutating func apply(_ event: Event) throws {
         events += 1
         countsByType[event.type, default: 0] += 1
-        if let steward = event.steward { eventsBySteward[steward, default: 0] += 1 }
+        if let steward = event.steward {
+            eventsBySteward[steward, default: 0] += 1
+            if var span = stewards[steward] {
+                span.lastSeq = event.seq
+                span.lastAt = event.at
+                stewards[steward] = span
+            } else {
+                stewards[steward] = StewardSpan(
+                    firstSeq: event.seq, lastSeq: event.seq, firstAt: event.at, lastAt: event.at)
+            }
+        }
         if let run = event.run {
             if var span = runs[run] {
                 span.lastSeq = event.seq
@@ -56,5 +77,17 @@ public struct LedgerIndex: LedgerProjection, Hashable, Codable {
     public func runs(of steward: StewardID) -> [(RunID, RunSpan)] {
         runs.filter { $0.value.steward == steward }.sorted { $0.value.firstSeq < $1.value.firstSeq }
             .map { ($0.key, $0.value) }
+    }
+
+    /// The lowest `seq` an event matching `filter` can have, judged by its run and steward
+    /// spans, given that this index covers events through `coveredSeq`. A run or steward the
+    /// index has not seen can only appear after `coveredSeq`. 1 when the filter names neither.
+    public func firstPossibleSeq(_ filter: LedgerFilter, coveredSeq: Int64) -> Int64 {
+        var start: Int64 = 1
+        if let run = filter.run { start = max(start, runs[run]?.firstSeq ?? coveredSeq + 1) }
+        if let steward = filter.steward {
+            start = max(start, stewards[steward]?.firstSeq ?? coveredSeq + 1)
+        }
+        return start
     }
 }

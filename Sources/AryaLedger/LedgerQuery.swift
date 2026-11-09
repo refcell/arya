@@ -52,10 +52,14 @@ public struct LedgerPage: Hashable, Sendable {
 }
 
 extension LedgerReader {
-    /// Up to `limit` matching events with `seq > after`, oldest first.
-    public func page(_ filter: LedgerFilter = LedgerFilter(), after: Int64 = 0, limit: Int = 100)
-        throws -> LedgerPage
-    {
+    /// Up to `limit` matching events with `seq > after`, oldest first. With `index`, a run or
+    /// steward query starts at that run's or steward's first event instead of the ledger's
+    /// (any staleness is safe: the index only moves the start, never the end).
+    public func page(
+        _ filter: LedgerFilter = LedgerFilter(), after: Int64 = 0, limit: Int = 100,
+        index: Projected<LedgerIndex>? = nil
+    ) throws -> LedgerPage {
+        let after = max(after, (index.map { start(filter, $0) } ?? 1) - 1)
         let limit = max(1, limit)
         var events: [Event] = []
         var more = false
@@ -72,15 +76,18 @@ extension LedgerReader {
     }
 
     /// Up to `limit` matching events with `seq < before` (the newest when nil), returned in
-    /// `seq` order. For a table that opens at the newest events and scrolls back.
+    /// `seq` order. For a table that opens at the newest events and scrolls back. `index`
+    /// narrows the start as in `page`.
     public func pageBackward(
-        _ filter: LedgerFilter = LedgerFilter(), before: Int64? = nil, limit: Int = 100
+        _ filter: LedgerFilter = LedgerFilter(), before: Int64? = nil, limit: Int = 100,
+        index: Projected<LedgerIndex>? = nil
     ) throws -> LedgerPage {
+        let from = index.map { start(filter, $0) } ?? 1
         let limit = max(1, limit)
         var window: [Event] = []
         var dropped = false
         do {
-            try forEach(filter) { event in
+            try forEach(filter, from: from) { event in
                 if let before, event.seq >= before { throw StopScan() }
                 window.append(event)
                 if window.count > limit {
@@ -90,6 +97,17 @@ extension LedgerReader {
             }
         } catch is StopScan {}
         return LedgerPage(events: window, next: dropped ? window.first?.seq : nil)
+    }
+}
+
+extension LedgerReader {
+    /// Every event matching `filter`, starting where `index` says the first can be.
+    public func events(_ filter: LedgerFilter, index: Projected<LedgerIndex>) throws -> [Event] {
+        try events(filter, from: start(filter, index))
+    }
+
+    func start(_ filter: LedgerFilter, _ index: Projected<LedgerIndex>) -> Int64 {
+        index.value.firstPossibleSeq(filter, coveredSeq: index.seq)
     }
 }
 
