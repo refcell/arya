@@ -29,6 +29,13 @@ Priority (replay before live, visible in the app):
   phrases; judge notes are cleaned for one line.
 - [x] "With the change it would have…": `Counterfactuals.whatIf(run:charter:)` runs one live
   run as a case under a proposed charter and compares it with what it did and any correction.
+- [x] Live readiness (backtest before live): `LiveReadinessGate.check` backtests a proposed
+  change on the casebook and replays the steward's last N finished live runs under it, giving
+  one verdict, the regressions, and a one-line summary.
+- [x] Casebook builder: `CasebookBuilder.harvest` adds every corrected or denied live run as a
+  case with provenance in `source`, recorded as a new casebook version.
+- [x] Performance: a 50-case rehearsal on the fake adapter through the run engine finishes in
+  under 10 s (about 0.3 s idle), pinned by `fiftyCaseRehearsalIsFast`.
 
 M1:
 - [x] Interfaces only, so other lanes can compile against them: `Replayer`, `Rehearser`,
@@ -120,6 +127,13 @@ Later:
   rehearsal or a baseline; only the rehearsal-mode run itself is on the ledger.
 - Judge notes are untrusted text shown verbatim: whitespace collapsed, empties dropped, at most
   6 notes of 120 characters each.
+- Live readiness per run: `same` (matches what it did or its correction), `improved` (now
+  matches a correction it missed), `stillWrong`, `regressed` (changes a run nobody objected
+  to) and `failed` (no result or a leak). Ready means the casebook gate passes and no recent
+  run regressed or failed; still-wrong runs do not block.
+- Harvest: corrections win over denials and the latest correction wins; a denied action is
+  removed from the expected actions; runs already in the casebook are skipped, and rehearsal
+  runs are never harvested.
 - `GateRule` (pure, decision 0017): a missing baseline or differing case sets fail the gate; a
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
@@ -192,3 +206,4 @@ Later:
 - 2026-11-09: readiness summary line, `ResultText` per-case text, M3.5 backtest scenario fixture
 - 2026-11-09: per-check score data and text for rubric, exact, and judge scorers
 - 2026-11-09: run corrections as cases, one-sentence scores, single-run what-if
+- 2026-11-09: live readiness gate, casebook builder from history, 50-case perf test

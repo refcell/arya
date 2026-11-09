@@ -283,3 +283,90 @@ private struct WhatIfRunner: CaseRunner {
         ).score(judge: "fake").sentence == "tone: polite, matches policy")
     #expect(CaseScore(value: 0, passed: false, notes: ["leak"]).sentence == "failed (0): leak")
 }
+
+@Test func casebookGrowsFromCorrectedAndDeniedRuns() async throws {
+    let (sink, run) = try await recordRun()
+    let blobs = MemoryBlobs()
+    let book = try Casebook(name: "inbox", cases: [])
+    let builder = CasebookBuilder(sink: sink, blobs: blobs)
+    #expect(try await builder.harvest(steward: steward, into: book).casebook == nil)
+
+    // A person denies the held route action.
+    let approvals = ApprovalQueue(sink: sink, ambient: .fixed(seed: 11))
+    let held = try #require(try await approvals.book().records.values.first)
+    try await approvals.deny(held.id, by: .person("person:alex"), note: "Do not route yet.")
+    let denied = try await builder.harvest(steward: steward, into: book)
+    let grown = try #require(denied.casebook)
+    #expect(denied.harvested.map(\.reason) == [.denied])
+    #expect(denied.harvested.first?.actor == "human:person:alex")
+    let item = try #require(grown.cases.first)
+    #expect(item.id == (try RunCases.caseID(for: run)))
+    #expect(
+        item.expected == [
+            "decisions": [["choice": "billing"]],
+            "actions": [["kind": "label", "target": "inbox:MSG-1"]],
+        ])
+    #expect(item.source?.contains("denied") == true)
+    #expect(try await StoredCasebooks(sink: sink, blobs: blobs).latest(name: "inbox") == grown)
+
+    // Harvesting again finds nothing new; a correction of a fresh book wins over the denial.
+    #expect(try await builder.harvest(steward: steward, into: grown).casebook == nil)
+    try await Corrector(sink: sink, blobs: blobs, ambient: .fixed(seed: 12)).correct(
+        CaseCorrection(
+            caseID: item.id, text: "How-to.", expected: ["decisions": [["choice": "how-to"]]],
+            run: run),
+        in: grown, steward: steward, person: "person:alex")
+    let found = try await builder.candidates(steward: steward, in: book)
+    #expect(found.map(\.1.reason) == [.corrected])
+    #expect(found.first?.0.expected == ["decisions": [["choice": "how-to"]]])
+}
+
+@Test func liveReadinessGatesOnCasebookAndRecentRuns() async throws {
+    let (sink, run) = try await recordRun()
+    let blobs = MemoryBlobs()
+    let line =
+        #"{"v":1,"id":"c1","input":{"text":"t"},"expected":{"decisions":[{"choice":"billing"}]}}"#
+    let (book, _) = try await CasebookImporter(blobs: blobs, sink: sink)
+        .importCasebook(name: "inbox", data: Data(line.utf8), steward: steward)
+    let casebooks = StoredCasebooks(sink: sink, blobs: blobs)
+    let ambient = Ambient.fixed(seed: 21)
+    let rehearser = CasebookRehearser(
+        runner: WhatIfRunner(), casebooks: casebooks, sink: sink, ambient: ambient,
+        scorer: ExactScorer(fields: ["decisions.choice"]))
+    let gate = LiveReadinessGate(
+        backtester: Backtester(
+            rehearser: rehearser, reports: RehearsalReports(sink: sink, casebooks: casebooks)),
+        counterfactuals: Counterfactuals(sink: sink, runner: WhatIfRunner(), ambient: ambient))
+    let current = BacktestVariant(charterVersion: 1, charter: inboxCharter())
+
+    let same = try await gate.check(
+        steward: steward, casebookVersion: book.version, current: current,
+        proposed: BacktestVariant(charterVersion: 0, charter: inboxCharter()))
+    #expect(same.ready)
+    #expect(same.runs.map(\.run) == [run])
+    #expect(same.summary == "ready: casebook 1/1, 1 recent runs checked, none changed")
+
+    var proposed = inboxCharter()
+    proposed.guardrails = ["Invoice questions are how-to."]
+    let changed = try await gate.check(
+        steward: steward, casebookVersion: book.version, current: current,
+        proposed: BacktestVariant(charterVersion: 0, charter: proposed))
+    #expect(!changed.ready)
+    #expect(changed.runs.map(\.verdict) == [.regressed])
+    #expect(changed.regressions == ["c1", "run \(run.rawValue)"])
+    #expect(changed.summary == "not ready: c1, run \(run.rawValue) regressed")
+
+    // Once a person corrects the run to how-to, the change improves it.
+    try await Corrector(sink: sink, blobs: blobs, ambient: .fixed(seed: 22)).correct(
+        CaseCorrection(
+            caseID: CaseID(rawValue: "c1")!, text: "How-to.",
+            expected: ["decisions": [["choice": "how-to"]]], run: run),
+        in: book, steward: steward, person: "person:alex")
+    let corrected = try await casebooks.latest(name: "inbox")
+    let fixed = try await gate.check(
+        steward: steward, casebookVersion: corrected.version, current: current,
+        proposed: BacktestVariant(charterVersion: 0, charter: proposed))
+    #expect(fixed.runs.map(\.verdict) == [.improved])
+    #expect(fixed.ready)
+    #expect(fixed.summary == "ready: casebook 1/1, 1 recent runs checked, 1 improved")
+}
