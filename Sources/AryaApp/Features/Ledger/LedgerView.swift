@@ -176,7 +176,7 @@ private struct LedgerRows: View {
         return HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
             Text(LedgerText.pad(String(event.seq), table.seqWidth, leading: true))
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).fixedSize()
-            Text(StreamStepText.clock(event.at))
+            Text(AryaTime.clock(event.at))
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).fixedSize()
                 .help(FeatureTime.absolute(event.at))
             Text(LedgerText.pad(event.type, table.typeWidth))
