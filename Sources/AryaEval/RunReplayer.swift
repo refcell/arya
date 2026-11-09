@@ -159,6 +159,9 @@ struct RunRecording: Sendable {
         request.mode = .rehearsal(item.context)
         request.rehearsal = RehearsalTag(
             rehearsal: rehearsal, caseID: caseID, sample: body.sample ?? 1)
+        request.routine = record.result.request.routine.map {
+            CandidateRoutine(name: $0.name, version: $0.version)
+        }
         if body.charterVersion == 0, let proposal = record.result.request.proposal {
             request.charter = try ProposalBook(all).records[proposal]?.charter
         }

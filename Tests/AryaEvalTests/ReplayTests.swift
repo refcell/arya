@@ -1,6 +1,7 @@
 import AryaAdapters
 import AryaCore
 import AryaRuntime
+import Foundation
 import Testing
 
 @testable import AryaEval
@@ -118,4 +119,56 @@ private func recordRun() async throws -> (MemoryEventSink, RunID) {
     #expect(renamed["b"] == ["<id:1>", "x_y"])
     #expect(renamed["c"] == "<time:1>")
     #expect(renamed["d"] == "st_triage")
+}
+
+/// Runs each case through the engine in rehearsal mode, like the facade's case runner.
+private struct EngineCaseRunner: CaseRunner {
+    let engine: RunEngine
+
+    func run(_ request: CaseRunRequest) async throws -> CaseRunOutcome {
+        let item = request.caseItem
+        var run = RunRequest(
+            steward: request.steward,
+            input: RunInput(kind: .case, text: item.input.text, attachments: []),
+            mode: .rehearsal(item.context), actor: .system)
+        run.rehearsal = RehearsalTag(
+            rehearsal: request.rehearsal, caseID: item.id, sample: request.sample + 1)
+        let outcome = try await engine.run(run)
+        let result = try outcome.result.map { try CanonicalJSON.jsonValue($0) } ?? [:]
+        return CaseRunOutcome(run: outcome.run, result: result, leak: outcome.leak)
+    }
+}
+
+@Test func replayOfARehearsalRunUsesTheStoredCase() async throws {
+    let ambient = Ambient.fixed(stepMillis: 7, seed: 9)
+    let sink = MemoryEventSink(ambient: ambient)
+    let blobs = MemoryBlobs()
+    try await StewardLifecycle(sink: sink).create(inboxCharter())
+    let line = """
+        {"v":1,"id":"c1","input":{"kind":"case","text":"New message MSG-1"},\
+        "context":{"toolResults":[{"tool":"inbox.get","input":{"id":"MSG-1"},\
+        "output":{"subject":"Invoice"}}]},"expected":{"decisions":[{"choice":"billing"}]}}
+        """
+    let (book, _) = try await CasebookImporter(blobs: blobs, sink: sink)
+        .importCasebook(name: "inbox", data: Data(line.utf8), steward: steward)
+    let approvals = ApprovalQueue(sink: sink, ambient: ambient)
+    let engine = RunEngine(
+        sink: sink, ambient: ambient, adapters: FakeAdapters(script: script),
+        dispatcher: ActionDispatcher(
+            sink: sink, approvals: approvals, executor: RecordingExecutor(outcomes: [:])),
+        approvals: approvals, workdir: { "scratch/\($0.rawValue)" })
+    let casebooks = StoredCasebooks(sink: sink, blobs: blobs)
+    let rehearser = CasebookRehearser(
+        runner: EngineCaseRunner(engine: engine), casebooks: casebooks, sink: sink,
+        ambient: ambient)
+    _ = try await rehearser.rehearse(
+        RehearsalRequest(steward: steward, charterVersion: 1, casebookVersion: book.version),
+        charter: inboxCharter())
+    let started = try await sink.events(from: 1).first { $0.type == "run.started" }
+    let run = try #require(started?.draft.run)
+
+    #expect(try await RunReplayer(sink: sink, casebooks: casebooks).replay(run: run).passed)
+    await #expect(throws: EvalError.self) {
+        try await RunReplayer(sink: sink).replay(run: run)
+    }
 }

@@ -19,9 +19,10 @@ M2:
   events field by field; divergence report with both versions. Test with an injected
   nondeterminism bug that replay catches.
 - [x] Casebook format and import (JSON Lines), content-hash versions, `casebook.imported`.
-- [ ] Rehearsal: one run per case (trigger `case`), tools served from case context, no action
+- [x] Rehearsal: one run per case (trigger `case`), tools served from case context, no action
   executed, `leak` detection, `rehearsal.*` events, parallelism bounded and deterministic in
-  ordering. Orchestration landed (`CasebookRehearser`); waiting on the runtime's `CaseRunner`.
+  ordering. `CasebookRehearser` plus the facade's `RuntimeCaseRunner` (case runs, sample + 1,
+  live-charter detection, candidate routine, leak passthrough); gates are wired in the facade.
 - [x] Scorers: exact match on chosen fields; rubric scorer (weighted checks on result fields).
 - [x] Corrections (`case.corrected`) and readiness (`steward.ready`).
 - [x] Proposals and gates: baseline lookup, samples, tolerance, per-case regression rule,
