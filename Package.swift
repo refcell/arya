@@ -44,5 +44,6 @@ let package = Package(
         .testTarget(name: "AryaEvalTests", dependencies: ["AryaEval"]),
         .testTarget(name: "AryaTests", dependencies: ["Arya"]),
         .testTarget(name: "AryaDesignTests", dependencies: ["AryaDesign"]),
+        .testTarget(name: "AryaCLITests", dependencies: ["AryaCLI"]),
     ]
 )
