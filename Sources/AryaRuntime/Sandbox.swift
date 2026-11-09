@@ -1,4 +1,6 @@
+import AryaAdapters
 import AryaCore
+import AryaLedger
 import AryaMemory
 import Foundation
 
@@ -105,4 +107,18 @@ public struct SandboxedRoutineRunner: RoutineRunning {
         wrapped.environment["ARYA_SANDBOX_SCRIPT"] = invocation.content
         return try base.run(wrapped)
     }
+}
+
+/// `run.sandboxed`: how a sandboxed run's harness was confined, known only after the adapter
+/// reported its capabilities (decision 0040). `os`: under arya's `sandbox-exec` profile (writes
+/// only in the workdir and the adapter's own state; network allowed, since harnesses call hosted
+/// models); `workdir`: only the harness's own write confinement; `none`: not confined.
+public struct RunSandboxed: EventPayload {
+    public static let type = EventType("run.sandboxed")
+    public var harness: SandboxSupport
+
+    /// Creates a payload.
+    public init(harness: SandboxSupport) { self.harness = harness }
+
+    enum CodingKeys: String, CodingKey { case harness }
 }

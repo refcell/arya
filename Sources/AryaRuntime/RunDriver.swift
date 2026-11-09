@@ -101,10 +101,16 @@ final class RunDriver: @unchecked Sendable {
 
     private func handshake(_ adapter: any Adapter) async -> (RunFailureReason, String)? {
         do {
-            _ = try await adapter.initialize(
+            let info = try await adapter.initialize(
                 InitializeParams(client: PeerInfo(name: "arya", version: "0.1.0")))
-            let started = try await adapter.start(try startParams())
+            let harness = loop.sandboxed ? info.capabilities.sandbox : nil
+            let started = try await adapter.start(try startParams(confine: harness == .os))
             session = started.session
+            if let harness {
+                try await append(
+                    RunSandboxed.type.rawValue, .system,
+                    try Payload.encode(RunSandboxed(harness: harness)))
+            }
             return nil
         } catch let error as AdapterError {
             if case .exited = error { return (.adapterExited, "\(error)") }
@@ -114,16 +120,18 @@ final class RunDriver: @unchecked Sendable {
         }
     }
 
-    private func startParams() throws -> RunStartParams {
+    private func startParams(confine: Bool) throws -> RunStartParams {
         let limits = charter.limits
         let workdir = try loop.workdir(run)
-        return RunStartParams(
+        var params = RunStartParams(
             run: run.rawValue, instructions: instructions, input: request.input,
             effort: charter.effort.rawValue, workdir: workdir, tools: try toolServers(workdir),
             limits: RunLimits(
                 maxTurns: limits.maxTurns, timeoutSeconds: limits.timeoutSeconds,
                 maxCostMicros: limits.maxCostMicros),
             resultSchema: RunResultSchema.value)
+        if confine { params.sandbox = OSSandbox.confiningWrites(to: workdir) }
+        return params
     }
 
     /// Binding proxies for the harness. In rehearsal the case's recorded tool results are

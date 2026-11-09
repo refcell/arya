@@ -373,8 +373,11 @@ proxy (`--sandbox <workdir>`) and the action executor (`BindingActionExecutor.sa
 A sandboxed run records `run.started.sandbox {kind: sandbox-exec, workdir, network: [binding
 ids]}`; when `sandbox-exec` is missing or cannot apply a profile (arya already sandboxed), the
 processes run as before and nothing is recorded, so the ledger never claims a sandbox that was
-not there. Adapter processes are not sandboxed yet: agent harnesses need the network and write
-their own state outside the workdir, so their profile needs per-profile write paths first.
+not there. Adapter harnesses are confined through the adapters' protocol: when the adapter
+reports capability `sandbox: "os"`, `run/start.sandbox` carries
+`OSSandbox.confiningWrites(to: workdir)` (writes only in the workdir; network allowed, since
+harnesses call hosted models), and every sandboxed run records `run.sandboxed {harness: os |
+workdir | none}` after the handshake, so the ledger says how far the harness was confined.
 Why: a steward acting on its own should not be able to write or reach anything its charter
 did not grant.
 

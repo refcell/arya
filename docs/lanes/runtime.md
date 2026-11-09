@@ -191,8 +191,8 @@ M4:
   `Inbox.swift`; `Scheduler.deliver` takes run input attachments.
 - Sandbox (decision 0040): `Sandbox`, `SandboxedRoutineRunner` in `Sandbox.swift`;
   `RunEngine(sandbox:)`; `CharterBinding.network` (core) and `RunStarted.sandbox` (ledger)
-  are small additive edits; `Workspace` wiring defaults to sandboxed routines. Next: an
-  adapter-process profile with per-profile write paths.
+  are small additive edits; `Workspace` wiring defaults to sandboxed routines. Harnesses get
+  `run/start.sandbox` when the adapter reports `os`; `run.sandboxed {harness}` records it.
 
 ## Questions
 
@@ -203,7 +203,6 @@ M4:
   folds it into `charter.effort` without bumping the version, so the next run records the
   effort it used in `run.started`. The workspace lane landed that fold as a small integration
   edit in `Stewards.swift`.
-- (from adapters) OS sandbox for harnesses: `run/start.sandbox` (`SandboxRequest`: SBPL `profile` + `params`) is honored by adapters reporting capability `sandbox: "os"` (the exec adapter on any Mac with `/usr/bin/sandbox-exec`); others reject it with `-32002`. Suggested default: `OSSandbox.confiningWrites(to: workdir, network: .allowed)` when the adapter reports `os`. Routine sandboxing (0031) can reuse `OSSandbox.wrap(_:in:)` around the routine runner's command.
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior
@@ -241,3 +240,4 @@ M4:
 - 2026-11-09: local inbox: messages, corrections as memory, message runs (decision 0039)
 - 2026-11-09: routines and binding servers sandboxed, recorded on `run.started` (decision 0040)
 - 2026-11-09: schedule status: `SchedulePlan.status` / `Scheduler.status` (next wake, last N outcomes)
+- 2026-11-09: harness sandbox via `run/start.sandbox` for `os` adapters; `run.sandboxed`

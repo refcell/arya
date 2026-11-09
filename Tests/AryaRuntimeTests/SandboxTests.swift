@@ -98,3 +98,27 @@ private func tempDir(_ name: String) throws -> URL {
         sandbox: "/tmp/work")
     #expect(servers.first?.args.suffix(2) == ["--sandbox", "/tmp/work"])
 }
+
+private func harnessRun(_ support: SandboxSupport, sandbox: Bool) async throws -> RunHarness {
+    var capabilities = FakeScript.defaultCapabilities
+    capabilities.sandbox = support
+    let script = FakeScript(
+        capabilities: capabilities, defaultResponse: FakeScript.Response(result: triageResult))
+    let harness = RunHarness(
+        script: script, workdirRoot: try tempDir("sbx-harness").path, sandbox: sandbox)
+    _ = try await harness.start()
+    return harness
+}
+
+@Test(.enabled(if: Sandbox.available)) func sandboxedRunsConfineHarnessesThatCan() async throws {
+    // The fake adapter rejects `run/start.sandbox` unless it reports `os`, so a finished run
+    // shows the request was sent only when it could be honored.
+    for support in [SandboxSupport.os, .workdir, .none] {
+        let harness = try await harnessRun(support, sandbox: true)
+        #expect(try await harness.last("run.finished") != nil, "\(support)")
+        let sandboxed = try #require(try await harness.last(RunSandboxed.type.rawValue))
+        #expect(sandboxed.payload["harness"]?.stringValue == support.rawValue)
+    }
+    let plain = try await harnessRun(.os, sandbox: false)
+    #expect(try await plain.last(RunSandboxed.type.rawValue) == nil)
+}
