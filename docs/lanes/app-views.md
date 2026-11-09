@@ -13,7 +13,7 @@ M3 (start now against the app-shell stub workspace):
 - [x] Run stream: messages, tool calls and results, decisions, proposed actions, status, live.
 - [x] Approval queue and approval cards: action, rationale, target, approve and deny with the
   local user recorded as actor.
-- [ ] Ledger table: filter by steward, run, type, actor; event detail; Verify button with result.
+- [x] Ledger table: filter by steward, run, type, actor; event detail; Verify button with result.
 - [ ] Changes tab: proposals with gate results, accept, reject, override (recorded).
 - [ ] Memory view: notes with provenance, retract.
 - [ ] Routines view: names, live version, history, version diff.
@@ -48,6 +48,10 @@ M3 (start now against the app-shell stub workspace):
   `CodeBlock`, `ApprovalCard`, `EmptyState`, `.aryaPrimary` and friends); a test fails if a
   feature file uses a literal color, font, or small size.
 
+- The ledger table filters by steward, run, type namespace (`run.`) or exact type, and actor
+  (`kind:id`); rows are newest first. Verify is a secondary button (the accent stays on
+  approvals) and its result stays visible until the next check.
+
 ## Questions
 
 - (from cli-e2e) `RunStreamModel` reads `approval.requested` as `{id, action: "<id>"}`, but the
@@ -57,3 +61,5 @@ M3 (start now against the app-shell stub workspace):
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,
   fixtures), interim components, `AryaAppTests` target (c0b8bcd).
+- 2026-11-09: approval queue and cards, inline in the stream (db99d35); switched to AryaDesign
+  components (d20b497).

@@ -15,6 +15,9 @@ final class FeatureStore: ObservableObject {
     let workspace: any FeatureWorkspace
     @Published private(set) var state: FeatureLoadState<[FeatureEvent]> = .loading
     @Published private(set) var writeError: String?
+    /// The last ledger verification, or nil before the person runs one.
+    @Published private(set) var verifyResult: FeatureVerifyResult?
+    @Published private(set) var isVerifying = false
     /// The reference time for relative timestamps. Tests and previews pin it.
     @Published var now: Date
 
@@ -58,6 +61,19 @@ final class FeatureStore: ObservableObject {
         } catch {
             writeError = FeatureStore.describe(error)
             return false
+        }
+    }
+
+    /// Verifies the ledger's hash chain and keeps the result. A failure to run the check at
+    /// all lands in `writeError`.
+    func verify() async {
+        isVerifying = true
+        defer { isVerifying = false }
+        do {
+            verifyResult = try await workspace.verify()
+        } catch {
+            verifyResult = nil
+            writeError = FeatureStore.describe(error)
         }
     }
 
