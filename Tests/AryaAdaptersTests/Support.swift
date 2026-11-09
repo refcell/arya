@@ -12,7 +12,7 @@ enum Sample {
     {
         RunStartParams(
             run: run, instructions: "Label new issues.", input: RunInput(kind: .case, text: text),
-            workdir: "/tmp/arya-test", limits: RunLimits(timeoutSeconds: timeoutSeconds))
+            workdir: NSTemporaryDirectory(), limits: RunLimits(timeoutSeconds: timeoutSeconds))
     }
 
     static let result: JSONValue = [

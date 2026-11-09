@@ -4,28 +4,32 @@ import Testing
 
 @testable import AryaAdapters
 
-/// The adapter protocol, checked against a real adapter process: `ARYA_ADAPTER_CMD` when set,
-/// otherwise `arya-fake-adapter`. Run one adapter with
-/// `ARYA_ADAPTER_CMD="path/to/adapter args" just test AdapterConformance`.
+/// The adapter protocol, checked against real adapter processes: `ARYA_ADAPTER_CMD` when set,
+/// otherwise `arya-fake-adapter` and `arya-exec-adapter`. Run one adapter with
+/// `just conformance "path/to/adapter args"`.
 @Suite struct AdapterConformance {
     static let input = "conformance: reply with an empty result"
 
-    func connect() async throws -> (AdapterConnection, InitializeResult) {
-        let adapter = try AdapterUnderTest.launch()
+    func connect(_ target: ConformanceTarget) async throws
+        -> (AdapterConnection, InitializeResult)
+    {
+        let adapter = try AdapterUnderTest.launch(target.command)
         let hello = try await adapter.initialize(InitializeParams(client: Sample.client))
         return (adapter, hello)
     }
 
-    @Test func handshake() async throws {
-        let (adapter, hello) = try await connect()
+    @Test(arguments: AdapterUnderTest.conformanceTargets)
+    func handshake(_ target: ConformanceTarget) async throws {
+        let (adapter, hello) = try await connect(target)
         #expect(hello.protocolVersion == adapterProtocolVersion)
         #expect(!hello.adapter.name.isEmpty)
         #expect(Set(hello.capabilities.effort).isSubset(of: ["low", "medium", "high"]))
         try await adapter.shutdown()
     }
 
-    @Test func unsupportedVersionIsRejected() async throws {
-        let adapter = try AdapterUnderTest.launch()
+    @Test(arguments: AdapterUnderTest.conformanceTargets)
+    func unsupportedVersionIsRejected(_ target: ConformanceTarget) async throws {
+        let adapter = try AdapterUnderTest.launch(target.command)
         let code = await code {
             try await adapter.initialize(
                 InitializeParams(protocolVersion: 999, client: Sample.client))
@@ -34,16 +38,18 @@ import Testing
         try await adapter.shutdown()
     }
 
-    @Test func oneRunPerProcess() async throws {
-        let (adapter, _) = try await connect()
+    @Test(arguments: AdapterUnderTest.conformanceTargets)
+    func oneRunPerProcess(_ target: ConformanceTarget) async throws {
+        let (adapter, _) = try await connect(target)
         _ = try await adapter.start(Sample.start(Self.input, run: "run_c1"))
         let code = await code { try await adapter.start(Sample.start(Self.input, run: "run_c2")) }
         #expect(code == RPCErrorCode.busy)
         try await adapter.shutdown()
     }
 
-    @Test func eventsAreOrderedAndResultIsSentOnce() async throws {
-        let (adapter, _) = try await connect()
+    @Test(arguments: AdapterUnderTest.conformanceTargets)
+    func eventsAreOrderedAndResultIsSentOnce(_ target: ConformanceTarget) async throws {
+        let (adapter, _) = try await connect(target)
         let session = try await adapter.start(Sample.start(Self.input)).session
         var updates = await collect(adapter, until: \.isResult)
         _ = try await adapter.cost(SessionParams(session: session))
@@ -56,8 +62,9 @@ import Testing
         #expect(updates.compactMap(\.result).first?.session == session)
     }
 
-    @Test func stopYieldsAResultWithinTenSeconds() async throws {
-        let (adapter, _) = try await connect()
+    @Test(arguments: AdapterUnderTest.conformanceTargets)
+    func stopYieldsAResultWithinTenSeconds(_ target: ConformanceTarget) async throws {
+        let (adapter, _) = try await connect(target)
         let session = try await adapter.start(Sample.start(Self.input)).session
         let clock = ContinuousClock()
         let began = clock.now
@@ -69,8 +76,9 @@ import Testing
         try await adapter.shutdown()
     }
 
-    @Test func errorCodes() async throws {
-        let (adapter, _) = try await connect()
+    @Test(arguments: AdapterUnderTest.conformanceTargets)
+    func errorCodes(_ target: ConformanceTarget) async throws {
+        let (adapter, _) = try await connect(target)
         _ = try await adapter.start(Sample.start(Self.input))
         let unknownSession = await code { try await adapter.cost(SessionParams(session: "nope")) }
         let unknownMethod = await code { try await adapter.request("run/unknown") }
@@ -79,8 +87,9 @@ import Testing
         try await adapter.shutdown()
     }
 
-    @Test func shutdownExitsCleanly() async throws {
-        let (adapter, _) = try await connect()
+    @Test(arguments: AdapterUnderTest.conformanceTargets)
+    func shutdownExitsCleanly(_ target: ConformanceTarget) async throws {
+        let (adapter, _) = try await connect(target)
         try await adapter.shutdown()
         #expect(await adapter.waitForExit() == .exited(0))
     }

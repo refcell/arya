@@ -1,5 +1,6 @@
 import AryaCore
 import Foundation
+import Testing
 
 @testable import AryaAdapters
 
@@ -29,6 +30,40 @@ enum AdapterUnderTest {
         return fake(script: "conformance-script.json")
     }
 
+    /// The adapters the conformance suite checks: `ARYA_ADAPTER_CMD` alone when set, otherwise
+    /// the fake adapter and the exec adapter running a shell agent.
+    static var conformanceTargets: [ConformanceTarget] {
+        if let custom = environment["ARYA_ADAPTER_CMD"], !custom.isEmpty {
+            return [ConformanceTarget(name: custom, command: command)]
+        }
+        return [
+            ConformanceTarget(name: "fake", command: command),
+            ConformanceTarget(name: "exec", command: execConformanceCommand),
+        ]
+    }
+
+    /// `arya-exec-adapter` with a profile whose agent is a short shell script, written to a
+    /// fixed directory under the temp directory.
+    static let execConformanceCommand: AdapterCommand = {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("arya-conformance-exec")
+        let script = directory.appendingPathComponent("agent.sh")
+        let profiles = directory.appendingPathComponent("adapters.json")
+        let body = "#!/bin/sh\ncat > /dev/null\nsleep 0.2\nprintf '```json\\n{}\\n```\\n'\n"
+        let book = AdapterProfiles(profiles: [
+            "agent": AdapterProfile(kind: .exec, command: script.path, args: ["medium": []])
+        ])
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try? body.write(to: script, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes(
+            [.posixPermissions: 0o755], ofItemAtPath: script.path)
+        try? JSONEncoder().encode(book).write(to: profiles)
+        return AdapterCommand(
+            executable: productsDirectory.appendingPathComponent("arya-exec-adapter").path,
+            arguments: ["--profile", "agent", "--profiles", profiles.path],
+            environment: ["PATH": "/usr/bin:/bin"])
+    }()
+
     /// The fake adapter binary running a fixture script.
     static func fake(script: String) -> AdapterCommand {
         AdapterCommand(
@@ -42,4 +77,11 @@ enum AdapterUnderTest {
     ) throws -> AdapterConnection {
         try AdapterConnection.launch(command, stderr: stderr, timeouts: timeouts)
     }
+}
+
+/// One adapter the conformance suite runs against.
+struct ConformanceTarget: Sendable, CustomTestStringConvertible {
+    let name: String
+    let command: AdapterCommand
+    var testDescription: String { name }
 }

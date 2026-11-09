@@ -70,6 +70,10 @@ publish filter:
 # Everything CI runs
 ci: tidy build test
 
+# Run the adapter conformance suite against one adapter command
+conformance cmd:
+    ARYA_ADAPTER_CMD="{{ cmd }}" just test AdapterConformance
+
 # Remove build products
 clean:
     rm -rf .build
