@@ -34,6 +34,40 @@
           "etc/examples/triage/fake-script-v2.json"
         ]
       }
+    },
+    "fake-refunds": {
+      "command": "arya-fake-adapter",
+      "args": {
+        "low": [
+          "--script",
+          "etc/examples/refunds/fake-script.json"
+        ],
+        "medium": [
+          "--script",
+          "etc/examples/refunds/fake-script.json"
+        ],
+        "high": [
+          "--script",
+          "etc/examples/refunds/fake-script.json"
+        ]
+      }
+    },
+    "fake-digest": {
+      "command": "arya-fake-adapter",
+      "args": {
+        "low": [
+          "--script",
+          "etc/examples/digest/fake-script.json"
+        ],
+        "medium": [
+          "--script",
+          "etc/examples/digest/fake-script.json"
+        ],
+        "high": [
+          "--script",
+          "etc/examples/digest/fake-script.json"
+        ]
+      }
     }
   }
 }

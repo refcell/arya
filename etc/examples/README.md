@@ -15,7 +15,7 @@ never delete a message.
 | `charter.json` | the charter, in the shape from [ARCHITECTURE.md](../../docs/ARCHITECTURE.md#charters-and-cases) |
 | `casebook.jsonl` | eight past messages with their known category and actions |
 | `fake-script.json` | what the fake adapter answers for each input (see below) |
-| `adapters.json` | the `fake-triage` adapter profile; paths are relative to the repository root |
+| `adapters.json` | the fake adapter profiles for every example; paths are relative to the repository root |
 | `charter-v2.json` | a proposed version 2 that `just demo` proposes; its `fake-triage-v2` profile runs `fake-script-v2.json` |
 | `judge/` | a rubric judge for tone and policy adherence with recorded verdicts ([judge/README.md](triage/judge/README.md)) |
 
@@ -31,6 +31,19 @@ records one memory note and one `routed_within_1h` measurement.
 `charter-v2.json` drops the security routing guardrail and treats card-on-file questions as
 how-to. Gated on the casebook as imported, it improves `case-0006` and regresses `case-0005`
 (seven of eight both ways), so the gate fails and the demo home has one failed proposal to show.
+
+## refunds and digest: a small fleet
+
+Two more stewards, so `just demo` seeds a fleet in different states. Each has a `charter.json`, a
+`casebook.jsonl`, a `fake-script.json` (profiles `fake-refunds` and `fake-digest` in
+`triage/adapters.json`), and a `history.txt` of `DAYS-AGO<tab>input` lines.
+
+- `refunds` (Refund follow-up) confirms each approved refund reached the customer within a
+  business day. It may add internal notes on its own and must ask before replying. Its metric
+  climbs from 0.70 to 0.86, short of the 0.90 target, and the newest unannounced refund
+  (ORDER-1043, the one from triage's MSG-203) leaves a reply waiting for approval.
+- `digest` (Weekly queue digest) posts a weekly summary of queue health to the team. It runs for
+  four weeks, misses its on-time target twice, and the demo pauses it two days before today.
 
 ## Fake adapter script
 

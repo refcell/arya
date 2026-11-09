@@ -5,9 +5,10 @@
 #
 # It never opens the app window (decision 0038).
 #
-# The demo home holds the triage steward, its casebook, two rehearsals and a correction, the
-# runs from history.txt, two more live runs, and one reply waiting for approval in the queue. Commands
-# that are not available yet (exit 69) are reported and skipped.
+# The demo home holds a small fleet from etc/examples: the triage steward (casebook, two
+# rehearsals, a correction, weeks of runs, three approvals waiting), the refund follow-up
+# steward (behind its target, one reply waiting), and the weekly digest steward (paused).
+# Commands that are not available yet (exit 69) are reported and skipped.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -68,7 +69,7 @@ seed() {
 echo "demo: seeding $home"
 seed "create the home" init
 sed -e "s|\"arya-fake-adapter\"|\"$bin/arya-fake-adapter\"|" \
-  -e "s|\"$example/|\"$PWD/$example/|g" "$example/adapters.json" >"$home/adapters.json"
+  -e "s|\"etc/examples/|\"$PWD/etc/examples/|g" "$example/adapters.json" >"$home/adapters.json"
 seed "define the triage steward" steward create --charter "$example/charter.json"
 seed "import its casebook" casebook import st_triage "$example/casebook.jsonl"
 seed "rehearse it" rehearse st_triage
@@ -79,24 +80,49 @@ seed "correct case-0006" correct st_triage case-0006 --choice billing \
   --note "A question about the card on file is a billing question."
 seed "rehearse it again" rehearse st_triage
 seed "mark it ready" ready st_triage
-# Weeks of past messages, oldest first: decisions, a few late routings, one memory, and one
-# routine proposal (etc/examples/triage/history.txt).
+# Then a merged timeline, sorted by time because ledger times never go backwards: the refund
+# follow-up and weekly digest stewards set up 29 days ago, weeks of runs for all three (history
+# files), the digest paused two days ago, the triage steward's runs yesterday, and one now.
+timeline=$(mktemp "${TMPDIR:-/tmp}/arya-demo-timeline.XXXXXX")
+trap 'rm -f "$log" "$timeline"' EXIT
+event() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" >>"$timeline"; } # EPOCH STEWARD WHAT ARG
 day=29
 while IFS= read -r message; do
   [ -n "$message" ] || continue
-  base=$((today - day * 86400 + (8 + day % 5) * 3600))
-  step=0
-  seed "run: ${message#New message }" run st_triage --input "$message"
+  event "$((today - day * 86400 + (8 + day % 5) * 3600))" st_triage run "$message"
   day=$((day - 1))
 done <"$example/history.txt"
-base=$((today - 86400 + 15 * 3600))
-step=0
-seed "run it on a past message" run st_triage --input "New message MSG-102: App crashes on export"
-seed "run: MSG-202 Where is my package?" run st_triage --input "New message MSG-202: Where is my package?"
-seed "run: MSG-203 Damaged order, please refund" run st_triage \
-  --input "New message MSG-203: Damaged order, please refund"
+event "$((today - 29 * 86400 + 14 * 3600))" st_refunds setup etc/examples/refunds
+event "$((today - 29 * 86400 + 14 * 3600 + 1800))" st_digest setup etc/examples/digest
+# history.txt lines in the other examples: DAYS-AGO <tab> input.
+while IFS=$'\t' read -r days message; do
+  event "$((today - days * 86400 + 13 * 3600 + 1800))" st_refunds run "$message"
+done <etc/examples/refunds/history.txt
+while IFS=$'\t' read -r days message; do
+  event "$((today - days * 86400 + 7 * 3600 + 1800))" st_digest run "$message"
+done <etc/examples/digest/history.txt
+event "$((today - 2 * 86400 + 16 * 3600))" st_digest pause -
+yesterday=$((today - 86400 + 15 * 3600))
+event "$yesterday" st_triage run "New message MSG-102: App crashes on export"
+event "$((yesterday + 60))" st_triage run "New message MSG-202: Where is my package?"
+event "$((yesterday + 120))" st_triage run "New message MSG-203: Damaged order, please refund"
+
+while IFS=$'\t' read -r when steward what arg; do
+  base=$when
+  step=0
+  case "$what" in
+    run) seed "$steward: ${arg#New message }" run "$steward" --input "$arg" ;;
+    pause) seed "pause $steward" steward pause "$steward" ;;
+    setup)
+      seed "define $steward" steward create --charter "$arg/charter.json"
+      seed "import its casebook" casebook import "$steward" "$arg/casebook.jsonl"
+      seed "rehearse it" rehearse "$steward"
+      seed "mark it ready" ready "$steward"
+      ;;
+  esac
+done < <(sort -n -s -k1,1 "$timeline")
 base=""
-seed "run it on a new message" run st_triage \
+seed "st_triage: MSG-201 Refund for a duplicate charge, now" run st_triage \
   --input "New message MSG-201: Refund for a duplicate charge"
 
 echo "demo: seeded $home; render it with \`just snapshot\` (offscreen, no window)"

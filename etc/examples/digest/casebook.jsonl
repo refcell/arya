@@ -1,0 +1,2 @@
+{"v":1,"id":"case-0001","input":{"kind":"case","text":"Weekly digest 1"},"context":{"toolResults":[],"memory":[]},"expected":{"actions":[{"kind":"post","target":"inbox:team-digest"}]},"source":"invented for the arya example casebook"}
+{"v":1,"id":"case-0002","input":{"kind":"case","text":"Weekly digest 2"},"context":{"toolResults":[],"memory":[]},"expected":{"actions":[{"kind":"post","target":"inbox:team-digest"}]},"source":"invented for the arya example casebook"}

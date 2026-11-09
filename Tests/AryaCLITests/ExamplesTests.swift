@@ -134,3 +134,53 @@ private func bindingActions(_ charter: Object) -> [String: [String]] {
     let book = try AdapterProfiles.load(from: url)
     #expect(book == AdapterProfiles.examples)
 }
+
+/// The fleet examples `just demo` seeds beside triage.
+@Test(arguments: ["refunds", "digest"])
+func fleetExampleIsConsistent(name: String) throws {
+    let directory = repoRoot.appendingPathComponent("etc/examples/\(name)")
+    let charterData = try Data(contentsOf: directory.appendingPathComponent("charter.json"))
+    let charter = try Charter.load(from: charterData)
+    let raw = try #require(try JSONSerialization.jsonObject(with: charterData) as? Object)
+    let profiles = try #require(try object("adapters.json")["profiles"] as? Object)
+    #expect(profiles[charter.adapter] != nil)
+    let script = try FakeScript.load(from: directory.appendingPathComponent("fake-script.json"))
+    let scriptData = try Data(contentsOf: directory.appendingPathComponent("fake-script.json"))
+    let responses = try #require(
+        (try JSONSerialization.jsonObject(with: scriptData) as? Object)?["responses"]
+            as? [String: Object])
+    // Every case loads and the script answers it as the casebook expects.
+    let cases = try String(
+        contentsOf: directory.appendingPathComponent("casebook.jsonl"), encoding: .utf8
+    ).split(separator: "\n")
+    #expect(!cases.isEmpty)
+    for line in cases {
+        _ = try Case.load(from: Data(line.utf8))
+        let item = try #require(try JSONSerialization.jsonObject(with: Data(line.utf8)) as? Object)
+        let text = try #require((item["input"] as? Object)?["text"] as? String)
+        let result = try #require(responses[text]?["result"] as? Object, "no script for \(text)")
+        let expected = try #require(item["expected"] as? Object)
+        let pairs = { (actions: Any?) in
+            objects(actions).map { "\($0["kind"] ?? "") \($0["target"] ?? "")" }
+        }
+        #expect(pairs(result["actions"]) == pairs(expected["actions"]), "\(text)")
+    }
+    // Every history line (DAYS-AGO <tab> input) has a scripted response.
+    let history = try String(
+        contentsOf: directory.appendingPathComponent("history.txt"), encoding: .utf8)
+    for line in history.split(separator: "\n") {
+        let fields = line.split(separator: "\t", maxSplits: 1).map(String.init)
+        #expect(fields.count == 2 && Int(fields[0]) != nil, "\(line)")
+        #expect(
+            script.response(for: fields.last ?? "") != nil && responses[fields.last ?? ""] != nil)
+    }
+    // Scripted actions use declared binding actions.
+    let actions = bindingActions(raw)
+    for (text, response) in responses {
+        for action in objects((response["result"] as? Object)?["actions"]) {
+            let binding = action["binding"] as? String ?? ""
+            let kind = action["kind"] as? String ?? ""
+            #expect(actions[binding]?.contains(kind) == true, "\(text): \(kind) via \(binding)")
+        }
+    }
+}

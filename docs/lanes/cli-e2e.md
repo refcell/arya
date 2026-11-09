@@ -51,6 +51,10 @@ M4:
   fallback is a hideable status event.
 - [x] Spread the demo history over weeks: `ARYA_CLOCK` stamps seeded commands (28 daily metric
   points trending to 0.96, an evolving four-item steward plan).
+- [x] Fleet data for M3.5: `etc/examples/{refunds,digest}` and `arya steward pause|resume`; the
+  demo seeds three stewards (on track, behind target, paused) on one time-sorted timeline.
+- [ ] Fleet columns in `arya steward list` (metric against target, next wake) once workspace has
+  a fleet read.
 
 ## Decisions
 
@@ -99,6 +103,10 @@ M4:
 - (from workspace) live: `correct(run:expected:note:by:)` and `expected(run:choice:)` for an `arya correct --run <id> --choice <c>`.
 
 ## Log
+- 2026-11-09: README shows the dark Overview and run-approval snapshots (f7574f3). Fleet data:
+  refund follow-up (0.86 against 0.90, one reply waiting) and weekly digest (paused) stewards,
+  `steward pause|resume`, one time-sorted demo timeline (1755 events, 25 s). Clocked runs read
+  the clock once so their ids sort by time (question in ledger.md).
 - 2026-11-09: union-merged lane files (ad671b9), timed publish with a docs-only fast path
   (e7fe1f8, decision 0041), weeks of demo history (c66f2ae). Publish preflight: refuses a dirty
   tree, clears a stale `index.lock`, commits `just fmt` changes, aborts a conflicting rebase;

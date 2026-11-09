@@ -1,0 +1,256 @@
+{
+  "v": 1,
+  "responses": {
+    "Weekly digest 1": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "counting last week"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.search",
+          "input": {
+            "query": "last week"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "routed": 41,
+            "late": 3
+          }
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 41 messages routed, 3 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 41 messages routed, 3 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "Weekly digest 2": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "counting last week"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.search",
+          "input": {
+            "query": "last week"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "routed": 37,
+            "late": 2
+          }
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 37 messages routed, 2 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 37 messages routed, 2 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "Weekly digest 3": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "counting last week"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.search",
+          "input": {
+            "query": "last week"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "routed": 52,
+            "late": 6
+          }
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 52 messages routed, 6 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 52 messages routed, 6 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 0.5
+          }
+        ]
+      }
+    },
+    "Weekly digest 4": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "counting last week"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.search",
+          "input": {
+            "query": "last week"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "routed": 44,
+            "late": 4
+          }
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 44 messages routed, 4 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 44 messages routed, 4 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 0.67
+          }
+        ]
+      }
+    }
+  },
+  "default": {
+    "events": [
+      {
+        "kind": "status",
+        "state": "idle",
+        "detail": "no digest due"
+      }
+    ],
+    "status": "completed",
+    "result": {
+      "summary": "No digest is due yet.",
+      "decisions": [],
+      "actions": []
+    }
+  }
+}

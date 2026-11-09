@@ -1,0 +1,69 @@
+{
+  "v": 1,
+  "id": "st_digest",
+  "name": "Weekly queue digest",
+  "outcome": "The support lead gets a digest of queue health every Monday by 09:00.",
+  "metric": {
+    "name": "digests_on_time",
+    "unit": "ratio",
+    "direction": "up",
+    "target": 1.0
+  },
+  "guardrails": [
+    "Only summarize; never move or answer messages."
+  ],
+  "bindings": [
+    {
+      "id": "inbox",
+      "kind": "mcp",
+      "command": "inbox-mcp",
+      "args": [],
+      "read": [
+        "search"
+      ],
+      "actions": [
+        "post"
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "kind": "interval",
+      "everySeconds": 604800
+    },
+    {
+      "kind": "manual"
+    }
+  ],
+  "policy": {
+    "default": "ask",
+    "rules": [
+      {
+        "action": "post",
+        "decision": "auto",
+        "note": "The digest goes to the team channel only, so it posts on its own."
+      }
+    ]
+  },
+  "adapter": "fake-digest",
+  "effort": "low",
+  "scorer": {
+    "kind": "exact",
+    "fields": [
+      "actions.kind",
+      "actions.target"
+    ]
+  },
+  "crew": {
+    "maxParallel": 1
+  },
+  "limits": {
+    "maxTurns": 10,
+    "timeoutSeconds": 60,
+    "maxCostMicros": 0
+  },
+  "gate": {
+    "samples": 1,
+    "tolerance": 0.0
+  }
+}

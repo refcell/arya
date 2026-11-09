@@ -1,0 +1,1082 @@
+{
+  "v": 1,
+  "responses": {
+    "Refund approved for ORDER-1004": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1004"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1004",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1004 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1004",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.7
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1009": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1009"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1009",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1009 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1009",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.72
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1013": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1013"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1013",
+            "refund": "approved",
+            "customerNotified": false
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "Nobody told the customer yet; I will draft a reply."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "ORDER-1013 refund was never announced; asked billing to resend it.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "in_progress",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "follow-up",
+            "rationale": "no notice sent",
+            "why": "The order shows no notice to the customer."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1013",
+            "params": {
+              "text": "Billing asked to resend the refund notice."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.71
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1017": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1017"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1017",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1017 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1017",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.75
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1021": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1021"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1021",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1021 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1021",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.77
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1024": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1024"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1024",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1024 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1024",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.78
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1028": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1028"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1028",
+            "refund": "approved",
+            "customerNotified": false
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "Nobody told the customer yet; I will draft a reply."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "ORDER-1028 refund was never announced; asked billing to resend it.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "in_progress",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "follow-up",
+            "rationale": "no notice sent",
+            "why": "The order shows no notice to the customer."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1028",
+            "params": {
+              "text": "Billing asked to resend the refund notice."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.76
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1031": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1031"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1031",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1031 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1031",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.8
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1034": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1034"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1034",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1034 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1034",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.82
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1036": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1036"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1036",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1036 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1036",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.83
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1039": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1039"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1039",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1039 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1039",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.85
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1041": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1041"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1041",
+            "refund": "approved",
+            "customerNotified": true
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "The billing system told the customer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Confirmed the ORDER-1041 refund reached the customer.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "pending",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "confirmed",
+            "rationale": "customer notified",
+            "why": "The order shows the customer was notified."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1041",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.86
+          }
+        ]
+      }
+    },
+    "Refund approved for ORDER-1043": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking the refund"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "id": "ORDER-1043"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "ORDER-1043",
+            "refund": "approved",
+            "customerNotified": false
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "Nobody told the customer yet; I will draft a reply."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "ORDER-1043 refund was never announced; drafted a reply for approval.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Confirm every approved refund within a business day",
+            "status": "in_progress",
+            "rationale": "The outcome: 90% confirmed within a day."
+          },
+          {
+            "id": "p2",
+            "text": "Catch refunds the billing system did not announce",
+            "status": "in_progress",
+            "rationale": "Some refunds reach the customer with no message at all."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "follow-up",
+            "rationale": "no notice sent",
+            "why": "The order shows no notice to the customer."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "note",
+            "binding": "billing",
+            "target": "billing:ORDER-1043",
+            "params": {
+              "text": "Customer confirmation checked."
+            },
+            "rationale": "record the check",
+            "risk": "low",
+            "why": "A note shows the team the refund was followed up."
+          },
+          {
+            "id": "a2",
+            "kind": "reply",
+            "binding": "inbox",
+            "target": "inbox:ORDER-1043",
+            "params": {
+              "text": "Your refund is on its way and should arrive within five days."
+            },
+            "rationale": "tell the customer",
+            "risk": "medium",
+            "why": "The customer has not heard about the refund yet."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "confirmed_within_1d",
+            "value": 0.84
+          }
+        ]
+      }
+    }
+  },
+  "default": {
+    "events": [
+      {
+        "kind": "status",
+        "state": "working",
+        "detail": "checking approved refunds"
+      },
+      {
+        "kind": "tool_call",
+        "id": "t1",
+        "tool": "billing.order",
+        "input": {
+          "refund": "approved",
+          "unconfirmed": true
+        }
+      },
+      {
+        "kind": "tool_result",
+        "id": "t1",
+        "output": {
+          "orders": []
+        },
+        "isError": false
+      },
+      {
+        "kind": "status",
+        "state": "idle",
+        "detail": "nothing to confirm"
+      }
+    ],
+    "status": "completed",
+    "result": {
+      "summary": "Checked approved refunds; none waiting for confirmation.",
+      "plan": [
+        {
+          "id": "p1",
+          "text": "Confirm every approved refund within a business day",
+          "status": "in_progress",
+          "rationale": "The outcome: 90% confirmed within a day."
+        },
+        {
+          "id": "p2",
+          "text": "Catch refunds the billing system did not announce",
+          "status": "pending",
+          "rationale": "Some refunds reach the customer with no message at all."
+        }
+      ],
+      "decisions": [],
+      "actions": []
+    }
+  }
+}

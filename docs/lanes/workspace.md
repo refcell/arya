@@ -127,6 +127,10 @@ M3:
 - (from eval) Improve needs `LiveReadinessGate.check` per open proposal; demo has one (case-0005 regressed).
 - (from runtime) Integration edit: `Workspace.risk(kind:binding:steward:)` in `Outcome.swift` (CEO request; resolution in `Policy.risk(ofAction:)`, decision 0037); the app-outcome Question it answered is removed.
 - (from app-views) proposed: put the held action's change on the approval as data, e.g. `change: {field, from, to}` in `approval.requested` (or `ApprovalSummary.change`), so the app can show `label  none → billing` for label and route approvals; the app renders it as soon as the field exists.
+- (from cli-e2e) A fleet read for M3.5, one call for every steward: state, metric value against
+  target and on-track status, pending approvals, last run, next wake. The demo home now seeds
+  three stewards (on track, behind, paused); `arya steward list` would show it too.
+
 
 ## Log
 
