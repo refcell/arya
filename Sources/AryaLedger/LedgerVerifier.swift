@@ -42,13 +42,16 @@ public struct LedgerVerifier: Sendable {
                 }
             }
             if let failure {
-                return LedgerVerification(events: count, head: prev, failure: failure)
+                return LedgerVerification(
+                    events: count, head: prev, segments: segments.count, failure: failure)
             }
             if let torn = try tornTail(segment, isNewest: index == segments.count - 1) {
-                return LedgerVerification(events: count, head: prev, failure: torn)
+                return LedgerVerification(
+                    events: count, head: prev, segments: segments.count, failure: torn)
             }
         }
-        return LedgerVerification(events: count, head: prev, failure: nil)
+        return LedgerVerification(
+            events: count, head: prev, segments: segments.count, failure: nil)
     }
 
     /// Bytes after the last newline: a torn line. Allowed in no segment; in the newest one the
@@ -75,15 +78,33 @@ public struct LedgerVerification: Hashable, Sendable {
     public var events: Int64
     /// Hash of the last good event (the genesis hash for an empty ledger).
     public var head: String
+    /// Segment files found, including any after the failure.
+    public var segments: Int
     public var failure: Failure?
 
+    public init(events: Int64, head: String, segments: Int, failure: Failure?) {
+        self.events = events
+        self.head = head
+        self.segments = segments
+        self.failure = failure
+    }
+
     public var ok: Bool { failure == nil }
+
+    /// The `seq` the first bad line should have had, or nil when the ledger verifies.
+    public var firstBadSeq: Int64? { failure == nil ? nil : events + 1 }
 
     public struct Location: Hashable, Sendable, CustomStringConvertible {
         public var segment: String
         /// 1-based.
         public var line: Int
         public var offset: Int64
+
+        public init(segment: String, line: Int, offset: Int64) {
+            self.segment = segment
+            self.line = line
+            self.offset = offset
+        }
 
         public var description: String { "\(segment):\(line)" }
     }
@@ -110,6 +131,11 @@ public struct LedgerVerification: Hashable, Sendable {
     public struct Failure: Hashable, Sendable, CustomStringConvertible {
         public var location: Location
         public var issue: Issue
+
+        public init(location: Location, issue: Issue) {
+            self.location = location
+            self.issue = issue
+        }
 
         public var description: String { "\(location): \(issue)" }
     }

@@ -84,6 +84,7 @@ M3:
   app-shell's effort selector, and memory's routine wiring (backlog items above).
 - (from eval) `RunReplayer(sink:casebooks:).replay(run:)` is on main (36829d4) for `Workspace.replay`.
 - (from runtime) Binding proxy: pass `BindingProxyLaunch(command: <arya executable>, args: ["binding-proxy", "--home", <home>])` as `RunEngine(proxy:)`; `replay` can serve a run's original answers with `ToolRecordings.from(events, run:)` as `ToolSource.recorded`.
+- (from ledger) `LedgerVerification.report` (`headline`, `details`, `lines`, `text`) is a stable, locale-free verify rendering; `LedgerCheck` could carry its `lines` so the CLI and app show where, meaning, and next step.
 
 ## Log
 

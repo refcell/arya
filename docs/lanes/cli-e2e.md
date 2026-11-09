@@ -71,6 +71,7 @@ M3:
   `just app-preview` at it.
 - (from workspace) live: charter proposals (`proposeCharter`, `proposals`, `checkProposal`, `acceptProposal`, `rejectProposal`, `overrideProposal`) and routine gates (`gateRoutine`, `overrideRoutine`) for `arya propose`/`arya routine`.
 - (from runtime) `arya binding-proxy --home <home> <rest>`: `BindingProxyArguments(parsing: rest)`, then `BindingProxyHost.proxy(args, sink: LedgerEventSink(home:ambient:))`, then `await BindingProxyHost.serveStandardIO(proxy)`.
+- (from ledger) once `LedgerCheck` carries the ledger's report lines (asked in workspace.md), `arya ledger verify` text output can print them as-is; JSON stays unchanged.
 
 ## Log
 - 2026-11-09: CI slot lock (decision 0033): `etc/scripts/slot.sh` holds one of two `lockf`

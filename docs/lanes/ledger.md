@@ -54,8 +54,9 @@ M3 (extended by the lane):
   `LedgerLine.open`. 5,000 events, debug build, thread CPU time: full read 0.09 s (was about
   0.2 s CPU, 1.9 s wall on a busy machine), verify 0.10 s. Benchmark:
   `perfFullReadOf5000EventsIsUnderTarget` asserts < 0.3 s under `ARYA_PERF=1`.
-- [ ] (2) Readable `verify` report: a stable text rendering of `LedgerVerification` that the CLI
-  and the app's verify button can show.
+- [x] (2) Readable `verify` report: `LedgerVerification.report` renders a headline plus
+  `where`/`verified`/`meaning`/`next` lines, locale-free and golden-tested; adoption asked in
+  workspace.md and cli-e2e.md Questions.
 - [ ] (3) Runtime books on `Projected`/`catchUp`/`ProjectionCache`: asked in runtime.md
   Questions; make it a small integration edit only if runtime agrees.
 
@@ -137,6 +138,8 @@ M4:
 
 
 ## Log
+- 2026-11-09: (2) done: `LedgerVerificationReport`, `segments` and `firstBadSeq` on
+  `LedgerVerification`, public inits for its `Location` and `Failure`.
 - 2026-11-09: (1) done: `JSONParser` and envelope building without `JSONDecoder`; full
   read of 5,000 events 0.09 s CPU in debug.
 - HANDOFF 2026-11-09 (session ended near auto-compaction): main is green at f19e82f. Next item
