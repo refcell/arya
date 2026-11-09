@@ -53,6 +53,8 @@ import Testing
     draft.connections = [
         .init(id: "inbox", command: "inbox-mcp", actions: ["label", "reply", "refund"], isOn: true)
     ]
+    draft.risks = ["label": "low", "refund": "high"]
+    #expect(draft.risk("reply") == "medium")
     #expect(draft.actionKinds.filter(draft.needsSignOff) == ["label", "reply", "refund"])
     draft.autonomy = .auto
     #expect(draft.actionKinds.filter(draft.needsSignOff) == ["refund"])
@@ -68,10 +70,20 @@ import Testing
         ["id": "inbox", "kind": "mcp", "command": "inbox-mcp", "actions": ["label", "reply"]],
         ["id": "person:sam", "kind": "person", "channel": "chat"],
     ]
-    log.add("steward.created", steward: "st_a", ["charter": ["id": "st_a", "bindings": bindings]])
+    let policy: FeatureJSON = ["risk": [["action": "refund", "level": "high"]]]
+    log.add(
+        "steward.created", steward: "st_a",
+        ["charter": ["id": "st_a", "bindings": bindings, "policy": policy]])
+    log.add(
+        "action.proposed", run: "run_1",
+        ["action": ["id": "a1", "kind": "reply"], "disposition": "ask", "risk": "medium"])
+    log.add(
+        "action.proposed", run: "run_1",
+        ["action": ["id": "a2", "kind": "refund"], "disposition": "ask", "risk": "low"])
     let catalog = NewStewardCatalog(events: log.events)
     #expect(catalog.connections.map(\.id) == ["inbox"])
     #expect(catalog.connections.first?.actions == ["label", "reply"])
+    #expect(catalog.risks == ["reply": "medium", "refund": "high"])
     #expect(catalog.connections.first { $0.id == "inbox" }?.isOn == false)
     var draft = NewStewardDraft()
     draft.adopt(catalog)

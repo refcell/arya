@@ -90,7 +90,7 @@ struct NewStewardDraft: Hashable, Sendable {
     var people: [Person] = [Person(id: 0)]
     /// Channels offered for people.
     var channels = ["inbox", "email", "chat"]
-    /// Risk by action kind, as runs recorded it.
+    /// Risk by action kind, from the workspace (`NewStewardCatalog`).
     var risks: [String: String] = [:]
     /// Minutes between scheduled wakes; empty or 0 means only when asked.
     var everyMinutes = "15"
@@ -159,15 +159,12 @@ struct NewStewardDraft: Hashable, Sendable {
     /// The action kinds the chosen connections offer, in order.
     var actionKinds: [String] { Self.unique(chosenConnections.flatMap(\.actions)) }
 
-    /// `low`, `medium`, or `high`: as runs recorded it, else a cautious default by kind.
-    func risk(_ kind: String) -> String {
-        if let recorded = risks[kind] { return recorded }
-        switch kind {
-        case "label", "tag", "comment", "route", "search", "get", "read": return "low"
-        case "reply", "send", "assign", "update", "create": return "medium"
-        default: return "high"
-        }
-    }
+    /// The runtime's default risk when no charter entry names an action (decision 0037).
+    static let defaultRisk = "medium"
+
+    /// `low`, `medium`, or `high`, as the runtime would resolve it: the workspace's charter
+    /// entry or recorded resolution for the kind, else the runtime default.
+    func risk(_ kind: String) -> String { risks[kind] ?? Self.defaultRisk }
 
     /// Whether `kind` waits for a person: as picked, else everything when asking first, and
     /// only high-risk actions when acting on its own.
@@ -276,7 +273,7 @@ struct NewStewardDraft: Hashable, Sendable {
 }
 
 /// What the workspace already knows that the New steward flow can offer: connections other
-/// stewards use, the channels people are reached on, and the risk runs recorded per action.
+/// stewards use, the channels people are reached on, and the risk of each action kind.
 struct NewStewardCatalog: Hashable, Sendable {
     var connections: [NewStewardDraft.Connection] = []
     var channels: [String] = []
@@ -304,11 +301,22 @@ struct NewStewardCatalog: Hashable, Sendable {
         }
         connections = order.compactMap { byID[$0] }
         channels = NewStewardDraft.unique(channels)
-        for actions in OutcomeActivityFeed.recordedActions(events).values {
-            for action in actions.values {
-                if let kind = action["kind"]?.string, let risk = action["risk"]?.string {
-                    risks[kind] = risk
-                }
+        // One source with the runtime and the approval views: the risk the runtime resolved
+        // on `action.proposed`, overridden by a charter's `policy.risk` entry for the kind.
+        for event in events where event.type == "action.proposed" {
+            if let kind = event.payload["action"]?["kind"]?.string,
+                let risk = event.payload["risk"]?.string
+            {
+                risks[kind] = risk
+            }
+        }
+        for event in events where event.type == "steward.created" || event.type == "steward.updated"
+        {
+            for rule in event.payload["charter"]?["policy"]?["risk"]?.array ?? [] {
+                guard rule["binding"]?.string == nil, let kind = rule["action"]?.string,
+                    let level = rule["level"]?.string
+                else { continue }
+                risks[kind] = level
             }
         }
     }

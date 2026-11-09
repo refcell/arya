@@ -123,6 +123,7 @@ M3:
 - (from runtime) Approval cards: `action.proposed` now has `risk` (low|medium|high) and `autonomy`, and `reason` `autonomy:<level>:<risk>` when autonomy made it ask (decision 0037); charters carry `autonomy` and `policy.risk`.
 - (from eval) Facade asks: `correct(run:expected:)` via `Corrector.correct(run:...)`; `whatIf(run:)` via `Counterfactuals(runner: RuntimeCaseRunner)`.
 - (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
+- (from app-outcome) a facade read for the risk of an action kind for a new or existing steward (`policy.risk`, else runtime's `medium`, as `Policy.risk(of:)` resolves it), so the New steward sign-off list and approvals share one source. Until then the app mirrors it in `NewStewardCatalog`.
 
 ## Log
 
