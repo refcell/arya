@@ -12,7 +12,7 @@ write for themselves and that only changes through gates. Design:
 M1:
 - [x] `MemoryNote` (text, tags, provenance: run, event, author) and its ledger payloads
   (`memory.added`, `memory.retracted`); projection of live notes per steward.
-- [ ] Deterministic retrieval: tags, then recency, capped by count and characters; the snapshot
+- [x] Deterministic retrieval: tags, then recency, capped by count and characters; the snapshot
   (note ids) is what `run.started` records. Golden tests.
 
 M2:
@@ -38,6 +38,16 @@ M2:
   a duplicate add. Retracting an unknown id is a no-op.
 - Provenance is `run`, `event`, optional `case` (corrections), and `author` (kind and id).
 
+- Retrieval ranks by the number of query tags a note shares, then newest first (ledger `seq`),
+  then id. Notes are taken in rank order up to `maxNotes`; a note that would pass
+  `maxCharacters` (UTF-8 bytes) is skipped and smaller later notes may still fit. Defaults: 20
+  notes, 4000 bytes. Untagged queries reduce to pure recency.
+- `MemorySnapshot` (`{"v":1,"notes":[ids]}`) is what `run.started` records. Replay resolves it
+  with `MemoryProjection.resolve`, which also finds notes retracted after the run started.
+- `MemoryRetrieval.render` is the memory section of composed instructions (`Memory:` then one
+  `- id [tags]: text` line per note).
+
 ## Questions
 
 ## Log
+- 2026-11-09: memory notes, payloads, live-note projection landed (f34e8ff).

@@ -18,8 +18,9 @@ public struct LiveNote: Sendable, Equatable, Hashable {
 public struct MemoryProjection: Sendable, Equatable {
     /// Live notes keyed by steward, then by note id.
     private var live: [String: [String: LiveNote]] = [:]
-    /// Every note id ever added per steward, so a retracted id is never revived.
-    private var seen: [String: Set<String>] = [:]
+    /// Every note ever added per steward, retracted or not: a retracted id is never revived,
+    /// and a recorded snapshot can always be resolved.
+    private var added: [String: [String: LiveNote]] = [:]
     /// The last applied ledger `seq`.
     public private(set) var lastSeq = 0
 
@@ -38,9 +39,10 @@ public struct MemoryProjection: Sendable, Equatable {
             let steward = try requireSteward(event)
             let payload: MemoryAddedPayload = try decode(event)
             let id = payload.note.id
-            guard seen[steward, default: []].insert(id).inserted else { return }
-            live[steward, default: [:]][id] = LiveNote(
-                steward: steward, seq: event.seq, note: payload.note)
+            guard added[steward]?[id] == nil else { return }
+            let note = LiveNote(steward: steward, seq: event.seq, note: payload.note)
+            added[steward, default: [:]][id] = note
+            live[steward, default: [:]][id] = note
         case MemoryEventType.retracted:
             let steward = try requireSteward(event)
             let payload: MemoryRetractedPayload = try decode(event)
@@ -58,6 +60,11 @@ public struct MemoryProjection: Sendable, Equatable {
     /// The live note with this id, if any.
     public func note(steward: String, id: String) -> LiveNote? {
         live[steward]?[id]
+    }
+
+    /// A note ever added to this steward, even if it was retracted since.
+    public func addedNote(steward: String, id: String) -> LiveNote? {
+        added[steward]?[id]
     }
 
     /// Stewards with at least one live note, sorted.

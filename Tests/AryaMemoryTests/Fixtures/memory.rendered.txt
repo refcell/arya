@@ -1,0 +1,4 @@
+Memory:
+- mem_5 [auth]: Login timeouts are auth bugs.
+- mem_1 [auth, routing]: Auth issues go to the auth queue.
+- mem_6: Weekly digest goes out on Monday.
