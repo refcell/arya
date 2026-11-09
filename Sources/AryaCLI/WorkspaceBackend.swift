@@ -130,3 +130,46 @@ private func call<T>(
 private func optional<T>(_ body: () async throws -> T) async -> T? {
     try? await body()
 }
+
+// The improvement loop. The facade does not expose these calls yet (runtime lane, M2); each
+// names the call it will use so `just e2e` reports exactly what is missing.
+extension WorkspaceBackend {
+    private func missing(_ call: String) -> CLIError {
+        .unavailable("Workspace.\(call) (runtime lane)")
+    }
+
+    func importCasebook(steward: String, path: String, name: String?) async throws(CLIError)
+        -> CasebookRow
+    { throw missing("importCasebook") }
+    func listCasebooks(steward: String?) async throws(CLIError) -> [CasebookRow] {
+        throw missing("casebooks")
+    }
+    func rehearse(steward: String, casebook: String?) async throws(CLIError) -> RehearsalReport {
+        throw missing("rehearse")
+    }
+    func correct(steward: String, case: String, choice: String?, note: String?)
+        async throws(CLIError) -> CorrectionReport
+    { throw missing("correct") }
+    func markReady(steward: String) async throws(CLIError) -> StewardDetail {
+        throw missing("markReady")
+    }
+    func propose(steward: String, charterPath: String) async throws(CLIError) -> ProposalRow {
+        throw missing("propose")
+    }
+    func listProposals(steward: String?) async throws(CLIError) -> [ProposalRow] {
+        throw missing("proposals")
+    }
+    func metrics(steward: String, metric: String?) async throws(CLIError) -> [MetricSeries] {
+        throw missing("metrics")
+    }
+    func memory(steward: String, scope: MemoryScope) async throws(CLIError) -> [MemoryRow] {
+        throw missing("memory")
+    }
+    func routines(steward: String) async throws(CLIError) -> [RoutineRow] {
+        throw missing("routines")
+    }
+    func replay(run: String) async throws(CLIError) -> ReplayReport { throw missing("replay") }
+    func serveBindingProxy(run: String, binding: String) async throws(CLIError) {
+        throw missing("bindingProxy")
+    }
+}

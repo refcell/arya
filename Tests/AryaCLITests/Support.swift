@@ -26,9 +26,10 @@ final class FakeBackend: CLIBackend, @unchecked Sendable {
     private var log: [String] = []
     var verifyResult = VerifyReport(isValid: true, events: 3, firstBreak: nil)
     var runStatus = "completed"
+    var replayDiverges = false
 
     var calls: [String] { lock.withLock { log } }
-    private func record(_ call: String) { lock.withLock { log.append(call) } }
+    func record(_ call: String) { lock.withLock { log.append(call) } }
 
     static let summary = StewardRow(
         id: "st_triage", name: "Support inbox triage", state: .draft, charterVersion: 1,
@@ -117,4 +118,85 @@ func runCLI(
     let status = await CLI.run(
         arguments, context: context, output: capture.output, backend: { _ in backend })
     return (status, capture)
+}
+
+extension FakeBackend {
+    static let casebook = CasebookRow(
+        name: "casebook", steward: "st_triage", version: String(repeating: "ab", count: 32),
+        cases: 8)
+
+    func importCasebook(steward: String, path: String, name: String?) async throws(CLIError)
+        -> CasebookRow
+    {
+        record("import \(steward) \(path) \(name ?? "-")")
+        return Self.casebook
+    }
+    func listCasebooks(steward: String?) async throws(CLIError) -> [CasebookRow] {
+        record("casebooks \(steward ?? "-")")
+        return [Self.casebook]
+    }
+    func rehearse(steward: String, casebook: String?) async throws(CLIError) -> RehearsalReport {
+        record("rehearse \(steward) \(casebook ?? "-")")
+        let cases = (1...8).map { n in
+            RehearsedCase(id: "case-000\(n)", passed: n != 6, score: n == 6 ? 0 : 1, leak: false)
+        }
+        return RehearsalReport(
+            rehearsal: "reh_1", steward: steward, casebook: "casebook", passed: 7, total: 8,
+            score: 0.875, failed: ["case-0006"], cases: cases)
+    }
+    func correct(steward: String, case: String, choice: String?, note: String?)
+        async throws(CLIError) -> CorrectionReport
+    {
+        record("correct \(steward) \(`case`) \(choice ?? "-") \(note ?? "-")")
+        return CorrectionReport(
+            steward: steward, case: `case`, choice: choice, note: note, memory: "mem_1")
+    }
+    func markReady(steward: String) async throws(CLIError) -> StewardDetail {
+        record("ready \(steward)")
+        return Self.detail
+    }
+    func propose(steward: String, charterPath: String) async throws(CLIError) -> ProposalRow {
+        record("propose \(steward) \(charterPath)")
+        return ProposalRow(
+            id: "prop_1", steward: steward, kind: "charter", state: .passed, baseline: 0.875,
+            candidate: 1, regressions: [])
+    }
+    func listProposals(steward: String?) async throws(CLIError) -> [ProposalRow] {
+        record("proposals \(steward ?? "-")")
+        return []
+    }
+    func metrics(steward: String, metric: String?) async throws(CLIError) -> [MetricSeries] {
+        record("metrics \(steward) \(metric ?? "-")")
+        return [
+            MetricSeries(
+                metric: "routed_within_1h", unit: "ratio", target: 0.95,
+                points: [MetricPoint(at: "2026-01-01T12:00:00.000Z", value: 1)])
+        ]
+    }
+    func memory(steward: String, scope: MemoryScope) async throws(CLIError) -> [MemoryRow] {
+        record("memory \(steward) \(scope)")
+        return [
+            MemoryRow(
+                id: "mem_1", text: "Card changes are billing.", tags: ["billing"],
+                author: "human:local", run: nil, retracted: false)
+        ]
+    }
+    func routines(steward: String) async throws(CLIError) -> [RoutineRow] {
+        record("routines \(steward)")
+        return []
+    }
+    func replay(run: String) async throws(CLIError) -> ReplayReport {
+        record("replay \(run)")
+        let divergences =
+            replayDiverges
+            ? [
+                Divergence(
+                    seq: 7, type: "run.decision", field: "payload.choice", recorded: "\"billing\"",
+                    replayed: "\"bug\"")
+            ] : []
+        return ReplayReport(run: run, events: 12, divergences: divergences)
+    }
+    func serveBindingProxy(run: String, binding: String) async throws(CLIError) {
+        record("proxy \(run) \(binding)")
+    }
 }

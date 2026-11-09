@@ -10,6 +10,18 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case deny
     case ledgerTail = "ledger tail"
     case ledgerVerify = "ledger verify"
+    case casebookImport = "casebook import"
+    case casebookList = "casebook list"
+    case rehearse
+    case correct
+    case ready
+    case propose
+    case proposals
+    case metrics
+    case memory
+    case routines
+    case replay
+    case bindingProxy = "binding-proxy"
 }
 
 /// A command's path, help text, and accepted arguments.
@@ -52,55 +64,140 @@ struct CommandSpec: Sendable, Equatable {
 
 /// The command table, in help order.
 enum CommandTable {
-    static let all: [CommandSpec] = [
-        CommandSpec(id: .initHome, summary: "Create an arya home (ledger, blobs, cache)"),
+    static let all: [CommandSpec] =
+        [
+            CommandSpec(id: .initHome, summary: "Create an arya home (ledger, blobs, cache)"),
+            CommandSpec(
+                id: .stewardCreate, summary: "Define a steward from a charter file",
+                options: [
+                    OptionSpec(
+                        name: "charter", kind: .value(placeholder: "file"), isRequired: true,
+                        help: "charter JSON (docs/ARCHITECTURE.md, Charters and cases)")
+                ]),
+            CommandSpec(id: .stewardList, summary: "List stewards"),
+            CommandSpec(
+                id: .stewardShow, summary: "Show a steward's charter and state",
+                positionals: [
+                    PositionalSpec(name: "steward", help: "steward id, such as st_triage")
+                ]),
+            CommandSpec(
+                id: .run, summary: "Start a manual run now and wait for it to finish",
+                positionals: [PositionalSpec(name: "steward", help: "steward id")],
+                options: [
+                    OptionSpec(
+                        name: "input", kind: .value(placeholder: "text"),
+                        help: "input text for the run (default: none)")
+                ]),
+            CommandSpec(
+                id: .approvals, summary: "List actions held for approval",
+                options: [
+                    OptionSpec(
+                        name: "steward", kind: .value(placeholder: "id"),
+                        help: "only this steward's approvals"),
+                    OptionSpec(name: "all", kind: .flag, help: "include decided approvals"),
+                ]),
+            CommandSpec(
+                id: .approve, summary: "Approve a held action; it executes right away",
+                positionals: [PositionalSpec(name: "approval", help: "approval id")],
+                options: [noteOption]),
+            CommandSpec(
+                id: .deny, summary: "Deny a held action; it is never executed",
+                positionals: [PositionalSpec(name: "approval", help: "approval id")],
+                options: [noteOption]),
+            CommandSpec(
+                id: .ledgerTail, summary: "Show the latest ledger events",
+                options: [
+                    OptionSpec(
+                        name: "count", short: "n", kind: .value(placeholder: "n"),
+                        help: "how many events (default 20)"),
+                    OptionSpec(
+                        name: "steward", kind: .value(placeholder: "id"),
+                        help: "only this steward's events"),
+                ]),
+            CommandSpec(id: .ledgerVerify, summary: "Check the ledger's hash chain and sequence"),
+        ] + improvement
+
+    /// M2 commands: the improvement loop.
+    private static let improvement: [CommandSpec] = [
         CommandSpec(
-            id: .stewardCreate, summary: "Define a steward from a charter file",
+            id: .casebookImport, summary: "Import a casebook (JSON Lines) for a steward",
+            positionals: [
+                stewardArgument,
+                PositionalSpec(name: "file", help: "casebook file, one case per line"),
+            ],
+            options: [
+                OptionSpec(
+                    name: "name", kind: .value(placeholder: "name"),
+                    help: "casebook name (default: the file name without extension)")
+            ]),
+        CommandSpec(
+            id: .casebookList, summary: "List casebooks and their versions",
+            options: [stewardFilter]),
+        CommandSpec(
+            id: .rehearse, summary: "Rehearse a steward on a casebook; no action is executed",
+            positionals: [stewardArgument],
+            options: [
+                OptionSpec(
+                    name: "casebook", kind: .value(placeholder: "name"),
+                    help: "casebook to use (default: the steward's latest import)")
+            ]),
+        CommandSpec(
+            id: .correct, summary: "Correct a rehearsed case; the note becomes a memory",
+            positionals: [stewardArgument, PositionalSpec(name: "case", help: "case id")],
+            options: [
+                OptionSpec(
+                    name: "choice", kind: .value(placeholder: "choice"),
+                    help: "the decision the case expects instead"),
+                noteOption,
+            ]),
+        CommandSpec(
+            id: .ready, summary: "Mark a steward ready for live triggers",
+            positionals: [stewardArgument]),
+        CommandSpec(
+            id: .propose, summary: "Propose a new charter version; it is rehearsed and gated",
+            positionals: [stewardArgument],
             options: [
                 OptionSpec(
                     name: "charter", kind: .value(placeholder: "file"), isRequired: true,
-                    help: "charter JSON (docs/ARCHITECTURE.md, Charters and cases)")
+                    help: "the proposed charter JSON")
             ]),
-        CommandSpec(id: .stewardList, summary: "List stewards"),
         CommandSpec(
-            id: .stewardShow, summary: "Show a steward's charter and state",
-            positionals: [PositionalSpec(name: "steward", help: "steward id, such as st_triage")]),
+            id: .proposals, summary: "List proposals and their gate results",
+            options: [stewardFilter]),
         CommandSpec(
-            id: .run, summary: "Start a manual run now and wait for it to finish",
-            positionals: [PositionalSpec(name: "steward", help: "steward id")],
+            id: .metrics, summary: "Show a steward's outcome metric series",
+            positionals: [stewardArgument],
             options: [
                 OptionSpec(
-                    name: "input", kind: .value(placeholder: "text"),
-                    help: "input text for the run (default: none)")
+                    name: "metric", kind: .value(placeholder: "name"),
+                    help: "only this metric")
             ]),
         CommandSpec(
-            id: .approvals, summary: "List actions held for approval",
+            id: .memory, summary: "List a steward's memory notes",
+            positionals: [stewardArgument],
+            options: [OptionSpec(name: "all", kind: .flag, help: "include retracted notes")]),
+        CommandSpec(
+            id: .routines, summary: "List a steward's routines and live versions",
+            positionals: [stewardArgument]),
+        CommandSpec(
+            id: .replay, summary: "Replay a run on its recorded inputs and report divergence",
+            positionals: [PositionalSpec(name: "run", help: "run id")]),
+        CommandSpec(
+            id: .bindingProxy, summary: "Serve one binding's read tools over stdio (used by runs)",
             options: [
                 OptionSpec(
-                    name: "steward", kind: .value(placeholder: "id"),
-                    help: "only this steward's approvals"),
-                OptionSpec(name: "all", kind: .flag, help: "include decided approvals"),
-            ]),
-        CommandSpec(
-            id: .approve, summary: "Approve a held action; it executes right away",
-            positionals: [PositionalSpec(name: "approval", help: "approval id")],
-            options: [noteOption]),
-        CommandSpec(
-            id: .deny, summary: "Deny a held action; it is never executed",
-            positionals: [PositionalSpec(name: "approval", help: "approval id")],
-            options: [noteOption]),
-        CommandSpec(
-            id: .ledgerTail, summary: "Show the latest ledger events",
-            options: [
+                    name: "run", kind: .value(placeholder: "id"), isRequired: true,
+                    help: "the run the calls belong to"),
                 OptionSpec(
-                    name: "count", short: "n", kind: .value(placeholder: "n"),
-                    help: "how many events (default 20)"),
-                OptionSpec(
-                    name: "steward", kind: .value(placeholder: "id"),
-                    help: "only this steward's events"),
+                    name: "binding", kind: .value(placeholder: "id"), isRequired: true,
+                    help: "the charter binding to serve"),
             ]),
-        CommandSpec(id: .ledgerVerify, summary: "Check the ledger's hash chain and sequence"),
     ]
+
+    private static let stewardArgument = PositionalSpec(name: "steward", help: "steward id")
+
+    private static let stewardFilter = OptionSpec(
+        name: "steward", kind: .value(placeholder: "id"), help: "only this steward's")
 
     private static let noteOption = OptionSpec(
         name: "note", kind: .value(placeholder: "text"), help: "a note recorded with the decision")

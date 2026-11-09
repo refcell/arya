@@ -22,7 +22,8 @@ M1:
 M2:
 - [ ] `arya replay`, `arya casebook import|list`, `arya rehearse`, `arya correct`, `arya ready`,
   `arya propose`, `arya proposals`, `arya metrics`, `arya memory`, `arya routines`,
-  `arya binding-proxy`.
+  `arya binding-proxy`. Parsed, rendered (text and `--json`, `ImprovementModels.swift`), and
+  tested; `WorkspaceBackend` reports each as waiting on its facade call (runtime lane).
 - [ ] `just e2e` (CLI only, fake adapter, temporary home): create, rehearse, correct, ready,
   run, approve, replay with zero divergence, `ledger verify`; non-zero exit on any failure.
 
@@ -39,9 +40,8 @@ M3:
 - `just e2e` (`etc/scripts/e2e.sh`) runs every M3 step through the CLI against a temporary home
   and prints ok, PENDING (exit 69 or an unknown command), or FAIL per step; later steps are
   skipped. Exit 0 all ok, 1 failed, 2 pending. Checks read `--json` output with `plutil`, so the
-  script needs nothing beyond macOS. Planned JSON for M2 commands: `rehearse` ->
-  `{passed, total, failed:[caseId]}`, `correct` -> `{case}`, `casebook import` -> `{cases}`,
-  `metrics` -> `[{metric, points}]`, `replay` -> `{divergences:[...]}`.
+  script needs nothing beyond macOS. The M2 JSON shapes it reads are defined in
+  `Sources/AryaCLI/ImprovementModels.swift`.
 - `etc/examples/triage` is a support inbox triage steward (CEO request). The scripted steward
   misses only `case-0006`, which the e2e scenario corrects; `ExamplesTests` pins this.
 - The CLI talks to an arya home only through `CLIBackend` (`Sources/AryaCLI/Backend.swift`), which
@@ -69,7 +69,9 @@ M3:
   `casebook import`, `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
 
 ## Log
+- 2026-11-09: M2 commands parsed and rendered, waiting on facade calls
 - 2026-11-09: `WorkspaceBackend` over the facade replaces `PendingBackend`; `arya init` works
+  (c9871fc)
 - 2026-11-09: examples validated through `Charter.load` and `Case.load` (ebd2ba3)
 - 2026-11-09: `just e2e` runner with ok, PENDING, FAIL per step (2338549)
 - 2026-11-09: support inbox triage example, casebook, fake script (7646ccc)
