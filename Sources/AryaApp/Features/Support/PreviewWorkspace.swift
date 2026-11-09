@@ -103,6 +103,13 @@ actor PreviewWorkspace: FeatureWorkspace {
                 steward: steward, run: run, "run.started", .localUser,
                 ["trigger": "manual", "input": .string(input)])
         case .rehearse(let steward, let casebook): rehearse(steward: steward, casebook: casebook)
+        case .answer(let approval, let text):
+            let answer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if answer.isEmpty { throw FeatureWriteError.answerEmpty }
+            let request = try pendingRequest(approval)
+            emit(
+                request, "approval.granted", .localUser,
+                ["approval": .string(approval), "note": .string(answer)])
         case .markReady(let steward, let version, let rehearsal):
             var payload: FeatureJSON = ["v": 1, "charterVersion": .number(Double(version))]
             if let rehearsal, case .object(var members) = payload {

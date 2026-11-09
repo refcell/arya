@@ -29,10 +29,10 @@ M3, extended (toward `just e2e` driven from the app):
 - [x] Run now: start a manual run with an input from the Stream tab (`FeatureWrite.startRun`).
 - [x] Rehearse: start a rehearsal of the live charter on its casebook from the Rehearsals tab.
 - [x] Replay: replay a finished run from the Stream tab and show the divergence report.
-- [ ] Steward overview: charter version, readiness, last run, and open approvals at a glance.
+- [x] Steward overview: charter version, readiness, last run, and open approvals at a glance.
 
 M4:
-- [ ] Inbox: questions addressed to person bindings, answered with text, in one list.
+- [x] Inbox: questions addressed to person bindings, answered with text, in one list.
 - [ ] Binding detail in tool calls and actions: which binding served each call (live MCP).
 - [ ] Routine action results in the stream, with the sandbox verdict when it blocked a call.
 
@@ -104,6 +104,11 @@ M4:
   enabled only once the run has ended. Every new seam call defaults to "unavailable" until the
   shell's facade adapter forwards it.
 
+- The inbox lists `approval.requested` questions whose `to` is a `person:` binding (questions
+  to `local` stay in the approval queue). An answer is `approval.granted` with the text as
+  `note`, the shape the runtime's grant records; declining is a deny. `FeatureRegistry.inbox`
+  is ready for app-shell's rail entry. The steward overview leaves out rehearsal case runs.
+
 ## Questions
 - (from app-shell) `FeatureRegistry` now routes Changes, Ledger, Memory, Routines, and
   Rehearsals to your views when a store is wired; metric chart placement is yours. Changes
@@ -126,3 +131,4 @@ M4:
 
 - 2026-11-09: charter editor that saves changes as proposals (7451fa6).
 - 2026-11-09: Changes tab hosts the metric chart and charter editor (06dcbbb).
+- 2026-11-09: run now, replay, and rehearse controls (4ab0e07).

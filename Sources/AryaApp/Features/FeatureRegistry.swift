@@ -56,6 +56,18 @@ enum FeatureRegistry {
         }
     }
 
+    /// Questions to person bindings across all stewards, for the rail's inbox entry.
+    @ViewBuilder
+    static func inbox(_ context: FeatureContext) -> some View {
+        if let store = context.store {
+            InboxView(store: store)
+        } else {
+            EmptyState(
+                "No questions for people.",
+                guidance: "When a steward asks a person binding something, it appears here.")
+        }
+    }
+
     /// The approval queue across all stewards.
     @ViewBuilder
     static func approvals(_ context: FeatureContext) -> some View {

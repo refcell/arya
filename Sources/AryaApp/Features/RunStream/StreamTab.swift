@@ -9,10 +9,12 @@ struct StreamTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            RunControls(store: store, steward: steward, run: run)
-                .id(run)
-                .padding(AryaSpace.s5)
-                .aryaHairline(edge: .bottom)
+            VStack(alignment: .leading, spacing: AryaSpace.s3) {
+                StewardOverviewLine(store: store, steward: steward)
+                RunControls(store: store, steward: steward, run: run).id(run)
+            }
+            .padding(AryaSpace.s5)
+            .aryaHairline(edge: .bottom)
             if let run {
                 RunStreamView(store: store, run: run)
             } else {

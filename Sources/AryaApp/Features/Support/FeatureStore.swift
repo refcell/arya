@@ -98,6 +98,8 @@ final class FeatureStore: ObservableObject {
             return "This workspace cannot show \(what) yet."
         case FeatureWriteError.staleCharter(let live):
             return "The charter changed to version \(live) while you edited. Reload and edit again."
+        case FeatureWriteError.answerEmpty:
+            return "Write an answer before sending it."
         case FeatureWriteError.correctionEmpty:
             return "Write what the steward should have done, then record the correction."
         case FeatureWriteError.unknownNote(let id):

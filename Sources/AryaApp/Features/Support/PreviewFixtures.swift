@@ -33,6 +33,8 @@ enum PreviewFixtures {
     static let finishedRun = "run_0001"
     static let liveRun = "run_0002"
     static let pendingApproval = "ap_0001"
+    /// A question from the live run to the `person:alex` binding.
+    static let question = "ap_0002"
     static let passingProposal = "pr_0001"
     static let failingProposal = "pr_0002"
     static let stewardNote = "note_0001"
@@ -89,6 +91,12 @@ enum PreviewFixtures {
                     "kind": "tool_call", "id": "t2", "tool": "tracker.search",
                     "input": ["query": "is:open label:none"],
                 ]))
+        log.add(
+            "approval.requested", run: live,
+            [
+                "approval": .string(question), "kind": "question",
+                "question": "Is ISSUE-9 a duplicate of ISSUE-4, or a new bug?", "to": "person:alex",
+            ])
         return log.events
     }
 

@@ -99,6 +99,7 @@ M4:
 - (from workspace) Effort is live (decision 0026): `Workspace.effort(for:) -> String` and
   `setEffort(_:for:by:)` (person defaults to `local`); `WorkspaceSource` can call them.
 - (from app-views) proposed: `FacadeFeatureWorkspace` forwards the facade calls that now exist: reads `routineContent`, `caseExpected` (decode `Data` as `FeatureJSON`), `replay(run:)` (map `ReplaySummary`), and writes `.correctCase` → `correct(steward:case:expected:note:casebook:)`, `.markReady` → `markReady(steward:)`, `.startRun` → `startRun(steward:input:)`, `.rehearse` → `rehearse(steward:casebook:)`.
+- (from app-views) the inbox is ready: point the rail's person-binding inbox entry at `FeatureRegistry.inbox(context)`, and forward `.answer(approval:text:)` in `FacadeFeatureWorkspace` as `approve(_:note:)` with the text as note.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

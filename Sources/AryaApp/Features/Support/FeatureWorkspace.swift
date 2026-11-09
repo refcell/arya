@@ -23,6 +23,8 @@ enum FeatureWrite: Hashable, Sendable {
     case startRun(steward: String, input: String)
     /// Rehearses the live charter on a casebook version (nil: the steward's newest).
     case rehearse(steward: String, casebook: String?)
+    /// Answers a question; recorded as `approval.granted` with the answer as its `note`.
+    case answer(approval: String, text: String)
 }
 
 /// The result of replaying a run from the ledger alone.
@@ -128,5 +130,6 @@ enum FeatureWriteError: Error, Hashable, Sendable {
     case unknownNote(String)
     case alreadyRetracted(String)
     case correctionEmpty
+    case answerEmpty
     case staleCharter(live: Int)
 }
