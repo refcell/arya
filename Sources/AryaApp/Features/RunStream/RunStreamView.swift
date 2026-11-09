@@ -161,12 +161,24 @@ enum StreamStepText {
         return false
     }
 
-    /// "ok · 1.2 s", "failed · 850 ms", or "running" for a tool call.
+    /// "ok · 1.2 s", "failed · 850 ms", or "running" for a tool call, after the binding and
+    /// source when the binding proxy recorded them: "tracker · live · ok · 1.2 s".
     static func toolCaption(_ call: ToolCallStep) -> String {
-        guard call.output != nil else { return "running" }
-        let status = call.isError ? "failed" : "ok"
-        guard let seconds = call.durationSeconds else { return status }
-        return "\(status) · \(FeatureTime.duration(seconds))"
+        var parts = [call.binding, call.source.map(sourceWord)].compactMap { $0 }
+        guard call.output != nil else { return (parts + ["running"]).joined(separator: " · ") }
+        parts.append(call.isError ? "failed" : "ok")
+        if let seconds = call.durationSeconds { parts.append(FeatureTime.duration(seconds)) }
+        return parts.joined(separator: " · ")
+    }
+
+    static func sourceWord(_ source: String) -> String {
+        source == "unanswered" ? "no recording, a leak" : source
+    }
+
+    /// "via tracker · executed", the outcome after the binding the action goes through.
+    static func actionCaption(_ action: ProposedActionStep) -> String {
+        [action.binding.map { "via \($0)" }, outcome(action.outcome)].compactMap { $0 }
+            .joined(separator: " · ")
     }
 
     /// The VoiceOver label: "Step 4, decision, bug, 2m ago".
@@ -238,7 +250,7 @@ private struct StepBody: View {
                 Spacer(minLength: AryaSpace.s2)
                 if let policy = AryaPolicy(rawValue: action.policy) { PolicyChip(policy) }
             }
-            Text(StreamStepText.outcome(action.outcome))
+            Text(StreamStepText.actionCaption(action))
                 .aryaText(AryaFont.caption, outcomeColor(action.outcome))
         }
     }

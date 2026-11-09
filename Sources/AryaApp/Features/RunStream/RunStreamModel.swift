@@ -24,6 +24,10 @@ struct ToolCallStep: Hashable, Sendable {
     var output: FeatureJSON?
     var isError = false
     var durationSeconds: Double?
+    /// The binding that served the call, when the binding proxy recorded it.
+    var binding: String? = nil
+    /// Who answered: `live`, `recorded` (rehearsal or replay), or `unanswered` (a leak).
+    var source: String? = nil
 }
 
 /// What became of a proposed action.
@@ -48,6 +52,8 @@ struct ProposedActionStep: Hashable, Sendable {
     /// The policy rule that classified the action, for example `deny close`.
     var rule: String = ""
     var outcome: ActionOutcome
+    /// The binding the action goes through, for example `tracker`.
+    var binding: String? = nil
 }
 
 /// One step in a run stream.
@@ -185,7 +191,8 @@ private struct RunStreamProjector {
         toolIndex[call] = steps.count
         toolStart[call] = event.at
         let step = ToolCallStep(
-            callID: call, tool: p["tool"]?.string ?? "tool", input: p["input"] ?? .null)
+            callID: call, tool: p["tool"]?.string ?? "tool", input: p["input"] ?? .null,
+            binding: p["binding"]?.string)
         add(event, .toolCall(step))
     }
 
@@ -195,6 +202,7 @@ private struct RunStreamProjector {
         else { return }
         step.output = p["output"] ?? .null
         step.isError = p["isError"]?.bool ?? false
+        step.source = p["source"]?.string
         if let start = toolStart[call] {
             step.durationSeconds = p["durationSeconds"]?.number ?? event.at.timeIntervalSince(start)
         }
@@ -213,7 +221,7 @@ private struct RunStreamProjector {
             summary: ApprovalText.summary(kind: kind, target: target),
             rationale: action["rationale"]?.string ?? "",
             policy: p["disposition"]?.string ?? "ask", rule: p["reason"]?.string ?? "",
-            outcome: .proposed)
+            outcome: .proposed, binding: action["binding"]?.string)
         actionIndex[id] = steps.count
         add(event, .action(step))
     }

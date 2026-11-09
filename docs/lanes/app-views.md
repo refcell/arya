@@ -33,7 +33,7 @@ M3, extended (toward `just e2e` driven from the app):
 
 M4:
 - [x] Inbox: questions addressed to person bindings, answered with text, in one list.
-- [ ] Binding detail in tool calls and actions: which binding served each call (live MCP).
+- [x] Binding detail in tool calls and actions: which binding served each call (live MCP).
 - [ ] Routine action results in the stream, with the sandbox verdict when it blocked a call.
 
 ## Decisions
