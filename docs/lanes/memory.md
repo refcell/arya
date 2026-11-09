@@ -37,7 +37,7 @@ M3 (integration toward the end-to-end scenario):
   stub once `AryaLedger` ships it.
 - [x] Read models for the app's Memory and Routines views: `RoutineLibrary.overview`, `diff`
   between any two stored versions, `MemoryProvenance.line`, `RoutineVersion.shortVersion`.
-- [ ] Facade memory API with the workspace lane: `memory(steward:scope:)`, `retract`,
+- [ ] (waits on the workspace lane, which owns `Sources/Arya`) Facade memory API: `memory(steward:scope:)`, `retract`,
   `routines(steward:)`, `routineHistory`, `routineDiff` over the home's ledger and blobs.
 - [x] Replay check helper: given a recorded `run.started.memory`, recompute the snapshot from
   the projection at that `seq` and report a divergence.
@@ -132,3 +132,4 @@ M3 (integration toward the end-to-end scenario):
 - 2026-11-09: ledger `BlobStore` adopted as `RoutineBlobStore`; `MemoryReplay.check` (5570258).
 - 2026-11-09: routine overview, version diff, provenance read models (5f704c2).
 - 2026-11-09: workspace Questions note on memory read models (c1b03ad).
+- 2026-11-09: routine timeout test no longer depends on load (bb0b561).
