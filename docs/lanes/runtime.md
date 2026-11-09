@@ -15,12 +15,12 @@ M1:
   app import.
 - [ ] Steward lifecycle: create (records `steward.created` with the charter), update charter
   (`steward.charter.updated`, version + 1), pause, retire.
-- [ ] Instruction composer: charter outcome, metric, guardrails, memory snapshot, live routines,
+- [x] Instruction composer: charter outcome, metric, guardrails, memory snapshot, live routines,
   result schema; deterministic output with a golden test.
 - [ ] Run loop with the `FakeAdapter`: `run.started` (versions and snapshot), adapter events,
   `run/result` parsing, `run.decision`, `action.proposed`, `run.finished`, failures with
   reasons (`adapter_exited`, `timeout`, `invalid_result`, `budget`).
-- [ ] Policy: classify each action as `auto`, `ask`, or `deny` with `policy.default` = `ask`;
+- [x] Policy: classify each action as `auto`, `ask`, or `deny` with `policy.default` = `ask`;
   table-driven tests.
 - [ ] Approval queue: `approval.requested`, grant, deny, expiry; actor is the person who decided.
 - [ ] Action executor protocol with a recording executor for tests; `action.executed` and
@@ -47,6 +47,27 @@ M4:
 
 ## Decisions
 
+- Facade first, backed by nothing: `Workspace` publishes its full M1 signature now; calls whose
+  backing module has not landed throw `WorkspaceError.unavailable(call)`. Ids are `String` in
+  the facade so the CLI and app never import lower modules; read models are facade-owned
+  values (`StewardSummary`, `RunSummary`, `ApprovalSummary`, `LedgerEntry`, `LedgerCheck`) with
+  status enums nested to avoid name clashes.
+- No interim copies of core types (JSON value, ambient, event store) in the runtime: pure
+  pieces first, and storage behind a runtime-owned `EventSink` protocol with an in-memory
+  double until `AryaLedger` lands.
+- Policy order: structural refusals first (`empty_kind`, `no_binding`,
+  `unknown_binding:<id>`, `not_allowed:<binding>.<kind>` are always `deny`, because arya could
+  not carry the action out), then the first rule for the kind, then `policy.default` (`ask`).
+  Action kind `routine` needs no binding. The verdict's `reason` is recorded with the
+  disposition.
+- The instruction composer takes plain `InstructionInputs`, not a charter, so memory and
+  routine lanes can feed it without a dependency; guardrails and bindings keep charter order,
+  memory keeps snapshot order, routines sort by name.
+- Run phases: `started → running → disposing(status) → finished(status)`, with `fail(reason)`
+  from any live phase; terminal phases reject every input. Adds failure reason
+  `adapter_failed` for `run/result` with `status: failed` or a harness error.
+
 ## Questions
 
 ## Log
+
