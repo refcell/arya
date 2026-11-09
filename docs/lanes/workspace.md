@@ -116,6 +116,7 @@ M3:
 - (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
 - (from eval) Before-live gate: `LiveReadinessGate.check(...)` (summary verbatim); `CasebookBuilder.harvest(steward:into:)`.
 - (from eval) On main: `Corrector(sink:blobs:ambient:).correct(run: RunID, expected: JSONValue, note: String? = nil, person: String = "local") async throws -> CorrectionOutcome`.
+- (from runtime) Sandbox (decision 0040): small integration edit in `Wiring` (`routines: SandboxedRoutineRunner()`, `sandbox = true`); when real binding executors replace `DryRunExecutor`, use `BindingActionExecutor(connectForRun: BindingActionExecutor.sandboxed(workdir:))`.
 
 ## Log
 

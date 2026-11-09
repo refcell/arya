@@ -20,12 +20,16 @@ public struct BindingProxyLaunch: Sendable, Hashable {
 
     /// The tool servers a run of `charter` hands its adapter: one per MCP binding with read
     /// tools.
-    func servers(charter: Charter, run: RunID, recorded: String?) -> [ToolServer] {
+    /// With `sandbox`, each proxy confines its live server to that workdir.
+    func servers(charter: Charter, run: RunID, recorded: String?, sandbox: String? = nil)
+        -> [ToolServer]
+    {
         charter.bindings.filter { $0.kind == .mcp && !$0.read.isEmpty }.map { binding in
             var tail = [
                 "--steward", charter.id.rawValue, "--run", run.rawValue, "--binding", binding.id,
             ]
             if let recorded { tail += ["--recorded", recorded] }
+            if let sandbox { tail += ["--sandbox", sandbox] }
             return ToolServer(name: binding.id, command: command, args: args + tail)
         }
     }
@@ -41,13 +45,16 @@ public struct BindingProxyArguments: Sendable, Hashable {
     public var binding: String
     /// A JSON file of `RecordedToolResult`s to answer from instead of the live server.
     public var recorded: String?
+    /// The run workdir to sandbox the live server in.
+    public var sandbox: String?
 
-    /// Parses `--steward <id> --run <id> --binding <id> [--recorded <file>]`.
+    /// Parses `--steward <id> --run <id> --binding <id> [--recorded <file>]
+    /// [--sandbox <workdir>]`.
     public init(parsing arguments: [String]) throws {
         var values: [String: String] = [:]
         var rest = arguments[...]
         while let flag = rest.popFirst() {
-            guard ["--steward", "--run", "--binding", "--recorded"].contains(flag),
+            guard ["--steward", "--run", "--binding", "--recorded", "--sandbox"].contains(flag),
                 let value = rest.popFirst()
             else { throw BindingProxyError.badArguments("unexpected \(flag)") }
             values[flag] = value
@@ -59,6 +66,7 @@ public struct BindingProxyArguments: Sendable, Hashable {
         self.run = RunID(unchecked: run)
         self.binding = binding
         recorded = values["--recorded"]
+        sandbox = values["--sandbox"]
     }
 }
 
@@ -90,7 +98,10 @@ public enum BindingProxyHost {
             let data = try Data(contentsOf: URL(fileURLWithPath: path))
             source = .recorded(try CanonicalJSON.decode([RecordedToolResult].self, from: data))
         } else {
-            source = .live(try ProcessToolUpstream(command: command, args: binding.args))
+            let sandbox = try arguments.sandbox.map {
+                try Sandbox(workdir: $0, network: binding.network)
+            }
+            source = .live(try BindingActionExecutor.spawn(binding, sandbox: sandbox))
         }
         return BindingProxy(
             binding: binding, source: source,

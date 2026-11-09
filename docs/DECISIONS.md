@@ -362,3 +362,18 @@ run's memory. The steward answers with an action through the same person binding
 Email or chat channels come later as MCP bindings that feed the same `Inbox.post`. Why: a
 steward that owns an outcome has to take questions, corrections, and handed-off work from
 people, and corrections must stick.
+
+### 0040 — 2026-11-09 — Routines and binding servers run sandboxed
+
+On macOS, arya runs routine scripts and live binding MCP servers under `sandbox-exec` with a
+profile that allows reads, allows writes only under the run's workdir (and `/dev/null`,
+`/dev/tty`, descriptor devices), and denies the network unless the binding sets
+`network: true` (routines never get it). Binding servers are confined through the binding
+proxy (`--sandbox <workdir>`) and the action executor (`BindingActionExecutor.sandboxed`).
+A sandboxed run records `run.started.sandbox {kind: sandbox-exec, workdir, network: [binding
+ids]}`; when `sandbox-exec` is missing or cannot apply a profile (arya already sandboxed), the
+processes run as before and nothing is recorded, so the ledger never claims a sandbox that was
+not there. Adapter processes are not sandboxed yet: agent harnesses need the network and write
+their own state outside the workdir, so their profile needs per-profile write paths first.
+Why: a steward acting on its own should not be able to write or reach anything its charter
+did not grant.

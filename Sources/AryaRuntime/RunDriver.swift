@@ -138,7 +138,9 @@ final class RunDriver: @unchecked Sendable {
             try CanonicalJSON.encode(context.toolResults).write(to: file)
             recorded = file.path
         }
-        return proxy.servers(charter: charter, run: run, recorded: recorded)
+        return proxy.servers(
+            charter: charter, run: run, recorded: recorded,
+            sandbox: loop.sandboxed ? workdir : nil)
     }
 
     // MARK: Streaming

@@ -15,6 +15,8 @@ public struct CharterBinding: Hashable, Sendable, Codable {
     public var actions: [String]
     /// `person`: how to reach them, for example `inbox`.
     public var channel: String?
+    /// `mcp`: the server may use the network when arya sandboxes it (decision 0040).
+    public var network: Bool = false
 
     /// An MCP server binding.
     public static func mcp(
@@ -33,7 +35,7 @@ public struct CharterBinding: Hashable, Sendable, Codable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, kind, command, args, read, actions, channel
+        case id, kind, command, args, read, actions, channel, network
     }
 
     public init(from decoder: any Decoder) throws {
@@ -45,6 +47,7 @@ public struct CharterBinding: Hashable, Sendable, Codable {
         read = try c.decodeIfPresent([String].self, forKey: .read) ?? []
         actions = try c.decodeIfPresent([String].self, forKey: .actions) ?? []
         channel = try c.decodeIfPresent(String.self, forKey: .channel)
+        network = try c.decodeIfPresent(Bool.self, forKey: .network) ?? false
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -58,6 +61,7 @@ public struct CharterBinding: Hashable, Sendable, Codable {
             try c.encode(actions, forKey: .actions)
         }
         try c.encodeIfPresent(channel, forKey: .channel)
+        if network { try c.encode(network, forKey: .network) }
     }
 
     init(

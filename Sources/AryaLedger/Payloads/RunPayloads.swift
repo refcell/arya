@@ -42,13 +42,17 @@ public struct RunStarted: EventPayload {
     public var caseID: CaseID?
     /// 1-based sample number within a rehearsal.
     public var sample: Int?
+    /// How the run's routines and binding servers were confined, for example
+    /// `{kind: sandbox-exec, workdir, network: [binding ids]}`; nil when they were not.
+    public var sandbox: JSONValue?
 
     public init(
         input: RunInputRecord, charterVersion: Int, routines: [String: String] = [:],
         memory: JSONValue? = nil, adapter: String, effort: Effort, instructions: String,
         limits: Limits, parent: RunID? = nil, rehearsal: RehearsalID? = nil,
-        caseID: CaseID? = nil, sample: Int? = nil
+        caseID: CaseID? = nil, sample: Int? = nil, sandbox: JSONValue? = nil
     ) {
+        self.sandbox = sandbox
         self.input = input
         self.charterVersion = charterVersion
         self.routines = routines
@@ -65,7 +69,7 @@ public struct RunStarted: EventPayload {
 
     enum CodingKeys: String, CodingKey {
         case input, charterVersion, routines, memory, adapter, effort, instructions, limits
-        case parent, rehearsal, sample
+        case parent, rehearsal, sample, sandbox
         case caseID = "case"
     }
 }

@@ -47,7 +47,7 @@ public actor Workspace {
                 try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
                 return url.path
             },
-            questionPoll: wiring.questionPoll, leases: wiring.leases)
+            questionPoll: wiring.questionPoll, leases: wiring.leases, sandbox: wiring.sandbox)
         let recorder = RoutineRecorder(home: home, sink: sink)
         routineRecorder = recorder
         scheduler = Scheduler(engine: engine) { outcome in try? await recorder.record(outcome) }
@@ -421,8 +421,10 @@ struct Wiring: Sendable {
     var executor: any ActionExecutor
     var leases: any RunLeases
     var questionPoll: Duration = .milliseconds(250)
-    /// Runs `routine` actions' scripts.
-    var routines: any RoutineRunning = ShellRoutineRunner()
+    /// Runs `routine` actions' scripts, sandboxed in the run's workdir (decision 0040).
+    var routines: any RoutineRunning = SandboxedRoutineRunner()
+    /// Records the sandbox on `run.started` and confines binding proxies' servers.
+    var sandbox = true
 }
 
 /// Errors the facade reports.

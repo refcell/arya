@@ -9,7 +9,7 @@ import AryaCore
 /// the `action.executed` output `{inbox, channel, target?, params?}` is the inbox entry. A
 /// `routine` action goes to `routines` when set. Kinds the binding does not allow fail.
 public struct BindingActionExecutor: ActionExecutor {
-    private let connect: @Sendable (CharterBinding) async throws -> any ToolUpstream
+    private let connect: @Sendable (CharterBinding, RunID) async throws -> any ToolUpstream
     private let routines: (any ActionExecutor)?
 
     /// Creates an executor. `connect` opens a binding's server (by default its `command` and
@@ -20,17 +20,46 @@ public struct BindingActionExecutor: ActionExecutor {
             BindingActionExecutor.spawn
     ) {
         self.routines = routines
-        self.connect = connect
+        self.connect = { binding, _ in try await connect(binding) }
+    }
+
+    /// Creates an executor whose `connect` also gets the run (for example `sandboxed`).
+    public init(
+        routines: (any ActionExecutor)? = nil,
+        connectForRun: @escaping @Sendable (CharterBinding, RunID) async throws -> any ToolUpstream
+    ) {
+        self.routines = routines
+        self.connect = connectForRun
     }
 
     /// Starts a binding's MCP server as a child process.
     @Sendable public static func spawn(_ binding: CharterBinding) async throws
         -> any ToolUpstream
     {
+        try spawn(binding, sandbox: nil)
+    }
+
+    /// Starts a binding's MCP server, inside `sandbox` when given and `sandbox-exec` works.
+    public static func spawn(_ binding: CharterBinding, sandbox: Sandbox?) throws
+        -> ProcessToolUpstream
+    {
         guard let command = binding.command else {
             throw RPCError(code: RPCErrorCode.invalidParams, message: "binding has no command")
         }
-        return try ProcessToolUpstream(command: command, args: binding.args)
+        guard let sandbox, Sandbox.available else {
+            return try ProcessToolUpstream(command: command, args: binding.args)
+        }
+        let wrapped = sandbox.wrap(command, binding.args)
+        return try ProcessToolUpstream(command: wrapped.command, args: wrapped.args)
+    }
+
+    /// Starts a binding's MCP server sandboxed in the run's workdir (decision 0040).
+    public static func sandboxed(workdir: @escaping @Sendable (RunID) throws -> String)
+        -> @Sendable (CharterBinding, RunID) async throws -> any ToolUpstream
+    {
+        { binding, run in
+            try spawn(binding, sandbox: Sandbox(workdir: workdir(run), network: binding.network))
+        }
     }
 
     public func execute(_ request: ExecutionRequest) async -> ExecutionOutcome {
@@ -49,16 +78,16 @@ public struct BindingActionExecutor: ActionExecutor {
         }
         switch binding.kind {
         case .person: return .succeeded(output: Self.inboxEntry(binding, action))
-        case .mcp: return await call(binding, action)
+        case .mcp: return await call(binding, action, run: request.run)
         }
     }
 
-    private func call(_ binding: CharterBinding, _ action: ProposedAction) async
+    private func call(_ binding: CharterBinding, _ action: ProposedAction, run: RunID) async
         -> ExecutionOutcome
     {
         let upstream: any ToolUpstream
         do {
-            upstream = try await connect(binding)
+            upstream = try await connect(binding, run)
         } catch {
             return .failed(error: "connect: \(error)", output: nil)
         }

@@ -189,6 +189,10 @@ M4:
   `ProposedAction.risk`) and `AryaLedger` (`ActionProposed.risk/autonomy`).
 - Inbox (decision 0039): `Inbox.post` (also `RuntimeService.inbox`) and `InboxBook` in
   `Inbox.swift`; `Scheduler.deliver` takes run input attachments.
+- Sandbox (decision 0040): `Sandbox`, `SandboxedRoutineRunner` in `Sandbox.swift`;
+  `RunEngine(sandbox:)`; `CharterBinding.network` (core) and `RunStarted.sandbox` (ledger)
+  are small additive edits; `Workspace` wiring defaults to sandboxed routines. Next: an
+  adapter-process profile with per-profile write paths.
 
 ## Questions
 
@@ -235,3 +239,4 @@ M4:
 - 2026-11-09: risk levels and per-steward autonomy on charters and proposals (decision 0037)
 - 2026-11-09: `why` on `run.decision` and `action.proposed` actions, adapter risk hints kept
 - 2026-11-09: local inbox: messages, corrections as memory, message runs (decision 0039)
+- 2026-11-09: routines and binding servers sandboxed, recorded on `run.started` (decision 0040)

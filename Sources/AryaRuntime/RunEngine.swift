@@ -150,19 +150,25 @@ public struct RunEngine: Sendable {
     let leases: any RunLeases
     let secondsUnit: Duration
     let proxy: BindingProxyLaunch?
+    /// Confine binding servers (through the proxies) to the run's workdir (decision 0040).
+    let sandbox: Bool
 
     /// Creates a run engine. `workdir` returns (and may create) the scratch directory of a run.
     /// `questionPoll` is how often a `host/ask` question checks the ledger for an answer.
     /// `leases` must be shared with `RunRecovery` (file leases across processes).
     /// `secondsUnit` is how long one second of `limits.timeoutSeconds` lasts (tests shrink it).
     /// `proxy`, when set, gives each run one binding-proxy tool server per MCP binding.
+    /// `sandbox` confines those servers to the run's workdir when `sandbox-exec` works, and
+    /// records the sandbox on `run.started`.
     public init(
         sink: any EventSink, ambient: Ambient, adapters: any AdapterFactory,
         dispatcher: ActionDispatcher, approvals: ApprovalQueue,
         workdir: @escaping @Sendable (RunID) throws -> String,
         questionPoll: Duration = .milliseconds(250), leases: any RunLeases = MemoryRunLeases(),
-        secondsUnit: Duration = .seconds(1), proxy: BindingProxyLaunch? = nil
+        secondsUnit: Duration = .seconds(1), proxy: BindingProxyLaunch? = nil,
+        sandbox: Bool = false
     ) {
+        self.sandbox = sandbox
         self.secondsUnit = secondsUnit
         self.proxy = proxy
         self.leases = leases
@@ -211,6 +217,15 @@ public struct RunEngine: Sendable {
         return try await driver.drive()
     }
 
+    /// What `run.started.sandbox` records, or nil (not `.null`) when unsandboxed.
+    private func sandboxRecord(_ run: RunID, _ charter: Charter) throws -> JSONValue? {
+        guard sandboxed else { return Optional<JSONValue>.none }
+        return Sandbox.record(workdir: try workdir(run), charter: charter)
+    }
+
+    /// True when this engine's runs are sandboxed.
+    var sandboxed: Bool { sandbox && Sandbox.available }
+
     private func recordStart(
         _ run: RunID, _ request: RunRequest, _ charter: Charter, _ version: Int,
         _ instructions: String, _ context: RunMemoryContext
@@ -224,7 +239,8 @@ public struct RunEngine: Sendable {
             memory: context.snapshotJSON, adapter: charter.adapter, effort: charter.effort,
             instructions: instructions, limits: charter.limits, parent: request.parent,
             rehearsal: request.rehearsal?.rehearsal, caseID: request.rehearsal?.caseID,
-            sample: request.rehearsal?.sample)
+            sample: request.rehearsal?.sample,
+            sandbox: try sandboxRecord(run, charter))
         _ = try await sink.append(
             RuntimeEventDraft(
                 type: RunEventType.started, steward: request.steward, run: run,
