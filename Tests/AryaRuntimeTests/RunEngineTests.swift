@@ -35,7 +35,10 @@ struct RunHarness {
 
     let approvals: ApprovalQueue
 
-    init(_ run: FakeScript.Run, timeouts: ConnectionTimeouts? = nil, stepMillis: Int64 = 1) {
+    init(
+        _ run: FakeScript.Run, timeouts: ConnectionTimeouts? = nil, stepMillis: Int64 = 1,
+        secondsUnit: Duration = .seconds(1)
+    ) {
         let ambient = Ambient.fixed(stepMillis: stepMillis)
         sink = MemoryEventSink(ambient: ambient)
         approvals = ApprovalQueue(sink: sink, ambient: ambient)
@@ -45,7 +48,7 @@ struct RunHarness {
         loop = RunEngine(
             sink: sink, ambient: ambient, adapters: factory, dispatcher: dispatcher,
             approvals: approvals, workdir: { "scratch/\($0.rawValue)" },
-            questionPoll: .milliseconds(1))
+            questionPoll: .milliseconds(1), secondsUnit: secondsUnit)
         lifecycle = StewardLifecycle(sink: sink)
     }
 

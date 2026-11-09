@@ -37,7 +37,7 @@ M2:
 - [ ] Triggers: manual, interval, calendar, message; the scheduler holds `scheduler.lock`;
   only ready, unpaused stewards take live triggers.
 - [ ] Crews: delegations become child runs bounded by `crew.maxParallel`, then one join run.
-- [ ] Budgets: `maxTurns`, `timeoutSeconds`, `maxCostMicros` enforced with `run/stop`.
+- [x] Budgets: `maxTurns`, `timeoutSeconds`, `maxCostMicros` enforced with `run/stop`.
 - [ ] Wire `GateChecking` to `AryaEval` in the facade; charter and routine changes go live only
   through it.
 - [ ] Facade API for eval, memory, and routines that the CLI and app need.
@@ -122,6 +122,13 @@ M4:
   compiling; `RuntimeActor.adapter(profile)` carries the adapter profile, as the ledger does.
 - `metric.recorded` (decision 0030): the runtime writes one per measurement of a live run,
   after `run.decision`; the payload type `MetricRecorded` lives in the runtime.
+- Budgets are enforced by the runtime too, not only passed to the adapter: a turn is one
+  assistant `message` event; after each turn the runtime reads `run/cost`. Past `maxTurns` or
+  `maxCostMicros` it sends `run/stop {reason: budget}`, waits for the adapter's last word, and
+  records `run.failed {reason: budget, detail: max_turns|max_cost_micros: N > limit}`. A
+  wall-clock deadline of `timeoutSeconds` sends `run/stop {reason: timeout}` and fails the run
+  `timeout`. A result that arrives within budget finishes normally even if its final cost is
+  over (the work is done; the cost is on `run.finished`).
 
 ## Questions
 
@@ -154,3 +161,4 @@ M4:
   rehearsal runs carry a `RehearsalTag` (d0d97f5)
 - 2026-11-09: `LedgerEventSink` over the real ledger; end-to-end run and restart on a temp home
 - 2026-11-09: `metric.recorded` from live-run measurements (decision 0030)
+- 2026-11-09: budgets: turns, cost, and wall-clock deadline enforced with `run/stop`

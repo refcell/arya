@@ -14,6 +14,8 @@ final class RunDriver: @unchecked Sendable {
     private var phase = RunPhase.started
     private var session: String?
     private var leak = false
+    private var turns = 0
+    private let overdue = Flag()
 
     init(loop: RunEngine, request: RunRequest, charter: Charter, run: RunID, instructions: String) {
         self.loop = loop
@@ -37,7 +39,56 @@ final class RunDriver: @unchecked Sendable {
             return try await fail(failure.0, detail: failure.1, cost: nil)
         }
         try transition(.adapterStarted)
+        let deadline = startDeadline(adapter)
+        defer { deadline.cancel() }
         return try await stream(adapter, &updates)
+    }
+
+    // MARK: Budgets
+
+    /// After `limits.timeoutSeconds` asks the adapter to stop; the run then fails `timeout`.
+    private func startDeadline(_ adapter: any Adapter) -> Task<Void, Never> {
+        let wait = loop.secondsUnit * charter.limits.timeoutSeconds
+        let overdue = overdue
+        let session = session
+        return Task {
+            guard (try? await Task.sleep(for: wait)) != nil else { return }
+            overdue.set()
+            if let session {
+                try? await adapter.stop(RunStopParams(session: session, reason: .timeout))
+            }
+        }
+    }
+
+    /// Counts assistant messages as turns and, after each turn, checks `run/cost`.
+    private func budgetBreach(_ adapter: any Adapter, _ event: RunEvent) async -> String? {
+        guard case .message(let role, _) = event.body, role == "assistant" else { return nil }
+        turns += 1
+        let limits = charter.limits
+        if turns > limits.maxTurns { return "max_turns: \(turns) > \(limits.maxTurns)" }
+        if let session, let cost = try? await adapter.cost(SessionParams(session: session)),
+            cost.costMicros > limits.maxCostMicros
+        {
+            return "max_cost_micros: \(cost.costMicros) > \(limits.maxCostMicros)"
+        }
+        return nil
+    }
+
+    /// Sends `run/stop`, waits for the adapter's last word, and fails the run.
+    private func stopAndFail(
+        _ adapter: any Adapter, _ updates: inout AsyncStream<AdapterUpdate>.Iterator,
+        _ reason: RunFailureReason, _ stop: StopReason, _ detail: String
+    ) async throws -> RunOutcome {
+        if let session { try? await adapter.stop(RunStopParams(session: session, reason: stop)) }
+        loop: while let update = await updates.next() {
+            switch update {
+            case .wire(let record): try await recordWire(record)
+            case .result, .exited, .timedOut: break loop
+            case .event, .ask, .protocolError: continue
+            }
+        }
+        let cost = await closeAdapter(adapter, &updates)
+        return try await fail(reason, detail: detail, cost: cost)
     }
 
     // MARK: Handshake
@@ -88,16 +139,26 @@ final class RunDriver: @unchecked Sendable {
             case .event(let params):
                 try transition(.adapterEvent)
                 noteToolCall(params.event)
+                if let breach = await budgetBreach(adapter, params.event) {
+                    return try await stopAndFail(adapter, &updates, .budget, .budget, breach)
+                }
             case .ask(let id, let params):
                 let answer = try await ask(params)
                 try? await adapter.answer(id, HostAskResult(answer: answer))
             case .result(let params):
+                if overdue.isSet {
+                    let cost = await closeAdapter(adapter, &updates)
+                    return try await fail(.timeout, detail: overdueDetail, cost: cost)
+                }
                 return try await finish(adapter, params, &updates)
             case .protocolError:
                 continue
             case .timedOut:
                 return try await abandon(adapter, &updates, .timeout, "no message in time")
             case .exited(let exit):
+                if overdue.isSet {
+                    return try await fail(.timeout, detail: overdueDetail, cost: nil)
+                }
                 return try await fail(.adapterExited, detail: "\(exit)", cost: nil)
             }
         }
@@ -125,6 +186,10 @@ final class RunDriver: @unchecked Sendable {
             }
             try await Task.sleep(for: loop.questionPoll)
         }
+    }
+
+    private var overdueDetail: String {
+        "ran past timeoutSeconds: \(charter.limits.timeoutSeconds)"
     }
 
     private func noteToolCall(_ event: RunEvent) {
@@ -276,4 +341,14 @@ public enum RunResultSchema {
             "items": ["type": "object", "required": .array(required.map { .string($0) })],
         ]
     }
+}
+
+/// A one-way flag set from the deadline task and read by the driver.
+private final class Flag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    var isSet: Bool { lock.withLock { value } }
+
+    func set() { lock.withLock { value = true } }
 }
