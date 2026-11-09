@@ -35,8 +35,16 @@ M2:
   workdir, result schema validation; tested with a shell script standing in for an agent.
 
 M4:
-- [ ] Example profiles for the print modes of common command-line agents; MCP config written
+- [x] Example profiles for the print modes of common command-line agents; MCP config written
   into `workdir` from `run/start.tools`; `sandbox` capability reported honestly.
+- [ ] Bounded reads: cap a stdout line (default 8 MiB) and the exec adapter's kept output, so
+  a runaway adapter or agent cannot exhaust memory; an over-long line is a protocol error.
+- [ ] Real cost for exec profiles: a `jsonl` line `{"cost":{"inputTokens":…,…}}` sets the
+  `run/cost` answer, and the profile then reports `cost: true`.
+- [ ] Run the conformance suite against the exec adapter (a shell agent) as well as the fake
+  one, and add a `just conformance` recipe for `ARYA_ADAPTER_CMD`.
+- [ ] Clean up exec temp state: delete `.arya-mcp.json` after the run; tests remove their
+  temp directories.
 
 ## Decisions
 
@@ -99,3 +107,6 @@ M4:
 - 2026-11-09: idle timer pauses during `host/ask` (cb9c713); in-memory SIGTERM race fixed
   (237de0a).
 - 2026-11-09: `ReplayAdapter`, `WireRecord.source`, ledger payload mapping (c9c43a8).
+- 2026-11-09: adapter profiles (b1cb086); `arya-exec-adapter` with `text`/`jsonl` parsing,
+  prompt delivery, MCP config, and `ResultSchema` checks (cd8bf50). Runtime may reuse
+  `ResultSchema.violation(of:by:)` for `invalid_result`.

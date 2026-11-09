@@ -76,3 +76,26 @@ func invalidProfilesAreRejected(_ text: String, _ needle: String) {
     #expect(book.profiles.isEmpty)
     #expect(throws: AdapterProfileError.unknownProfile("x")) { try book.profile("x") }
 }
+
+@Test func exampleProfilesAreValidAndHonest() throws {
+    let examples = AdapterProfiles.examples
+    try examples.validate()
+    // They round-trip through adapters.json.
+    let again = try AdapterProfiles.decode(try JSONEncoder().encode(examples))
+    #expect(again == examples)
+    for name in ["claude-code", "codex-cli"] {
+        let profile = try examples.profile(name)
+        #expect(profile.kind == .exec)
+        #expect(profile.supportedEfforts == ["low", "medium", "high"])
+        #expect(profile.sandbox == .workdir)
+    }
+    let claude = try examples.profile("claude-code")
+    #expect(claude.arguments(for: "high").contains("opus"))
+    #expect(claude.arguments(for: "low").contains("{mcpConfig}"))
+    let disallowed = try #require(claude.arguments(for: "medium").last)
+    for tool in ["Bash", "Edit", "Write", "WebFetch"] { #expect(disallowed.contains(tool)) }
+    let codex = try examples.profile("codex-cli")
+    #expect(codex.mcpConfig == .none)
+    #expect(codex.arguments(for: "low").contains("model_reasoning_effort=low"))
+    #expect(codex.arguments(for: "medium").contains("read-only"))
+}

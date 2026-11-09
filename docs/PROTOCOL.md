@@ -200,7 +200,12 @@ in its profile (`adapters.json`), so charters never name models.
   (a config file in `workdir` or none), and how output is parsed: `text` (the last fenced
   ```` ```json ```` block is the result) or `jsonl` (one event per line, the last object with a
   `result` key is the result). Example profiles cover the non-interactive print modes of common
-  command-line agents such as Claude Code and Codex CLI.
+  command-line agents such as Claude Code and Codex CLI (`AdapterProfiles.examples`:
+  `claude-code` runs `claude -p` with a model alias per effort, arya's tools through
+  `--mcp-config`, and its shell, file-writing, and web tools disallowed; `codex-cli` runs
+  `codex exec --sandbox read-only` with `model_reasoning_effort` per effort and no arya tools).
+  Both report `sandbox: "workdir"` because neither can write outside or reach the network
+  through built-in tools.
 
 ```json
 {"v":1,"profiles":{"exec-default":{"command":"claude","promptVia":"stdin","parse":"text",
