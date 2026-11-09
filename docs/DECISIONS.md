@@ -346,3 +346,19 @@ Ledger with the inspector, and the New steward flow) at 1400 × 1000 pt in dark 
 Sheets render as standalone pages because they do not draw offscreen. Why: a window launched
 by an agent steals focus from the person using the machine, and offscreen PNGs on seeded data
 are reproducible and reviewable.
+
+### 0039 — 2026-11-09 — People reach stewards through a local inbox
+
+A person messages a steward through one of the charter's person bindings, with an intent:
+`ask`, `correct`, or `handoff`. `Inbox.post` records `inbox.message {from, channel, intent,
+text, note?}` (actor: the person) for every accepted message, refusing unknown stewards,
+senders that are not person bindings, and empty text. A correction also becomes a
+`memory.added` note authored by the person, tagged `correction`, with the message as its
+provenance event (skipped when it repeats a live note). When the charter has a matching
+`message` trigger and takes live triggers, the message starts a run whose input names the
+sender and intent and attaches `{kind: inbox, message, from, intent}`; the note is in that
+run's memory. The steward answers with an action through the same person binding, whose
+`action.executed` output is the inbox entry; `InboxBook` threads both directions per steward.
+Email or chat channels come later as MCP bindings that feed the same `Inbox.post`. Why: a
+steward that owns an outcome has to take questions, corrections, and handed-off work from
+people, and corrections must stick.

@@ -87,14 +87,15 @@ public actor Scheduler {
     /// person binding id; the run's actor is that person).
     /// Returns false (and records nothing) when it does not.
     @discardableResult
-    public func deliver(_ text: String, from sender: String, to steward: StewardID) async throws
-        -> Bool
-    {
+    public func deliver(
+        _ text: String, from sender: String, to steward: StewardID,
+        attachments: [JSONValue] = []
+    ) async throws -> Bool {
         let record = try await StewardLifecycle(sink: engine.sink).book().records[steward]
         guard let record, record.takesLiveTriggers,
             SchedulePlan.takesMessage(record.charter, from: sender)
         else { return false }
-        let input = RunInput(kind: .message, text: text)
+        let input = RunInput(kind: .message, text: text, attachments: attachments)
         launch(RunRequest(steward: steward, input: input, mode: .live, actor: .person(sender))) {
             _ in
         }

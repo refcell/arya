@@ -63,6 +63,9 @@ public actor RuntimeService {
         try await scheduler.deliver(text, from: sender, to: steward)
     }
 
+    /// The local inbox, starting message runs through this service's scheduler.
+    public var inbox: Inbox { Inbox(engine: engine, scheduler: scheduler) }
+
     /// Recovers, then ticks every `interval` by the engine's clock until cancelled; waits for
     /// started runs before returning.
     public func run(every interval: Duration) async throws {

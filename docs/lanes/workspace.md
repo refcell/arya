@@ -117,6 +117,7 @@ M3:
 - (from runtime) `plan.updated` is live (decision 0035): `plan(steward:)` can read `PlanBook(events).plans[id]` and the newest event's `PlanUpdated {items: [{id, text, status, rationale?}], reason?}`; the app's `OutcomeFeed` expects `{steps: [{title, note}]}` and should adapt to this shape.
 - (from runtime) Approval cards: `action.proposed` now has `risk` (low|medium|high) and `autonomy`, and `reason` `autonomy:<level>:<risk>` when autonomy made it ask (decision 0037); charters carry `autonomy` and `policy.risk`.
 - (from eval) Facade asks: `correct(run:expected:)` via `Corrector.correct(run:...)`; `whatIf(run:)` via `Counterfactuals(runner: RuntimeCaseRunner)`.
+- (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
 
 ## Log
 

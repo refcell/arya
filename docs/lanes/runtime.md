@@ -187,6 +187,8 @@ M4:
   `policy.risk`; `PolicyVerdict` carries `risk` and `autonomy`, written onto
   `action.proposed`. Small additive edits in `AryaCore` (types, charter and policy fields,
   `ProposedAction.risk`) and `AryaLedger` (`ActionProposed.risk/autonomy`).
+- Inbox (decision 0039): `Inbox.post` (also `RuntimeService.inbox`) and `InboxBook` in
+  `Inbox.swift`; `Scheduler.deliver` takes run input attachments.
 
 ## Questions
 
@@ -231,3 +233,4 @@ M4:
 - 2026-11-09: steward plans: `plan.updated`, `PlanBook`, plan in instructions (decision 0035)
 - 2026-11-09: risk levels and per-steward autonomy on charters and proposals (decision 0037)
 - 2026-11-09: `why` on `run.decision` and `action.proposed` actions, adapter risk hints kept
+- 2026-11-09: local inbox: messages, corrections as memory, message runs (decision 0039)
