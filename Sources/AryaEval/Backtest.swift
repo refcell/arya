@@ -54,6 +54,10 @@ public struct CaseVariantResult: Hashable, Sendable, Codable {
     public var notes: [String]
     /// The first sample's differences from `expected`.
     public var diff: [FieldDiff]
+    /// What this variant would have done, in words.
+    public var text: String
+    /// The differences in a line, or `matches expected`.
+    public var diffText: String
 }
 
 /// One case side by side: what each variant would have done and what actually happened.
@@ -62,11 +66,15 @@ public struct BacktestCase: Hashable, Sendable, Codable {
     public var input: String
     /// What actually happened, as recorded in the casebook and corrected by people.
     public var expected: JSONValue
+    /// What actually happened, in words.
+    public var expectedText: String
     public var current: CaseVariantResult
     public var proposed: CaseVariantResult
     /// `proposed.score - current.score`.
     public var delta: Double
     public var change: CaseChange
+    /// One line for the Improve screen: `case-0006 improved: now chose billing (was how-to)`.
+    public var summary: String
 }
 
 /// A strategy backtest: two variants rehearsed on the same casebook, compared case by case.
@@ -82,6 +90,9 @@ public struct BacktestComparison: Hashable, Sendable, Codable {
     public var improved: Int
     public var regressed: Int
     public var verdict: GateCheckVerdict
+    /// One line: `proposed: 1 improved, 1 regressed (mean 0.88 to 0.88); gate fails: case
+    /// regressed`.
+    public var summary: String
 }
 
 /// Rehearses two variants on one casebook and compares them.
@@ -143,7 +154,18 @@ public struct Backtests: Sendable {
             current: Self.side(old), proposed: Self.side(new), cases: cases,
             meanDelta: new.meanScore - old.meanScore,
             improved: cases.filter { $0.change == .improved }.count,
-            regressed: cases.filter { $0.change == .regressed }.count, verdict: verdict)
+            regressed: cases.filter { $0.change == .regressed }.count, verdict: verdict,
+            summary: Self.summary(cases, old.meanScore, new.meanScore, verdict))
+    }
+
+    static func summary(
+        _ cases: [BacktestCase], _ old: Double, _ new: Double, _ verdict: GateCheckVerdict
+    ) -> String {
+        let up = cases.filter { $0.change == .improved }.count
+        let down = cases.filter { $0.change == .regressed }.count
+        let gate = verdict.passed ? "gate passes" : "gate fails: \(verdict.reason)"
+        return "proposed: \(up) improved, \(down) regressed "
+            + "(mean \(format(old)) to \(format(new))); \(gate)"
     }
 
     static func side(_ report: RehearsalReport) -> BacktestSide {
@@ -166,8 +188,9 @@ public struct Backtests: Sendable {
             change = .unchanged
         }
         return BacktestCase(
-            caseID: new.caseID, input: new.input, expected: new.expected, current: current,
-            proposed: proposed, delta: delta, change: change)
+            caseID: new.caseID, input: new.input, expected: new.expected,
+            expectedText: new.expectedText, current: current, proposed: proposed, delta: delta,
+            change: change, summary: summary(new.caseID, change, current, proposed))
     }
 
     static func variant(_ report: CaseReport) -> CaseVariantResult {
@@ -177,6 +200,28 @@ public struct Backtests: Sendable {
         return CaseVariantResult(
             runs: report.samples.map(\.run), actual: first?.actual, score: mean,
             passed: report.passed && !report.leak, leak: report.leak,
-            notes: report.samples.flatMap(\.score.notes), diff: first?.diff ?? [])
+            notes: report.samples.flatMap(\.score.notes), diff: first?.diff ?? [],
+            text: first?.text ?? "no result", diffText: first?.diffText ?? "no result")
+    }
+
+    static func summary(
+        _ id: CaseID, _ change: CaseChange, _ current: CaseVariantResult,
+        _ proposed: CaseVariantResult
+    ) -> String {
+        switch change {
+        case .unchanged:
+            return "\(id.rawValue) unchanged: \(proposed.passed ? "passes" : "fails") both ways"
+        case .improved, .regressed:
+            let verb = change == .improved ? "improved" : "regressed"
+            guard proposed.text != current.text else {
+                return "\(id.rawValue) \(verb): score \(format(current.score)) to "
+                    + format(proposed.score)
+            }
+            return "\(id.rawValue) \(verb): now \(proposed.text) (was \(current.text))"
+        }
+    }
+
+    static func format(_ value: Double) -> String {
+        ResultText.value(.double((value * 100).rounded() / 100))
     }
 }

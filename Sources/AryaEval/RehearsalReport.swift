@@ -56,6 +56,10 @@ public struct SampleReport: Hashable, Sendable, Codable {
     public var actual: JSONValue?
     public var score: CaseScore
     public var diff: [FieldDiff]
+    /// What the run did, in words (`ResultText.describe`): `chose billing; label inbox:MSG-1`.
+    public var text: String
+    /// The differences in a line, or `matches expected`.
+    public var diffText: String
 }
 
 /// One case of a rehearsal, as the app's review screen shows it.
@@ -63,6 +67,8 @@ public struct CaseReport: Hashable, Sendable, Codable {
     public var caseID: CaseID
     public var input: String
     public var expected: JSONValue
+    /// The expected result in words.
+    public var expectedText: String
     public var samples: [SampleReport]
     public var leak: Bool
     /// Every sample passed.
@@ -135,12 +141,16 @@ public struct RehearsalReports: Sendable {
         let samples = scores.indices.map { index in
             let recorded: JSONValue? = scored?.results?[safe: index].flatMap { $0 }
             let actual: JSONValue? = recorded == .null ? .none : recorded
+            let diff = actual.map { ResultDiff.diff(expected: item.expected, actual: $0) } ?? []
             return SampleReport(
                 run: scored?.runs[safe: index] ?? nil, actual: actual, score: scores[index],
-                diff: actual.map { ResultDiff.diff(expected: item.expected, actual: $0) } ?? [])
+                diff: diff, text: ResultText.describe(actual),
+                diffText: actual == nil
+                    ? (scores[index].notes.first ?? "no result") : ResultText.describe(diff))
         }
         return CaseReport(
-            caseID: item.id, input: item.input.text, expected: item.expected, samples: samples,
+            caseID: item.id, input: item.input.text, expected: item.expected,
+            expectedText: ResultText.describe(item.expected), samples: samples,
             leak: scored?.leak ?? false, passed: !scores.isEmpty && scores.allSatisfy(\.passed),
             corrections: corrections)
     }

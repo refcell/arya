@@ -21,9 +21,13 @@ public struct ReadinessReport: Hashable, Sendable, Codable {
     public var steward: StewardID
     public var charterVersion: Int
     public var ready: Bool
+    /// One line the app shows verbatim: `ready: 8/8 passed, no regressions` or
+    /// `not ready: case-0006 regressed after the last change` (the first reason).
+    public var summary: String
     public var markedReady: Bool
     public var reasons: [ReadinessReason]
-    /// The latest finished rehearsal of the live charter (no proposal, no candidate routine).
+    /// The latest finished rehearsal of a live charter version (no proposal, no candidate
+    /// routine, not version 0, which is a candidate such as a backtest's proposed side).
     public var rehearsal: RehearsalID?
     public var lastRehearsalAt: Timestamp?
     /// Cases that passed in every sample over all cases; `nil` without a rehearsal.
@@ -63,7 +67,7 @@ public struct ReadinessReports: Sendable {
             .filter {
                 let request = $0.result.request
                 return $0.finished && request.steward == steward && request.proposal == nil
-                    && request.routine == nil
+                    && request.routine == nil && request.charterVersion > 0
             }
             .sorted { ($0.finishedSeq ?? 0) > ($1.finishedSeq ?? 0) }
         let latest = runs.first
@@ -74,7 +78,7 @@ public struct ReadinessReports: Sendable {
         }
         let after = latest?.finishedSeq ?? 0
         var report = ReadinessReport(
-            steward: steward, charterVersion: live.version, ready: false,
+            steward: steward, charterVersion: live.version, ready: false, summary: "",
             markedReady: try Self.marked(events, steward, live.version), reasons: [],
             rehearsal: latest?.result.id,
             lastRehearsalAt: events.first { $0.seq == latest?.finishedSeq }?.at, passRate: nil,
@@ -89,6 +93,7 @@ public struct ReadinessReports: Sendable {
         }
         report.reasons = Self.reasons(report, rehearsed: latest != nil)
         report.ready = report.reasons.isEmpty
+        report.summary = Self.summary(report)
         return report
     }
 
@@ -117,36 +122,54 @@ public struct ReadinessReports: Sendable {
 
     static let staleReason = ReadinessReason(
         code: "stale_rehearsal",
-        message: "The charter or its routines changed since the last rehearsal.")
+        message: "the charter or its routines changed since the last rehearsal")
 
+    static func summary(_ report: ReadinessReport) -> String {
+        guard let first = report.reasons.first else {
+            return "ready: \(report.passed)/\(report.total) passed, no regressions"
+        }
+        return "not ready: \(first.message)"
+    }
+
+    /// Reasons, most decisive first: missing or stale evidence, regressions, pass rate, leaks,
+    /// then corrections waiting for a rehearsal.
     static func reasons(_ report: ReadinessReport, rehearsed: Bool) -> [ReadinessReason] {
         guard rehearsed, let rate = report.passRate else {
-            return [ReadinessReason(code: "no_rehearsal", message: "No rehearsal yet.")]
+            return [ReadinessReason(code: "no_rehearsal", message: "no rehearsal yet")]
         }
         var out = report.reasons
+        if !report.regressions.isEmpty {
+            let ids = report.regressions.map(\.rawValue).joined(separator: ", ")
+            out.append(
+                ReadinessReason(
+                    code: "regressions", message: "\(ids) regressed after the last change"))
+        }
         if rate < report.threshold {
             out.append(
                 ReadinessReason(
                     code: "below_threshold",
-                    message: "\(report.passed) of \(report.total) cases pass; "
-                        + "\(percent(report.threshold)) required."))
+                    message: "\(report.passed)/\(report.total) passed, "
+                        + "\(percent(report.threshold)) required"))
         }
         if report.leaks > 0 {
             out.append(
                 ReadinessReason(
-                    code: "leaks", message: "\(report.leaks) case(s) read outside the case."))
-        }
-        if !report.regressions.isEmpty {
-            let ids = report.regressions.map(\.rawValue).joined(separator: ", ")
-            out.append(ReadinessReason(code: "regressions", message: "Regressed: \(ids)."))
+                    code: "leaks",
+                    message: plural(report.leaks, "case read", "cases read")
+                        + " outside the casebook"))
         }
         if report.correctionsOutstanding > 0 {
             out.append(
                 ReadinessReason(
                     code: "corrections_outstanding",
-                    message: "\(report.correctionsOutstanding) correction(s) not yet rehearsed."))
+                    message: plural(report.correctionsOutstanding, "correction", "corrections")
+                        + " not yet rehearsed"))
         }
         return out
+    }
+
+    static func plural(_ count: Int, _ one: String, _ many: String) -> String {
+        "\(count) \(count == 1 ? one : many)"
     }
 
     static func percent(_ value: Double) -> String {

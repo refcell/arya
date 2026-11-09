@@ -102,11 +102,12 @@ private func setup(_ answers: [String: [String: String]]) async throws -> (
     let readiness = ReadinessReports(sink: sink)
     let request = RehearsalRequest(
         steward: steward, charterVersion: 1, casebookVersion: book.version)
-    #expect(try await readiness.report(steward).reasons.map(\.code) == ["no_rehearsal"])
+    #expect(try await readiness.report(steward).summary == "not ready: no rehearsal yet")
 
     let good = try await rehearser.rehearse(request, charter: named("v1"))
     var report = try await readiness.report(steward)
     #expect(report.ready && !report.markedReady)
+    #expect(report.summary == "ready: 3/3 passed, no regressions")
     #expect(report.passRate == 1 && report.total == 3 && report.lastRehearsalAt != nil)
     try await Readiness(sink: sink).markReady(
         steward: steward, charterVersion: 1, reviewed: good, person: "person:alex")
@@ -120,15 +121,20 @@ private func setup(_ answers: [String: [String: String]]) async throws -> (
     report = try await readiness.report(steward)
     #expect(!report.ready)
     #expect(
-        report.reasons.map(\.code) == ["below_threshold", "regressions", "corrections_outstanding"])
+        report.reasons.map(\.code) == ["regressions", "below_threshold", "corrections_outstanding"])
     #expect(report.regressions == [CaseID(rawValue: "c-1")!])
-    #expect(report.reasons[0].message == "2 of 3 cases pass; 100% required.")
+    #expect(report.summary == "not ready: c-1 regressed after the last change")
+    #expect(report.reasons[1].message == "2/3 passed, 100% required")
+    #expect(report.reasons[2].message == "1 correction not yet rehearsed")
     #expect(
         try await readiness.report(steward, threshold: 0.6).reasons.first?.code == "regressions")
 
     try await StewardLifecycle(sink: sink).updateCharter(named("v2"))
     report = try await readiness.report(steward, threshold: 0.6)
     #expect(report.reasons.first?.code == "stale_rehearsal")
+    #expect(
+        report.summary
+            == "not ready: the charter or its routines changed since the last rehearsal")
     #expect(!report.markedReady)
 }
 
