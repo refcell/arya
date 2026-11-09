@@ -240,3 +240,4 @@ M4:
 - 2026-11-09: `why` on `run.decision` and `action.proposed` actions, adapter risk hints kept
 - 2026-11-09: local inbox: messages, corrections as memory, message runs (decision 0039)
 - 2026-11-09: routines and binding servers sandboxed, recorded on `run.started` (decision 0040)
+- 2026-11-09: schedule status: `SchedulePlan.status` / `Scheduler.status` (next wake, last N outcomes)

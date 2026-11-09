@@ -16,19 +16,33 @@ public enum SchedulePlan {
     /// restart).
     public static func due(stewards: StewardBook, runs: RunBook, now: Timestamp) -> [StewardID] {
         stewards.all.compactMap { steward in
-            guard steward.takesLiveTriggers, let every = interval(steward.charter) else {
-                return nil
-            }
-            let live = runs.all.filter {
-                $0.steward == steward.id && !$0.rehearsal && $0.parent == nil
-            }
-            if live.contains(where: { $0.status == .running }) { return nil }
-            guard let last = live.last(where: { $0.trigger == RunInputKind.schedule.rawValue })
-            else { return steward.id }
-            if last.failureReason == RunFailureReason.interrupted.rawValue { return steward.id }
-            let next = last.startedAt.adding(milliseconds: Int64(every) * 1000)
-            return now >= next ? steward.id : nil
+            status(of: steward, runs: runs, now: now, recent: 0).state == .due ? steward.id : nil
         }
+    }
+
+    /// Where `steward`'s schedule stands at `now`, with its last `recent` live top-level runs
+    /// (newest first) and how they ended.
+    public static func status(
+        of steward: StewardRecord, runs: RunBook, now: Timestamp, recent: Int = 10
+    ) -> ScheduleStatus {
+        let live = runs.all.filter {
+            $0.steward == steward.id && !$0.rehearsal && $0.parent == nil
+        }
+        let outcomes = live.suffix(max(0, recent)).reversed().map(TriggerOutcome.init)
+        let every = interval(steward.charter)
+        func status(_ state: ScheduleStatus.State, _ next: Timestamp?) -> ScheduleStatus {
+            ScheduleStatus(
+                steward: steward.id, state: state, intervalSeconds: every, nextWake: next,
+                recent: Array(outcomes))
+        }
+        guard steward.takesLiveTriggers else { return status(.off, nil) }
+        guard let every else { return status(.unscheduled, nil) }
+        if live.contains(where: { $0.status == .running }) { return status(.running, nil) }
+        guard let last = live.last(where: { $0.trigger == RunInputKind.schedule.rawValue }),
+            last.failureReason != RunFailureReason.interrupted.rawValue
+        else { return status(.due, now) }
+        let next = last.startedAt.adding(milliseconds: Int64(every) * 1000)
+        return status(now >= next ? .due : .waiting, next)
     }
 
     /// The shortest interval trigger of a charter, in seconds.
@@ -46,6 +60,54 @@ public enum SchedulePlan {
             if case .message(let from) = trigger { return from == nil || from == sender }
             return false
         }
+    }
+}
+
+/// A steward's schedule at one moment (`SchedulePlan.status`).
+public struct ScheduleStatus: Sendable, Hashable {
+    public enum State: String, Sendable, Hashable {
+        /// Not ready, paused, or retired: no live triggers fire.
+        case off
+        /// Takes live triggers but has no interval trigger.
+        case unscheduled
+        /// A live run is open; the next wake is set when it ends.
+        case running
+        /// The next tick starts a scheduled run.
+        case due
+        /// Waiting for `nextWake`.
+        case waiting
+    }
+
+    public var steward: StewardID
+    public var state: State
+    /// The shortest interval trigger, in seconds.
+    public var intervalSeconds: Int?
+    /// When the next scheduled run starts: `now` when due; nil when off, unscheduled, or running.
+    public var nextWake: Timestamp?
+    /// The last live top-level runs, newest first.
+    public var recent: [TriggerOutcome]
+}
+
+/// How one triggered run went.
+public struct TriggerOutcome: Sendable, Hashable {
+    public var run: RunID
+    /// `schedule`, `message`, `manual`, or `join`.
+    public var trigger: String
+    public var status: RunRecord.Status
+    /// The failure reason (`budget`, `timeout`, `interrupted`, ...) of a failed run.
+    public var failureReason: String?
+    public var summary: String?
+    public var startedAt: Timestamp
+    public var endedAt: Timestamp?
+
+    init(_ record: RunRecord) {
+        run = record.id
+        trigger = record.trigger
+        status = record.status
+        failureReason = record.failureReason
+        summary = record.summary
+        startedAt = record.startedAt
+        endedAt = record.endedAt
     }
 }
 
@@ -100,6 +162,15 @@ public actor Scheduler {
             _ in
         }
         return true
+    }
+
+    /// Every steward's schedule at `now`, with its last `recent` triggered runs.
+    public func status(now: Timestamp, recent: Int = 10) async throws -> [ScheduleStatus] {
+        let events = try await engine.sink.events(from: 1)
+        let runs = try RunBook(events)
+        return try StewardBook(events).all.map {
+            SchedulePlan.status(of: $0, runs: runs, now: now, recent: recent)
+        }
     }
 
     /// Ticks every `interval` (by `engine`'s ambient clock) until the task is cancelled.

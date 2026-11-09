@@ -140,3 +140,40 @@ private let t0 = Timestamp(millis: 1_000_000_000_000)
     let second = try SchedulerLock.acquire(home: home)
     #expect(second != nil)
 }
+
+@Test func statusShowsTheNextWakeAndRecentOutcomes() async throws {
+    let rig = SchedulerRig()
+    try await rig.create()
+    var status = try #require(try await rig.scheduler.status(now: t0).first)
+    #expect(status.state == .due)
+    #expect(status.nextWake == t0)
+    #expect(status.intervalSeconds == 900)
+    #expect(status.recent.isEmpty)
+
+    #expect(try await rig.scheduler.tick(now: t0) == [triage])
+    await rig.scheduler.settle()
+    #expect(try await rig.scheduler.deliver("ISSUE-7 is back", from: "alex", to: triage) == false)
+    let started = try #require(try await rig.runs().first?.startedAt)
+    status = try #require(try await rig.scheduler.status(now: started, recent: 5).first)
+    #expect(status.state == .waiting)
+    #expect(status.nextWake == started.adding(milliseconds: 900_000))
+    #expect(status.recent.map(\.trigger) == ["schedule"])
+    #expect(status.recent.first?.status == .finished)
+    #expect(status.recent.first?.summary == "Labeled ISSUE-7 as a bug.")
+
+    let later = try #require(
+        try await rig.scheduler.status(now: started.adding(milliseconds: 900_000)).first)
+    #expect(later.state == .due)
+    #expect(try await rig.scheduler.status(now: t0, recent: 0).first?.recent.isEmpty == true)
+}
+
+@Test func statusSaysWhyNothingIsScheduled() async throws {
+    let manual = SchedulerRig()
+    try await manual.create(scheduledCharter([.manual]))
+    #expect(try await manual.scheduler.status(now: t0).first?.state == .unscheduled)
+    #expect(try await manual.scheduler.status(now: t0).first?.nextWake == nil)
+
+    let unready = SchedulerRig()
+    try await unready.create(ready: false)
+    #expect(try await unready.scheduler.status(now: t0).first?.state == .off)
+}

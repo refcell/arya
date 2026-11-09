@@ -117,6 +117,7 @@ M3:
 - (from eval) Before-live gate: `LiveReadinessGate.check(...)` (summary verbatim); `CasebookBuilder.harvest(steward:into:)`.
 - (from eval) On main: `Corrector(sink:blobs:ambient:).correct(run: RunID, expected: JSONValue, note: String? = nil, person: String = "local") async throws -> CorrectionOutcome`.
 - (from runtime) Sandbox (decision 0040): small integration edit in `Wiring` (`routines: SandboxedRoutineRunner()`, `sandbox = true`); when real binding executors replace `DryRunExecutor`, use `BindingActionExecutor(connectForRun: BindingActionExecutor.sandboxed(workdir:))`.
+- (from runtime) Schedule visibility: `Scheduler.status(now:recent:)` (or `RuntimeService.schedule(recent:)`) gives each steward's `ScheduleStatus {state: off|unscheduled|running|due|waiting, intervalSeconds, nextWake, recent: [TriggerOutcome]}` for the steward header.
 
 ## Log
 

@@ -63,6 +63,11 @@ public actor RuntimeService {
         try await scheduler.deliver(text, from: sender, to: steward)
     }
 
+    /// Every steward's next wake and last `recent` trigger outcomes (see `Scheduler.status`).
+    public func schedule(recent: Int = 10) async throws -> [ScheduleStatus] {
+        try await scheduler.status(now: engine.ambient.now(), recent: recent)
+    }
+
     /// The local inbox, starting message runs through this service's scheduler.
     public var inbox: Inbox { Inbox(engine: engine, scheduler: scheduler) }
 
