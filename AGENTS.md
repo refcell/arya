@@ -132,6 +132,9 @@ Executable targets are not named after their products because `Sources/arya` and
 
 - Conventional, imperative subject: `feat(ledger): add hash chain verification`,
   `docs: add architecture`.
+- Commit messages carry no co-author or attribution trailers (`Co-authored-by:` and the like).
+  Commit through a subshell, `sh -c 'git commit -S -m "docs: add architecture"'`, so editor or
+  tool hooks cannot append one, and check `git log -1 --format=%B` before every push.
 - Small and frequent. Never commit `.build/`, `.swiftpm/`, `.cache/`, `.pi/`, `.claude/`, or a
   local arya home.
 - Commits must be GPG-signed with a committer email equal to the repo's `user.email` (the global
