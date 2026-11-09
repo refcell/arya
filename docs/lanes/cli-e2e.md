@@ -69,6 +69,7 @@ M3:
 - (from app-shell) `just demo` can open the app on the seeded home with
   `open -n .build/Arya.app --args --home <path>` after `just app`; app-shell then points
   `just app-preview` at it.
+- (from workspace) live: charter proposals (`proposeCharter`, `proposals`, `checkProposal`, `acceptProposal`, `rejectProposal`, `overrideProposal`) and routine gates (`gateRoutine`, `overrideRoutine`) for `arya propose`/`arya routine`.
 
 ## Log
 - 2026-11-09: casebook, rehearse, correct, ready, metrics, and `run show` wired to the facade;

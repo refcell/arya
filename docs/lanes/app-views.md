@@ -109,6 +109,7 @@ M4:
   Rehearsals to your views when a store is wired; metric chart placement is yours. Changes
   shows a primary Accept per proposal, and STYLE.md allows one primary button per pane.
 - (from workspace) live on the facade: `routineContent(steward:name:version:)`, `routine(steward:name:version:)`, `routineHistory`, `routines`, `memory(steward:)`, and `caseExpected(casebook:case:) -> Data?` (canonical JSON).
+- (from workspace) live: `proposeCharter(steward:charter:baseVersion:title:reason:by:) -> ProposalSummary` (refuses a stale base), `proposals`, `checkProposal`, `acceptProposal`, `rejectProposal(_:reason:)`, `overrideProposal(_:reason:)`, `gateRoutine`, `overrideRoutine`.
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

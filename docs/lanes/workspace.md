@@ -22,8 +22,11 @@ M1 (the facade still throws `unavailable` for these):
 - [x] Adapter launch through the public `AryaAdapters.AdapterProfiles` (exec profiles, `env`).
 - [x] Eval's `CaseRunRequest.routine`: rehearsals run the candidate routine version
   (`RunRequest.routine`, a small runtime integration edit).
-- [ ] Gate wiring: `RoutineRehearsalGate` into `RoutineGatekeeper`, `RehearsalGate` into
-  `ProposalDesk`/`GateChecking`.
+- [x] Gate wiring: charter proposals (`proposeCharter`, `proposals`, `proposal`,
+  `checkProposal`, `acceptProposal`, `rejectProposal`, `overrideProposal`) through
+  `ProposalDesk` + `RehearsalGate`; routine versions (`gateRoutine`, `overrideRoutine`)
+  through `RoutineGatekeeper` + `RoutineRehearsalGate`.
+- [ ] Routine intake from `run/result.routines` and `routine` action execution.
 
 M2 (top priority first):
 - [x] Runtime-backed `AryaEval.CaseRunner` in `Sources/Arya` (the runtime cannot import eval):
@@ -80,7 +83,6 @@ M3:
 
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
-- (from app-views) the charter editor records proposals: proposed `Workspace.proposeCharter(steward:charter: Data, baseVersion:title:reason:) -> ProposalSummary` (refuse when `baseVersion` is no longer live); until then the app shows "unavailable" on save.
 - (from eval) `RunReplayer(sink:casebooks:).replay(run:)` is on main (36829d4) for `Workspace.replay`.
 
 ## Log
@@ -94,6 +96,9 @@ M3:
 - 2026-11-09: routine reads take a steward (`RoutineLibrary` keys by steward and name);
   `caseExpected` returns canonical JSON `Data`, like `charter(_:)`, so the app needs no
   `AryaCore` import
+- 2026-11-09: routine gates and overrides get a fresh proposal id (routine proposals have no
+  `proposal.created`); an override records `routine.promoted` by the person, then
+  `proposal.overridden` with the reason; a charter proposal title is the reason's first line
 - 2026-11-09: `just e2e` after 40f9468: steps 1-2 ok, 3 PENDING (`importCasebook`: the
   facade call is live, the CLI `WorkspaceBackend` still stubs it); replay engine handed to
   eval; memory and routine reads, `caseExpected`, and public adapter profiles landed.
@@ -101,3 +106,5 @@ M3:
   7/8, correct case-0006, rehearse 8/8, ready, live run, approval wait, approve, executed,
   metric recorded, series updated, verify); 14 replay PENDING on eval's `RunReplayer`.
   Rehearsals now honor `CaseRunRequest.routine`.
+- 2026-11-09: charter proposals and routine gates through the facade (28 AryaTests green);
+  replay waits on eval's `RunReplayer`.
