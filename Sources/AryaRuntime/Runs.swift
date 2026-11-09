@@ -9,7 +9,7 @@ import Foundation
 // projection and survive as they are.
 
 /// One run as projected from the ledger.
-public struct RunRecord: Sendable, Hashable {
+public struct RunRecord: Sendable, Hashable, Codable {
     /// Where a run is, as the ledger says.
     public enum Status: String, Sendable, Hashable, Codable {
         /// Started, not yet finished or failed.
@@ -18,6 +18,11 @@ public struct RunRecord: Sendable, Hashable {
         case finished
         /// `run.failed` recorded.
         case failed
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, steward, parent, trigger, input, charterVersion, rehearsal, status, endStatus
+        case failureReason, summary, startedAt, endedAt, costMicros, actions
     }
 
     /// Run id.
@@ -53,10 +58,14 @@ public struct RunRecord: Sendable, Hashable {
 }
 
 /// Folds run events into records.
-public struct RunBook: Sendable {
+public struct RunBook: RuntimeBook {
     /// Records by id.
     public private(set) var records: [RunID: RunRecord] = [:]
     private var order: [RunID] = []
+
+    public static let cacheName = "runtime.runs.v1"
+
+    enum CodingKeys: String, CodingKey { case records, order }
 
     /// An empty book.
     public init() {}
@@ -229,7 +238,7 @@ public struct RunRecovery: Sendable {
     /// first, and returns those runs.
     @discardableResult
     public func recover() async throws -> [RunRecord] {
-        let open = try RunBook(try await sink.events(from: 1)).open
+        let open = try await sink.book(RunBook.self).open
         var interrupted: [RunRecord] = []
         for record in open where !leases.isHeld(record.id) {
             let payload = RunFailed(

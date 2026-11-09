@@ -37,7 +37,8 @@ public struct ProjectionCache: Sendable {
     }
 
     /// Loads the cache (or starts empty), catches up with the ledger, saves the result if it
-    /// moved, and returns it.
+    /// moved, and returns it. Saving is best effort: a cache that cannot be written (a
+    /// read-only home, a full disk) never fails the read, it only stays stale.
     public func current<P: LedgerProjection & Codable>(_ type: P.Type, name: String) throws
         -> Projected<P>
     {
@@ -45,7 +46,7 @@ public struct ProjectionCache: Sendable {
         var projected = saved ?? Projected<P>()
         try reader.catchUp(&projected)
         if saved?.seq != projected.seq || saved?.hash != projected.hash {
-            try save(projected, name: name)
+            try? save(projected, name: name)
         }
         return projected
     }

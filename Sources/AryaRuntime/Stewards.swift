@@ -34,7 +34,7 @@ public enum StewardStatus: String, Sendable, Hashable, Codable {
 }
 
 /// One steward as projected from the ledger.
-public struct StewardRecord: Sendable, Hashable {
+public struct StewardRecord: Sendable, Hashable, Codable {
     /// Steward id.
     public var id: StewardID
     /// The live charter.
@@ -50,6 +50,8 @@ public struct StewardRecord: Sendable, Hashable {
 
     /// True when the steward may take live (scheduled or message) triggers.
     public var takesLiveTriggers: Bool { status == .active && ready }
+
+    enum CodingKeys: String, CodingKey { case id, charter, version, status, ready, createdAt }
 }
 
 /// Why a lifecycle operation was refused.
@@ -93,9 +95,13 @@ struct ReasonPayload: Codable, Hashable {
 }
 
 /// Folds steward events into records.
-public struct StewardBook: Sendable {
+public struct StewardBook: RuntimeBook {
     /// Records by id.
     public private(set) var records: [StewardID: StewardRecord] = [:]
+
+    public static let cacheName = "runtime.stewards.v1"
+
+    enum CodingKeys: String, CodingKey { case records }
 
     /// An empty book.
     public init() {}
@@ -144,7 +150,7 @@ public struct StewardLifecycle: Sendable {
 
     /// The current book.
     public func book() async throws -> StewardBook {
-        try StewardBook(try await sink.events(from: 1))
+        try await sink.book(StewardBook.self)
     }
 
     /// Records `steward.created` with the charter at version 1.

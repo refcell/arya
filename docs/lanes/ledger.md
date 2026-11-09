@@ -57,8 +57,9 @@ M3 (extended by the lane):
 - [x] (2) Readable `verify` report: `LedgerVerification.report` renders a headline plus
   `where`/`verified`/`meaning`/`next` lines, locale-free and golden-tested; adoption asked in
   workspace.md and cli-e2e.md Questions.
-- [ ] (3) Runtime books on `Projected`/`catchUp`/`ProjectionCache`: asked in runtime.md
-  Questions; make it a small integration edit only if runtime agrees.
+- [x] (3) Runtime books on `Projected`/`catchUp`/`ProjectionCache`: `RuntimeBook` and
+  `sink.book(_:)` in AryaRuntime (logged in runtime.md). `ProjectionCache.current` now saves
+  best effort, so an unwritable cache never fails a read.
 
 M4:
 - [ ] (4) Signed checkpoints for ledger compaction (Later in ROADMAP): design note first.
@@ -138,6 +139,7 @@ M4:
 
 
 ## Log
+- 2026-11-09: (3) done: runtime books served from `cache/` (approved integration edit).
 - 2026-11-09: (2) done: `LedgerVerificationReport`, `segments` and `firstBadSeq` on
   `LedgerVerification`, public inits for its `Location` and `Failure`.
 - 2026-11-09: (1) done: `JSONParser` and envelope building without `JSONDecoder`; full

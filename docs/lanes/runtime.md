@@ -150,8 +150,12 @@ M4:
   those notes and routines. A live run's `run/result.memories` go through
   `MemoryIntake.notes` and land as `memory.added` (actor: the steward) after `run.decision`.
   Wire lines are recorded with adapters' `WireRecord.ledgerPayload`.
-- Books adopt `LedgerProjection` with `catchUp` and `ProjectionCache` (decision 0028); the
-  ledger lane makes that edit in runtime files and the runtime reviews it.
+- Books adopt `LedgerProjection` with `catchUp` and `ProjectionCache` (decision 0028): done
+  by the ledger lane. `RuntimeBook` (BookCache.swift) and `sink.book(_:)` serve
+  `StewardBook`/`RunBook`/`ApprovalBook` from `cache/runtime.*.v1.json` over the real ledger
+  and fold every event over other sinks. Bump a book's `cacheName` suffix whenever its fold
+  or coded shape changes. One intended difference: `book()` reads only lines after the cached
+  position, so tampering before it no longer throws there (`verify` still reports it).
 - Routine policy (decision 0032): rules `routine:<name>@<version>` decide a version; a bare
   `routine:<name>` can only deny; everything else asks. The dispatcher gets live routine
   versions from the run's memory context (`dispose(..., routines:)`).
@@ -182,6 +186,8 @@ M4:
 - (from workspace) integration edit: `RunRequest.routine: CandidateRoutine?` runs a rehearsal with that routine version in place of the live one (`MemoryView.context(candidate:)`); `run.started.routines` records it.
 
 ## Log
+- 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior
+  identical (test `cachedBooksMatchAFullFold`), runtime, ledger, and facade tests green.
 
 - 2026-11-09: policy classifier, run phases, instruction composer, and the `Workspace` facade
   API (stubs throwing `unavailable`) landed; cli-e2e and app lanes can code against

@@ -74,3 +74,39 @@ private func engine(_ sink: any EventSink, _ ambient: Ambient, _ executor: Recor
     }
     #expect(RuntimeActor(kind: "robot", id: "x").ledgerActor.kind == .system)
 }
+
+/// Books served from `cache/` (decision 0028) equal a full fold of the ledger at every step,
+/// from a cold cache, a warm one, a deleted one, and after a cache written by another process.
+@Test func cachedBooksMatchAFullFold() async throws {
+    let home = tempHome()
+    defer { try? FileManager.default.removeItem(at: home) }
+    let ambient = Ambient.fixed()
+    let sink = try LedgerEventSink(home: home, ambient: ambient)
+    func expectFresh() async throws {
+        let events = try await sink.events(from: 1)
+        #expect(try await sink.book(StewardBook.self).records == StewardBook(events).records)
+        #expect(try await sink.book(RunBook.self).all == RunBook(events).all)
+        #expect(try await sink.book(ApprovalBook.self).all == ApprovalBook(events).all)
+    }
+    try await expectFresh()
+    let lifecycle = StewardLifecycle(sink: sink)
+    try await lifecycle.create(triageCharter())
+    try await expectFresh()
+    let (engine, approvals, _) = engine(sink, ambient, RecordingExecutor())
+    _ = try await engine.run(.manual(StewardID(unchecked: "st_triage"), text: "go"))
+    try await expectFresh()
+    let cache = home.appendingPathComponent("cache")
+    #expect(
+        FileManager.default.fileExists(
+            atPath: cache.appendingPathComponent(
+                StewardBook.cacheName + ".json"
+            ).path))
+    let pending = try await approvals.book().pending
+    try await approvals.grant(pending[0].id, by: .localUser)
+    try await expectFresh()
+    try FileManager.default.removeItem(at: cache)
+    try await expectFresh()
+    let other = try LedgerEventSink(home: home, ambient: Ambient.fixed(stepMillis: 7))
+    try await StewardLifecycle(sink: other).pause(StewardID(unchecked: "st_triage"))
+    try await expectFresh()
+}

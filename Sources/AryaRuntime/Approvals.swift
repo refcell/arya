@@ -31,11 +31,31 @@ extension ProposedAction {
 }
 
 /// What a person is asked to decide.
-public enum ApprovalSubject: Sendable, Hashable {
+public enum ApprovalSubject: Sendable, Hashable, Codable {
     /// A proposed action held by policy.
     case action(ProposedAction)
     /// A question from a run (`host/ask`).
     case question(String)
+
+    enum CodingKeys: String, CodingKey { case action, question }
+
+    // Coded as `{"action":{…}}` or `{"question":"…"}` (only the book cache stores it).
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let action = try container.decodeIfPresent(ProposedAction.self, forKey: .action) {
+            self = .action(action)
+        } else {
+            self = .question(try container.decode(String.self, forKey: .question))
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .action(let action): try container.encode(action, forKey: .action)
+        case .question(let question): try container.encode(question, forKey: .question)
+        }
+    }
 }
 
 /// Where an approval is.
@@ -51,7 +71,11 @@ public enum ApprovalStatus: String, Sendable, Hashable, Codable {
 }
 
 /// One approval as projected from the ledger.
-public struct ApprovalRecord: Sendable, Hashable {
+public struct ApprovalRecord: Sendable, Hashable, Codable {
+    enum CodingKeys: String, CodingKey {
+        case id, steward, run, subject, to, requestedAt, expiresAt, status, decidedBy, note, seq
+    }
+
     /// Approval id.
     public var id: ApprovalID
     /// Steward that asked.
@@ -85,9 +109,13 @@ public enum ApprovalError: Error, Equatable, Sendable {
 }
 
 /// Folds approval events into records.
-public struct ApprovalBook: Sendable {
+public struct ApprovalBook: RuntimeBook {
     /// Records by id.
     public private(set) var records: [ApprovalID: ApprovalRecord] = [:]
+
+    public static let cacheName = "runtime.approvals.v1"
+
+    enum CodingKeys: String, CodingKey { case records }
 
     /// An empty book.
     public init() {}
@@ -153,7 +181,7 @@ public struct ApprovalQueue: Sendable {
 
     /// The current book.
     public func book() async throws -> ApprovalBook {
-        try ApprovalBook(try await sink.events(from: 1))
+        try await sink.book(ApprovalBook.self)
     }
 
     /// Records `approval.requested` and returns the new pending record.
