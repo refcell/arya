@@ -34,7 +34,12 @@ M3, extended (toward `just e2e` driven from the app):
 M4:
 - [x] Inbox: questions addressed to person bindings, answered with text, in one list.
 - [x] Binding detail in tool calls and actions: which binding served each call (live MCP).
-- [ ] Routine action results in the stream, with the sandbox verdict when it blocked a call.
+- [x] Routine action results in the stream: exit, signal, or timeout, and stdout and stderr.
+- [ ] Sandbox verdict on routine results once the runtime records one (decision 0031, M4).
+- [ ] Routine approvals show the routine body for the exact version asked about (decision
+  0032), with a diff against the previously approved version.
+- [ ] "Always allow this version" on a routine approval: proposes a charter change adding the
+  `routine:<name>@<version>` auto rule (through the charter editor's proposal path).
 
 ## Decisions
 

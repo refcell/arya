@@ -175,6 +175,22 @@ enum StreamStepText {
         source == "unanswered" ? "no recording, a leak" : source
     }
 
+    /// "routine label-duplicates · 1a2b3c · exited 0"; other endings: "timed out", "signal 9".
+    static func routineCaption(_ run: RoutineRun) -> String {
+        let ending: String
+        switch run.status {
+        case "exited": ending = "exited \(run.exitCode ?? 0)"
+        case "signaled": ending = "killed by signal \(run.signal ?? 0)"
+        case "timed_out": ending = "timed out"
+        default: ending = run.status
+        }
+        let parts = [
+            "routine \(run.name)", RoutinesText.shortVersion(run.version), ending,
+            run.truncated ? "output truncated" : nil,
+        ]
+        return parts.compactMap { $0 }.joined(separator: " · ")
+    }
+
     /// "via tracker · executed", the outcome after the binding the action goes through.
     static func actionCaption(_ action: ProposedActionStep) -> String {
         [action.binding.map { "via \($0)" }, outcome(action.outcome)].compactMap { $0 }
@@ -252,6 +268,7 @@ private struct StepBody: View {
             }
             Text(StreamStepText.actionCaption(action))
                 .aryaText(AryaFont.caption, outcomeColor(action.outcome))
+            if let run = action.routine { RoutineRunBody(run: run) }
         }
     }
 
@@ -280,6 +297,28 @@ private struct ToolCallBody: View {
         } label: {
             Text(StreamStepText.toolCaption(call))
                 .aryaText(AryaFont.caption, call.isError ? AryaColor.negative : AryaColor.inkFaint)
+        }
+    }
+}
+
+/// A routine's result: caption, then standard output and error when there is any.
+private struct RoutineRunBody: View {
+    var run: RoutineRun
+
+    var body: some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: AryaSpace.s2) {
+                if !run.stdout.isEmpty { CodeBlock(run.stdout) }
+                if !run.stderr.isEmpty {
+                    Text("Standard error").aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    CodeBlock(run.stderr)
+                }
+                if run.stdout.isEmpty && run.stderr.isEmpty {
+                    Text("No output.").aryaText(AryaFont.caption, AryaColor.inkFaint)
+                }
+            }
+        } label: {
+            Text(StreamStepText.routineCaption(run)).aryaText(AryaFont.caption, AryaColor.inkFaint)
         }
     }
 }

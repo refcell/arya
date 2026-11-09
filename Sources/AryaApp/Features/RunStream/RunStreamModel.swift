@@ -54,6 +54,36 @@ struct ProposedActionStep: Hashable, Sendable {
     var outcome: ActionOutcome
     /// The binding the action goes through, for example `tracker`.
     var binding: String? = nil
+    /// What running the routine produced, for a `routine` action that ran.
+    var routine: RoutineRun? = nil
+}
+
+/// A routine action's result: the runtime's `RoutineOutcome`, recorded as the executor output
+/// of `action.executed` (exit status 0) or `action.failed`.
+struct RoutineRun: Hashable, Sendable {
+    var name: String
+    var version: String
+    /// `exited`, `signaled`, or `timed_out`.
+    var status: String
+    var exitCode: Int?
+    var signal: Int?
+    var stdout: String
+    var stderr: String
+    var truncated: Bool
+
+    init?(_ json: FeatureJSON?) {
+        guard let json, let name = json["name"]?.string, let version = json["version"]?.string,
+            let status = json["status"]?.string
+        else { return nil }
+        self.name = name
+        self.version = version
+        self.status = status
+        exitCode = json["exitCode"]?.number.map { Int($0) }
+        signal = json["signal"]?.number.map { Int($0) }
+        stdout = json["stdout"]?.string ?? ""
+        stderr = json["stderr"]?.string ?? ""
+        truncated = json["stdoutTruncated"]?.bool == true || json["stderrTruncated"]?.bool == true
+    }
 }
 
 /// One step in a run stream.
@@ -245,8 +275,10 @@ private struct RunStreamProjector {
             update(action, .denied(approval: approval, reason: reason))
         case "action.executed":
             update(p["action"]?.string, .executed(output: p["output"]?.compactOutput ?? ""))
+            attachRoutine(p["action"]?.string, p["output"])
         case "action.failed":
             update(p["action"]?.string, .failed(error: p["error"]?.string ?? "unknown error"))
+            attachRoutine(p["action"]?.string, p["output"])
         case "action.rejected":
             update(p["action"]?.string, .rejected(rule: p["reason"]?.string ?? "policy: deny"))
         default: break
@@ -258,6 +290,14 @@ private struct RunStreamProjector {
             case .action(var step) = steps[index].kind
         else { return }
         step.outcome = outcome
+        steps[index].kind = .action(step)
+    }
+
+    private mutating func attachRoutine(_ action: String?, _ output: FeatureJSON?) {
+        guard let action, let index = actionIndex[action], let run = RoutineRun(output),
+            case .action(var step) = steps[index].kind, step.kind == "routine"
+        else { return }
+        step.routine = run
         steps[index].kind = .action(step)
     }
 }
