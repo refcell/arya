@@ -90,11 +90,14 @@ Next (lane-extended toward M3.5 app parity, in order):
 - [x] (10) Per-steward counters in `LedgerIndex.stewards`: `counts` by type, `lastSeqByType`,
   and `openApprovals`, so the sidebar and status widgets read one cached index (old cache files
   fail to decode and rebuild).
-- [ ] (11) Filtered follow: `follow(_ filter:, after:)` yields only matching events through the
-  sieve, so live activity views do not open every appended line.
-- [ ] (12) `ProjectionCache.index()` convenience (`current(LedgerIndex.self, name:
-  "ledger-index")`) and an `events(at seqs:)` batch read, so a widget opens the events named by
-  `lastSeqByType` with one pass per segment.
+- [x] (11) Filtered follow: `follow(_ filter:, after:interval:)` sieves appended lines and
+  advances past the head each poll (the old `follow(after:)` call shape still works).
+- [x] (12) `ProjectionCache.index()` (`cache/ledger-index.json`) and `events(at: seqs)`, a
+  batch read that opens only the named lines.
+- [ ] (13) A 50k-event probe for `verify` and cold `ProjectionCache.index()` (target: per-event
+  cost of the 5k probe), and segment-parallel verify if it misses.
+- [ ] (14) Export and import on top of checkpoints (ARCHITECTURE.md order of work): a steward's
+  events plus the anchoring checkpoint as one bundle, checked on import.
 
 ## Decisions
 
@@ -203,7 +206,15 @@ Next (lane-extended toward M3.5 app parity, in order):
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
-- 2026-11-09: (10) done: per-steward counters in `LedgerIndex`; backlog extended (11), (12).
+- HANDOFF 2026-11-09 (third session, ended near auto-compaction): backlog (5a)-(12) done and on
+  main. Next: (13), then (14). Notes: filtered reads go through `LineSieve` (needles are
+  necessary, never sufficient; skipped lines are not hash-checked). `newest(_:before:limit:)`
+  backs `pageBackward`. Checkpoints carry `keys`; anchors may sit past the cut
+  (`SystemCheckpoint.anchors`). Seeds live in `archive/seeds/<through>/`. `just publish` often
+  needs several push retries under load (10-40 min); a "dirty tree" right after a commit was
+  transient each time: run `git status`, then publish again. Never open the app window.
+- 2026-11-09: (11), (12) done: filtered follow, `ProjectionCache.index()`, `events(at:)`.
+- 2026-11-09: (10) done: per-steward counters in `LedgerIndex`; backlog extended (11), (12) (a00db23).
 - 2026-11-09: (9) done: newest-first reads; `pageBackward` 20x faster on 50k events (21faa2f).
 - 2026-11-09: (8) done: index-narrowed queries; backlog extended with (9) and (10) (a8fe3cf).
 - 2026-11-09: (7b) done: projection seeds and seeding on compacted ledgers (89b5dd0).

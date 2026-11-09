@@ -115,6 +115,15 @@ public struct ProjectionCache: Sendable {
         return out
     }
 
+    /// The cache name of the ledger-owned `LedgerIndex`.
+    public static let indexName = "ledger-index"
+
+    /// The current `LedgerIndex` (run and steward spans, per-steward counters), from
+    /// `cache/ledger-index.json`.
+    public func index() throws -> Projected<LedgerIndex> {
+        try current(LedgerIndex.self, name: Self.indexName)
+    }
+
     /// Removes the cache file for `name`, if any.
     public func remove(name: String) {
         guard Self.isValidName(name) else { return }

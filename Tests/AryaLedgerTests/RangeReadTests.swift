@@ -177,3 +177,37 @@ private func filters() -> [LedgerFilter] {
         }
     }
 }
+
+@Test func filteredFollowYieldsOnlyMatchesInOrder() async throws {
+    let home = try TempHome()
+    defer { home.cleanup() }
+    let store = try LedgerStore(home: home.url, ambient: .fixed(), segmentLimitBytes: 1500)
+    try store.append(EventDraft(type: .runDecision, actor: .system, steward: triage))
+    let stream = LedgerReader(home: home.url).follow(
+        LedgerFilter(steward: inbox), after: 0, interval: .milliseconds(10))
+    var iterator = stream.makeAsyncIterator()
+    for index in 0..<12 {
+        try store.append(
+            EventDraft(type: .runDecision, actor: .system, steward: index % 3 == 0 ? inbox : triage)
+        )
+    }
+    var seqs: [Int64] = []
+    while seqs.count < 4, let event = try await iterator.next() { seqs.append(event.seq) }
+    #expect(seqs == [2, 5, 8, 11])
+}
+
+@Test func batchReadOpensTheNamedEvents() throws {
+    let home = try TempHome()
+    defer { home.cleanup() }
+    let all = try seeded(home)
+    let reader = LedgerReader(home: home.url)
+    let wanted: [Int64] = [120, 3, 57, 58, 1, 999, 0]
+    let found = try reader.events(at: wanted)
+    #expect(found.count == 5)
+    for seq in [Int64(1), 3, 57, 58, 120] { #expect(found[seq] == all[Int(seq) - 1]) }
+    #expect(try reader.events(at: []).isEmpty)
+    let index = try ProjectionCache(home: home.url).index()
+    #expect(index.seq == 120)
+    let latest = try #require(index.value.stewards[triage]?.lastSeqByType[.runDecision])
+    #expect(try reader.events(at: [latest])[latest]?.type == .runDecision)
+}

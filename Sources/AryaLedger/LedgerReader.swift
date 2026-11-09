@@ -69,11 +69,14 @@ public struct LedgerReader: Sendable {
         }
     }
 
-    /// Follows the ledger: returns events after `after` as they are appended, polling every
-    /// `interval`. Ends when the task is cancelled. Polling keeps it simple and portable;
-    /// the ledger is small and appends are infrequent.
+    /// Follows the ledger: returns events after `after` that match `filter` as they are
+    /// appended, polling every `interval`. Ends when the task is cancelled. Lines that cannot
+    /// match are sieved out before they are opened, and each poll starts after the head seen
+    /// by the previous one, so a quiet filter does not rescan. Polling keeps it simple and
+    /// portable; appends are infrequent.
     public func follow(
-        after seq: Int64, interval: Duration = .milliseconds(200)
+        _ filter: LedgerFilter = LedgerFilter(), after seq: Int64,
+        interval: Duration = .milliseconds(200)
     ) -> AsyncThrowingStream<Event, any Error> {
         let reader = self
         return AsyncThrowingStream { continuation in
@@ -81,10 +84,13 @@ public struct LedgerReader: Sendable {
                 var last = seq
                 do {
                     while !Task.isCancelled {
-                        try reader.forEach(from: last + 1) { event in
+                        // Every event up to this head is scanned by the pass below.
+                        let head = try reader.headSeq() ?? last
+                        try reader.forEach(filter, from: last + 1) { event in
                             continuation.yield(event)
-                            last = event.seq
+                            last = max(last, event.seq)
                         }
+                        last = max(last, head)
                         try await Task.sleep(for: interval)
                     }
                     continuation.finish()
@@ -98,6 +104,43 @@ public struct LedgerReader: Sendable {
         }
     }
 
+    /// The events with these `seq`s that are live, by `seq`, in one pass per segment that
+    /// opens only the named lines. For widgets that open the events an index points at
+    /// (`LedgerIndex.StewardSpan.lastSeqByType`).
+    public func events(at seqs: some Sequence<Int64>) throws -> [Int64: Event] {
+        let wanted = Set(seqs.filter { $0 >= 1 })
+        guard let lowest = wanted.min() else { return [:] }
+        var out: [Int64: Event] = [:]
+        let segments = try existingSegments()
+        let start = try firstSegmentIndex(containing: lowest, in: segments)
+        for segment in segments[start...] {
+            guard let first = try firstEvent(of: segment) else { continue }
+            var contiguous = true
+            try scanLines(segment) { line, offset, number in
+                let seq = first.seq + Int64(number) - 1
+                guard !contiguous || wanted.contains(seq) else { return }
+                let event: Event
+                do {
+                    event = try LedgerLine.open(line)
+                } catch let problem as LineProblem {
+                    throw LedgerReadError(
+                        segment: segment.name, line: number, offset: offset, problem: problem)
+                }
+                // A damaged segment breaks the line-to-seq rule; open the rest in full.
+                if event.seq != seq { contiguous = false }
+                if wanted.contains(event.seq) { out[event.seq] = event }
+            }
+            if out.count == wanted.count { break }
+        }
+        return out
+    }
+
+    /// The newest complete event's `seq`, or nil for an empty ledger.
+    func headSeq() throws -> Int64? {
+        guard let newest = try existingSegments().last else { return nil }
+        return try lastEvent(of: newest)?.seq
+    }
+
     // MARK: - Internals
 
     func existingSegments() throws -> [Segment] {
@@ -105,7 +148,7 @@ public struct LedgerReader: Sendable {
         return try Segment.list(in: directory)
     }
 
-    private func firstSegmentIndex(containing seq: Int64, in segments: [Segment]) throws -> Int {
+    func firstSegmentIndex(containing seq: Int64, in segments: [Segment]) throws -> Int {
         guard seq > 1, segments.count > 1 else { return 0 }
         var chosen = 0
         for (index, segment) in segments.enumerated() {

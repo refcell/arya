@@ -87,10 +87,7 @@ public struct Checkpoints: Sendable {
         return LedgerLine.hexSHA256(bytes)
     }
 
-    private func headSeq() throws -> Int64? {
-        guard let newest = try reader.existingSegments().last else { return nil }
-        return try reader.lastEvent(of: newest)?.seq
-    }
+    private func headSeq() throws -> Int64? { try reader.headSeq() }
 
     /// The keys this ledger trusts: every live `system.key.added`, plus, on a compacted
     /// ledger, the keys carried by its anchoring checkpoint (the first one that
