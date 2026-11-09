@@ -96,18 +96,25 @@ public struct RunLoop: Sendable {
     let ambient: Ambient
     let adapters: any AdapterFactory
     let dispatcher: ActionDispatcher
+    let approvals: ApprovalQueue
     let workdir: @Sendable (RunID) throws -> String
+    let questionPoll: Duration
 
     /// Creates a run loop. `workdir` returns (and may create) the scratch directory of a run.
+    /// `questionPoll` is how often a `host/ask` question checks the ledger for an answer.
     public init(
         sink: any EventSink, ambient: Ambient, adapters: any AdapterFactory,
-        dispatcher: ActionDispatcher, workdir: @escaping @Sendable (RunID) throws -> String
+        dispatcher: ActionDispatcher, approvals: ApprovalQueue,
+        workdir: @escaping @Sendable (RunID) throws -> String,
+        questionPoll: Duration = .milliseconds(250)
     ) {
         self.sink = sink
         self.ambient = ambient
         self.adapters = adapters
         self.dispatcher = dispatcher
+        self.approvals = approvals
         self.workdir = workdir
+        self.questionPoll = questionPoll
     }
 
     /// Runs `request` to completion and returns how it ended. Adapter failures end the run

@@ -27,7 +27,7 @@ M1:
   `action.failed` carry output.
 - [ ] Restart recovery: interrupted runs become `run.failed(interrupted)`; pending approvals are
   intact. Test by killing a run mid-stream.
-- [ ] `host/ask` handling through the approval queue.
+- [x] `host/ask` handling through the approval queue.
 
 M2:
 - [ ] `arya binding-proxy`: a stdio MCP server per binding exposing only `read` tools, recording
@@ -93,8 +93,13 @@ M4:
   then `run.finished {status, summary, costMicros, decisions, actions, leak}` or `run.failed
   {reason, detail, costMicros, leak}` (actor: system). `run/cost` is asked after the result
   and before `shutdown`. Protocol errors are recorded through the wire and otherwise ignored.
-  `run.tools` is empty until the binding proxy lands (M2). `host/ask` is answered `null` until
-  its backlog item lands. `charterVersion` 0 means a candidate charter under rehearsal.
+  `run.tools` is empty until the binding proxy lands (M2). `charterVersion` 0 means a candidate charter under rehearsal.
+- `host/ask` in a live run becomes a `question` approval addressed to `to` (default `local`)
+  with `expiresAt` = now + `limits.timeoutSeconds` (ambient time). The run polls the ledger
+  every `questionPoll` (250 ms) until it is granted (answer = the grant's note), denied
+  (`null`), or expired (`null`, recorded by the runtime). Rehearsal answers `null` and asks no
+  one. The connection's wall-clock idle timeout can still stop a run whose question waits
+  longer than `timeoutSeconds`; see the adapters lane question.
 - Rehearsal mode (`RunMode.rehearsal(context)`): dispositions are recorded as
   `action.proposed` only. Until the binding proxy serves reads, a leak is a `tool_call` event
   whose `(tool, input)` has no entry in `context.toolResults`.
@@ -123,3 +128,6 @@ M4:
 - 2026-11-09: `EventSink` seam with an in-memory double and the approval queue (9d8e381)
 - 2026-11-09: steward lifecycle on core `Charter`; decision 0022 (19215d3)
 - 2026-11-09: action executor protocol, `RecordingExecutor`, and `ActionDispatcher` (ce6ab45)
+- 2026-11-09: run loop over `Adapter` with live and rehearsal modes, failure reasons, and wire
+  recording; the workspace lane can build `CaseRunner` on `RunLoop.run` with
+  `RunMode.rehearsal(case.context)` (bc170c7)

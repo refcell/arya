@@ -87,9 +87,9 @@ final class RunDriver: @unchecked Sendable {
             case .event(let params):
                 try transition(.adapterEvent)
                 noteToolCall(params.event)
-            case .ask(let id, _):
-                // Answered by the next backlog item (`host/ask` through the approval queue).
-                try? await adapter.answer(id, HostAskResult(answer: nil))
+            case .ask(let id, let params):
+                let answer = try await ask(params)
+                try? await adapter.answer(id, HostAskResult(answer: answer))
             case .result(let params):
                 return try await finish(adapter, params, &updates)
             case .protocolError:
@@ -101,6 +101,29 @@ final class RunDriver: @unchecked Sendable {
             }
         }
         return try await fail(.adapterExited, detail: "update stream ended", cost: 0)
+    }
+
+    /// Puts a `host/ask` question in the approval queue and waits until a person answers it
+    /// or the run's timeout passes (then it expires and the answer is `null`). Rehearsal never
+    /// asks anyone: an unrecorded question answers `null` (PROTOCOL.md).
+    private func ask(_ params: HostAskParams) async throws -> String? {
+        guard request.mode == .live else { return nil }
+        let timeout = Int64(charter.limits.timeoutSeconds) * 1000
+        let record = try await loop.approvals.request(
+            .question(params.question), steward: charter.id, run: run, to: params.to ?? "local",
+            expiresAt: loop.ambient.now().adding(milliseconds: timeout))
+        while true {
+            let current = try await loop.approvals.book().records[record.id]
+            switch current?.status {
+            case .granted?: return current?.note
+            case .denied?, .expired?, nil: return nil
+            case .pending?: break
+            }
+            if try await !loop.approvals.expireDue(now: loop.ambient.now()).isEmpty {
+                return nil
+            }
+            try await Task.sleep(for: loop.questionPoll)
+        }
     }
 
     private func noteToolCall(_ event: RunEvent) {

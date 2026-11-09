@@ -64,5 +64,11 @@ M4:
 
 ## Questions
 
+- (from runtime) While a `host/ask` request is unanswered, should the connection's idle timer
+  pause? Today a person who takes longer than `limits.timeoutSeconds` to answer makes the run
+  fail with `timeout` instead of the question expiring. Proposed default: pause the idle timer
+  while any `host/ask` is outstanding; the runtime already expires the question at the run's
+  timeout and answers `null`.
+
 
 ## Log

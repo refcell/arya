@@ -33,22 +33,25 @@ struct RunHarness {
     let loop: RunLoop
     let lifecycle: StewardLifecycle
 
-    init(_ run: FakeScript.Run, timeouts: ConnectionTimeouts? = nil) {
-        let ambient = Ambient.fixed()
+    let approvals: ApprovalQueue
+
+    init(_ run: FakeScript.Run, timeouts: ConnectionTimeouts? = nil, stepMillis: Int64 = 1) {
+        let ambient = Ambient.fixed(stepMillis: stepMillis)
         sink = MemoryEventSink(ambient: ambient)
-        let dispatcher = ActionDispatcher(
-            sink: sink, approvals: ApprovalQueue(sink: sink, ambient: ambient),
-            executor: executor)
+        approvals = ApprovalQueue(sink: sink, ambient: ambient)
+        let dispatcher = ActionDispatcher(sink: sink, approvals: approvals, executor: executor)
         var factory = FakeFactory(script: FakeScript(runs: [run]))
         if let timeouts { factory.timeouts = timeouts }
         loop = RunLoop(
             sink: sink, ambient: ambient, adapters: factory, dispatcher: dispatcher,
-            workdir: { "scratch/\($0.rawValue)" })
+            approvals: approvals, workdir: { "scratch/\($0.rawValue)" },
+            questionPoll: .milliseconds(1))
         lifecycle = StewardLifecycle(sink: sink)
     }
 
-    func start(_ mode: RunMode = .live) async throws -> RunOutcome {
-        let charter = triageCharter()
+    func start(_ mode: RunMode = .live, charter: Charter = triageCharter()) async throws
+        -> RunOutcome
+    {
         if try await lifecycle.book().records[charter.id] == nil {
             try await lifecycle.create(charter)
         }
@@ -175,4 +178,81 @@ struct RunHarness {
     await #expect(throws: RunError.stewardRetired(charter.id)) {
         try await harness.loop.run(.manual(charter.id, text: "x"))
     }
+}
+
+private let askRun = FakeScript.Run(
+    steps: [.ask(question: "Assign to the backend team?", to: "person:alex")],
+    result: triageResult)
+
+/// The `answer` arya sent back for the first `host/ask`, or `.null`.
+private func sentAnswer(_ harness: RunHarness) async throws -> JSONValue? {
+    let wire = try await harness.sink.events(from: 1).filter { $0.type == "run.adapter.event" }
+    let reply = wire.first {
+        $0.payload.objectValue?["direction"] == "sent"
+            && $0.payload.objectValue?["message"]?.objectValue?["result"]?.objectValue?["answer"]
+                != nil
+    }
+    return reply?.payload.objectValue?["message"]?.objectValue?["result"]?.objectValue?["answer"]
+}
+
+/// Decides the first pending question as soon as it appears.
+private func decideWhenAsked(
+    _ harness: RunHarness, grant: Bool, note: String? = nil
+) -> Task<Void, any Error> {
+    Task {
+        while true {
+            if let question = try await harness.approvals.book().pending.first {
+                let person = RuntimeActor.person("person:alex")
+                if grant {
+                    try await harness.approvals.grant(question.id, by: person, note: note)
+                } else {
+                    try await harness.approvals.deny(question.id, by: person)
+                }
+                return
+            }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+    }
+}
+
+@Test func hostAskWaitsForAPersonsAnswer() async throws {
+    let harness = RunHarness(askRun)
+    let decider = decideWhenAsked(harness, grant: true, note: "yes, backend")
+    let outcome = try await harness.start()
+    try await decider.value
+    #expect(outcome.phase == .finished(.completed))
+    #expect(try await sentAnswer(harness) == "yes, backend")
+    let book = try await harness.approvals.book()
+    let question = try #require(
+        book.all.first { $0.subject == .question("Assign to the backend team?") })
+    #expect(question.to == "person:alex")
+    #expect(question.decidedBy == .person("person:alex"))
+    #expect(question.run == outcome.run)
+}
+
+@Test func deniedQuestionAnswersNull() async throws {
+    let harness = RunHarness(askRun)
+    let decider = decideWhenAsked(harness, grant: false)
+    _ = try await harness.start()
+    try await decider.value
+    #expect(try await sentAnswer(harness) == .null)
+}
+
+@Test func unansweredQuestionExpiresAtTheRunTimeout() async throws {
+    var charter = triageCharter()
+    charter.limits.timeoutSeconds = 1
+    // Ambient time runs 100 ms per reading, so the question expires before the connection's
+    // wall-clock idle timer (also 1 second) would stop the run.
+    let harness = RunHarness(askRun, stepMillis: 100)
+    let outcome = try await harness.start(charter: charter)
+    #expect(outcome.phase == .finished(.completed))
+    #expect(try await sentAnswer(harness) == .null)
+    #expect(try await harness.approvals.book().all.first?.status == .expired)
+}
+
+@Test func rehearsalQuestionsAnswerNullWithoutAsking() async throws {
+    let harness = RunHarness(askRun)
+    _ = try await harness.start(.rehearsal(CaseContext()))
+    #expect(try await sentAnswer(harness) == .null)
+    #expect(try await harness.approvals.book().all.isEmpty)
 }
