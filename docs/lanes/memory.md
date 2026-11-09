@@ -2,6 +2,8 @@
 
 Owns `Sources/AryaMemory` and `Tests/AryaMemoryTests`.
 
+**Status: backlog done; session retired, other lanes may extend.**
+
 Goal: **stewards that remember and turn repeated work into code.** Memory notes with provenance
 that every run can see a deterministic slice of, and a versioned routine library that stewards
 write for themselves and that only changes through gates. Design:
@@ -37,7 +39,7 @@ M3 (integration toward the end-to-end scenario):
   stub once `AryaLedger` ships it.
 - [x] Read models for the app's Memory and Routines views: `RoutineLibrary.overview`, `diff`
   between any two stored versions, `MemoryProvenance.line`, `RoutineVersion.shortVersion`.
-- [ ] (waits on the workspace lane, which owns `Sources/Arya`) Facade memory API: `memory(steward:scope:)`, `retract`,
+- [x] Moved to the workspace lane, which owns `Sources/Arya`: facade memory API `memory(steward:scope:)`, `retract`,
   `routines(steward:)`, `routineHistory`, `routineDiff` over the home's ledger and blobs.
 - [x] Replay check helper: given a recorded `run.started.memory`, recompute the snapshot from
   the projection at that `seq` and report a divergence.
@@ -112,6 +114,8 @@ M3 (integration toward the end-to-end scenario):
   the projections rebuilt from events before it: a snapshot note that was not live, a routine
   version that differs from the live one, and a live routine missing from the record are
   divergences.
+- Routine actions follow decision 0031: approval policy with `ask` by default, the runner's
+  timeout, workdir, and clean environment, and a `sandbox-exec` profile in M4.
 
 ## Questions
 
@@ -133,3 +137,4 @@ M3 (integration toward the end-to-end scenario):
 - 2026-11-09: routine overview, version diff, provenance read models (5f704c2).
 - 2026-11-09: workspace Questions note on memory read models (c1b03ad).
 - 2026-11-09: routine timeout test no longer depends on load (bb0b561).
+- 2026-11-09: decision 0031 (routine policy and M4 sandboxing); lane retired.

@@ -243,3 +243,13 @@ events and before `run.finished`. Rehearsals record none. The typed payload is
 `AryaRuntime.MetricRecorded`, not an eval type as 0023 said: the writer owns the shape, and the
 runtime cannot import `AryaEval` (0015), while eval already imports the runtime. Why: eval's
 metric series need real measurements, and one writer per event type keeps the shape stable.
+
+### 0031 — 2026-11-09 — Routine actions are policy-gated and limited; sandboxing moves to M4
+
+A `routine` action always goes through the charter's approval policy like any other action
+kind, and is held for approval (`ask`) unless the charter's policy marks routines `auto` (a
+rule for action kind `routine`). Running one keeps the limits from `ShellRoutineRunner`: a
+timeout, the run's workdir, and a clean environment. A macOS `sandbox-exec` profile for
+routines is planned for M4, no longer under Later. Why: routines are code a steward wrote for
+itself, so a person approves them by default until real sandboxing lands.
+

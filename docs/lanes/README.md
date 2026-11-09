@@ -13,7 +13,7 @@ lanes read it to find interfaces. `Tests/<Module>Tests` belongs to the lane that
 | adapters | [adapters.md](adapters.md) | `Sources/AryaAdapters`, `Sources/AryaFakeAdapter`, `Sources/AryaExecAdapter`, `Tests/AryaAdaptersTests`, `docs/PROTOCOL.md` |
 | runtime | [runtime.md](runtime.md) | `Sources/AryaRuntime`, `Tests/AryaRuntimeTests` |
 | workspace | [workspace.md](workspace.md) | `Sources/Arya`, `Tests/AryaTests` |
-| memory | [memory.md](memory.md) | `Sources/AryaMemory`, `Tests/AryaMemoryTests` |
+| memory | [memory.md](memory.md) | `Sources/AryaMemory`, `Tests/AryaMemoryTests` (backlog done; session retired, other lanes may extend) |
 | eval | [eval.md](eval.md) | `Sources/AryaEval`, `Tests/AryaEvalTests` |
 | app-shell | [app-shell.md](app-shell.md) | `Sources/AryaDesign`, `Sources/AryaApp/App`, `Sources/AryaApp/Shell`, `Tests/AryaDesignTests`, `etc/app`, `docs/STYLE.md` |
 | app-views | [app-views.md](app-views.md) | `Sources/AryaApp/Features` (shares `Tests/AryaAppTests` with app-shell) |

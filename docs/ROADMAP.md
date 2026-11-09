@@ -56,8 +56,9 @@ app bundle script.
   the binding proxy to live systems.
 - Bindings for people: a local inbox the app shows, plus an email or chat binding through MCP.
 - Scheduler as a login item (`arya serve`), notifications for approvals.
+- Routine sandboxing: a macOS `sandbox-exec` profile for `routine` actions (decision 0031).
 
 ## Later
 
-Judge-adapter scorers, `host/delegate` for in-run crews, routine sandboxing, ledger compaction
+Judge-adapter scorers, `host/delegate` for in-run crews, ledger compaction
 with signed checkpoints, export and import of stewards, multi-workspace.
