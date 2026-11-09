@@ -27,7 +27,13 @@ let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         let updates = await collect(adapter, until: \.isResult)
         let result = try #require(updates.compactMap(\.result).first)
         #expect(result.status == .completed)
-        #expect(try !result.decodedResult().decisions.isEmpty)
+        let decoded = try result.decodedResult()
+        #expect(!decoded.decisions.isEmpty)
+        // Real outcome data for the app: a plan, reasons, and risk hints (decoding the typed
+        // result already rejects unknown step statuses and risk values).
+        #expect(!decoded.plan.isEmpty, "\(text)")
+        #expect(decoded.decisions.allSatisfy { $0.why?.isEmpty == false }, "\(text)")
+        #expect(decoded.actions.allSatisfy { $0.risk != nil && $0.why != nil }, "\(text)")
         let seqs = updates.compactMap(\.event).map(\.seq)
         #expect(seqs == Array(1..<(seqs.count + 1)))
     }

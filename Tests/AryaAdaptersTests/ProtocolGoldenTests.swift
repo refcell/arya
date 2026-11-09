@@ -146,3 +146,21 @@ func protocolExampleRoundTrips(_ example: ProtocolExample) throws {
     #expect(lines.count == 1)
     #expect(throws: RPCError.self) { try LineCodec.decode(lines[0]) }
 }
+
+@Test func runResultCarriesPlanRiskAndWhy() throws {
+    let example = try #require(
+        try ProtocolExample.all().first { $0.name == "run/result with plan" })
+    let raw = try #require(example.message["params"]?["result"])
+    let result = try raw.decode(RunResult.self)
+    #expect(result.plan.map(\.status) == [.done, .done, .inProgress, .skipped])
+    #expect(result.plan[3].rationale == "none found")
+    #expect(result.decisions.first?.why == "The app crashes on save.")
+    #expect(result.actions.map(\.risk) == [.low, .medium])
+    #expect(result.actions.allSatisfy { $0.why != nil })
+    // The typed round trip keeps every field.
+    #expect(try JSONValue(encoding: result) == raw)
+    // A plan is omitted when empty, so results without one encode as before.
+    #expect(try JSONValue(encoding: RunResult(summary: "s"))["plan"] == nil)
+    let badRisk: JSONValue = ["actions": [["id": "a1", "kind": "label", "risk": "extreme"]]]
+    #expect(throws: (any Error).self) { try badRisk.decode(RunResult.self) }
+}

@@ -172,6 +172,8 @@ public struct RunResultParams: Sendable, Hashable, Codable {
 /// empty. Unknown fields are ignored.
 public struct RunResult: Sendable, Hashable, Codable {
     public var summary: String
+    /// The run's plan as it stood at the end: what it set out to do and how far it got.
+    public var plan: [PlanStep]
     public var decisions: [Decision]
     public var actions: [Action]
     public var delegations: [Delegation]
@@ -180,11 +182,12 @@ public struct RunResult: Sendable, Hashable, Codable {
     public var measurements: [Measurement]
 
     public init(
-        summary: String = "", decisions: [Decision] = [], actions: [Action] = [],
-        delegations: [Delegation] = [], memories: [Memory] = [], routines: [Routine] = [],
-        measurements: [Measurement] = []
+        summary: String = "", plan: [PlanStep] = [], decisions: [Decision] = [],
+        actions: [Action] = [], delegations: [Delegation] = [], memories: [Memory] = [],
+        routines: [Routine] = [], measurements: [Measurement] = []
     ) {
         self.summary = summary
+        self.plan = plan
         self.decisions = decisions
         self.actions = actions
         self.delegations = delegations
@@ -196,6 +199,7 @@ public struct RunResult: Sendable, Hashable, Codable {
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         summary = try c.decodeIfPresent(String.self, forKey: .summary) ?? ""
+        plan = try c.decodeIfPresent([PlanStep].self, forKey: .plan) ?? []
         decisions = try c.decodeIfPresent([Decision].self, forKey: .decisions) ?? []
         actions = try c.decodeIfPresent([Action].self, forKey: .actions) ?? []
         delegations = try c.decodeIfPresent([Delegation].self, forKey: .delegations) ?? []
@@ -205,7 +209,54 @@ public struct RunResult: Sendable, Hashable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case summary, decisions, actions, delegations, memories, routines, measurements
+        case summary, plan, decisions, actions, delegations, memories, routines, measurements
+    }
+
+    /// Absent lists are omitted, so a result without a plan encodes as it did before plans.
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(summary, forKey: .summary)
+        if !plan.isEmpty { try c.encode(plan, forKey: .plan) }
+        try c.encode(decisions, forKey: .decisions)
+        try c.encode(actions, forKey: .actions)
+        try c.encode(delegations, forKey: .delegations)
+        try c.encode(memories, forKey: .memories)
+        try c.encode(routines, forKey: .routines)
+        try c.encode(measurements, forKey: .measurements)
+    }
+
+    /// One step of the run's plan.
+    public struct PlanStep: Sendable, Hashable, Codable {
+        public var id: String
+        public var text: String
+        public var status: PlanStatus
+        public var rationale: String?
+
+        public init(id: String, text: String, status: PlanStatus, rationale: String? = nil) {
+            self.id = id
+            self.text = text
+            self.status = status
+            self.rationale = rationale
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case id, text, status, rationale
+        }
+    }
+
+    /// How far a plan step got.
+    public enum PlanStatus: String, Sendable, Hashable, Codable, CaseIterable {
+        case pending
+        case inProgress = "in_progress"
+        case done
+        case skipped
+        case blocked
+    }
+
+    /// The adapter's hint of how much an action could go wrong. arya's policy decides; the hint
+    /// only informs the person reviewing it.
+    public enum Risk: String, Sendable, Hashable, Codable, CaseIterable {
+        case low, medium, high
     }
 
     /// A choice the run made, with its reason.
@@ -213,15 +264,18 @@ public struct RunResult: Sendable, Hashable, Codable {
         public var id: String
         public var choice: String
         public var rationale: String?
+        /// One line a person reads in the app: why this choice.
+        public var why: String?
 
-        public init(id: String, choice: String, rationale: String? = nil) {
+        public init(id: String, choice: String, rationale: String? = nil, why: String? = nil) {
             self.id = id
             self.choice = choice
             self.rationale = rationale
+            self.why = why
         }
 
         enum CodingKeys: String, CodingKey {
-            case id, choice, rationale
+            case id, choice, rationale, why
         }
     }
 
@@ -233,10 +287,15 @@ public struct RunResult: Sendable, Hashable, Codable {
         public var target: String?
         public var params: JSONValue?
         public var rationale: String?
+        /// The adapter's risk hint; policy, not the hint, decides what runs.
+        public var risk: Risk?
+        /// One line a person reads in the app: why this action.
+        public var why: String?
 
         public init(
             id: String, kind: String, binding: String? = nil, target: String? = nil,
-            params: JSONValue? = nil, rationale: String? = nil
+            params: JSONValue? = nil, rationale: String? = nil, risk: Risk? = nil,
+            why: String? = nil
         ) {
             self.id = id
             self.kind = kind
@@ -244,10 +303,12 @@ public struct RunResult: Sendable, Hashable, Codable {
             self.target = target
             self.params = params
             self.rationale = rationale
+            self.risk = risk
+            self.why = why
         }
 
         enum CodingKeys: String, CodingKey {
-            case id, kind, binding, target, params, rationale
+            case id, kind, binding, target, params, rationale, risk, why
         }
     }
 

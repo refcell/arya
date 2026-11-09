@@ -146,9 +146,10 @@ Sent exactly once per run:
 {"jsonrpc":"2.0","method":"run/result","params":{"session":"…","status":"completed",
  "result":{
    "summary":"…",
-   "decisions":[{"id":"d1","choice":"…","rationale":"…"}],
+   "plan":[{"id":"p1","text":"…","status":"done","rationale":"…"}],
+   "decisions":[{"id":"d1","choice":"…","rationale":"…","why":"…"}],
    "actions":[{"id":"a1","kind":"comment","binding":"tracker","target":"tracker:ISSUE-1",
-               "params":{…},"rationale":"…"}],
+               "params":{…},"rationale":"…","risk":"low","why":"…"}],
    "delegations":[{"id":"c1","title":"…","input":"…"}],
    "memories":[{"text":"…","tags":["…"]}],
    "routines":[{"name":"…","language":"sh","content":"…","reason":"…"}],
@@ -163,6 +164,17 @@ Sent exactly once per run:
   `routine` uses `params.name` instead.
 - `delegations` become child runs after this run finishes, followed by one join run
   ([ARCHITECTURE.md](ARCHITECTURE.md#crews)).
+- `plan` (optional) is the run's plan as it stood at the end, so a person can see what the run
+  set out to do and how far it got. Each step has `id`, `text`, `status` (`pending`,
+  `in_progress`, `done`, `skipped`, or `blocked`), and an optional `rationale`. An empty plan
+  is omitted.
+- `risk` (optional, on actions) is the adapter's hint: `low`, `medium`, or `high`. It informs
+  the person reviewing the action; the charter's policy alone decides what executes or waits.
+- `why` (optional, on decisions and actions) is one short line the app shows next to the item.
+  `rationale` stays the longer reasoning.
+- arya's `resultSchema` lists these fields with their allowed values and a description, so an
+  exec adapter's prompt carries them; a `status` or `risk` outside the allowed values fails the
+  run with `invalid_result`.
 
 ## Requests (adapter → arya)
 

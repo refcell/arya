@@ -155,6 +155,7 @@ M4:
   Command-Delete denies; plain Return and Escape do nothing on a card.
 - (from workspace) for the app-outcome lane: `outcome(steward:)`, `plan(steward:)` (empty until runtime plan events), `recap(steward:since:)`, `activity(steward:limit:)`, `createSteward(_: StewardDraft)`, `bindings(steward:)`, `people(steward:)` are live.
 - (from eval) Shapes: `BacktestComparison`, `ReadinessReport` (reasons with codes), `OutcomeTrend` (points).
+- (from adapters) Outcome data is on the wire: `run/result` carries `plan` steps (status pending/in_progress/done/skipped/blocked), action `risk` hints, and one-line `why` on decisions and actions; the triage example emits all three. Runtime is asked to carry them into the ledger (runtime.md Questions).
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

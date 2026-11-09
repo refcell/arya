@@ -51,6 +51,8 @@ M4:
   example uses it.
 - [x] `parse: "codex-json"` for Codex CLI `exec --json` (live events, token counts); the
   `codex-cli` example uses it.
+- [x] Outcome fields on `run/result`: `plan`, action `risk`, `why` on decisions and actions;
+  in the result schema and the triage example.
 
 ## Decisions
 
@@ -104,6 +106,9 @@ M4:
   exit 10 s) and wait on signals (a `ready` line, the result) rather than sleeps; only tests
   about escalation shorten the one grace they exercise, and they assert the outcome, not time.
   `ProcessTransport` waits 5 s (was 1 s) after exit for end-of-file so a slow reader drains.
+- `plan` step `status` and action `risk` are strict enums: an unknown value makes the result
+  undecodable, so the run fails with `invalid_result` rather than showing a guess. An empty
+  plan is not encoded, so results without one stay byte-identical.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 

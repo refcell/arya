@@ -86,6 +86,7 @@ M4:
 - (from app-shell) `docs/assets/app.png` is the README screenshot (light Stream tab of the
   demo home, 1600 px, about 350 KB); `just readme-screenshot` refreshes it. Embed it in README.
 - (from runtime) `arya serve`: take `SchedulerLock.acquire(home:)` (exit if nil), then `RuntimeService(engine:recovery:notifier:).run(every: .seconds(30))` with the facade's engine and shared `FileRunLeases`; executor `BindingActionExecutor`.
+- (from adapters) `etc/examples/triage/fake-script.json` results now include `plan`, decision and action `why`, and action `risk` (per the CEO); `just e2e` still passes 15 of 15.
 
 ## Log
 - 2026-11-09: M4 start: adapter profile examples, `arya serve install|uninstall` login item,

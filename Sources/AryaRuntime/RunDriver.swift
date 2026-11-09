@@ -358,8 +358,22 @@ public enum RunResultSchema {
         "type": "object",
         "properties": [
             "summary": ["type": "string"],
-            "decisions": list(["id", "choice"]),
-            "actions": list(["id", "kind"]),
+            "plan": list(
+                ["id", "text", "status"],
+                properties: [
+                    "status": [
+                        "enum": ["pending", "in_progress", "done", "skipped", "blocked"]
+                    ]
+                ],
+                description: "The run's plan at the end: each step and how far it got."),
+            "decisions": list(
+                ["id", "choice"], properties: ["why": why],
+                description: "Choices made; `why` is one line a person reads."),
+            "actions": list(
+                ["id", "kind"],
+                properties: ["risk": ["enum": ["low", "medium", "high"]], "why": why],
+                description: "Proposed actions; `risk` is a hint and `why` one line a person reads."
+            ),
             "delegations": list(["id", "title", "input"]),
             "memories": list(["text"]),
             "routines": list(["name", "language", "content"]),
@@ -367,11 +381,20 @@ public enum RunResultSchema {
         ],
     ]
 
-    private static func list(_ required: [String]) -> JSONValue {
-        [
-            "type": "array",
-            "items": ["type": "object", "required": .array(required.map { .string($0) })],
+    private static let why: JSONValue = [
+        "type": "string", "description": "One short line: the human reason for this item.",
+    ]
+
+    private static func list(
+        _ required: [String], properties: [String: JSONValue] = [:], description: String? = nil
+    ) -> JSONValue {
+        var items: [String: JSONValue] = [
+            "type": "object", "required": .array(required.map { .string($0) }),
         ]
+        if !properties.isEmpty { items["properties"] = .object(properties) }
+        var list: [String: JSONValue] = ["type": "array", "items": .object(items)]
+        if let description { list["description"] = .string(description) }
+        return .object(list)
     }
 }
 
