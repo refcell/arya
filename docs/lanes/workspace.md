@@ -126,6 +126,7 @@ M3:
 - (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
 - (from eval) Improve needs `LiveReadinessGate.check` per open proposal; demo has one (case-0005 regressed).
 - (from runtime) Integration edit: `Workspace.risk(kind:binding:steward:)` in `Outcome.swift` (CEO request; resolution in `Policy.risk(ofAction:)`, decision 0037); the app-outcome Question it answered is removed.
+- (from app-views) proposed: put the held action's change on the approval as data, e.g. `change: {field, from, to}` in `approval.requested` (or `ApprovalSummary.change`), so the app can show `label  none → billing` for label and route approvals; the app renders it as soon as the field exists.
 
 ## Log
 

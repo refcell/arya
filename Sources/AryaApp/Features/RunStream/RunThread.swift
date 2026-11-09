@@ -185,7 +185,8 @@ struct InlineApproval: View {
                 }
                 if let source {
                     VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                        Text("In reply to").aryaText(AryaFont.overline, AryaColor.inkFaint)
+                        Text(RunThreadText.sourceLabel(action)).aryaText(
+                            AryaFont.overline, AryaColor.inkFaint)
                         Text(source).aryaText(AryaFont.body, AryaColor.inkMuted).textSelection(
                             .enabled)
                     }
@@ -284,6 +285,12 @@ enum RunThreadText {
             return "blocked by \(rule.replacingOccurrences(of: ":", with: " "))"
         case .denied(_, let reason): return reason.isEmpty ? "denied" : "denied: \(reason)"
         }
+    }
+
+    /// "In reply to" for messages the action answers, else "From message".
+    static func sourceLabel(_ action: ProposedActionStep) -> String {
+        ["reply", "comment", "message", "send"].contains(action.kind)
+            ? "In reply to" : "From message"
     }
 
     /// "Approve and reply"; a question is just "Approve".

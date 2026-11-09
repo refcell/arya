@@ -45,6 +45,8 @@ private func reply() -> ProposedActionStep {
     #expect(route.content == nil)
     #expect(route.paramLines == ["queue: billing"])
     #expect(RunThreadText.approvalTitle(route) == "Route on inbox:MSG-201")
+    #expect(RunThreadText.sourceLabel(action) == "In reply to")
+    #expect(RunThreadText.sourceLabel(route) == "From message")
 }
 
 @Test func threadReadsTheRecordedInputAndKeepsTheSummaryOnce() throws {
