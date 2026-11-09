@@ -172,3 +172,114 @@ private struct EngineCaseRunner: CaseRunner {
         try await RunReplayer(sink: sink).replay(run: run)
     }
 }
+
+@Test func correctingALiveRunAddsItAsACase() async throws {
+    let (sink, run) = try await recordRun()
+    let blobs = MemoryBlobs()
+    let other = #"{"v":1,"id":"c1","input":{"text":"t"},"expected":{}}"#
+    let (book, _) = try await CasebookImporter(blobs: blobs, sink: sink)
+        .importCasebook(name: "inbox", data: Data(other.utf8), steward: steward)
+    #expect(
+        try RunCases.did(try await sink.events(from: 1), run: run) == [
+            "decisions": [["choice": "billing"]],
+            "actions": [
+                ["kind": "label", "target": "inbox:MSG-1"],
+                ["kind": "route", "target": "inbox:MSG-1"],
+            ],
+        ])
+
+    let want: JSONValue = ["decisions": [["choice": "how-to"]]]
+    let outcome = try await Corrector(sink: sink, blobs: blobs, ambient: .fixed(seed: 4)).correct(
+        run: run, expected: want, note: "Questions about invoices are how-to.", in: book,
+        steward: steward, person: "person:alex")
+    let corrected = try #require(outcome.casebook)
+    let caseID = try RunCases.caseID(for: run)
+    let added = try #require(corrected.cases.first { $0.id == caseID })
+    #expect(corrected.cases.count == 2)
+    #expect(added.expected == want)
+    #expect(added.input.text == "New message MSG-1")
+    #expect(added.context.toolResults.map(\.tool) == [])
+    #expect(outcome.note.text == "Questions about invoices are how-to.")
+    let stored = StoredCasebooks(sink: sink, blobs: blobs)
+    #expect(try await stored.latest(name: "inbox") == corrected)
+
+    // Correcting the same run again updates its case instead of adding another.
+    let again = try await Corrector(sink: sink, blobs: blobs, ambient: .fixed(seed: 5)).correct(
+        run: run, expected: ["decisions": [["choice": "billing"]]], note: "Back to billing.",
+        in: corrected, steward: steward, person: "person:alex")
+    #expect(again.casebook?.cases.count == 2)
+}
+
+/// Answers by charter: a charter whose first guardrail mentions how-to chooses how-to.
+private struct WhatIfRunner: CaseRunner {
+    func run(_ request: CaseRunRequest) async throws -> CaseRunOutcome {
+        let choice =
+            request.charter.guardrails.first?.contains("how-to") == true ? "how-to" : "billing"
+        return CaseRunOutcome(
+            run: RunID(unchecked: "run_whatif"),
+            result: [
+                "decisions": [["choice": .string(choice)]],
+                "actions": [
+                    ["kind": "label", "target": "inbox:MSG-1"],
+                    ["kind": "route", "target": "inbox:MSG-1"],
+                ],
+            ])
+    }
+}
+
+@Test func whatIfReplaysOneRunUnderAProposedCharter() async throws {
+    let (sink, run) = try await recordRun()
+    var proposed = inboxCharter()
+    proposed.guardrails = ["Invoice questions are how-to."]
+    let whatIf = Counterfactuals(sink: sink, runner: WhatIfRunner(), ambient: .fixed(seed: 8))
+
+    let same = try await whatIf.whatIf(run: run, charter: inboxCharter())
+    #expect(same.diff.isEmpty)
+    #expect(
+        same.summary
+            == "with the change it would have done the same: chose billing; "
+            + "label inbox:MSG-1, route inbox:MSG-1")
+
+    let changed = try await whatIf.whatIf(run: run, charter: proposed)
+    #expect(
+        changed.diff == [
+            FieldDiff(path: "decisions[0].choice", expected: "billing", actual: "how-to")
+        ])
+    #expect(changed.fixesCorrection == nil)
+    #expect(
+        changed.summary
+            == "with the change it would have: chose how-to; label inbox:MSG-1, route inbox:MSG-1 "
+            + "(did: chose billing; label inbox:MSG-1, route inbox:MSG-1)")
+    #expect(changed.rehearsalRun == RunID(unchecked: "run_whatif"))
+
+    // After a person corrects the run to how-to, the proposed charter fixes it.
+    try await Corrector(sink: sink, blobs: MemoryBlobs(), ambient: .fixed(seed: 9)).correct(
+        run: run, expected: ["decisions": [["choice": "how-to"]]], note: "How-to.",
+        in: try Casebook(name: "inbox", cases: []), steward: steward, person: "person:alex")
+    let fixed = try await whatIf.whatIf(run: run, charter: proposed)
+    #expect(fixed.fixesCorrection == true)
+    #expect(fixed.summary.hasSuffix(", which fixes the correction"))
+    // The question never shows up as a rehearsal.
+    #expect(try RehearsalBook(try await sink.events(from: 1)).records.isEmpty)
+}
+
+@Test func scoresReadAsOneSentence() throws {
+    let rubric = RubricScorer(checks: [
+        RubricCheck(kind: .equals, path: "reply.tone", value: "polite"),
+        RubricCheck(kind: .contains, path: "reply.text", value: "policy"),
+        RubricCheck(kind: .absent, path: "reply.refund"),
+    ]).score(
+        expected: [:],
+        actual: ["reply": ["tone": "polite", "text": "Per our policy, …"]])
+    #expect(rubric.sentence == "tone: polite, text mentions policy, no refund")
+    let exact = ExactScorer(fields: ["decisions.choice"]).score(
+        expected: ["decisions": [["choice": "billing"]]],
+        actual: ["decisions": [["choice": "how-to"]]])
+    #expect(exact.sentence == "choice: how-to, not billing")
+    #expect(
+        try JudgeVerdict(
+            result: ["value": 1, "notes": ["tone: polite", "  matches\npolicy ", ""]],
+            passThreshold: 1
+        ).score(judge: "fake").sentence == "tone: polite, matches policy")
+    #expect(CaseScore(value: 0, passed: false, notes: ["leak"]).sentence == "failed (0): leak")
+}

@@ -71,8 +71,10 @@ func rubricChecks(check: RubricCheck, holds: Bool) {
         exact.checks == [
             CheckResult(
                 label: "decisions.choice matches expected", passed: false,
-                text: "expected bug, got feature"),
-            CheckResult(label: "actions.kind matches expected", passed: true, text: "label"),
+                text: "expected bug, got feature", phrase: "choice: feature, not bug"),
+            CheckResult(
+                label: "actions.kind matches expected", passed: true, text: "label",
+                phrase: "kind: label"),
         ])
     #expect(
         exact.text

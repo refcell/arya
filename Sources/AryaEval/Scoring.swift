@@ -29,12 +29,18 @@ public struct CheckResult: Hashable, Sendable, Codable {
     public var weight: Double
     /// The outcome in words, shown verbatim: `expected billing, got how-to`.
     public var text: String
+    /// A short phrase for the score sentence: `tone: polite`, `no refund promised`; absent in
+    /// checks recorded before phrases were.
+    public var phrase: String?
 
-    public init(label: String, passed: Bool, weight: Double = 1, text: String) {
+    public init(
+        label: String, passed: Bool, weight: Double = 1, text: String, phrase: String? = nil
+    ) {
         self.label = label
         self.passed = passed
         self.weight = weight
         self.text = text
+        self.phrase = phrase
     }
 }
 
@@ -46,6 +52,13 @@ extension CaseScore {
         let failed =
             checks.map { $0.filter { !$0.passed }.map { "\($0.label): \($0.text)" } } ?? notes
         return failed.isEmpty ? head : head + ": " + failed.joined(separator: "; ")
+    }
+
+    /// One sentence for the Improve screen: each check's phrase, joined, such as
+    /// `tone: polite, matches policy`. Falls back to `text` without phrases.
+    public var sentence: String {
+        let phrases = (checks ?? []).compactMap(\.phrase).filter { !$0.isEmpty }
+        return phrases.isEmpty ? text : phrases.joined(separator: ", ")
     }
 
     var rounded: Double { (value * 100).rounded() / 100 }

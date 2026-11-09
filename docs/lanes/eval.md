@@ -22,6 +22,13 @@ Priority (replay before live, visible in the app):
 - [x] M3.5 backtest scenario fixture (`Fixtures/backtest`): current versus proposed triage
   charter, one improved (case-0006) and one regressed (case-0005) case.
 - [x] Rubric and judge scorer data for the app: per-check results and judge verdict text.
+- [x] In-app correction of a run: `Corrector.correct(run:expected:note:...)` turns the run
+  into a case (or updates the rehearsal case it came from), records a new casebook version, a
+  `case.corrected` and a memory note, so the next rehearsal reflects it.
+- [x] One-sentence scores (`CaseScore.sentence`, `tone: polite, matches policy`) from check
+  phrases; judge notes are cleaned for one line.
+- [x] "With the change it would have…": `Counterfactuals.whatIf(run:charter:)` runs one live
+  run as a case under a proposed charter and compares it with what it did and any correction.
 
 M1:
 - [x] Interfaces only, so other lanes can compile against them: `Replayer`, `Rehearser`,
@@ -105,6 +112,14 @@ Later:
   scorer adds one per field, the rubric one per check (`RubricCheck.label`), and a judge one
   verdict check. `CaseScore.text` is the one-line form; scores recorded before checks fall
   back to notes. Report samples add `scoreText` and the sample's `judgment`.
+- A live run as a case: id `run-<run id>`, its input, the tool results it saw (from
+  `run.tool.call`/`run.tool.result`), and, by default, what it did (decision choices and
+  proposed action kinds and targets). A rehearsal run keeps its case id, so correcting it
+  updates that case.
+- A what-if runs under a fresh rehearsal id with no `rehearsal.*` events, so it never becomes a
+  rehearsal or a baseline; only the rehearsal-mode run itself is on the ledger.
+- Judge notes are untrusted text shown verbatim: whitespace collapsed, empties dropped, at most
+  6 notes of 120 characters each.
 - `GateRule` (pure, decision 0017): a missing baseline or differing case sets fail the gate; a
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
@@ -176,3 +191,4 @@ Later:
 - 2026-11-09: backtest comparison, readiness report, outcome trend read models
 - 2026-11-09: readiness summary line, `ResultText` per-case text, M3.5 backtest scenario fixture
 - 2026-11-09: per-check score data and text for rubric, exact, and judge scorers
+- 2026-11-09: run corrections as cases, one-sentence scores, single-run what-if

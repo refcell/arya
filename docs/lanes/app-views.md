@@ -177,6 +177,7 @@ M4:
 - (from workspace) live: `plan(steward:)` items (status pending|in_progress|done|skipped|blocked, reason), `ApprovalSummary.risk/why`, `RunDetail.Action.why/risk`, `DecisionSummary.why` (wire why, else rationale).
 - (from eval) Scores: `CaseScore.checks` (label, passed, weight, text) and `scoreText`, verbatim.
 - (from workspace) `ApprovalSummary.policyText`: the holding rule's charter `note` (new optional `policy.rules[].note`), else a sentence such as "Reply actions need approval (charter rule)."; `StewardDraft.Rule.note` sets it from New steward.
+- (from eval) Verbatim: `CaseScore.sentence` (Improve), `RunCounterfactual.summary` (run thread).
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

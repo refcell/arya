@@ -60,7 +60,18 @@ public struct JudgeVerdict: Hashable, Sendable, Codable {
                 return note
             }
         }
-        self.init(value: value, passed: passed, notes: notes)
+        self.init(value: value, passed: passed, notes: Self.clean(notes))
+    }
+
+    /// Notes are shown verbatim, so they are made safe for one line: whitespace collapsed,
+    /// empty notes dropped, each cut to 120 characters, at most 6 kept.
+    static func clean(_ notes: [String]) -> [String] {
+        let lines = notes.map { note in
+            note.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).joined(separator: " ")
+        }
+        return lines.filter { !$0.isEmpty }.prefix(6).map { line in
+            line.count > 120 ? String(line.prefix(119)) + "…" : line
+        }
     }
 
     func score(judge: String) -> CaseScore {
@@ -69,7 +80,11 @@ public struct JudgeVerdict: Hashable, Sendable, Codable {
             ? "value \(ResultText.value(.double(value)))" : notes.joined(separator: "; ")
         return CaseScore(
             value: value, passed: passed, notes: notes,
-            checks: [CheckResult(label: "judge \(judge)", passed: passed, text: text)])
+            checks: [
+                CheckResult(
+                    label: "judge \(judge)", passed: passed, text: text,
+                    phrase: notes.isEmpty ? nil : notes.joined(separator: ", "))
+            ])
     }
 }
 

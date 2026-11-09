@@ -36,11 +36,15 @@ public struct ExactScorer: Scorer {
         let checks = fields.map { field in
             let want = expected.values(at: field)
             let have = actual.values(at: field)
+            let name = RubricCheck.name(field)
             return CheckResult(
                 label: "\(field) matches expected", passed: want == have,
                 text: want == have
                     ? CaseScore.words(have)
-                    : "expected \(CaseScore.words(want)), got \(CaseScore.words(have))")
+                    : "expected \(CaseScore.words(want)), got \(CaseScore.words(have))",
+                phrase: want == have
+                    ? "\(name): \(CaseScore.words(have))"
+                    : "\(name): \(CaseScore.words(have)), not \(CaseScore.words(want))")
         }
         return CaseScore(
             value: value, passed: failed.isEmpty, notes: failed.map { "\($0) differs" },
@@ -91,6 +95,29 @@ public struct RubricCheck: Hashable, Sendable, Codable {
         }
     }
 
+    /// The field's name for phrases: the last path component (`decisions.tone` is `tone`).
+    static func name(_ path: String) -> String {
+        path.split(separator: ".").last.map(String.init) ?? path
+    }
+
+    /// A short phrase: `tone: polite`, `no refund`, `reply mentions sorry`, `choice not bug`.
+    func phrase(holds: Bool, found: [JSONValue]) -> String {
+        let name = Self.name(path)
+        let operand = value.map(ResultText.value) ?? "?"
+        switch (kind, holds) {
+        case (.equals, true): return "\(name): \(operand)"
+        case (.equals, false): return "\(name): \(CaseScore.words(found)), not \(operand)"
+        case (.exists, true): return "\(name): \(CaseScore.words(found))"
+        case (.exists, false): return "no \(name)"
+        case (.absent, true): return "no \(name)"
+        case (.absent, false): return "\(name) present: \(CaseScore.words(found))"
+        case (.contains, true): return "\(name) mentions \(operand)"
+        case (.contains, false): return "\(name) does not mention \(operand)"
+        case (.matchesExpected, true): return "\(name) matches expected"
+        case (.matchesExpected, false): return "\(name) differs from expected"
+        }
+    }
+
     func holds(expected: JSONValue, actual: JSONValue) -> Bool {
         let found = actual.values(at: path)
         switch kind {
@@ -137,7 +164,8 @@ public struct RubricScorer: Scorer {
             results.append(
                 CheckResult(
                     label: check.label, passed: holds, weight: check.weight,
-                    text: "found \(CaseScore.words(actual.values(at: check.path)))"))
+                    text: "found \(CaseScore.words(actual.values(at: check.path)))",
+                    phrase: check.phrase(holds: holds, found: actual.values(at: check.path))))
         }
         let value = earned / total
         return CaseScore(
