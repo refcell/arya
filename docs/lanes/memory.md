@@ -29,8 +29,10 @@ M2:
 
 - Memory and routine payloads (`memory.*`, `routine.*`) live in `AryaMemory`, not `AryaLedger`
   (decision 0019): `AryaLedger` cannot import `AryaMemory`, and one owner avoids duplicate types.
-- Until `AryaLedger` publishes `Event`, projections read `MemoryEventRecord` (seq, id, steward,
-  run, type, payload bytes). The envelope converts to it; the record goes once that lands.
+- Projections apply `AryaLedger.Event` directly (`MemoryProjection(ledger:)`,
+  `RoutineLibrary(ledger:)`), skipping other namespaces without decoding. `MemoryEventRecord`
+  stays as the internal decoded form. Memory and routine payloads conform to `EventPayload`;
+  `EventDraft.memoryAdded` attributes a note's event to its author.
 - Memory types use `AryaCore` ids (`NoteID` `mem_`, `StewardID`, `RunID`, `EventID`, `CaseID`).
 - Note text is trimmed, non-empty, at most 4096 UTF-8 bytes. Tags are trimmed, lowercased,
   deduplicated, and sorted by UTF-8 bytes. Decoding validates the same way.
@@ -89,3 +91,4 @@ M2:
 - 2026-11-09: memory types moved to core id types (aa8dcb6).
 - 2026-11-09: routine library, payloads, `RoutineBlobStore` stub landed (1d31334).
 - 2026-11-09: routine diff (Myers, unified hunks) landed (08fd695).
+- 2026-11-09: shell routine execution, `RoutineInvocation`, `RoutineOutcome` landed (1da32d6).

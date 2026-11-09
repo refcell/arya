@@ -76,6 +76,11 @@ public struct RoutineLibrary: Sendable, Equatable {
         }
     }
 
+    /// Records that the ledger reached `seq` without a relevant event.
+    mutating func lastSeqFloor(_ seq: Int) {
+        lastSeq = max(lastSeq, seq)
+    }
+
     // MARK: Queries
 
     /// The live version of a routine, if any.

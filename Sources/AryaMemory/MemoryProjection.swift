@@ -53,6 +53,11 @@ public struct MemoryProjection: Sendable, Equatable {
         }
     }
 
+    /// Records that the ledger reached `seq` without a relevant event.
+    mutating func lastSeqFloor(_ seq: Int) {
+        lastSeq = max(lastSeq, seq)
+    }
+
     /// Live notes of a steward, oldest first.
     public func liveNotes(steward: StewardID) -> [LiveNote] {
         (live[steward] ?? [:]).values.sorted { $0.seq < $1.seq }

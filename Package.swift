@@ -42,7 +42,7 @@ let package = Package(
             name: "AryaAdaptersTests", dependencies: ["AryaAdapters", "AryaFakeAdapter"],
             exclude: ["Fixtures"]),
         .testTarget(
-            name: "AryaMemoryTests", dependencies: ["AryaCore", "AryaMemory"],
+            name: "AryaMemoryTests", dependencies: ["AryaCore", "AryaLedger", "AryaMemory"],
             exclude: ["Fixtures"]),
         .testTarget(name: "AryaRuntimeTests", dependencies: ["AryaRuntime"]),
         .testTarget(
