@@ -12,8 +12,9 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 M1 (the facade still throws `unavailable` for these):
 - [x] A ledger-backed `EventSink` for the home, then stewards, runs, approvals, ledger read,
   and verify through the runtime; restart recovery on `open`.
-- [ ] `replay(run:) -> ReplayReport` with a divergence report (drive the run again with
-  `ReplayAdapter` and a recorded ambient into a scratch sink; compare derived events).
+- [ ] `replay(run:) -> ReplaySummary`: a thin call into eval's `RunReplayer` (eval owns the
+  replay engine, project lead decision); the facade shape is published and throws
+  `unavailable` until it lands.
 - [ ] `routine(name:version:) -> RoutineDetail` and `routineHistory(name:)` from
   `RoutineLibrary` (app-views: routine history and diff).
 
