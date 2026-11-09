@@ -52,8 +52,8 @@ public struct Checkpoints: Sendable {
     }
 
     /// The keys this ledger trusts: every live `system.key.added`, plus, on a compacted
-    /// ledger, the keys carried by its anchoring checkpoint (the first one through the event
-    /// before the first live one). `LedgerVerifier` applies the same rule.
+    /// ledger, the keys carried by its anchoring checkpoint (the first one that
+    /// `anchors(firstSeq:)` the first live event). `LedgerVerifier` applies the same rule.
     public func trustedRing() throws -> KeyRing {
         var ring = try KeyRing.read(reader)
         guard let first = try reader.existingSegments().first,
@@ -63,7 +63,7 @@ public struct Checkpoints: Sendable {
         do {
             try reader.forEach(LedgerFilter(types: [.systemCheckpoint])) { event in
                 guard let value = try? event.payload(as: SystemCheckpoint.self),
-                    value.through == firstEvent.seq - 1
+                    value.anchors(firstSeq: firstEvent.seq)
                 else { return }
                 anchor = value
                 throw FoundEvent()

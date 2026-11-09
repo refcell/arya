@@ -81,6 +81,11 @@ public final class LedgerStore: Sendable {
         try Segment.list(in: directory)
     }
 
+    /// Runs `body` holding the append lock, so no writer appends meanwhile.
+    func exclusive<T>(_ body: () throws -> T) throws -> T {
+        try withAppendLock { _ in try body() }
+    }
+
     private func withAppendLock<T>(_ body: (inout Writer) throws -> T) throws -> T {
         try threadLock.withLock { _ in
             let fd = try FileIO.open(lockURL, O_RDWR | O_CREAT)

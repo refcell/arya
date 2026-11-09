@@ -72,12 +72,11 @@ Next (lane-extended, in order):
 - [x] (6) `system.checkpoint` (`SystemCheckpoint`, golden): `Checkpoints.build`/`record`/
   `check`/`trustedRing`; `LedgerVerifier` accepts a mid-chain start only with an anchoring
   checkpoint (`unanchored` issue otherwise) and checks every checkpoint (`badCheckpoint`).
-- [ ] (7) Projection seeding from a checkpoint's digests; then `compact` and `verify --archive`.
-- [x] (5a, CEO priority for app parity) Fast long-range reads: `LineSieve` skips lines that
-  cannot match a `LedgerFilter` before hashing or parsing; `LedgerFilter.since`/`until`;
-  `events(since:)` skips segments by first-line `at`; typed `events(P.self, matching:)`.
-  50,000 events, debug, thread CPU: filtered scan 0.09 s (target 0.5 s), namespace 0.22 s,
-  last week (10,080) 0.19 s, full read 0.77 s. Probe: `perfFilteredScanOf50000EventsIsUnderTarget`.
+- [x] (7a) `LedgerStore.compact(through:)` (verify first, append lock, archive never
+  overwritten) and `LedgerVerifier.verifyArchive()`; anchors may be any covering checkpoint.
+- [ ] (7b) Projection digests in `Checkpoints.record` from current cache files, seeds kept in
+  `archive/seeds/`, and `ProjectionCache` seeding on a compacted ledger (`archived` error when
+  no seed matches; `stillHas` accepts a cache exactly at the cut).
 - [ ] (8) Use the `LedgerIndex` run spans to narrow `page(_:)` run queries when scans get slow.
 
 ## Decisions
@@ -168,6 +167,11 @@ Next (lane-extended, in order):
   digests; a checkpoint's key may be recorded after it (keys are never revoked).
   `LedgerVerification` gained `firstSeq` (default 1); `firstBadSeq` is the checkpoint's `seq`
   for `badCheckpoint` and the first live `seq` for `unanchored`.
+- An anchoring checkpoint may sit past the cut (`SystemCheckpoint.anchors(firstSeq:)`): it
+  lists a segment ending at the cut and its live head is checked, so a checkpoint at the head
+  can anchor a cut at a segment boundary. `verifyArchive` checks only the segments the anchor
+  lists before the first live event; after a second compaction, older archive files were
+  vouched for by the earlier checkpoint, which is itself archived.
 - Perf probes measure thread CPU time, not wall time, so a loaded machine does not make them
   flaky. Hot loops in `JSONParser` and `LedgerLine` use index loops and plain byte compares:
   tests run debug builds, where range patterns and generic slice algorithms cost metadata
@@ -178,8 +182,9 @@ Next (lane-extended, in order):
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
+- 2026-11-09: (7a) done: compaction to `archive/`, `verifyArchive`, covering anchors.
 - 2026-11-09: (6) done: `system.checkpoint`, `Checkpoints`, verify anchoring (`unanchored`,
-  `badCheckpoint`) with report text. Verify of 5,000 events 0.11 s CPU.
+  `badCheckpoint`) with report text. Verify of 5,000 events 0.11 s CPU (ef55a14).
 - 2026-11-09: (5) done: `system.key.added`, `CheckpointKeys`, `KeyRing` (dd8bbe0).
 - 2026-11-09: (5a) done: sieved filtered reads, `since`/`until`, `events(since:)`, typed
   reads; 50k filtered scan 0.09 s CPU (9930fc1). Read API offered in workspace.md Questions.

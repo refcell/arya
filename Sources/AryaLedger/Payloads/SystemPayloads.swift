@@ -132,6 +132,14 @@ public struct SystemCheckpoint: EventPayload {
         self.signature = signature
     }
 
+    /// Whether this checkpoint can anchor a ledger whose first live event is `firstSeq`: it
+    /// covers the event before it, either exactly (`through`) or as the end of a listed
+    /// segment while `through` is still live.
+    public func anchors(firstSeq: Int64) -> Bool {
+        let cut = firstSeq - 1
+        return through == cut || (through > cut && segments.contains { $0.last == cut })
+    }
+
     /// The bytes the signature covers: the canonical payload without `signature`.
     public func signingBytes() throws -> [UInt8] {
         guard case .object(var fields) = try CanonicalJSON.jsonValue(self) else { return [] }

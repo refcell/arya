@@ -14,8 +14,10 @@ public struct LedgerVerifier: Sendable {
     /// The verdict for the whole ledger.
     ///
     /// A ledger whose first live event is past `seq` 1 (compacted) must hold a trusted
-    /// `system.checkpoint` whose `through` is the event before it and whose `head` is that
-    /// event's `prev`, or it fails as `unanchored`. Every checkpoint must be signed by a
+    /// `system.checkpoint` that covers the event before it (`SystemCheckpoint.anchors`): with
+    /// `through` there and `head` equal to the first live `prev`, or with a listed segment
+    /// ending there and a live `through` whose head matches. Otherwise it fails as
+    /// `unanchored`. Every checkpoint must be signed by a
     /// trusted key (`Checkpoints.trustedRing()`) and match the live events and segments it
     /// names.
     public func verify() throws -> LedgerVerification {
@@ -101,7 +103,8 @@ public struct LedgerVerifier: Sendable {
         let checker = Checkpoints(home: reader.directory.deletingLastPathComponent())
         var ring = pass.ring
         if pass.anchor != nil,
-            let anchor = pass.checkpoints.first(where: { $0.value.through == pass.firstSeq - 1 })
+            let anchor = pass.checkpoints.first(where: { $0.value.anchors(firstSeq: pass.firstSeq) }
+            )
         {
             ring.trust(anchor.value.keys)
         }
@@ -111,8 +114,12 @@ public struct LedgerVerifier: Sendable {
                 return .init(
                     location: checkpoint.at, issue: .badCheckpoint(seq: checkpoint.seq, problem))
             }
-            if pass.anchor != nil, checkpoint.value.through == pass.firstSeq - 1 {
-                guard checkpoint.value.head == pass.anchorPrev else {
+            if pass.anchor != nil, checkpoint.value.anchors(firstSeq: pass.firstSeq) {
+                // A `through` still live had its head checked above.
+                guard
+                    checkpoint.value.through >= pass.firstSeq
+                        || checkpoint.value.head == pass.anchorPrev
+                else {
                     return .init(
                         location: checkpoint.at,
                         issue: .badCheckpoint(seq: checkpoint.seq, .headMismatch))

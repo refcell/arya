@@ -145,13 +145,18 @@ local signing key, so older segments can be archived and history can travel.
   The chain already gives tamper evidence inside one file; the signature adds what the chain
   cannot: a ledger whose early segments are gone, or an exported one, still proves that this
   key saw exactly this head.
-- **Compaction.** `arya ledger compact --through <seq>` needs a checkpoint at or after that
-  `seq`, then moves the covered segments to `archive/` (never deletes; deleting archive files is
-  a separate, explicit person action). The live ledger then starts mid-chain.
-- **Verify.** When the first live event's `seq` is above 1, `verify` requires a checkpoint that
-  is signed by a recorded key, whose `through` is `first.seq - 1`, and whose `head` equals the
-  first live event's `prev`. Without one the report fails with a new `unanchored` issue.
-  `verify --archive` also re-hashes the archived segments against the checkpoint's list.
+- **Compaction.** `arya ledger compact --through <seq>` (`LedgerStore.compact(through:)`) needs
+  a clean `verify` and a checkpoint at or after that `seq`, then, under the append lock, moves
+  the closed segments that checkpoint lists at or before `seq` to `archive/` (never deletes;
+  deleting archive files is a separate, explicit person action). The cut falls on a segment
+  boundary. The live ledger then starts mid-chain.
+- **Verify.** When the first live event's `seq` is above 1, `verify` requires a trusted
+  checkpoint that covers the event before it: either its `through` is `first.seq - 1` and its
+  `head` equals the first live event's `prev`, or it lists a segment ending at `first.seq - 1`
+  and its `through` is still live with a matching head (the live chain links that head back to
+  the first live `prev`). Without one the report fails with an `unanchored` issue.
+  `verify --archive` (`verifyArchive()`) re-hashes the archived segments against the anchoring
+  checkpoint's list and checks that the last archived event's hash is the first live `prev`.
 - **Projections.** A projection cache entry whose digest matches the checkpoint seeds `catchUp`,
   so a cold start reads only lines after the checkpoint. A cache that does not match is
   rebuilt, which needs the archive; without it the projection is reported unavailable rather
