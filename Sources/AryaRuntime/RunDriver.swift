@@ -1,6 +1,7 @@
 import AryaAdapters
 import AryaCore
 import AryaLedger
+import AryaMemory
 import Foundation
 
 /// Drives one run: handshake, streaming, result, dispositions, and the closing event.
@@ -188,6 +189,19 @@ final class RunDriver: @unchecked Sendable {
         }
     }
 
+    /// Records `memory.added` for each new, valid note a live run proposes (memory's intake
+    /// drops duplicates of live notes and invalid notes).
+    private func recordMemories(_ memories: [RunResult.Memory]) async throws {
+        guard !memories.isEmpty else { return }
+        let view = try MemoryView(try await loop.sink.events(from: 1))
+        let intake = try MemoryIntake.notes(
+            memories.map { ProposedNote(text: $0.text, tags: $0.tags) }, steward: charter.id,
+            run: run, live: view.memory, ambient: loop.ambient)
+        for draft in intake.drafts {
+            _ = try await loop.sink.append(RuntimeEventDraft(draft))
+        }
+    }
+
     private var overdueDetail: String {
         "ran past timeoutSeconds: \(charter.limits.timeoutSeconds)"
     }
@@ -201,16 +215,7 @@ final class RunDriver: @unchecked Sendable {
     }
 
     private func recordWire(_ record: WireRecord) async throws {
-        let direction: RunAdapterEvent.Direction = record.direction == .sent ? .sent : .received
-        let payload =
-            if let message = try? CanonicalJSON.decode(JSONValue.self, from: record.line) {
-                RunAdapterEvent(direction: direction, message: message)
-            } else {
-                RunAdapterEvent(
-                    direction: direction, raw: String(decoding: record.line, as: UTF8.self))
-            }
-        try await append(
-            RunEventType.adapterEvent, .adapter(charter.adapter), try Payload.encode(payload))
+        try await append(RunEventType.adapterEvent, .adapter(charter.adapter), record.ledgerPayload)
     }
 
     // MARK: Ending
@@ -236,6 +241,7 @@ final class RunDriver: @unchecked Sendable {
                 try Payload.encode(RunDecision(decision: recorded)))
         }
         if case .live = request.mode {
+            try await recordMemories(result.memories)
             for measurement in result.measurements {
                 try await append(
                     MetricEventType.recorded, .steward(charter.id),

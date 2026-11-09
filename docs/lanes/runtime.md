@@ -145,6 +145,13 @@ M4:
   `status` is `completed`, `stopped`, or `failed:<reason>`; failed children are reported, not
   retried. Children, joins, and rehearsals never fan out (depth 1). `SchedulePlan` looks only
   at top-level runs.
+- Memory around a run: `run.started` records the memory snapshot and live routine versions
+  from `RunPreparation.context` (the case tag for tagged rehearsals), and the instructions show
+  those notes and routines. A live run's `run/result.memories` go through
+  `MemoryIntake.notes` and land as `memory.added` (actor: the steward) after `run.decision`.
+  Wire lines are recorded with adapters' `WireRecord.ledgerPayload`.
+- Books adopt `LedgerProjection` with `catchUp` and `ProjectionCache` (decision 0028); the
+  ledger lane makes that edit in runtime files and the runtime reviews it.
 
 ## Questions
 
@@ -155,9 +162,6 @@ M4:
   folds it into `charter.effort` without bumping the version, so the next run records the
   effort it used in `run.started`. The workspace lane landed that fold as a small integration
   edit in `Stewards.swift`.
-- (from adapters) Record wire lines with `WireRecord.ledgerPayload` (adds `source: "connection"` for the idle `run/stop` and auto-replies, and puts non-JSON lines in `raw` as `RunAdapterEvent` expects); `arya replay` rebuilds them with `WireRecord(ledgerPayload:)` and feeds `ReplayAdapter(records:exit:)` (c9c43a8).
-- (from cli-e2e) A run with `run/result.measurements` and `memories` records neither `metric.recorded` nor `memory.added` (`just e2e` step 12 fails on the triage example).
-- (from ledger) Books rescan the ledger on every read; proposed default: adopt `LedgerProjection` and keep them current with `LedgerReader.catchUp` plus `ProjectionCache` (0028). Ledger can make it as a small integration edit if you agree.
 
 ## Log
 
@@ -181,3 +185,4 @@ M4:
 - 2026-11-09: budgets: turns, cost, and wall-clock deadline enforced with `run/stop`
 - 2026-11-09: triggers and scheduler (`SchedulePlan`, `Scheduler`, `SchedulerLock`); interrupted scheduled runs re-queue
 - 2026-11-09: crews: child runs bounded by `crew.maxParallel`, then one join run
+- 2026-11-09: memory snapshot and routines in `run.started`, `memory.added` from live runs, wire lines via `WireRecord.ledgerPayload`

@@ -1,6 +1,7 @@
 import AryaAdapters
 import AryaCore
 import AryaLedger
+import AryaMemory
 import Foundation
 
 // The run loop (ARCHITECTURE.md "Runs"): a trigger becomes `run.started`, a fresh adapter
@@ -179,8 +180,12 @@ public struct RunEngine: Sendable {
     {
         let lease = try leases.acquire(run)
         defer { lease.release() }
-        let instructions = InstructionComposer.compose(InstructionInputs(charter: charter))
-        try await recordStart(run, request, charter, version, instructions)
+        let context = try MemoryView(try await sink.events(from: 1)).context(
+            steward: request.steward, input: request.input.text,
+            caseID: request.rehearsal?.caseID)
+        let instructions = InstructionComposer.compose(
+            InstructionInputs(charter: charter, context: context))
+        try await recordStart(run, request, charter, version, instructions, context)
         let driver = RunDriver(
             loop: self, request: request, charter: charter, run: run, instructions: instructions)
         return try await driver.drive()
@@ -188,14 +193,15 @@ public struct RunEngine: Sendable {
 
     private func recordStart(
         _ run: RunID, _ request: RunRequest, _ charter: Charter, _ version: Int,
-        _ instructions: String
+        _ instructions: String, _ context: RunMemoryContext
     ) async throws {
         let input = request.input
         let payload = RunStarted(
             input: RunInputRecord(
                 kind: RunTriggerKind(rawValue: input.kind.rawValue) ?? .manual, text: input.text,
                 attachments: input.attachments.isEmpty ? nil : input.attachments),
-            charterVersion: version, adapter: charter.adapter, effort: charter.effort,
+            charterVersion: version, routines: context.routineVersions,
+            memory: context.snapshotJSON, adapter: charter.adapter, effort: charter.effort,
             instructions: instructions, limits: charter.limits, parent: request.parent,
             rehearsal: request.rehearsal?.rehearsal, caseID: request.rehearsal?.caseID,
             sample: request.rehearsal?.sample)
