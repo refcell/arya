@@ -54,6 +54,10 @@ app-preview: app
 e2e *args:
     etc/scripts/e2e.sh {{ args }}
 
+# Rebase, check, and push to main under push races: just publish AryaCLITests
+publish filter:
+    etc/scripts/publish.sh {{ filter }}
+
 # Everything CI runs
 ci: tidy build test
 

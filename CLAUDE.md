@@ -31,7 +31,8 @@ byte-identical copy of this file; edit both together (`cp AGENTS.md CLAUDE.md`).
    is rejected, fetch and rebase right away. A rebase without conflicts needs only
    `just tidy && just build && just test <YourModuleTests>` before pushing again, at most three
    times in a row; after that, or after any conflict (keep both sides), run the full `just ci`
-   ([decision 0029](docs/DECISIONS.md)). Never force-push `main`.
+   ([decision 0029](docs/DECISIONS.md)); `just publish <YourModuleTests>` does all of this.
+   Never force-push `main`.
 3. **Run `just hooks` once per clone.** It wires the local denylist and secret scan into git
    so it runs on every commit. The denylist lives untracked in the git common
    directory (`$(git rev-parse --git-common-dir)/info/denylist` and

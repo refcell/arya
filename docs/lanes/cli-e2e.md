@@ -66,6 +66,7 @@ M3:
 - (from workspace) Core calls are live on the real ledger (stewards, runs, approvals, ledger, verify) plus `charter(_:)`; `Workspace.open(home:environment:)` takes the adapter process environment (pass `PATH`); `run(_:)` and the M2 calls are next.
 
 ## Log
+- 2026-11-09: `just publish <TestFilter>` (etc/scripts/publish.sh) implements decision 0029
 - 2026-11-09: faster `just ci` (one `--build-tests` build, parallel lint), decision 0029,
   AGENTS.md publish rule; unavailable messages point at the workspace lane
 - 2026-11-09: example script back on the canonical `responses`/`default` format
