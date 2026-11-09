@@ -31,7 +31,8 @@ M1:
   writing a partial line.
 - [ ] Two-process append test (spawn a child writer) proving no lost or interleaved lines.
 - [ ] Blob store `blobs/sha256/ab/<hex>`: put, get, exists; atomic write via temp file + rename.
-- [ ] Typed payloads for every event type listed in ARCHITECTURE.md, each with a golden test.
+- [x] Typed payloads for the ledger-owned event types (`env.read`, `system.repair`,
+  `system.started`), each with a golden test; the rest live with their writers (0019, 0022, 0023).
 - [ ] Projections: stewards (current charter, ready, paused), runs (status, parent, timing,
   cost), approvals (pending, decided); rebuilt from scratch and incrementally, with a test that
   both give equal results.
@@ -71,6 +72,8 @@ M3:
   payload); the store stamps `id`/`at` from `Ambient` and `seq`/`prev`/`hash` under the lock.
   `EventType` is an open string struct so unknown types still decode. Optional `steward` and
   `run` are omitted from the line when nil. `Actor.system` is `{"kind":"system","id":"arya"}`.
+- Payload ownership follows decision 0023: the ledger keeps only the payloads it writes.
+  Payload goldens regenerate with `ARYA_UPDATE_GOLDENS=1 just test AryaLedgerTests`.
 - `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
 
 ## Questions

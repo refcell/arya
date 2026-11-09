@@ -33,6 +33,7 @@ extension EventType {
     public static let stewardCharterUpdated: EventType = "steward.charter.updated"
     public static let stewardReady: EventType = "steward.ready"
     public static let stewardPaused: EventType = "steward.paused"
+    public static let stewardResumed: EventType = "steward.resumed"
     public static let stewardRetired: EventType = "steward.retired"
 
     public static let runStarted: EventType = "run.started"
@@ -78,9 +79,10 @@ extension EventType {
     public static let systemRepair: EventType = "system.repair"
     public static let systemStarted: EventType = "system.started"
 
-    /// Every type listed in ARCHITECTURE.md, in that order.
+    /// Every known type, in ARCHITECTURE.md order (`steward.resumed` added by decision 0021).
     public static let all: [EventType] = [
-        stewardCreated, stewardCharterUpdated, stewardReady, stewardPaused, stewardRetired,
+        stewardCreated, stewardCharterUpdated, stewardReady, stewardPaused, stewardResumed,
+        stewardRetired,
         runStarted, runInput, runAdapterEvent, runToolCall, runToolResult, runDecision,
         runFinished, runFailed, actionProposed, actionExecuted, actionFailed, actionRejected,
         approvalRequested, approvalGranted, approvalDenied, approvalExpired, memoryAdded,

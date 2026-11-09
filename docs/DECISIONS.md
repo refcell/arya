@@ -151,3 +151,13 @@ and `steward.charter.updated` carry `{charter, version, reason?}`. Like 0019, th
 structs for `steward.*`, `run.*`, `action.*`, and `approval.*` live with their writer in
 `AryaRuntime`; the ledger stores them as opaque JSON. Why: one writer per event type keeps the
 shape and its tests in one place.
+
+### 0023 — 2026-11-09 — Every payload lives with its writer; the ledger owns the envelope
+
+Extending 0019 and 0022: `casebook.*`, `case.*`, `rehearsal.*`, `proposal.*`, and
+`metric.recorded` payloads live in `AryaEval`. `AryaLedger` owns the `Event` envelope, `Actor`,
+the `EventType` constants (including `steward.resumed`), the `EventPayload` protocol, and only
+the payloads it writes itself: `env.read`, `system.repair`, and `system.started`. Writers may
+conform their payload structs to `AryaLedger.EventPayload` (one `static let type`) to get
+`EventDraft(payload, actor:…)` and `event.payload(as:)`. Why: one owner per shape, and no
+lane waits on the ledger lane to add a field.
