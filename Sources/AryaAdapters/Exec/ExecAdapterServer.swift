@@ -151,8 +151,13 @@ public actor ExecAdapterServer {
             self.agent = agent
             await emit(RunEvent(.status(state: "working", detail: "agent started")))
             Task { await self.read(agent) }
-            if profile.promptVia == .stdin { try? await agent.write(Data(prompt.utf8)) }
-            await agent.closeInput()
+            // A detached write: an agent that does not read stdin must not block `run/stop`.
+            // Terminating the agent breaks the pipe and ends the write.
+            let stdinPrompt = profile.promptVia == .stdin ? Data(prompt.utf8) : nil
+            Task.detached {
+                if let stdinPrompt { try? await agent.write(stdinPrompt) }
+                await agent.closeInput()
+            }
         } catch {
             await emit(RunEvent(.error(message: "cannot start the agent: \(error)")))
             await finish(.failed, result: nil)

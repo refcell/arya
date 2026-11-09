@@ -266,3 +266,19 @@ func failingAgentsFailTheRun(_ body: String, _ needle: String) async throws {
             return false
         })
 }
+
+@Test func stopWorksWhileTheAgentIgnoresALargePrompt() async throws {
+    let agent = try FakeAgent("exec sleep 30")
+    let (transport, endpoint) = InMemoryPipe.make()
+    let server = ExecAdapterServer(
+        profile: agent.profile(), environment: ["PATH": "/usr/bin:/bin"], endpoint: endpoint)
+    Task { await server.serve() }
+    let adapter = AdapterConnection(transport: transport, timeouts: Sample.fast)
+    var start = agent.start()
+    start.instructions = String(repeating: "x", count: 256 * 1024)
+    let session = try await adapter.start(start).session
+    try await adapter.stop(RunStopParams(session: session, reason: .user))
+    let updates = await collect(adapter, until: \.isResult)
+    #expect(updates.compactMap(\.result).first?.status == .stopped)
+    try await adapter.shutdown()
+}
