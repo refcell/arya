@@ -33,6 +33,7 @@ records one memory note and one `routed_within_1h` measurement.
 and the live input to `run/event` payloads and a `run/result`, and `default` answers anything
 else.
 
-`triage/history.txt` lists invented past messages that `just demo` runs in order, so the demo
+`triage/history.txt` lists invented past messages that `just demo` runs in order, one a day
+over the past month (`ARYA_CLOCK` stamps each command with its past time), so the demo
 home shows a steward with weeks of decisions, a memory, and a routine proposal. Every scripted
 run returns its `plan`, a `why` for each decision and action, and each action's `risk`. [adapters/](adapters) holds exec profiles for public command-line agents.

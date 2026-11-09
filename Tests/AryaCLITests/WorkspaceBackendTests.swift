@@ -243,3 +243,27 @@ private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
     #expect(row.candidate == 0.7)
     #expect(row.regressions == ["case-0003"])
 }
+
+@Test func clockParsesRFC3339() {
+    #expect(WorkspaceBackend.clock("2026-10-12T09:00:00Z")?.timeIntervalSince1970 == 1_791_795_600)
+    #expect(
+        WorkspaceBackend.clock("2026-10-12T09:00:00.500Z")?.timeIntervalSince1970 == 1_791_795_600.5
+    )
+    #expect(WorkspaceBackend.clock("last tuesday") == nil)
+}
+
+@Test func clockStampsEvents() async throws {
+    let home = FileManager.default.temporaryDirectory
+        .appendingPathComponent("arya-clock-\(UUID().uuidString)", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: home) }
+    let clock = try #require(WorkspaceBackend.clock("2026-10-12T09:00:00Z"))
+    let backend = WorkspaceBackend(home: home, clock: clock)
+    _ = try await backend.initHome()
+    let charter = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent()
+        .appendingPathComponent("etc/examples/triage/charter.json")
+    _ = try await backend.createSteward(charterPath: charter.path)
+    let events = try await backend.tailLedger(count: 10, steward: nil)
+    #expect(!events.isEmpty)
+    #expect(events.allSatisfy { $0.at.hasPrefix("2026-10-12T09:00:00.") })
+}

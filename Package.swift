@@ -37,7 +37,7 @@ let package = Package(
 
         // `arya` CLI. The target is not named `arya` because it would collide with the
         // `Arya` library on case-insensitive file systems; the product keeps the name.
-        .executableTarget(name: "AryaCLI", dependencies: ["Arya"]),
+        .executableTarget(name: "AryaCLI", dependencies: ["Arya", "AryaCore"]),
         .executableTarget(name: "AryaApp", dependencies: ["Arya", "AryaDesign"]),
         .executableTarget(name: "AryaFakeAdapter", dependencies: ["AryaAdapters"]),
         .executableTarget(name: "AryaExecAdapter", dependencies: ["AryaAdapters"]),

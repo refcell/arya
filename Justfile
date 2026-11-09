@@ -71,7 +71,7 @@ readme-screenshot: snapshot
 e2e *args:
     etc/scripts/e2e.sh "$@"
 
-# Seed a demo home from etc/examples and open the app on it (`just demo --no-open` seeds only)
+# Seed .build/demo-home from etc/examples with weeks of history (look at it: `just snapshot`)
 demo *args:
     etc/scripts/demo.sh "$@"
 

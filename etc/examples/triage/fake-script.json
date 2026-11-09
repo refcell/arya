@@ -134,25 +134,27 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-102",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
+            "text": "Clear the morning backlog before nine",
             "status": "done",
-            "rationale": "The message reads as a bug request."
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it bug and route it to engineering",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
           },
           {
             "id": "p4",
-            "text": "Check for an existing report of the crash",
-            "status": "skipped",
-            "rationale": "this charter has no tracker binding"
+            "text": "Flag duplicate charges before triage",
+            "status": "blocked",
+            "rationale": "Proposed the flag-duplicate-charges routine; waiting for approval."
           }
         ],
         "decisions": [
@@ -192,7 +194,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.95
           }
         ]
       }
@@ -798,24 +800,27 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-201",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
+            "text": "Clear the morning backlog before nine",
             "status": "done",
-            "rationale": "The customer reports a duplicate charge."
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it billing and route it to billing",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
           },
           {
             "id": "p4",
-            "text": "Acknowledge the customer",
-            "status": "done"
+            "text": "Flag duplicate charges before triage",
+            "status": "blocked",
+            "rationale": "Proposed the flag-duplicate-charges routine; waiting for approval."
           }
         ],
         "decisions": [
@@ -875,7 +880,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.96
           }
         ]
       }
@@ -918,19 +923,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-110",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "It is about a charge, invoice, or refund."
+            "text": "Clear the morning backlog before nine",
+            "status": "pending",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it billing and route it to billing",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -970,7 +981,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 0.0
+            "value": 0.62
           }
         ]
       }
@@ -1013,19 +1024,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-111",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "Something in the product is broken."
+            "text": "Clear the morning backlog before nine",
+            "status": "pending",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it bug and route it to engineering",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1065,7 +1082,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.66
           }
         ]
       }
@@ -1108,19 +1125,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-112",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "The customer needs a change to their account."
+            "text": "Clear the morning backlog before nine",
+            "status": "pending",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it account and route it to accounts",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1160,7 +1183,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 0.0
+            "value": 0.65
           }
         ]
       }
@@ -1203,19 +1226,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-113",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "The customer asks how to do something."
+            "text": "Clear the morning backlog before nine",
+            "status": "pending",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it how-to and route it to help center",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1255,7 +1284,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.64
           }
         ]
       }
@@ -1298,19 +1327,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-114",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "It is about a charge, invoice, or refund."
+            "text": "Clear the morning backlog before nine",
+            "status": "pending",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it billing and route it to billing",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1350,7 +1385,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.67
           }
         ]
       }
@@ -1393,19 +1428,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-115",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "Something in the product is broken."
+            "text": "Clear the morning backlog before nine",
+            "status": "pending",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it bug and route it to engineering",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1445,7 +1486,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 0.0
+            "value": 0.71
           }
         ]
       }
@@ -1488,19 +1529,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-116",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "The customer needs a change to their account."
+            "text": "Clear the morning backlog before nine",
+            "status": "pending",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it account and route it to accounts",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1540,7 +1587,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.7
           }
         ]
       }
@@ -1583,19 +1630,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-120",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "It may be an attempt to get into the account."
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it security and route it to security",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1635,7 +1688,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.77
           }
         ]
       }
@@ -1678,19 +1731,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-121",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "It is about a charge, invoice, or refund."
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it billing and route it to billing",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1730,7 +1789,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.75
           }
         ]
       }
@@ -1773,19 +1832,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-122",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "Something in the product is broken."
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it bug and route it to engineering",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1825,7 +1890,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.74
           }
         ]
       }
@@ -1868,19 +1933,25 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-123",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "The customer asks how to do something."
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it how-to and route it to help center",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -1920,7 +1991,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 0.0
+            "value": 0.77
           }
         ]
       }
@@ -1963,19 +2034,26 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-124",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "It is about a charge, invoice, or refund."
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it billing and route it to billing",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -2015,7 +2093,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.82
           }
         ],
         "memories": [
@@ -2067,19 +2145,26 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-125",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "It is unsolicited and asks for nothing real."
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it spam and route it to spam",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -2119,7 +2204,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.8
           }
         ]
       }
@@ -2162,19 +2247,26 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-130",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
-            "status": "done",
-            "rationale": "It is about a charge, invoice, or refund."
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it billing and route it to billing",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -2214,7 +2306,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.85
           }
         ]
       }
@@ -2257,19 +2349,26 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-131",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
+            "text": "Clear the morning backlog before nine",
             "status": "done",
-            "rationale": "Something in the product is broken."
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it bug and route it to engineering",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -2309,7 +2408,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.84
           }
         ]
       }
@@ -2352,19 +2451,26 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-132",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
+            "text": "Clear the morning backlog before nine",
             "status": "done",
-            "rationale": "The customer asks how to do something."
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it how-to and route it to help center",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -2404,7 +2510,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.88
           }
         ]
       }
@@ -2447,19 +2553,26 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-133",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
+            "text": "Clear the morning backlog before nine",
             "status": "done",
-            "rationale": "It may be an attempt to get into the account."
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it security and route it to security",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
           }
         ],
         "decisions": [
@@ -2499,7 +2612,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.92
           }
         ]
       }
@@ -2542,25 +2655,27 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-134",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
+            "text": "Clear the morning backlog before nine",
             "status": "done",
-            "rationale": "It is about a charge, invoice, or refund."
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it billing and route it to billing",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
           },
           {
             "id": "p4",
-            "text": "Propose a routine that flags duplicate charges",
-            "status": "done",
-            "rationale": "Three duplicate-charge messages arrived this week."
+            "text": "Flag duplicate charges before triage",
+            "status": "blocked",
+            "rationale": "Proposed the flag-duplicate-charges routine; waiting for approval."
           }
         ],
         "decisions": [
@@ -2600,7 +2715,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.9
           }
         ],
         "routines": [
@@ -2609,6 +2724,831 @@
             "language": "sh",
             "content": "#!/bin/sh\n# Print the files whose text mentions a duplicate or double charge.\ngrep -il 'duplicate\\|charged twice\\|double charge' \"$@\"\n",
             "reason": "Three duplicate-charge messages this week; a routine can flag them before triage."
+          }
+        ]
+      }
+    },
+    "New message MSG-117: Package marked delivered but not here": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-117"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-117",
+            "from": "customer:c-117",
+            "subject": "Package marked delivered but not here",
+            "body": "Package marked delivered but not here."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a shipping message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent a delivered-but-missing package to fulfillment; routed late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
+          },
+          {
+            "id": "p2",
+            "text": "Clear the morning backlog before nine",
+            "status": "pending",
+            "rationale": "Most late routings come from messages that arrive overnight."
+          },
+          {
+            "id": "p3",
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "shipping",
+            "rationale": "\"Package marked delivered but not here\" reads as a shipping message.",
+            "why": "It is about an order in transit or its delivery."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-117",
+            "params": {
+              "label": "shipping"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-117",
+            "params": {
+              "queue": "shipping"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The fulfillment queue owns shipping messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.69
+          }
+        ]
+      }
+    },
+    "New message MSG-118: Login link expired before I clicked it": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-118"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-118",
+            "from": "customer:c-118",
+            "subject": "Login link expired before I clicked it",
+            "body": "Login link expired before I clicked it."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a account message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Routed an expired login link to accounts.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
+          },
+          {
+            "id": "p2",
+            "text": "Clear the morning backlog before nine",
+            "status": "pending",
+            "rationale": "Most late routings come from messages that arrive overnight."
+          },
+          {
+            "id": "p3",
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "pending"
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "account",
+            "rationale": "\"Login link expired before I clicked it\" reads as a account message.",
+            "why": "The customer cannot get into their account."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-118",
+            "params": {
+              "label": "account"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-118",
+            "params": {
+              "queue": "account"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The accounts queue owns account messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.72
+          }
+        ]
+      }
+    },
+    "New message MSG-126: Tracking number not updating": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-126"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-126",
+            "from": "customer:c-126",
+            "subject": "Tracking number not updating",
+            "body": "Tracking number not updating."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a shipping message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent a stalled tracking number to fulfillment.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
+          },
+          {
+            "id": "p2",
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
+          },
+          {
+            "id": "p3",
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "shipping",
+            "rationale": "\"Tracking number not updating\" reads as a shipping message.",
+            "why": "It is about an order in transit or its delivery."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-126",
+            "params": {
+              "label": "shipping"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-126",
+            "params": {
+              "queue": "shipping"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The fulfillment queue owns shipping messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.79
+          }
+        ]
+      }
+    },
+    "New message MSG-127: Cannot sign in on my new phone": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-127"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-127",
+            "from": "customer:c-127",
+            "subject": "Cannot sign in on my new phone",
+            "body": "Cannot sign in on my new phone."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a account message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Routed a sign-in problem on a new phone to accounts.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
+          },
+          {
+            "id": "p2",
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
+          },
+          {
+            "id": "p3",
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "account",
+            "rationale": "\"Cannot sign in on my new phone\" reads as a account message.",
+            "why": "The customer cannot get into their account."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-127",
+            "params": {
+              "label": "account"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-127",
+            "params": {
+              "queue": "account"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The accounts queue owns account messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.82
+          }
+        ]
+      }
+    },
+    "New message MSG-128: Refund not received after ten days": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-128"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-128",
+            "from": "customer:c-128",
+            "subject": "Refund not received after ten days",
+            "body": "Refund not received after ten days."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a billing message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent a refund that has not arrived after ten days to billing.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
+          },
+          {
+            "id": "p2",
+            "text": "Clear the morning backlog before nine",
+            "status": "in_progress",
+            "rationale": "Most late routings come from messages that arrive overnight."
+          },
+          {
+            "id": "p3",
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "pending"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "\"Refund not received after ten days\" reads as a billing message.",
+            "why": "It is about a charge, invoice, or refund."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-128",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-128",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The billing queue owns billing messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.87
+          }
+        ]
+      }
+    },
+    "New message MSG-135: Wrong item in my order": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-135"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-135",
+            "from": "customer:c-135",
+            "subject": "Wrong item in my order",
+            "body": "Wrong item in my order."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a shipping message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent a wrong item in an order to fulfillment.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
+          },
+          {
+            "id": "p2",
+            "text": "Clear the morning backlog before nine",
+            "status": "done",
+            "rationale": "Most late routings come from messages that arrive overnight."
+          },
+          {
+            "id": "p3",
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "blocked",
+            "rationale": "Proposed the flag-duplicate-charges routine; waiting for approval."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "shipping",
+            "rationale": "\"Wrong item in my order\" reads as a shipping message.",
+            "why": "It is about an order in transit or its delivery."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-135",
+            "params": {
+              "label": "shipping"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-135",
+            "params": {
+              "queue": "shipping"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The fulfillment queue owns shipping messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.89
+          }
+        ]
+      }
+    },
+    "New message MSG-136: Change shipping address before dispatch": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-136"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-136",
+            "from": "customer:c-136",
+            "subject": "Change shipping address before dispatch",
+            "body": "Change shipping address before dispatch."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a shipping message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Sent an address change before dispatch to fulfillment.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
+          },
+          {
+            "id": "p2",
+            "text": "Clear the morning backlog before nine",
+            "status": "done",
+            "rationale": "Most late routings come from messages that arrive overnight."
+          },
+          {
+            "id": "p3",
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "blocked",
+            "rationale": "Proposed the flag-duplicate-charges routine; waiting for approval."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "shipping",
+            "rationale": "\"Change shipping address before dispatch\" reads as a shipping message.",
+            "why": "It is about an order in transit or its delivery."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-136",
+            "params": {
+              "label": "shipping"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-136",
+            "params": {
+              "queue": "shipping"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The fulfillment queue owns shipping messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.93
+          }
+        ]
+      }
+    },
+    "New message MSG-137: Cheap followers, act now": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the message"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-137"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "id": "MSG-137",
+            "from": "customer:c-137",
+            "subject": "Cheap followers, act now",
+            "body": "Cheap followers, act now."
+          },
+          "isError": false
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "This reads as a spam message."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Moved a follower-selling message to spam and revised the duplicate-charge routine.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
+          },
+          {
+            "id": "p2",
+            "text": "Clear the morning backlog before nine",
+            "status": "done",
+            "rationale": "Most late routings come from messages that arrive overnight."
+          },
+          {
+            "id": "p3",
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
+          },
+          {
+            "id": "p4",
+            "text": "Flag duplicate charges before triage",
+            "status": "blocked",
+            "rationale": "Proposed the flag-duplicate-charges routine; waiting for approval."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "spam",
+            "rationale": "\"Cheap followers, act now\" reads as a spam message.",
+            "why": "It is unsolicited and asks for nothing real."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-137",
+            "params": {
+              "label": "spam"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-137",
+            "params": {
+              "queue": "spam"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The spam queue owns spam messages."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "routed_within_1h",
+            "value": 0.97
+          }
+        ],
+        "routines": [
+          {
+            "name": "flag-duplicate-charges",
+            "language": "sh",
+            "content": "#!/bin/sh\n# Print the files whose text mentions a duplicate, double, or repeated charge.\ngrep -ilE 'duplicate|double|charged (twice|two times)|repeated charge' \"$@\"\n",
+            "reason": "Version 1 missed \"charged two times\" and \"repeated charge\" this week."
           }
         ]
       }
@@ -2655,25 +3595,27 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-202",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Choose a category",
+            "text": "Clear the morning backlog before nine",
             "status": "done",
-            "rationale": "The customer asks about a late delivery."
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it shipping and route it to shipping",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
           },
           {
             "id": "p4",
-            "text": "Look up the carrier's tracking status",
-            "status": "skipped",
-            "rationale": "this charter has no carrier binding"
+            "text": "Flag duplicate charges before triage",
+            "status": "blocked",
+            "rationale": "Proposed the flag-duplicate-charges routine; waiting for approval."
           }
         ],
         "decisions": [
@@ -2713,7 +3655,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.95
           }
         ]
       }
@@ -2776,31 +3718,27 @@
         "plan": [
           {
             "id": "p1",
-            "text": "Read MSG-203",
-            "status": "done"
+            "text": "Label and route every new message within an hour",
+            "status": "in_progress",
+            "rationale": "The outcome: 95% of messages routed within an hour."
           },
           {
             "id": "p2",
-            "text": "Check the customer's refund history",
+            "text": "Clear the morning backlog before nine",
             "status": "done",
-            "rationale": "no earlier refund requests"
+            "rationale": "Most late routings come from messages that arrive overnight."
           },
           {
             "id": "p3",
-            "text": "Label it billing and route it to billing",
-            "status": "done"
+            "text": "Learn which queue owns refunds for annual plans",
+            "status": "done",
+            "rationale": "Annual-plan refunds go to billing; noted in memory."
           },
           {
             "id": "p4",
-            "text": "Refund 24.00 for ORDER-1043",
-            "status": "pending",
-            "rationale": "waits for approval"
-          },
-          {
-            "id": "p5",
-            "text": "Tell the customer the refund is on its way",
-            "status": "pending",
-            "rationale": "waits for approval"
+            "text": "Flag duplicate charges before triage",
+            "status": "blocked",
+            "rationale": "Proposed the flag-duplicate-charges routine; waiting for approval."
           }
         ],
         "decisions": [
@@ -2872,7 +3810,7 @@
         "measurements": [
           {
             "metric": "routed_within_1h",
-            "value": 1.0
+            "value": 0.95
           }
         ]
       }
@@ -2913,9 +3851,27 @@
       "plan": [
         {
           "id": "p1",
-          "text": "Check the inbox for unread messages",
+          "text": "Label and route every new message within an hour",
+          "status": "in_progress",
+          "rationale": "The outcome: 95% of messages routed within an hour."
+        },
+        {
+          "id": "p2",
+          "text": "Clear the morning backlog before nine",
           "status": "done",
-          "rationale": "A manual or scheduled run starts by looking for new work."
+          "rationale": "Most late routings come from messages that arrive overnight."
+        },
+        {
+          "id": "p3",
+          "text": "Learn which queue owns refunds for annual plans",
+          "status": "done",
+          "rationale": "Annual-plan refunds go to billing; noted in memory."
+        },
+        {
+          "id": "p4",
+          "text": "Flag duplicate charges before triage",
+          "status": "blocked",
+          "rationale": "Proposed the flag-duplicate-charges routine; waiting for approval."
         }
       ],
       "decisions": [],

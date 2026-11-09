@@ -62,23 +62,28 @@
     "rules": [
       {
         "action": "label",
-        "decision": "auto"
+        "decision": "auto",
+        "note": "Labels are safe to change, so the steward applies them on its own."
       },
       {
         "action": "route",
-        "decision": "auto"
+        "decision": "auto",
+        "note": "Routing only moves a message between queues, so it runs on its own."
       },
       {
         "action": "reply",
-        "decision": "ask"
+        "decision": "ask",
+        "note": "Replies to customers need your sign-off, since a sent reply cannot be recalled."
       },
       {
         "action": "refund",
-        "decision": "ask"
+        "decision": "ask",
+        "note": "Refunds move money, so a person approves each one."
       },
       {
         "action": "delete",
-        "decision": "deny"
+        "decision": "deny",
+        "note": "The steward never deletes messages; people decide what to throw away."
       }
     ]
   },

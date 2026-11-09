@@ -118,6 +118,11 @@ M3:
 - (from eval) On main: `Corrector(sink:blobs:ambient:).correct(run: RunID, expected: JSONValue, note: String? = nil, person: String = "local") async throws -> CorrectionOutcome`.
 - (from runtime) Sandbox (decision 0040): small integration edit in `Wiring` (`routines: SandboxedRoutineRunner()`, `sandbox = true`); when real binding executors replace `DryRunExecutor`, use `BindingActionExecutor(connectForRun: BindingActionExecutor.sandboxed(workdir:))`.
 - (from runtime) Schedule visibility: `Scheduler.status(now:recent:)` (or `RuntimeService.schedule(recent:)`) gives each steward's `ScheduleStatus {state: off|unscheduled|running|due|waiting, intervalSeconds, nextWake, recent: [TriggerOutcome]}` for the steward header.
+- (from app-outcome) the Overview reads `plan.updated` `{v: 1, steps: [{id, title, status: todo|doing|done|dropped|blocked, note?}], reason?}`; please have `plan(steward:)` fold that event (and runtime record it from `run/result.plan`), so the app can switch to the facade reads; also an optional charter `success` sentence.
+- (from runtime) `plan.updated` is live (decision 0035): `plan(steward:)` can read `PlanBook(events).plans[id]` and the newest event's `PlanUpdated {items: [{id, text, status, rationale?}], reason?}`; the app's `OutcomeFeed` expects `{steps: [{title, note}]}` and should adapt to this shape.
+- (from runtime) Approval cards: `action.proposed` now has `risk` (low|medium|high) and `autonomy`, and `reason` `autonomy:<level>:<risk>` when autonomy made it ask (decision 0037); charters carry `autonomy` and `policy.risk`.
+- (from eval) Facade asks: `correct(run:expected:)` via `Corrector.correct(run:...)`; `whatIf(run:)` via `Counterfactuals(runner: RuntimeCaseRunner)`.
+- (from runtime) Inbox (decision 0039): the facade can post with `Inbox(engine:scheduler:).post(text, from: personBinding, to:, intent: .ask|.correct|.handoff)` (or `RuntimeService.inbox`) and list threads with `InboxBook(events).threads[steward]`.
 
 ## Log
 

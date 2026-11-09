@@ -1,13 +1,33 @@
 import Arya
+import AryaCore
 import Foundation
 
 /// The backend over `Arya.Workspace`. Facade calls that have not landed yet throw
 /// `WorkspaceError.unavailable`, which becomes "not available yet" (exit 69) naming the call.
 struct WorkspaceBackend: CLIBackend {
     let home: URL
+    /// When set (`ARYA_CLOCK`), events are stamped from this time instead of the real clock.
+    var clock: Date?
 
     private func open() async throws(CLIError) -> Workspace {
-        try await call("open") { try await Workspace.open(home: home) }
+        if let clock {
+            // Stamp events from `clock`, one millisecond per reading; ids stay random.
+            let start = Timestamp(millis: Int64((clock.timeIntervalSince1970 * 1000).rounded()))
+            let ambient = Ambient.fixed(
+                start: start, stepMillis: 1, seed: UInt64.random(in: 1...UInt64.max))
+            return try await call("open") {
+                try await Workspace.open(home: home, ambient: ambient)
+            }
+        }
+        return try await call("open") { try await Workspace.open(home: home) }
+    }
+
+    /// Parses `ARYA_CLOCK`: an RFC 3339 UTC time, with or without fractional seconds.
+    static func clock(_ text: String) -> Date? {
+        let plain = ISO8601DateFormatter()
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return plain.date(from: text) ?? fractional.date(from: text)
     }
 
     func initHome() async throws(CLIError) -> InitReport {

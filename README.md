@@ -93,7 +93,8 @@ arya ledger verify                                   # check the hash chain
 ```
 
 Every listing takes `--json`. The home defaults to `~/Library/Application Support/arya`;
-`--home <dir>` or `ARYA_HOME` picks another. `arya --help` lists all commands, and
+`--home <dir>` or `ARYA_HOME` picks another; `ARYA_CLOCK=<RFC 3339 time>` stamps events from
+that time instead of the clock (used to seed demo history). `arya --help` lists all commands, and
 [etc/examples](etc/examples) describes the example steward used above.
 
 ## Testing

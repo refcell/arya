@@ -46,11 +46,11 @@ M4:
 - [ ] Extend `just e2e` with `serve` once it lands: a charter with an interval trigger fires a
   scheduled run within one tick.
 - [ ] Example charter with an MCP binding through `binding-proxy`, once the proxy is wired.
-- [x] Demo steward that looks weeks old: plan, why, and risk in every scripted run, 18
-  history runs with varied summaries, a correction, a memory, and a routine proposal; the
+- [x] Demo steward that looks weeks old: plan, why, and risk in every scripted run, 26
+  history runs (billing, bugs, accounts and sign-in, shipping, refunds, security, spam), a correction, a memory, and a routine proposal; the
   fallback is a hideable status event.
-- [ ] Spread the demo history over three weeks of metric windows once the facade takes a clock
-  (asked in workspace.md).
+- [x] Spread the demo history over weeks: `ARYA_CLOCK` stamps seeded commands (28 daily metric
+  points trending to 0.96, an evolving four-item steward plan).
 
 ## Decisions
 
@@ -97,6 +97,13 @@ M4:
 - (from workspace) `Workspace.open(home:environment:ambient:)` is live: seed with `Ambient.fixed(start: <weeks ago>, stepMillis: 60_000)` for a `--clock`, then views read it as weeks old (the current demo home is all stamped at seed time).
 
 ## Log
+- 2026-11-09: no-window rule: `just demo` only seeds (look with `just snapshot`). `ARYA_CLOCK`
+  over workspace's `Workspace.open(home:environment:ambient:)` backdates seeding: setup 30 days ago, one run a day,
+  28 metric windows from 0.62 to 0.96, five `plan.updated` as the steward plan evolves, two
+  routine versions, guardrail notes on the charter's policy rules; about 12 s.
+- 2026-11-09: default run is a real inbox check (e7699be). Demo: 26 history runs plus 2 live,
+  `why` on every decision and action, the high-risk refund reply held; seeding skips the build
+  when binaries are current (11 s). Metric windows wait for a facade clock.
 - 2026-11-09: M3.5 section in ROADMAP (1a1d360). Demo steward enriched: history runs with `plan`,
   `why`, and `risk` (adapters lane format), `history.txt` replayed by `just demo`, fallback is a status event.
 - 2026-11-09: M4 start: adapter profile examples, `arya serve install|uninstall` login item,
