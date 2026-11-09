@@ -101,6 +101,12 @@ actor PreviewWorkspace: FeatureWorkspace {
                 added, "memory.retracted", .localUser,
                 ["v": 1, "note": .string(note), "reason": .string(reason)])
         case .correctCase(let correction): try correct(correction)
+        case .correctRun(let steward, let run, let choice, let note):
+            try correct(
+                CaseCorrection(
+                    steward: steward, casebook: "corrections", caseID: "case-\(run)", text: note,
+                    expected: ["decisions": [["choice": .string(choice)]]], rehearsal: nil,
+                    run: run))
         case .proposeCharter(let proposal): try propose(proposal)
         case .startRun(let steward, let input):
             let run = "run_w\(nextID)"
@@ -264,7 +270,7 @@ actor PreviewWorkspace: FeatureWorkspace {
     /// `case.corrected` plus the memory note a correction becomes, both by the person.
     private func correct(_ c: CaseCorrection) throws {
         let text = c.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if text.isEmpty { throw FeatureWriteError.correctionEmpty }
+        if text.isEmpty && c.expected == nil { throw FeatureWriteError.correctionEmpty }
         var payload: [String: FeatureJSON] = [
             "v": 1, "casebook": .string(c.casebook), "case": .string(c.caseID),
             "text": .string(text),
@@ -273,6 +279,7 @@ actor PreviewWorkspace: FeatureWorkspace {
         payload["rehearsal"] = c.rehearsal.map(FeatureJSON.string)
         payload["run"] = c.run.map(FeatureJSON.string)
         emit(steward: c.steward, run: nil, "case.corrected", .localUser, .object(payload))
+        guard !text.isEmpty else { return }
         let note: FeatureJSON = [
             "id": .string("note_w\(nextID)"), "text": .string(text), "tags": ["correction"],
             "provenance": [

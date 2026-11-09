@@ -35,6 +35,9 @@ private struct RunControls: View {
     @AryaState private var replaying = false
 
     @AryaState private var asking = false
+    @AryaState private var correcting = false
+    @AryaState private var choice = ""
+    @AryaState private var note = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
@@ -44,7 +47,10 @@ private struct RunControls: View {
                     Menu("More") {
                         Button(replaying ? "Replaying" : "Replay this run") { replayRun() }
                             .disabled(!ended || replaying)
+                        Button("Correct…") { correcting = true }
+                            .disabled(!ended)
                     }
+                    .popover(isPresented: $correcting, arrowEdge: .bottom) { correctForm }
                     .menuStyle(.borderlessButton)
                     .fixedSize()
                     .aryaText(AryaFont.caption, AryaColor.inkMuted)
@@ -79,6 +85,43 @@ private struct RunControls: View {
             }
         }
         .padding(AryaSpace.s4)
+    }
+
+    /// Teaching from a live run: what it should have chosen, and why. The run becomes a case.
+    private var correctForm: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s2) {
+            Text("Correct this run").aryaText(AryaFont.bodyStrong, AryaColor.ink)
+            Text("The run becomes a case, so rehearsals check it from now on.")
+                .aryaText(AryaFont.caption, AryaColor.inkMuted)
+            CharterTextField(placeholder: "Should have chosen", text: $choice)
+                .frame(width: AryaSize.readingWidth / 2)
+            CharterTextField(placeholder: "Note (optional)", text: $note)
+                .frame(width: AryaSize.readingWidth / 2)
+            HStack {
+                Spacer()
+                Button("Cancel") { correcting = false }.buttonStyle(.aryaTertiary)
+                    .keyboardShortcut(.cancelAction)
+                Button("Correct") { correctRun() }
+                    .buttonStyle(.aryaPrimary)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(choice.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(AryaSpace.s4)
+    }
+
+    private func correctRun() {
+        guard let run else { return }
+        let write = FeatureWrite.correctRun(
+            steward: steward, run: run, choice: choice.trimmingCharacters(in: .whitespaces),
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines))
+        Task {
+            if await store.perform(write) {
+                correcting = false
+                choice = ""
+                note = ""
+            }
+        }
     }
 
     private var ended: Bool {

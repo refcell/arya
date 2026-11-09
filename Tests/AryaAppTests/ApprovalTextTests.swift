@@ -88,3 +88,22 @@ private struct DetailWorkspace: FeatureWorkspace {
     #expect(LedgerText.chainValue("", label: "Prev") == "none (first event)")
     #expect(LedgerText.chainValue("sha256:bb", label: "Hash") == "sha256:bb")
 }
+
+@MainActor @Test func correctingARunRecordsItAsACaseWithTheExpectedChoice() async {
+    let now = FeatureTestClock.now
+    let store = FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now)
+    await store.reload()
+    #expect(
+        await store.perform(
+            .correctRun(steward: PreviewFixtures.steward, run: "run_0001", choice: "bug", note: ""))
+    )
+    guard case .loaded(let events) = store.state,
+        let corrected = events.last(where: { $0.type == "case.corrected" })
+    else {
+        Issue.record("no correction recorded")
+        return
+    }
+    #expect(corrected.payload["run"]?.string == "run_0001")
+    #expect(corrected.payload["expected"]?["decisions"]?.array?.first?["choice"]?.string == "bug")
+    #expect(events.last?.type == "case.corrected")
+}

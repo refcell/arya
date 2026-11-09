@@ -116,6 +116,10 @@ extension Workspace: WorkspaceSource {
                 expected: try correction.expected.map(Self.canonical),
                 note: correction.text.isEmpty ? nil : correction.text,
                 casebook: correction.casebook, by: person)
+        case .correctRun(_, let run, let choice, let note):
+            _ = try await correct(
+                run: run, expected: try await expected(run: run, choice: choice),
+                note: note.isEmpty ? nil : note, by: person)
         case .markReady(let steward, _, _):
             // The facade checks the reviewed rehearsal and live charter version itself.
             _ = try await markReady(steward: steward, by: person)

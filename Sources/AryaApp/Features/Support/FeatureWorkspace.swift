@@ -16,6 +16,9 @@ enum FeatureWrite: Hashable, Sendable {
     /// Records a person's correction of a rehearsed case (`case.corrected`), optionally with a
     /// new expected result, and keeps it as a memory note attributed to the person.
     case correctCase(CaseCorrection)
+    /// Teaches a steward from a live run: the run becomes a case expecting `choice` as its
+    /// first decision, with an optional memory note (`correct(run:expected:note:by:)`).
+    case correctRun(steward: String, run: String, choice: String, note: String)
     /// Marks a steward ready for live triggers after reviewing a rehearsal (`steward.ready`).
     case markReady(steward: String, charterVersion: Int, rehearsal: String?)
     /// Proposes a new charter version (`proposal.created`); it goes live only through a gate.
