@@ -42,7 +42,7 @@ M3, extended (toward the end-to-end scenario and `just demo`):
   delete both preview stubs (`ShellPreviewWorkspace`, app-views' `PreviewWorkspace`).
 
 M4:
-- [ ] Approval notifications (local `UserNotifications`) with Approve and Deny actions.
+- [x] Approval notifications (local `UserNotifications`) with Approve and Deny actions.
 - [ ] Person-binding inbox entry in the rail.
 
 ## Decisions
@@ -86,6 +86,9 @@ M4:
 - Screenshots draw `RootView` through `NSHostingView.cacheDisplay`, because `ImageRenderer`
   skips scroll views. With a feature store wired, the rail's approvals count comes from the
   same events as the queue (`StoreApprovalsRow`).
+- Notifications announce approvals that became pending since the last refresh; the first load
+  only primes, so opening the app never floods. They are enabled only when the app runs from
+  its bundle; tests use a recording poster.
 
 ## Questions
 
@@ -105,3 +108,4 @@ M4:
 - 2026-11-09: text size commands, `--home`, `just app-preview` (0ab37da).
 - 2026-11-09: rail arrow keys, `just screenshots`, one approvals count (bdd54f6).
 - 2026-11-09: effort through the facade; real homes show stewards (7f3044c).
+- 2026-11-09: Return and Escape on focused approval cards (5b52dba).

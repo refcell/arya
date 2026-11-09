@@ -34,6 +34,23 @@ final class AppSession {
                 problem = "Could not open the home at \(url.lastPathComponent): \(error)."
             }
         }
+        model?.notifications = poster
+    }
+
+    /// Posts approval notifications when the app runs from its bundle.
+    @ObservationIgnored private var poster: SystemNotificationPoster?
+
+    /// Announces new approvals through the system, with Approve and Deny on each notice.
+    func enableNotifications() {
+        guard Bundle.main.bundleIdentifier != nil else { return }
+        let poster =
+            self.poster
+            ?? SystemNotificationPoster { [weak self] approval, approved in
+                guard let model = self?.model else { return }
+                Task { approved ? await model.approve(approval) : await model.deny(approval) }
+            }
+        self.poster = poster
+        model?.notifications = poster
     }
 
     /// The window subtitle: which home is open.

@@ -34,6 +34,9 @@ final class AppModel {
     private(set) var nextSeq = 1
     /// How many refreshes have completed; tests and diagnostics read it.
     private(set) var refreshCount = 0
+    /// Where new approvals are announced, if anywhere.
+    var notifications: (any NotificationPosting)?
+    @ObservationIgnored private var notifier = ApprovalNotifier()
 
     init(source: any WorkspaceSource, featureStore: FeatureStore? = nil) {
         self.source = source
@@ -74,6 +77,7 @@ final class AppModel {
             self.approvals = approvals.sorted { $0.requestedAt < $1.requestedAt }
             self.efforts = efforts.compactMapValues(AryaEffort.init(rawValue:))
             problem = nil
+            announce(approvals, stewards: stewards)
         } catch {
             problem = Self.describe(error)
         }
@@ -98,6 +102,13 @@ final class AppModel {
         } catch {
             live = .stopped(Self.describe(error))
         }
+    }
+
+    private func announce(_ approvals: [ApprovalSummary], stewards: [StewardSummary]) {
+        let names = Dictionary(stewards.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
+        let notices = notifier.newlyPending(approvals, stewardNames: names)
+        guard let notifications else { return }
+        for notice in notices { notifications.post(notice) }
     }
 
     func approve(_ id: String) async { await write { _ = try await source.approve(id, note: nil) } }

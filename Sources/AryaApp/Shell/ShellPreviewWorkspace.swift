@@ -86,6 +86,12 @@ actor ShellPreviewWorkspace: WorkspaceSource {
         record("run.started", steward: run.steward, run: run.id)
     }
 
+    /// Appends a pending approval and its `approval.requested` event. For tests and demos.
+    func requestApproval(_ approval: ApprovalSummary) {
+        approvalList.append(approval)
+        record("approval.requested", steward: approval.steward, run: approval.run)
+    }
+
     private func decide(
         _ id: String, status: ApprovalSummary.Status, type: String
     ) throws -> ApprovalSummary {

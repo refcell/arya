@@ -25,6 +25,7 @@ struct AryaApp: App {
                             arguments: CommandLine.arguments, environment: environment,
                             applicationSupport: support),
                         environment: environment)
+                    session.enableNotifications()
                 }
         }
         .defaultSize(width: 1120, height: 720)
