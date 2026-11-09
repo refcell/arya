@@ -1,3 +1,4 @@
+import AryaCore
 import Foundation
 import Testing
 
@@ -104,4 +105,17 @@ private func bindingActions(_ charter: Object) -> [String: [String]] {
         $0["kind"] as? String
     }
     #expect(kinds.map(decision) == ["auto", "auto", "ask"])
+}
+
+@Test func triageExampleLoadsThroughCore() throws {
+    let charter = try Charter.load(
+        from: Data(contentsOf: triage.appendingPathComponent("charter.json")))
+    #expect(charter.policy.decision(forAction: "reply") == .ask)
+    #expect(charter.policy.decision(forAction: "delete") == .deny)
+    #expect(charter.policy.decision(forAction: "archive") == .ask)
+    let text = try String(
+        contentsOf: triage.appendingPathComponent("casebook.jsonl"), encoding: .utf8)
+    for line in text.split(separator: "\n") {
+        _ = try Case.load(from: Data(line.utf8))
+    }
 }
