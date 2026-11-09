@@ -57,11 +57,11 @@ load_denylist "$deny_cs" "$tmp/deny-cs" '-E' && have_cs=1
 scan_text() {
   [ "$#" -gt 0 ] || return 0
   if [ "$have_ci" -eq 1 ]; then
-    report "denylisted term" "$(grep -nIiE -f "$tmp/deny-ci" -- "$@" 2>/dev/null \
+    report "denylisted term" "$(grep -HnIiE -f "$tmp/deny-ci" -- "$@" 2>/dev/null \
       | cut -d: -f1,2 || true)"
   fi
   if [ "$have_cs" -eq 1 ]; then
-    report "denylisted term (case-sensitive)" "$(grep -nIE -f "$tmp/deny-cs" -- "$@" \
+    report "denylisted term (case-sensitive)" "$(grep -HnIE -f "$tmp/deny-cs" -- "$@" \
       2>/dev/null | cut -d: -f1,2 || true)"
   fi
   local secret_files=()
@@ -70,9 +70,9 @@ scan_text() {
     [ "$f" = etc/scripts/tidy.sh ] || secret_files+=("$f")
   done
   [ "${#secret_files[@]}" -gt 0 ] || return 0
-  report "possible secret or private path" "$(grep -nIE "$p_home|$p_keys" -- \
+  report "possible secret or private path" "$(grep -HnIE "$p_home|$p_keys" -- \
     "${secret_files[@]}" 2>/dev/null | cut -d: -f1,2 || true)"
-  report "email address" "$(grep -nIE "$p_mail" -- "${secret_files[@]}" 2>/dev/null \
+  report "email address" "$(grep -HnIE "$p_mail" -- "${secret_files[@]}" 2>/dev/null \
     | grep -vE "$p_mail_ok" | cut -d: -f1,2 || true)"
 }
 
@@ -80,7 +80,11 @@ if [ "${1:-}" = "--commit-msg" ]; then
   msg=${2:?usage: tidy.sh --commit-msg FILE}
   # Drop git's comment lines and everything below the scissors line.
   sed -e '/^# -* >8 -*$/,$d' -e '/^#/d' "$msg" > "$tmp/COMMIT_MSG"
-  (cd "$tmp" && scan_text COMMIT_MSG)
+  cd "$tmp"
+  scan_text COMMIT_MSG
+  # Co-author trailers can carry identities and emails; this repository allows none.
+  report "co-author trailer (not allowed)" "$(grep -HniE '^[[:space:]]*co-authored-by:' \
+    COMMIT_MSG | cut -d: -f1,2 || true)"
   [ "$fail" -eq 0 ] || echo "tidy: commit message rejected"
   exit "$fail"
 fi
