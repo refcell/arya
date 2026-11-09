@@ -21,16 +21,16 @@ M1:
   `Effort`) and `Case`, matching the JSON in ARCHITECTURE.md, with validation errors and golden
   fixtures. `GateChecking` protocol.
 - [x] `Event` envelope and `Actor`; the write rule from decision 0012; golden test of one line.
-- [ ] Segment store: `ledger/000001.jsonl`, rollover at 64 MiB (configurable for tests),
+- [x] Segment store: `ledger/000001.jsonl`, rollover at 64 MiB (configurable for tests),
   per-append `flock` with tail re-read, `fsync`.
 - [ ] Reader: iterate all events in order, from a `seq`, and follow new appends (for `tail` and
   the app).
 - [ ] `verify`: chain, `seq` continuity, `prev` links, envelope schema; reports the first bad
   line. Test tampering with one byte in a middle segment.
-- [ ] Torn-line repair on open: move bytes to a blob, truncate, append `system.repair`. Test by
+- [x] Torn-line repair on open: move bytes to a blob, truncate, append `system.repair`. Test by
   writing a partial line.
 - [ ] Two-process append test (spawn a child writer) proving no lost or interleaved lines.
-- [ ] Blob store `blobs/sha256/ab/<hex>`: put, get, exists; atomic write via temp file + rename.
+- [x] Blob store `blobs/sha256/ab/<hex>`: put, get, exists; atomic write via temp file + rename.
 - [x] Typed payloads for the ledger-owned event types (`run.*`, `action.*`, `approval.*`,
   `env.read`, `system.*`), each with a golden test; the rest live with their writers (0019,
   0022, 0023, 0024).
@@ -78,6 +78,14 @@ M3:
   in `AryaMemory`) is acknowledged. Ledger payloads match the runtime's existing JSON byte for
   byte (tests decode the runtime's exact lines) and carry no `v` of their own.
   Payload goldens regenerate with `ARYA_UPDATE_GOLDENS=1 just test AryaLedgerTests`.
+- `LedgerStore(home:ambient:segmentLimitBytes:)` is the one writer: `append(_:)` takes one draft
+  or a batch (one lock, one `fsync`). For each event it reads `ambient.now()` then
+  `ambient.newID(EventID.self)`. A line longer than the segment limit still goes into a fresh
+  segment by itself. Torn-tail repair runs on open and before every append; a complete final
+  line that fails its hash or envelope check throws `LedgerStoreError.chainBroken` and the store
+  refuses to write.
+- File errors are `LedgerIOError` with a file name only (never a full path), so messages are
+  safe to show and log.
 - `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
 
 ## Questions

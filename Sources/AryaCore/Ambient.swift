@@ -288,13 +288,13 @@ private struct State: Sendable {
 }
 
 /// A value guarded by a lock. `Synchronization.Mutex` needs macOS 15; this needs 14.
-final class Locked<Value: Sendable>: @unchecked Sendable {
+public final class Locked<Value: Sendable>: @unchecked Sendable {
     private let lock = NSLock()
     private var value: Value
 
-    init(_ value: Value) { self.value = value }
+    public init(_ value: Value) { self.value = value }
 
-    func withLock<T>(_ body: (inout Value) throws -> T) rethrows -> T {
+    public func withLock<T>(_ body: (inout Value) throws -> T) rethrows -> T {
         lock.lock()
         defer { lock.unlock() }
         return try body(&value)
