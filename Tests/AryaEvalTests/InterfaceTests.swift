@@ -15,7 +15,7 @@ import Testing
     let request = RehearsalRequest(
         steward: StewardID(unchecked: "st_triage"), charterVersion: 1, casebookVersion: "ab")
     await #expect(throws: EvalError.notImplemented("rehearsal")) {
-        try await StubRehearser().rehearse(request)
+        try await StubRehearser().rehearse(request, charter: testCharter)
     }
 }
 

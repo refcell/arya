@@ -5,6 +5,8 @@ import AryaRuntime
 public struct CaseRunRequest: Hashable, Sendable {
     public var steward: StewardID
     public var charterVersion: Int
+    /// The charter the run uses (live or a proposal's candidate).
+    public var charter: Charter
     public var rehearsal: RehearsalID
     public var caseItem: Case
     /// Sample index, starting at 0.
@@ -61,7 +63,9 @@ public struct CasebookRehearser: Rehearser {
         self.maxParallel = max(1, maxParallel)
     }
 
-    public func rehearse(_ request: RehearsalRequest) async throws -> RehearsalResult {
+    public func rehearse(
+        _ request: RehearsalRequest, charter: Charter
+    ) async throws -> RehearsalResult {
         let book = try await casebooks.casebook(version: request.casebookVersion)
         let id = ambient.newID(RehearsalID.self)
         try await record(
@@ -69,12 +73,12 @@ public struct CasebookRehearser: Rehearser {
             RehearsalStartedPayload(
                 rehearsal: id, charterVersion: request.charterVersion,
                 casebookVersion: book.version, cases: book.cases.count,
-                samples: request.samples))
+                samples: request.samples, proposal: request.proposal))
         let jobs = book.cases.flatMap { item in
             (0..<request.samples).map {
                 CaseRunRequest(
                     steward: request.steward, charterVersion: request.charterVersion,
-                    rehearsal: id, caseItem: item, sample: $0)
+                    charter: charter, rehearsal: id, caseItem: item, sample: $0)
             }
         }
         let done = await runAll(jobs)

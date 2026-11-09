@@ -8,9 +8,10 @@ public struct RehearsalStartedPayload: Hashable, Sendable, Codable {
     public var casebookVersion: String
     public var cases: Int
     public var samples: Int
+    public var proposal: ProposalID?
 
     enum CodingKeys: String, CodingKey {
-        case v, rehearsal, charterVersion, casebookVersion, cases, samples
+        case v, rehearsal, charterVersion, casebookVersion, cases, samples, proposal
     }
 }
 

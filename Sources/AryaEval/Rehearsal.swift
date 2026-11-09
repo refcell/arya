@@ -7,18 +7,23 @@ public struct RehearsalRequest: Hashable, Sendable, Codable {
     public var casebookVersion: String
     /// Runs per case (`gate.samples`), at least 1.
     public var samples: Int
+    /// The proposal whose candidate charter is rehearsed; `nil` for the live charter. Only
+    /// rehearsals without a proposal serve as gate baselines.
+    public var proposal: ProposalID?
 
     public init(
-        steward: StewardID, charterVersion: Int, casebookVersion: String, samples: Int = 1
+        steward: StewardID, charterVersion: Int, casebookVersion: String, samples: Int = 1,
+        proposal: ProposalID? = nil
     ) {
         self.steward = steward
         self.charterVersion = charterVersion
         self.casebookVersion = casebookVersion
         self.samples = max(1, samples)
+        self.proposal = proposal
     }
 
     enum CodingKeys: String, CodingKey {
-        case steward, charterVersion, casebookVersion, samples
+        case steward, charterVersion, casebookVersion, samples, proposal
     }
 }
 
@@ -59,15 +64,18 @@ public struct RehearsalResult: Hashable, Sendable, Codable {
 }
 
 /// Runs a steward over a casebook offline and scores each case. Never executes actions.
+/// `charter` is the charter rehearsed: the live one, or a proposal's candidate.
 public protocol Rehearser: Sendable {
-    func rehearse(_ request: RehearsalRequest) async throws -> RehearsalResult
+    func rehearse(_ request: RehearsalRequest, charter: Charter) async throws -> RehearsalResult
 }
 
 /// Placeholder until rehearsal runs land.
 public struct StubRehearser: Rehearser {
     public init() {}
 
-    public func rehearse(_ request: RehearsalRequest) async throws -> RehearsalResult {
+    public func rehearse(
+        _ request: RehearsalRequest, charter: Charter
+    ) async throws -> RehearsalResult {
         throw EvalError.notImplemented("rehearsal")
     }
 }

@@ -57,6 +57,9 @@ Later:
   `CasebookSource`. Events (actor `system`) are recorded after all runs finish, in case-id order, so ledger
   order never depends on completion order. A runner error scores that sample 0 with a note; a
   leak scores 0 and marks the case. `rehearsal.*` payloads live in `AryaEval`, as memory's do.
+- Rehearsal takes the charter to run (live or a proposal's candidate) and an optional
+  `proposal`; `RehearsalBook` projects `rehearsal.*` events, and the gate baseline is the latest
+  finished rehearsal with no proposal for the live version and casebook version.
 - Corrections: `Corrector` records `case.corrected` and a `memory.added` note (built with
   `MemoryCorrections.note`, pointing at the correction event), both with the person as actor.
   A new expected result produces a new casebook version, recorded as `casebook.imported` with
@@ -75,3 +78,4 @@ Later:
 - 2026-11-09: eval adopts core `JSONValue`, `CanonicalJSON`, typed ids (c824b64)
 - 2026-11-09: `CasebookRehearser` with bounded parallelism and `rehearsal.*` events (1a41c45)
 - 2026-11-09: eval uses core `Case`, `GateChecking`, `ScorerSpec`, runtime `EventSink` (028a9f8)
+- 2026-11-09: corrections (`case.corrected`, note, corrected casebook) and readiness (86e1c81)
