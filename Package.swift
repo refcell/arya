@@ -27,7 +27,7 @@ let package = Package(
         ),
         .target(
             name: "AryaEval",
-            dependencies: ["AryaCore", "AryaLedger", "AryaMemory", "AryaRuntime"]),
+            dependencies: ["AryaAdapters", "AryaCore", "AryaLedger", "AryaMemory", "AryaRuntime"]),
         .target(
             name: "Arya",
             dependencies: [
@@ -58,7 +58,9 @@ let package = Package(
         .testTarget(name: "AryaRuntimeTests", dependencies: ["AryaRuntime"]),
         .testTarget(
             name: "AryaEvalTests",
-            dependencies: ["AryaCore", "AryaLedger", "AryaMemory", "AryaRuntime", "AryaEval"],
+            dependencies: [
+                "AryaAdapters", "AryaCore", "AryaLedger", "AryaMemory", "AryaRuntime", "AryaEval",
+            ],
             resources: [.copy("Fixtures")]),
         .testTarget(
             name: "AryaTests",

@@ -14,7 +14,7 @@ M1:
   `Scorer`, `Gate` (conforming to `GateChecking`), with stub implementations.
 
 M2:
-- [ ] `arya replay <run>`: rebuild recorded inputs (ambient, adapter messages, tool results,
+- [x] `arya replay <run>`: rebuild recorded inputs (ambient, adapter messages, tool results,
   executor output, human events), drive the runtime with `ReplayAdapter`, and compare derived
   events field by field; divergence report with both versions. Test with an injected
   nondeterminism bug that replay catches.
@@ -50,6 +50,16 @@ Later:
 - Replay compares derived events by position (type, then payload in sorted key order), never by
   `seq`, because a replay writes to a scratch ledger. `DivergenceFinder` is pure and landed
   ahead of the runtime-driven replayer.
+- `RunReplayer` seeds a scratch sink with every event before the run, so the charter, memory and
+  approvals are as they were. The adapter is a `ReplayAdapter` over the run's
+  `run.adapter.event` lines (workdir taken from the recorded `run/start`), wrapped so a divergent
+  host line ends the run instead of hanging; the executor answers from recorded
+  `action.executed`/`action.failed`. Scratch events take the recorded envelope ids and times in
+  order. Until `env.read` is recorded, other engine readings (approval ids, clock) fall back to a
+  fixed ambient, so ids and timestamps inside payloads are renamed by first appearance before
+  comparing. Adapter lines, `env.read` and human events are inputs and are not compared.
+  Rehearsal runs replay in rehearsal mode from the stored casebook and, for a candidate, the
+  proposal's charter.
 - `GateRule` (pure, decision 0017): a missing baseline or differing case sets fail the gate; a
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.
@@ -113,3 +123,6 @@ Later:
 - 2026-11-09: proposals (`ProposalDesk`, `ProposalBook`) and `RehearsalGate`, decision 0027 (e0c679e)
 - 2026-11-09: per-steward outcome metric series with fixed windows (fabfc1e)
 - 2026-11-09: routine gate (`RoutineRehearsalGate`) and the fresh-baseline rule (7bce5aa)
+- 2026-11-09: stored casebook projection `CasebookBook`, `StoredCasebooks` (d1ecf71)
+- 2026-11-09: replay engine `RunReplayer(sink:casebooks:)`, a `Replayer` whose
+  `replay(run:) async throws -> ReplayReport` drives `RunEngine` on recorded inputs

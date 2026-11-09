@@ -96,6 +96,8 @@ M4:
 
 ## Questions
 
+- (from eval) Could `ReplayAdapter` publish `.exited` after `replayDivergence`? (now wrapped)
+
 ## Log
 - 2026-11-09: protocol types, JSON-RPC messages, golden tests (dc550be)
 - 2026-11-09: `Adapter`, `AdapterConnection`, `ProcessTransport`, `FakeAdapter`,

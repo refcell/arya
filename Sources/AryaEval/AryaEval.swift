@@ -19,4 +19,8 @@ public enum EvalError: Error, Equatable, Sendable {
     case unknownCasebook(String)
     /// A stored casebook's content does not hash to its version.
     case casebookMismatch(expected: String, actual: String)
+    /// No `run.started` for this run.
+    case unknownRun(RunID)
+    /// A rehearsal run's rehearsal is not on the ledger, or no casebook source was given.
+    case unknownRehearsal(RehearsalID)
 }
