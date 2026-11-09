@@ -1,60 +1,139 @@
+import AryaAdapters
+import AryaCore
+import AryaLedger
+import AryaRuntime
 import Foundation
 
 /// An opened arya home: the only API the CLI and the app use.
 ///
-/// `Workspace.open(home:)` creates the home layout (ARCHITECTURE.md "Home directory") and wires
-/// the ledger, adapters, memory, runtime, and eval modules. Every write records ledger events
-/// with the local user as actor. Ids are plain strings (`st_…`, `run_…`, `ap_…`).
+/// `Workspace.open(home:)` creates the home layout (ARCHITECTURE.md "Home directory"), opens the
+/// ledger, fails runs whose process is gone, and wires the runtime and eval modules over it.
+/// Every write records ledger events with the local user as actor. Ids are plain strings
+/// (`st_…`, `run_…`, `ap_…`). State is read from the ledger at each call, so several
+/// processes (the CLI and the app) can share one home.
 ///
 /// Calls whose backing module has not landed yet throw `WorkspaceError.unavailable`; the
 /// signatures are stable so callers can be written against them today.
 public actor Workspace {
     /// The home directory this workspace reads and writes.
     public nonisolated let home: URL
+    nonisolated let reader: LedgerReader
+    let ambient: Ambient
+    let sink: LedgerEventSink
+    let approvalQueue: ApprovalQueue
+    let dispatcher: ActionDispatcher
+    let engine: RunEngine
 
-    private init(home: URL) {
+    private init(home: URL, wiring: Wiring) throws {
         self.home = home
+        ambient = wiring.ambient
+        sink = try LedgerEventSink(home: home, ambient: wiring.ambient)
+        reader = LedgerReader(home: home)
+        approvalQueue = ApprovalQueue(sink: sink, ambient: wiring.ambient)
+        dispatcher = ActionDispatcher(
+            sink: sink, approvals: approvalQueue, executor: wiring.executor)
+        let work = home.appendingPathComponent("cache/work", isDirectory: true)
+        engine = RunEngine(
+            sink: sink, ambient: wiring.ambient, adapters: wiring.adapters, dispatcher: dispatcher,
+            approvals: approvalQueue,
+            workdir: { run in
+                let url = work.appendingPathComponent(run.rawValue, isDirectory: true)
+                try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+                return url.path
+            },
+            questionPoll: wiring.questionPoll, leases: wiring.leases)
     }
 
-    /// Opens the home at `home`, creating its directories when missing.
+    /// Opens the home at `home`, creating its directories when missing, and records
+    /// `run.failed(interrupted)` for runs whose process is gone.
     ///
     /// The caller (CLI or app entry point) resolves the home path, for example from
-    /// `ARYA_HOME`; this library never reads environment variables.
-    public static func open(home: URL) async throws -> Workspace {
+    /// `ARYA_HOME`, and passes `environment`, the complete environment adapter processes get
+    /// (include `PATH` so profile commands without a slash resolve). This library never reads
+    /// environment variables; it uses the real clock and randomness.
+    public static func open(home: URL, environment: [String: String] = [:]) async throws
+        -> Workspace
+    {
         try HomeLayout.create(at: home)
-        return Workspace(home: home)
+        let leases = try FileRunLeases(directory: HomeLayout.leases(home))
+        return try await open(
+            home: home,
+            wiring: Wiring(
+                ambient: .live,
+                adapters: ProfileAdapterFactory(home: home, environment: environment),
+                executor: DryRunExecutor(), leases: leases))
+    }
+
+    /// Opens with explicit wiring (tests pass the fake adapter and a fixed ambient).
+    static func open(home: URL, wiring: Wiring) async throws -> Workspace {
+        try HomeLayout.create(at: home)
+        let workspace = try Workspace(home: home, wiring: wiring)
+        try await RunRecovery(sink: workspace.sink, leases: wiring.leases).recover()
+        return workspace
     }
 
     // MARK: Stewards
 
     /// All stewards, sorted by id, including paused and retired ones.
     public func stewards() async throws -> [StewardSummary] {
-        throw WorkspaceError.unavailable("stewards")
+        try await lifecycle.book().all.map(StewardSummary.init)
     }
 
     /// One steward, or `nil` if no steward has this id.
     public func steward(_ id: String) async throws -> StewardSummary? {
-        throw WorkspaceError.unavailable("steward")
+        try await record(id).map(StewardSummary.init)
+    }
+
+    /// The live charter of a steward as canonical JSON, effort changes included.
+    public func charter(_ id: String) async throws -> Data {
+        try CanonicalJSON.encode(try await existing(id).charter)
     }
 
     /// Records a new steward from charter JSON (`steward.created`, version 1).
     public func createSteward(charter: Data) async throws -> StewardSummary {
-        throw WorkspaceError.unavailable("createSteward")
+        let parsed: Charter
+        do {
+            parsed = try Charter.load(from: charter)
+        } catch let error as CharterError {
+            throw WorkspaceError.rejected(Self.describe(error))
+        }
+        return try await mapped { StewardSummary(try await lifecycle.create(parsed)) }
     }
 
     /// Pauses a steward so it takes no live triggers (`steward.paused`).
     public func pauseSteward(_ id: String) async throws {
-        throw WorkspaceError.unavailable("pauseSteward")
+        let steward = try await existing(id).id
+        _ = try await mapped { try await lifecycle.pause(steward) }
     }
 
     /// Resumes a paused steward (`steward.resumed`).
     public func resumeSteward(_ id: String) async throws {
-        throw WorkspaceError.unavailable("resumeSteward")
+        let steward = try await existing(id).id
+        _ = try await mapped { try await lifecycle.resume(steward) }
     }
 
     /// Retires a steward for good (`steward.retired`).
     public func retireSteward(_ id: String) async throws {
-        throw WorkspaceError.unavailable("retireSteward")
+        let steward = try await existing(id).id
+        _ = try await mapped { try await lifecycle.retire(steward) }
+    }
+
+    /// A steward's effort: `low`, `medium`, or `high` (decision 0026).
+    public func effort(for steward: String) async throws -> String {
+        try await existing(steward).charter.effort.rawValue
+    }
+
+    /// Changes a steward's effort (`steward.effort.set`, decision 0026). Effort is an
+    /// operational setting: no proposal, no gate, no new charter version. `person` is the
+    /// deciding person (`local` or a contact id).
+    public func setEffort(_ effort: String, for steward: String, by person: String = "local")
+        async throws
+    {
+        guard let value = Effort(rawValue: effort) else {
+            throw WorkspaceError.rejected("effort must be low, medium, or high, not \(effort)")
+        }
+        let id = try await existing(steward).id
+        _ = try await mapped { try await lifecycle.setEffort(value, for: id, by: .person(person)) }
     }
 
     // MARK: Runs
@@ -62,48 +141,160 @@ public actor Workspace {
     /// Starts a manual run with `input` as its text and waits until it finishes or fails.
     /// Approvals it requests stay pending after it returns.
     public func startRun(steward: String, input: String) async throws -> RunSummary {
-        throw WorkspaceError.unavailable("startRun")
+        let id = try await existing(steward).id
+        let outcome = try await mapped { try await engine.run(.manual(id, text: input)) }
+        guard let record = try await runBook().records[outcome.run] else {
+            throw WorkspaceError.notFound(outcome.run.rawValue)
+        }
+        return RunSummary(record)
     }
 
-    /// Runs, newest first, optionally for one steward.
+    /// Runs, newest first, optionally for one steward. Rehearsal runs have trigger `case`.
     public func runs(steward: String? = nil) async throws -> [RunSummary] {
-        throw WorkspaceError.unavailable("runs")
+        try await runBook().all.reversed()
+            .filter { steward == nil || $0.steward.rawValue == steward }
+            .map(RunSummary.init)
     }
 
     // MARK: Approvals
 
     /// Approvals, oldest first; pending only unless `includeDecided` is true.
     public func approvals(includeDecided: Bool = false) async throws -> [ApprovalSummary] {
-        throw WorkspaceError.unavailable("approvals")
+        let book = try await approvalQueue.book()
+        return (includeDecided ? book.all : book.pending).map(ApprovalSummary.init)
     }
 
-    /// Grants a pending approval; an action then executes and its output is recorded. For a
-    /// question, `note` is the answer.
+    /// Grants a pending approval; an action then executes with the steward's live charter and
+    /// its output is recorded. For a question, `note` is the answer.
     public func approve(_ id: String, note: String? = nil) async throws -> ApprovalSummary {
-        throw WorkspaceError.unavailable("approve")
+        let record = try await mapped {
+            try await approvalQueue.grant(ApprovalID(unchecked: id), by: .localUser, note: note)
+        }
+        guard record.status == .granted else {
+            throw WorkspaceError.rejected("\(id) is already \(record.status.rawValue)")
+        }
+        if case .action = record.subject {
+            let charter = try await existing(record.steward.rawValue).charter
+            _ = try await dispatcher.executeGranted(record, charter: charter)
+        }
+        return ApprovalSummary(record)
     }
 
     /// Denies a pending approval (`approval.denied`, then `action.rejected`).
     public func deny(_ id: String, note: String? = nil) async throws -> ApprovalSummary {
-        throw WorkspaceError.unavailable("deny")
+        let record = try await mapped {
+            try await approvalQueue.deny(ApprovalID(unchecked: id), by: .localUser, note: note)
+        }
+        guard record.status == .denied else {
+            throw WorkspaceError.rejected("\(id) is already \(record.status.rawValue)")
+        }
+        try await dispatcher.rejectDecided(record)
+        return ApprovalSummary(record)
     }
 
     // MARK: Ledger
 
     /// Ledger entries with `seq >= from`, in order, at most `limit` of them.
     public func ledger(from seq: Int = 1, limit: Int? = nil) async throws -> [LedgerEntry] {
-        throw WorkspaceError.unavailable("ledger")
+        var entries: [LedgerEntry] = []
+        try reader.forEach(from: Int64(max(1, seq))) { event in
+            if let limit, entries.count >= limit { return }
+            entries.append(try LedgerEntry(event))
+        }
+        return entries
     }
 
     /// Entries with `seq >= from`, then every new entry as it is appended, by any process.
+    /// The stream ends when the consumer stops iterating (its task is cancelled).
     public nonisolated func events(from seq: Int = 1) -> AsyncThrowingStream<LedgerEntry, Error> {
-        AsyncThrowingStream { $0.finish(throwing: WorkspaceError.unavailable("events")) }
+        let source = reader.follow(after: Int64(max(1, seq) - 1))
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    for try await event in source { continuation.yield(try LedgerEntry(event)) }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
     /// Verifies the hash chain, `seq` continuity, and envelopes.
     public func verifyLedger() async throws -> LedgerCheck {
-        throw WorkspaceError.unavailable("verifyLedger")
+        let result = try LedgerVerifier(home: home).verify()
+        guard let failure = result.failure else {
+            return LedgerCheck(ok: true, events: Int(result.events))
+        }
+        return LedgerCheck(
+            ok: false, events: Int(result.events), firstBadSeq: Int(result.events) + 1,
+            detail: failure.description)
     }
+
+    // MARK: Helpers
+
+    var lifecycle: StewardLifecycle { StewardLifecycle(sink: sink) }
+
+    func runBook() async throws -> RunBook {
+        try RunBook(try await sink.events(from: 1))
+    }
+
+    func record(_ id: String) async throws -> StewardRecord? {
+        try await lifecycle.book().records[StewardID(unchecked: id)]
+    }
+
+    func existing(_ id: String) async throws -> StewardRecord {
+        guard let record = try await record(id) else { throw WorkspaceError.notFound(id) }
+        return record
+    }
+
+    /// Runs `body`, turning runtime errors into facade errors.
+    func mapped<T>(_ body: () async throws -> T) async throws -> T {
+        do {
+            return try await body()
+        } catch let error as StewardError {
+            throw Self.facadeError(error)
+        } catch let error as ApprovalError {
+            switch error {
+            case .notFound(let id): throw WorkspaceError.notFound(id.rawValue)
+            case .alreadyDecided(let id, let status):
+                throw WorkspaceError.rejected("\(id.rawValue) is already \(status.rawValue)")
+            }
+        } catch let error as RunError {
+            switch error {
+            case .stewardRetired(let id): throw WorkspaceError.rejected("\(id.rawValue) is retired")
+            }
+        }
+    }
+
+    static func facadeError(_ error: StewardError) -> WorkspaceError {
+        switch error {
+        case .notFound(let id): .notFound(id.rawValue)
+        case .alreadyExists(let id): .rejected("steward \(id.rawValue) already exists")
+        case .invalidCharter(let issues): .rejected(Self.describe(.invalid(issues)))
+        case .idMismatch(let expected, let got):
+            .rejected("charter is for \(got.rawValue), not \(expected.rawValue)")
+        case .wrongStatus(let id, let status): .rejected("\(id.rawValue) is \(status.rawValue)")
+        }
+    }
+
+    static func describe(_ error: CharterError) -> String {
+        switch error {
+        case .malformed(let detail): "charter does not decode: \(detail)"
+        case .invalid(let issues):
+            "invalid charter: " + issues.map { "\($0.path): \($0.message)" }.joined(separator: "; ")
+        }
+    }
+}
+
+/// What `Workspace` runs on: clock and ids, adapters, the action executor, and run leases.
+struct Wiring: Sendable {
+    var ambient: Ambient
+    var adapters: any AdapterFactory
+    var executor: any ActionExecutor
+    var leases: any RunLeases
+    var questionPoll: Duration = .milliseconds(250)
 }
 
 /// Errors the facade reports.
@@ -134,5 +325,10 @@ enum HomeLayout {
                 at: home.appendingPathComponent(name, isDirectory: true),
                 withIntermediateDirectories: true)
         }
+    }
+
+    /// Where run leases live (`cache/runs/<run>.lock`).
+    static func leases(_ home: URL) -> URL {
+        home.appendingPathComponent("cache/runs", isDirectory: true)
     }
 }

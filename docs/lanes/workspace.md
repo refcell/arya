@@ -10,8 +10,10 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 ## Backlog
 
 M1 (the facade still throws `unavailable` for these):
-- [ ] A ledger-backed `EventSink` for the home, then stewards, runs, approvals, ledger read,
-  and verify through the runtime.
+- [x] A ledger-backed `EventSink` for the home, then stewards, runs, approvals, ledger read,
+  and verify through the runtime; restart recovery on `open`.
+- [ ] `routine(name:version:) -> RoutineDetail` and `routineHistory(name:)` from
+  `RoutineLibrary` (app-views: routine history and diff).
 
 M2 (top priority first):
 - [x] Runtime-backed `AryaEval.CaseRunner` in `Sources/Arya` (the runtime cannot import eval):
@@ -21,7 +23,7 @@ M2 (top priority first):
 - [ ] cli-e2e facade additions: `charter(_ id:) -> Data` (live charter), `run(_ id:) ->
   RunDetail` (decisions and per-action dispositions), and the calls behind `casebook import`,
   `rehearse`, `correct`, `ready`, `metrics`, and `replay`.
-- [ ] Effort (decision 0026): `effort(for:)` and `setEffort(_:for:by:)`, recording
+- [x] Effort (decision 0026): `effort(for:)` and `setEffort(_:for:by:)`, recording
   `steward.effort.set`; tell app-shell in its lane file once it lands.
 - [ ] Routine wiring (decision 0025, from memory): feed `run/result.routines` to
   `RoutineProposals.intake`, gate with `RoutineGatekeeper` through eval's
@@ -31,7 +33,7 @@ M2 (top priority first):
   SwiftUI import in the facade.
 
 M3:
-- [ ] Restart recovery wiring on `open` (interrupted runs fail, pending approvals stay).
+- [x] Restart recovery wiring on `open` (interrupted runs fail, pending approvals stay).
 - [ ] Facade-level end-to-end test with the fake adapter that mirrors the M3 scenario.
 
 ## Decisions
@@ -48,6 +50,17 @@ M3:
 - `Arya` depends on every library module (ledger, adapters, memory, runtime, eval); it is the
   one place they meet.
 
+- The facade runs on the runtime's `LedgerEventSink` over the home's ledger; every
+  call reads state from the ledger, so the CLI and the app can share a home. Run leases live in
+  `cache/runs`, run scratch directories in `cache/work/<run>`, and `open` runs
+  `RunRecovery` with the same file leases the engine holds.
+- Adapters come from `home/adapters.json` (`{v, profiles: {name: {command, args: {effort:
+  [...]}}}}`), read at each run. `open(home:environment:)` takes the complete adapter process
+  environment from the entry point. A missing profile fails the run (`adapter_exited`).
+- Until binding executors land (M4), approved and `auto` actions go to `DryRunExecutor`, which
+  records `action.executed` with output `{"dryRun": true}`.
+- `verifyLedger().firstBadSeq` is the count of good events plus one.
+
 ## Questions
 
 - From app-views: the Routines view diffs routine versions and needs their bodies. Proposed
@@ -56,10 +69,11 @@ M3:
   forwards it; until then the view says routine bodies are not available.
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
-- (from ledger) Everything for the ledger-backed `EventSink` has landed: `LedgerStore`, `LedgerReader` (`follow`), `LedgerVerifier`, `ProjectionCache`, payloads (0024), `LedgerProjection` (0028); see docs/lanes/ledger.md Decisions.
 - (from memory) Facade memory/routine API can map `MemoryProjection(ledger:)`, `RoutineLibrary(ledger:)`, `allNotes`, `overview`, `history`, `diff(…store:)`, `RunPreparation.context`, `MemoryIntake.notes`, `RoutineProposals.intake` (see memory.md Decisions).
 
 ## Log
 
 - 2026-11-09: lane created; `Sources/Arya` and `Tests/AryaTests` move here from runtime
 - 2026-11-09: `RuntimeCaseRunner` (runtime-backed `CaseRunner`) for eval rehearsals
+- 2026-11-09: core facade on the real ledger: stewards, effort, runs, approvals, ledger,
+  events, verify, restart recovery

@@ -63,6 +63,8 @@ M3:
 
 ## Questions
 
+- (from workspace) Core calls are live on the real ledger (stewards, runs, approvals, ledger, verify) plus `charter(_:)`; `Workspace.open(home:environment:)` takes the adapter process environment (pass `PATH`); `run(_:)` and the M2 calls are next.
+
 ## Log
 - 2026-11-09: example script back on the canonical `responses`/`default` format
 - 2026-11-09: tidy checks `CLAUDE.md` = `AGENTS.md`, shell syntax, no workflow files (8491625)

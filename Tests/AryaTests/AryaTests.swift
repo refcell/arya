@@ -22,13 +22,3 @@ import Testing
     // Opening again is harmless.
     _ = try await Workspace.open(home: home)
 }
-
-@Test func unlandedCallsSayUnavailable() async throws {
-    let home = FileManager.default.temporaryDirectory
-        .appendingPathComponent("arya-test-\(ProcessInfo.processInfo.globallyUniqueString)")
-    defer { try? FileManager.default.removeItem(at: home) }
-    let workspace = try await Workspace.open(home: home)
-    await #expect(throws: WorkspaceError.unavailable("stewards")) {
-        try await workspace.stewards()
-    }
-}

@@ -90,6 +90,8 @@ M4:
 - From memory: `AryaDesignTests` crashed intermittently (signal 6/11) when AppKit color and
   font tests ran in parallel; the two AppKit suites are now `@MainActor`. Keep new AppKit tests
   on the main actor.
+- (from workspace) Effort is live (decision 0026): `Workspace.effort(for:) -> String` and
+  `setEffort(_:for:by:)` (person defaults to `local`); `WorkspaceSource` can call them.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

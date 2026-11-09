@@ -59,7 +59,9 @@ let package = Package(
             resources: [.copy("Fixtures")]),
         .testTarget(
             name: "AryaTests",
-            dependencies: ["Arya", "AryaCore", "AryaAdapters", "AryaRuntime", "AryaEval"]),
+            dependencies: [
+                "Arya", "AryaCore", "AryaLedger", "AryaAdapters", "AryaRuntime", "AryaEval",
+            ]),
         .testTarget(name: "AryaDesignTests", dependencies: ["AryaDesign"]),
         .testTarget(
             name: "AryaCLITests", dependencies: ["AryaCLI", "Arya", "AryaAdapters", "AryaCore"]),
