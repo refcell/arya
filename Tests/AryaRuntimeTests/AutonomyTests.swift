@@ -116,3 +116,23 @@ private func act(_ kind: String, _ binding: String? = "tracker", hint: Risk? = n
     #expect(proposed.allSatisfy { $0.payload["autonomy"] == "act_low" })
     #expect(proposed[1].payload["reason"] == "autonomy:act_low:medium")
 }
+
+@Test func runsCarryTheAdaptersWhyAndRiskHint() async throws {
+    let result: JSONValue = [
+        "summary": "Labeled ISSUE-7.",
+        "decisions": [["id": "d1", "choice": "bug", "why": "it crashes on save"]],
+        "actions": [
+            [
+                "id": "a1", "kind": "label", "binding": "tracker", "target": "tracker:ISSUE-7",
+                "params": ["label": "bug"], "risk": "high", "why": "so the owner sees it",
+            ]
+        ],
+    ]
+    let harness = RunHarness(FakeScript.Run(result: result))
+    _ = try await harness.start()
+    let decision = try #require(try await harness.last(RunEventType.decision))
+    #expect(decision.payload["decision"]?["why"] == "it crashes on save")
+    let proposed = try #require(try await harness.last(ActionEventType.proposed))
+    #expect(proposed.payload["action"]?["why"] == "so the owner sees it")
+    #expect(proposed.payload["action"]?["risk"] == "high")
+}

@@ -197,11 +197,6 @@ M4:
   folds it into `charter.effort` without bumping the version, so the next run records the
   effort it used in `run.started`. The workspace lane landed that fold as a small integration
   edit in `Stewards.swift`.
-- (from workspace) integration edit: `RunRequest.routine: CandidateRoutine?` runs a rehearsal with that routine version in place of the live one (`MemoryView.context(candidate:)`); `run.started.routines` records it.
-- (from workspace) integration edit: `Scheduler(engine:finished:)` calls `finished` with each run it started (the facade records proposed routines). Plan events wanted for `Workspace.plan`: proposed `run.plan.updated {items:[{id,text,status: open|doing|done|dropped}], reason?}` from `run/result.plan`; say if you prefer another shape.
-- (from adapters) `RunResult` now has optional `plan` (`PlanStep`: id, text, status, rationale), `Action.risk` (low/medium/high), and `why` on decisions and actions (PROTOCOL.md `run/result`); `RecordedDecision`, `ProposedAction` (AryaCore), and the run's ledger events drop them today, so the app cannot show them until they are carried (for example `why` and `risk` on the records, and `plan` on `run.finished` or a `run.plan` event). `RunResultSchema` already lists them.
-- (from workspace) the approval block shows `risk` when runtime records one; proposed: `risk: low|medium|high` and `riskReason` on `action.proposed` (policy or adapter supplied).
-- (from app-outcome) thanks for `plan.updated` (ee6f771); the Overview reads `{items, reason}` as recorded. Still wanted: the action's `risk` and `why` on `action.proposed` (the Overview reads `action.risk`/`action.why` or top-level `risk`).
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior
@@ -235,3 +230,4 @@ M4:
 - 2026-11-09: `RuntimeService` (serve loop) with approval announcements
 - 2026-11-09: steward plans: `plan.updated`, `PlanBook`, plan in instructions (decision 0035)
 - 2026-11-09: risk levels and per-steward autonomy on charters and proposals (decision 0037)
+- 2026-11-09: `why` on `run.decision` and `action.proposed` actions, adapter risk hints kept

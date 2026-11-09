@@ -267,7 +267,8 @@ final class RunDriver: @unchecked Sendable {
         try transition(.resultReceived(end))
         for decision in result.decisions {
             let recorded = RecordedDecision(
-                id: decision.id, choice: decision.choice, rationale: decision.rationale)
+                id: decision.id, choice: decision.choice, rationale: decision.rationale,
+                why: decision.why)
             try await append(
                 RunEventType.decision, .steward(charter.id),
                 try Payload.encode(RunDecision(decision: recorded)))
@@ -360,7 +361,7 @@ extension ProposedAction {
         self.init(
             id: action.id, kind: action.kind, binding: action.binding, target: action.target,
             params: action.params, rationale: action.rationale,
-            risk: action.risk.flatMap { Risk(rawValue: $0.rawValue) })
+            risk: action.risk.flatMap { Risk(rawValue: $0.rawValue) }, why: action.why)
     }
 }
 

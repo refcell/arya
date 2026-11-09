@@ -173,14 +173,17 @@ public struct RecordedDecision: Hashable, Sendable, Codable {
     public var id: String
     public var choice: String
     public var rationale: String?
+    /// One line a person reads: why this choice.
+    public var why: String?
 
-    public init(id: String, choice: String, rationale: String? = nil) {
+    public init(id: String, choice: String, rationale: String? = nil, why: String? = nil) {
         self.id = id
         self.choice = choice
         self.rationale = rationale
+        self.why = why
     }
 
-    enum CodingKeys: String, CodingKey { case id, choice, rationale }
+    enum CodingKeys: String, CodingKey { case id, choice, rationale, why }
 }
 
 /// `run.decision`.
