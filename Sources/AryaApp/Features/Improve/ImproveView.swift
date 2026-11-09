@@ -28,6 +28,7 @@ struct ImproveView: View {
                     AryaHairline()
                     ImproveProposals(
                         store: store, list: ChangeList.build(events: events, steward: steward),
+                        latestRun: ImproveText.latestLiveRun(events, steward: steward),
                         gates: summary?.gates ?? [:])
                 }
                 .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
@@ -130,6 +131,7 @@ private struct CaseLine: View {
     var toggle: () -> Void
     @AryaState private var expected = ExpectationState.loading
     @AryaState private var correction = ""
+    @AryaState private var choice = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
@@ -184,13 +186,19 @@ private struct CaseLine: View {
                     .aryaText(AryaFont.caption, AryaColor.inkMuted)
             }
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                TextField("What should it have done?", text: $correction, axis: .vertical)
+                TextField("Should have chosen", text: $choice)
+                    .textFieldStyle(.plain)
+                    .aryaText(AryaFont.mono, AryaColor.ink)
+                    .frame(maxWidth: AryaSize.readingWidth / 4)
+                TextField("Note (optional)", text: $correction, axis: .vertical)
                     .textFieldStyle(.plain)
                     .aryaText(AryaFont.body, AryaColor.ink)
                 Button("Correct") { record() }
                     .buttonStyle(.aryaSecondary)
-                    .disabled(correction.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .help("Kept as a memory note, so the next rehearsal can learn from it.")
+                    .disabled(!canCorrect)
+                    .help(
+                        "Sets this case's expected choice; the note is kept as memory so the next "
+                            + "rehearsal can learn from it.")
             }
             .padding(.top, AryaSpace.s1)
         }
@@ -218,13 +226,23 @@ private struct CaseLine: View {
         return nil
     }
 
+    private var canCorrect: Bool {
+        !choice.trimmingCharacters(in: .whitespaces).isEmpty
+            || !correction.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     private func record() {
+        let picked = choice.trimmingCharacters(in: .whitespaces)
         let write = FeatureWrite.correctCase(
             CaseCorrection(
                 steward: steward, casebook: item.casebook, caseID: result.id, text: correction,
-                expected: nil, rehearsal: item.id, run: result.firstRun))
+                expected: picked.isEmpty ? nil : ImproveText.expected(result, choice: picked),
+                rehearsal: item.id, run: result.firstRun))
         Task {
-            if await store.perform(write) { correction = "" }
+            if await store.perform(write) {
+                correction = ""
+                choice = ""
+            }
         }
     }
 
@@ -236,8 +254,12 @@ private struct CaseLine: View {
 private struct ImproveProposals: View {
     @ObservedObject var store: FeatureStore
     var list: ChangeList
+    /// The steward's newest live run, which What if replays under a proposal's charter.
+    var latestRun: String?
     /// The workspace's gate sentence by proposal id.
     var gates: [String: String]
+    @AryaState private var whatIf: [String: String] = [:]
+    @AryaState private var asking: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
@@ -259,6 +281,14 @@ private struct ImproveProposals: View {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                 Text(item.title).aryaText(AryaFont.bodyStrong, AryaColor.ink)
                 Spacer(minLength: AryaSpace.s2)
+                if let latestRun {
+                    Button(asking == item.id ? "Running…" : "What if…") {
+                        ask(item.id, run: latestRun)
+                    }
+                    .buttonStyle(.aryaTertiary)
+                    .disabled(asking != nil)
+                    .help("Run the latest run again under this proposal's charter, without acting.")
+                }
                 Button("Reject") { decide(.rejectProposal(item.id, reason: "")) }
                     .buttonStyle(.aryaSecondary)
                 if item.canOverride {
@@ -278,6 +308,9 @@ private struct ImproveProposals: View {
             }
             Text(gates[item.id] ?? ChangesText.gate(item.gate))
                 .aryaText(AryaFont.caption, AryaColor.inkFaint)
+            if let answer = whatIf[item.id] {
+                Text(answer).aryaText(AryaFont.body, AryaColor.inkMuted).textSelection(.enabled)
+            }
             if let regressions = ChangesText.regressions(item.gate) {
                 Text(regressions).aryaText(AryaFont.monoSmall, AryaColor.negative)
             }
@@ -287,5 +320,17 @@ private struct ImproveProposals: View {
 
     private func decide(_ write: FeatureWrite) {
         Task { await store.perform(write) }
+    }
+
+    private func ask(_ proposal: String, run: String) {
+        asking = proposal
+        Task {
+            do {
+                whatIf[proposal] = try await store.workspace.whatIf(run: run, proposal: proposal)
+            } catch {
+                whatIf[proposal] = FeatureStore.describe(error)
+            }
+            asking = nil
+        }
     }
 }

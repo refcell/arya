@@ -30,6 +30,14 @@ enum FeatureWrite: Hashable, Sendable {
     case createSteward(StewardDraft)
 }
 
+/// What the workspace says about a pending approval: why policy held it, in a sentence (a
+/// charter rule's note, a generated sentence, or an autonomy explanation), and what the action
+/// would change ("label: none → billing").
+struct FeatureApprovalText: Hashable, Sendable {
+    var policy: String?
+    var change: String?
+}
+
 /// The Improve screen as the workspace writes it: the rehearsal and readiness in sentences,
 /// and each case's result, expectation, and difference in words.
 struct FeatureImproveSummary: Hashable, Sendable {
@@ -134,6 +142,10 @@ protocol FeatureWorkspace: Sendable {
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON?
     /// Replays a finished run and reports the first difference from the recording.
     func replay(run: String) async throws -> FeatureReplayResult
+    /// The workspace's words for each pending approval, by approval id.
+    func approvalTexts() async throws -> [String: FeatureApprovalText]
+    /// What `run` would have done under a proposal's charter, in one line.
+    func whatIf(run: String, proposal: String) async throws -> String
     /// The Improve screen's sentences for one steward, written by the workspace.
     func improveSummary(steward: String) async throws -> FeatureImproveSummary
     /// One event's inspector detail (hash chain, run position, readable payload), or nil.
@@ -153,6 +165,17 @@ extension FeatureWorkspace {
     /// Workspaces without a casebook read report that expected results are not available yet.
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON? {
         throw FeatureReadError.unavailable("expected results")
+    }
+
+    /// Workspaces without approval summaries report them unavailable; the approval block then
+    /// shows no policy or change line rather than one the app made up.
+    func approvalTexts() async throws -> [String: FeatureApprovalText] {
+        throw FeatureReadError.unavailable("approval summaries")
+    }
+
+    /// Workspaces without counterfactual runs report What if as unavailable.
+    func whatIf(run: String, proposal: String) async throws -> String {
+        throw FeatureReadError.unavailable("What if")
     }
 
     /// Workspaces without an Improve read report it unavailable; the screen then projects

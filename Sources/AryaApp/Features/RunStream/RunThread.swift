@@ -28,6 +28,7 @@ struct RunThread: View {
                     {
                         InlineApproval(
                             action: action, approval: approval, source: stream.input,
+                            texts: context.store?.approvalTexts[approval],
                             primary: approval == stream.pendingApprovals.first,
                             decide: context.decide
                         )
@@ -166,6 +167,8 @@ struct InlineApproval: View {
     var action: ProposedActionStep
     var approval: String
     var source: String?
+    /// The workspace's policy sentence and change line, shown verbatim.
+    var texts: FeatureApprovalText?
     /// The first waiting approval takes Return and Escape.
     var primary: Bool
     var decide: (FeatureWrite) -> Void
@@ -179,8 +182,13 @@ struct InlineApproval: View {
                 if let content = action.content {
                     Text(content).aryaText(AryaFont.body, AryaColor.ink).textSelection(.enabled)
                 } else {
-                    ForEach(action.paramLines, id: \.self) {
-                        Text($0).aryaText(AryaFont.mono, AryaColor.ink)
+                    if let change = texts?.change {
+                        Text(change).aryaText(AryaFont.mono, AryaColor.ink)
+                            .textSelection(.enabled)
+                    } else {
+                        ForEach(action.paramLines, id: \.self) {
+                            Text($0).aryaText(AryaFont.mono, AryaColor.ink)
+                        }
                     }
                 }
                 if let source {
@@ -194,8 +202,8 @@ struct InlineApproval: View {
                 if !action.rationale.isEmpty {
                     Text("Why: \(action.rationale)").aryaText(AryaFont.caption, AryaColor.inkMuted)
                 }
-                if !action.policyText.isEmpty {
-                    Text(action.policyText).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                if let policy = texts?.policy, !policy.isEmpty {
+                    Text(policy).aryaText(AryaFont.caption, AryaColor.inkMuted)
                 }
                 Text(RunThreadText.approvalMeta(action)).aryaText(
                     AryaFont.monoSmall, AryaColor.inkFaint)
@@ -304,7 +312,7 @@ enum RunThreadText {
         return action.target.isEmpty ? verb : "\(verb) \(preposition(action.kind)) \(action.target)"
     }
 
-    /// "via inbox · risk medium"; why it was held is its own sentence (`policyText`).
+    /// "via inbox · risk medium"; why it was held is the workspace's sentence.
     static func approvalMeta(_ action: ProposedActionStep) -> String {
         var parts: [String] = []
         if let binding = action.binding { parts.append("via \(binding)") }

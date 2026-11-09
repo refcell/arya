@@ -23,11 +23,3 @@ import Testing
     #expect(!line.contains("mem_") && !line.contains("run_"))
     #expect(KnowledgeText.shortVersion("sha256:1a2b3c4d5e6f") == "1a2b3c4d")
 }
-
-@Test func autonomyHoldsReadAsSentences() {
-    #expect(
-        PolicyText.autonomy("autonomy:suggest:low")
-            == "This steward only suggests changes, so a person approves each action.")
-    #expect(PolicyText.autonomy("autonomy:act_low:medium").contains("this one is medium risk"))
-    #expect(!PolicyText.autonomy("autonomy:act_low:high").contains("autonomy:"))
-}

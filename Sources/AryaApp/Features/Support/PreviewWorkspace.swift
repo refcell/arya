@@ -10,23 +10,28 @@ actor PreviewWorkspace: FeatureWorkspace {
     private var broken: (seq: Int, reason: String)?
     private var routines: [String: String]
     private var expected: [String: FeatureJSON]
+    private var texts: [String: FeatureApprovalText]
     private var divergent: Set<String> = []
     private var subscribers: [Int: AsyncStream<Void>.Continuation] = [:]
     private var nextSubscriber = 0
 
-    /// - Parameter routines: routine bodies keyed by version.
     /// - Parameters:
     ///   - routines: routine bodies keyed by version.
     ///   - expected: expected case results keyed by `casebook/case`.
+    ///   - approvalTexts: the workspace's sentences by approval id; copy them from the facade,
+    ///     never write new ones here.
     init(
         events: [FeatureEvent], now: Date, routines: [String: String] = [:],
-        expected: [String: FeatureJSON] = [:]
+        expected: [String: FeatureJSON] = [:], approvalTexts: [String: FeatureApprovalText] = [:]
     ) {
         log = events
         clock = now
         self.routines = routines
         self.expected = expected
+        texts = approvalTexts
     }
+
+    func approvalTexts() -> [String: FeatureApprovalText] { texts }
 
     /// The fixture workspace used by previews and the stub app.
     static func triage(now: Date) -> PreviewWorkspace {

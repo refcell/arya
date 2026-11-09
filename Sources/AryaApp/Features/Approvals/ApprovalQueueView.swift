@@ -57,7 +57,8 @@ struct ApprovalQueueView: View {
         }
         let detail = NeedsYouDetail.build(item: current, events: events)
         InlineApproval(
-            action: detail.action, approval: current.id, source: detail.source, primary: true,
+            action: detail.action, approval: current.id, source: detail.source,
+            texts: store.approvalTexts[current.id], primary: true,
             decide: decide)
         if current.kind == "routine",
             let subject = RoutineApprovalSubject.find(events: events, approval: current.id)

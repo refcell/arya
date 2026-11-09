@@ -36,6 +36,10 @@ protocol WorkspaceSource: Sendable {
     func improveSummary(steward: String) async throws -> FeatureImproveSummary
     /// The Knowledge screen's notes and routines.
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge
+    /// A run replayed under a proposal's charter, in one line.
+    func whatIfSummary(run: String, proposal: String) async throws -> String
+    /// Each pending approval's policy sentence and change line.
+    func approvalTexts() async throws -> [String: FeatureApprovalText]
 }
 
 extension WorkspaceSource {
@@ -61,6 +65,14 @@ extension WorkspaceSource {
 
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge {
         throw FeatureReadError.unavailable("knowledge")
+    }
+
+    func whatIfSummary(run: String, proposal: String) async throws -> String {
+        throw FeatureReadError.unavailable("What if")
+    }
+
+    func approvalTexts() async throws -> [String: FeatureApprovalText] {
+        throw FeatureReadError.unavailable("approval summaries")
     }
 }
 
@@ -181,6 +193,24 @@ extension Workspace: WorkspaceSource {
             },
             gates: Dictionary(
                 view.proposals.map { ($0.proposal.id, $0.gate) }, uniquingKeysWith: { a, _ in a }))
+    }
+
+    func whatIfSummary(run: String, proposal: String) async throws -> String {
+        try await whatIf(run: run, proposal: proposal).summary
+    }
+
+    func approvalTexts() async throws -> [String: FeatureApprovalText] {
+        Self.approvalTexts(try await approvals())
+    }
+
+    /// The facade's approval sentences by id, shown verbatim.
+    nonisolated static func approvalTexts(_ summaries: [ApprovalSummary])
+        -> [String: FeatureApprovalText]
+    {
+        Dictionary(
+            summaries.map {
+                ($0.id, FeatureApprovalText(policy: $0.policyText, change: $0.change?.text))
+            }, uniquingKeysWith: { first, _ in first })
     }
 
     /// A facade replay summary in the feature views' shape.

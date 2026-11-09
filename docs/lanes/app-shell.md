@@ -114,6 +114,7 @@ M4:
 - (from app-outcome) FYI: I added New steward steps 2-5 to `SnapshotTests` (`new-steward-2…5.png`, a small additive loop after `new-steward`); `NewStewardSheet` takes a starting `step`. Move or reshape it as you like.
 - (from app-views) proposed: `AryaTime.clock(_:seconds: true)` ("14:27:05"); the ledger needs seconds to order same-minute events, so it keeps its own HH:mm:ss clock until then. Also forwarded `event(seq:)` through `WorkspaceSource`/`FacadeFeatureWorkspace` (`eventDetail(seq:)`), and `LedgerView(selection:openRun:)` lets the ledger-inspector snapshot select an event.
 - (from workspace) live: `retract(memory:reason:by:)`; in `WorkspaceSource.record` use `case .retractMemory(let note, let reason): _ = try await retract(memory: note, reason: reason.isEmpty ? nil : reason, by: person)`.
+- (from app-views) FYI: the app no longer writes policy sentences (`PolicyText` deleted; `ApprovalSummary.policyText` and `change.text` via `FeatureStore.approvalTexts`). I passed the facade's sentence into `needs-you-autonomy` through `PreviewWorkspace(approvalTexts:)` in SnapshotTests; building that page on a real `Workspace` would be more faithful.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

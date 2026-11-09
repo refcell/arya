@@ -84,8 +84,6 @@ struct ProposedActionStep: Hashable, Sendable {
 
     /// The policy reason in words: `rule:reply` as "rule reply".
     var policyReason: String { rule.replacingOccurrences(of: ":", with: " ") }
-    /// Why the policy held it, in words: the charter rule's note, else a sentence.
-    var policyText: String = ""
 }
 
 /// How much harm a wrong action of a kind could do: low for reversible bookkeeping (labels,
@@ -180,24 +178,8 @@ struct RunStream: Hashable, Sendable {
         for event in events where event.run == run {
             projector.apply(event)
         }
-        var steps = projector.steps
-        if let steward = projector.steward,
-            steps.contains(where: { if case .action = $0.kind { true } else { false } })
-        {
-            // The charter live when the run started classified its actions (decision 0032).
-            let start = events.first { $0.run == run }?.seq ?? Int.max
-            let charter = LiveCharter.find(
-                events: events.filter { $0.seq < start }, steward: steward)?.charter
-            for index in steps.indices {
-                guard case .action(var action) = steps[index].kind, !action.rule.isEmpty else {
-                    continue
-                }
-                action.policyText = PolicyText.describe(action, charter: charter)
-                steps[index].kind = .action(action)
-            }
-        }
         return RunStream(
-            run: run, steward: projector.steward, steps: steps,
+            run: run, steward: projector.steward, steps: projector.steps,
             status: projector.status, input: projector.input)
     }
 
@@ -414,51 +396,4 @@ extension RunStream {
     var waiting: [StreamStep] { steps.filter { $0.pendingApproval != nil } }
     /// The other work steps, in order.
     var work: [StreamStep] { steps.filter { $0.pane == .work && $0.pendingApproval == nil } }
-}
-
-/// Why the policy held an action, in the workspace's words: the holding charter rule's
-/// `note`, else a sentence naming the rule or the default.
-enum PolicyText {
-    static func describe(_ action: ProposedActionStep, charter: FeatureJSON?) -> String {
-        let label = action.kind.prefix(1).uppercased() + action.kind.dropFirst()
-        let reason = action.rule
-        if reason.hasPrefix("rule:") {
-            let name = String(reason.dropFirst("rule:".count))
-            let rule = charter?["policy"]?["rules"]?.array?.first { rule in
-                rule["action"]?.string == name
-                    && (rule["binding"]?.string == nil || rule["binding"]?.string == action.binding)
-            }
-            if let note = rule?["note"]?.string, !note.isEmpty { return note }
-            return "\(label) actions need approval."
-        }
-        if reason.hasPrefix("autonomy:") { return autonomy(reason) }
-        switch reason {
-        case "default": return "Actions the charter does not name need approval."
-        case "routine_default":
-            return "A routine version needs approval until the charter names it."
-        default: return "The steward's policy holds this action for a person."
-        }
-    }
-
-    /// `autonomy:<level>:<risk>` (decision 0037) as the workspace words it.
-    static func autonomy(_ reason: String) -> String {
-        let parts = reason.split(separator: ":").map(String.init)
-        let level = parts.count > 1 ? parts[1] : ""
-        let risk = parts.count > 2 ? parts[2] : nil
-        let risky = risk.map { "this one is \($0) risk" }
-        switch level {
-        case "observe":
-            return "This steward only observes, so it takes no action without a person."
-        case "suggest":
-            return "This steward only suggests changes, so a person approves each action."
-        case "act_low":
-            return "This steward acts on low-risk actions only; "
-                + (risky ?? "this one may not be") + ", so it asks you."
-        case "act_medium":
-            return "This steward acts on low- and medium-risk actions only; "
-                + (risky ?? "this one may be high risk") + ", so it asks you."
-        default:
-            return "This steward's autonomy level holds this action for a person."
-        }
-    }
 }

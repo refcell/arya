@@ -18,6 +18,9 @@ final class FeatureStore: ObservableObject {
     /// The last ledger verification, or nil before the person runs one.
     @Published private(set) var verifyResult: FeatureVerifyResult?
     @Published private(set) var isVerifying = false
+    /// The workspace's policy sentence and change line for each pending approval, by id;
+    /// empty when the workspace cannot provide them.
+    @Published private(set) var approvalTexts: [String: FeatureApprovalText] = [:]
     /// The reference time for relative timestamps. Tests and previews pin it.
     @Published var now: Date
     /// The Knowledge screen per steward, kept so the tab draws at once on return.
@@ -38,6 +41,7 @@ final class FeatureStore: ObservableObject {
     func reload() async {
         do {
             state = .loaded(try await workspace.events())
+            approvalTexts = (try? await workspace.approvalTexts()) ?? [:]
         } catch {
             state = .failed(FeatureStore.describe(error))
         }

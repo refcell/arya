@@ -76,3 +76,22 @@ private let now = FeatureTestClock.now
         ImproveText.headline(item, written: nil, ready: nil, now: now)
             == ImproveText.summary(item, ready: nil, now: now))
 }
+
+@Test func correctionsReplaceTheChoiceInTheRecordedResult() throws {
+    let events = PreviewFixtures.triage(now: now)
+    let item = try #require(RehearsalList.build(events: events).rehearsals.first)
+    let failing = try #require(item.cases.first { $0.id == PreviewFixtures.failingCase })
+    let expected = ImproveText.expected(failing, choice: "bug")
+    #expect(expected["decisions"]?.array?.first?["choice"]?.string == "bug")
+    #expect(expected["actions"]?.array?.count == 1)
+    #expect(expected["summary"] == nil)
+    let leaked = try #require(item.cases.first { $0.id == "case-0009" })
+    #expect(ImproveText.expected(leaked, choice: "spam") == ["decisions": [["choice": "spam"]]])
+}
+
+@Test func whatIfReplaysTheNewestLiveRun() {
+    let events = PreviewFixtures.triage(now: now)
+    let run = ImproveText.latestLiveRun(events, steward: PreviewFixtures.steward)
+    #expect(run != nil)
+    #expect(run != "run_r3" && run != "run_r7")
+}

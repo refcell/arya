@@ -110,6 +110,14 @@ import Testing
     /// A steward at `suggest` autonomy with one low-risk label held for approval because of
     /// that level, not a charter rule (decision 0037: reason `autonomy:suggest:low`), shown on
     /// the Needs you page so the autonomy explanation can be judged.
+    /// The facade's words for this hold (`Workspace.policyText` and `change`), copied verbatim
+    /// because the preview workspace has no facade behind it.
+    private static let autonomyTexts = [
+        "apv_0100": FeatureApprovalText(
+            policy: "This steward only suggests changes, so a person approves each action.",
+            change: "label: none → billing")
+    ]
+
     private func autonomyModel() async -> AppModel {
         let now = FakeWorkspaceSource.referenceDate
         var log = FeatureEventBuilder(start: now.addingTimeInterval(-600))
@@ -124,6 +132,7 @@ import Testing
         let action: FeatureJSON = [
             "id": "a9", "kind": "label", "target": "inbox:MSG-301",
             "rationale": "Asks about a charge on the card, so billing.", "risk": "low",
+            "params": ["label": "billing"],
         ]
         log.add(
             "action.proposed", run: run,
@@ -137,7 +146,9 @@ import Testing
         let model = AppModel(
             source: FakeWorkspaceSource(now: now),
             featureStore: FeatureStore(
-                workspace: PreviewWorkspace(events: log.events, now: now), now: now))
+                workspace: PreviewWorkspace(
+                    events: log.events, now: now, approvalTexts: Self.autonomyTexts),
+                now: now))
         await model.refresh()
         await model.featureStore?.reload()
         model.navigation.showApprovals()

@@ -333,6 +333,34 @@ enum ImproveText {
         return "chose " + decisions.joined(separator: ", ")
     }
 
+    /// The steward's newest run that is not a rehearsal case.
+    static func latestLiveRun(_ events: [FeatureEvent], steward: String) -> String? {
+        events.last {
+            $0.type == "run.started" && $0.steward == steward
+                && $0.payload["rehearsal"]?.bool != true
+                && $0.payload["trigger"]?.string != "case"
+        }?.run
+    }
+
+    /// The corrected expected result: what the case's run recorded with its first decision's
+    /// choice set to `choice` (the workspace's `expected(run:choice:)` rule), or just that
+    /// decision when nothing was recorded.
+    static func expected(_ result: CaseResult, choice: String) -> FeatureJSON {
+        guard case .object(var members)? = result.results.compactMap({ $0 }).first else {
+            return ["decisions": [["choice": .string(choice)]]]
+        }
+        var decisions = members["decisions"]?.array ?? []
+        if case .object(var first)? = decisions.first {
+            first["choice"] = .string(choice)
+            decisions[0] = .object(first)
+        } else {
+            decisions = [["choice": .string(choice)]]
+        }
+        members["decisions"] = .array(decisions)
+        members["summary"] = nil
+        return .object(members)
+    }
+
     /// Scores add nothing when every case scored the same, so the column is hidden.
     static func showsScores(_ item: RehearsalItem) -> Bool {
         Set(item.cases.map(\.meanValue)).count > 1

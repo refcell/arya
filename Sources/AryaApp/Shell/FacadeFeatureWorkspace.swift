@@ -30,6 +30,14 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.replayRun(run)
     }
 
+    func approvalTexts() async throws -> [String: FeatureApprovalText] {
+        try await source.approvalTexts()
+    }
+
+    func whatIf(run: String, proposal: String) async throws -> String {
+        try await source.whatIfSummary(run: run, proposal: proposal)
+    }
+
     func improveSummary(steward: String) async throws -> FeatureImproveSummary {
         try await source.improveSummary(steward: steward)
     }
