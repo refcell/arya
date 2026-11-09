@@ -71,6 +71,10 @@ Next (lane-extended, in order):
 - [ ] (6) `system.checkpoint`: build, sign, check; `LedgerVerifier` anchoring with an
   `unanchored` issue and its report text.
 - [ ] (7) Projection seeding from a checkpoint's digests; then `compact` and `verify --archive`.
+- [ ] (5a, CEO priority for app parity) Keep full-ledger reads fast for the app's outcome,
+  recap, and activity views, which read weeks of events: extend the perf probe to 50,000
+  events, add a time-range read (`events(since: Timestamp)`) that skips segments by their
+  first line's `at`, and keep reads within the same per-event CPU budget as today.
 - [ ] (8) Use the `LedgerIndex` run spans to narrow `page(_:)` run queries when scans get slow.
 
 ## Decisions
@@ -150,7 +154,7 @@ Next (lane-extended, in order):
 
 ## Log
 - HANDOFF 2026-11-09 (second session, ended near auto-compaction): backlog (1)-(4) done and
-  on main. Next is (5), then (6)-(8), all from the ARCHITECTURE.md checkpoint note. Notes:
+  on main. Next is (5a) (app-parity read speed), then (5)-(8), all from the ARCHITECTURE.md checkpoint note. Notes:
   measure perf with thread CPU time (`ARYA_PERF=1 just test perf`); wall time is meaningless
   under machine load. Debug-build hot loops: avoid range patterns, `for in 0..<n`, and generic
   slice algorithms (see the decision on perf). `JSONParser` changes must keep
