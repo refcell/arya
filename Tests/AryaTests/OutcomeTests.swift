@@ -104,3 +104,45 @@ private func steward(target: Double?) async throws -> Opened {
     }
     #expect(StewardDraft.slug("  Ops: Billing & Refunds! ") == "ops_billing_refunds")
 }
+
+@Test func planRiskAndWhyComeFromTheRecordedResult() async throws {
+    var result = liveResult
+    result[set: "plan"] = [
+        ["id": "p1", "text": "Read the message", "status": "done"],
+        [
+            "id": "p2", "text": "Draft a reply", "status": "in_progress",
+            "rationale": "Needs a check",
+        ],
+    ]
+    result[set: "decisions"] = [
+        [
+            "id": "d1", "choice": "billing", "rationale": "Mentions a double charge.",
+            "why": "It is about a charge.",
+        ]
+    ]
+    result[set: "actions"] = [
+        [
+            "id": "a3", "kind": "reply", "binding": "inbox", "target": "inbox:MSG-9",
+            "risk": "medium", "why": "The customer is waiting.",
+            "params": ["body": "Refunded."],
+        ]
+    ]
+    let opened = try await Opened([FakeScript.Run(result: result)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    #expect(try await workspace.plan(steward: "st_inbox").items.isEmpty)
+
+    let run = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+
+    let plan = try await workspace.plan(steward: "st_inbox")
+    #expect(plan.items.map(\.status) == ["done", "in_progress"])
+    #expect(plan.items.last?.reason == "Needs a check")
+    #expect(plan.run == run.id)
+    #expect(plan.reason == "Billing question; labeled, routed, reply drafted.")
+    let approval = try #require(try await workspace.approvals().first)
+    #expect(approval.risk == "medium")
+    #expect(approval.why == "The customer is waiting.")
+    let detail = try #require(try await workspace.run(run.id))
+    #expect(detail.decisions.first?.why == "It is about a charge.")
+    #expect(detail.actions.first?.risk == "medium")
+}

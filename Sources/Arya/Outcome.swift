@@ -53,8 +53,10 @@ public struct Plan: Sendable, Hashable, Codable {
     public struct Item: Sendable, Hashable, Codable {
         public var id: String
         public var text: String
-        /// `open`, `doing`, `done`, or `dropped`.
+        /// `pending`, `in_progress`, `done`, `skipped`, or `blocked`.
         public var status: String
+        /// Why the step stands where it does, when the steward said.
+        public var reason: String?
         public var updatedAt: Date?
     }
 
@@ -247,11 +249,26 @@ extension Workspace {
 
     // MARK: Plan
 
-    /// The steward's current plan. Plans come from runtime plan events; until a run records
-    /// one, the plan has no items.
+    /// The steward's current plan: the plan of its newest live run that reported one, with
+    /// that run's summary as why it changed. No items until a run reports a plan.
     public func plan(steward: String) async throws -> Plan {
         let id = try await existing(steward).id
-        return Plan(steward: id.rawValue, items: [], updatedAt: nil, reason: nil, run: nil)
+        let live = Set(
+            try await runBook().all.filter { $0.steward == id && $0.trigger != "case" }
+                .map(\.id))
+        guard let latest = RecordedResults(try reader.events()).latestPlan(among: live) else {
+            return Plan(steward: id.rawValue, items: [], updatedAt: nil, reason: nil, run: nil)
+        }
+        let summary = latest.result.summary
+        return Plan(
+            steward: id.rawValue,
+            items: latest.result.plan.map {
+                Plan.Item(
+                    id: $0.id, text: $0.text, status: $0.status.rawValue, reason: $0.rationale,
+                    updatedAt: latest.at)
+            },
+            updatedAt: latest.at, reason: summary.isEmpty ? nil : summary,
+            run: latest.run.rawValue)
     }
 
     // MARK: Activity and recap

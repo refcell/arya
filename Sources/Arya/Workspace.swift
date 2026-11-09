@@ -204,11 +204,16 @@ public actor Workspace {
             reasons["\(run):\(body.action.id)"] = body.reason
         }
         let actionIDs = try await approvalQueue.book().records
+        let recorded = RecordedResults(try reader.events())
         return approvals.map { approval in
             var out = approval
-            out.source = runs[RunID(unchecked: approval.run)]?.input
+            let run = RunID(unchecked: approval.run)
+            out.source = runs[run]?.input
             if case .action(let action)? = actionIDs[ApprovalID(unchecked: approval.id)]?.subject {
                 out.policyRule = reasons["\(approval.run):\(action.id)"]
+                let wire = recorded.action(action.id, run: run)
+                out.risk = wire?.risk?.rawValue
+                out.why = wire?.why
             }
             return out
         }

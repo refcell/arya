@@ -13,8 +13,8 @@ public struct RunDetail: Sendable, Hashable, Codable {
         public var id: String
         public var choice: String
         public var rationale: String?
-        /// Why the steward chose it (the rationale), for display.
-        public var why: String? { rationale }
+        /// One line a person reads: the steward's `why`, else its rationale.
+        public var why: String? = nil
     }
 
     /// What happened to one proposed action.
@@ -46,6 +46,9 @@ public struct RunDetail: Sendable, Hashable, Codable {
         public var approval: String?
         /// Output from the executor, or the rejection reason or error.
         public var detail: String?
+        /// The steward's one-line why and the adapter's risk hint (`low`, `medium`, `high`).
+        public var why: String? = nil
+        public var risk: String? = nil
     }
 
     /// The run's summary fields.
@@ -63,9 +66,23 @@ extension Workspace {
         guard let record = try await runBook().records[RunID(unchecked: id)] else { return nil }
         var detail = RunDetail(
             run: RunSummary(record), input: record.input, decisions: [], actions: [])
+        var own: [Event] = []
         try reader.forEach { event in
             guard event.run?.rawValue == id else { return }
+            own.append(event)
             try RunDetailFolder.apply(event, to: &detail)
+        }
+        let recorded = RecordedResults(own)
+        let run = RunID(unchecked: id)
+        for index in detail.decisions.indices {
+            let decision = detail.decisions[index]
+            detail.decisions[index].why =
+                recorded.decision(decision.id, run: run)?.why ?? decision.rationale
+        }
+        for index in detail.actions.indices {
+            let wire = recorded.action(detail.actions[index].id, run: run)
+            detail.actions[index].why = wire?.why ?? detail.actions[index].rationale
+            detail.actions[index].risk = wire?.risk?.rawValue
         }
         return detail
     }

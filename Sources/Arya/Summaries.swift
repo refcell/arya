@@ -186,8 +186,11 @@ public struct ApprovalSummary: Sendable, Hashable, Codable, Identifiable {
     public var source: String?
     /// The policy verdict that held it, for example `default` or `rule:reply`.
     public var policyRule: String?
-    /// Risk as runtime assesses it, once runtime records one.
+    /// The adapter's risk hint for the action (`low`, `medium`, `high`), when it gave one.
+    /// Policy, not the hint, decides.
     public var risk: String?
+    /// The steward's one-line why for the action, when it gave one.
+    public var why: String?
 
     /// Creates a summary.
     public init(

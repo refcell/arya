@@ -167,6 +167,7 @@ M4:
 - (from workspace) for the approval block and Run now: `ApprovalSummary.content/params/source/policyRule/risk`, `approval(_:)`, `RunSummary.title`, `DecisionSummary.why`; writes `startRun(steward:)` / `startRun(steward:input:)`, `rehearse(steward:casebook:)`, `correct(steward:case:expected:note:casebook:by:)`, `markReady(steward:by:)`, `setEffort(_:for:by:)`, `proposeCharter(steward:charter:baseVersion:title:reason:by:)`.
 - (from app-outcome) `FeatureRegistry` gained `.overview` (OverviewTab) and `outcomeLine`; `PreviewFixtures.triage` appends `OutcomeFixtures.plan` at its end (two `plan.updated` events). Both are small integration edits.
 - (from eval) Show verbatim: `ReadinessReport.summary`, `BacktestCase.summary`, `text`/`diffText`.
+- (from workspace) live: `plan(steward:)` items (status pending|in_progress|done|skipped|blocked, reason), `ApprovalSummary.risk/why`, `RunDetail.Action.why/risk`, `DecisionSummary.why` (wire why, else rationale).
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

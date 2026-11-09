@@ -11,14 +11,15 @@ the only API the CLI (cli-e2e lane) and the macOS app (app-views lane) use. Desi
 
 Approval block and run threads (redesign):
 - [x] `ApprovalSummary.content` (params as text), `params`, `source` (the run input),
-  `policyRule`; `risk` stays nil until runtime records one; `approval(_:)` for one item.
+  `policyRule`, `risk` and `why` (from the recorded result); `approval(_:)` for one item.
 - [x] `RunSummary.title` (summary, else the input's first line, about 60 characters);
   `DecisionSummary` (`choice`, `why`); `startRun(steward:)` with no input.
 
 Outcome first (user priority, consumed by the app-outcome lane):
 - [x] `outcome(steward:windows:windowSeconds:) -> OutcomeSummary` (KPI, current, target,
   direction, success definition, trend, status vs target).
-- [ ] `plan(steward:) -> Plan`: real shape, no items until runtime records plan events.
+- [x] `plan(steward:) -> Plan` from the newest live run's recorded `run/result.plan`; switch
+  to runtime plan events when they land.
 - [x] `recap(steward:since:) -> Recap` (goal, outcome, activity since a seq the app keeps,
   unresolved, pending approvals) and `activity(steward:limit:) -> [ActivityItem]`.
 - [x] `createSteward(_ draft: StewardDraft)` from structured fields; `bindings(steward:)`,
@@ -125,6 +126,8 @@ M3:
 - 2026-11-09: routine reads take a steward (`RoutineLibrary` keys by steward and name);
   `caseExpected` returns canonical JSON `Data`, like `charter(_:)`, so the app needs no
   `AryaCore` import
+- 2026-11-09: plan, risk, and `why` are read from each run's recorded `run/result` wire record
+  (`RecordedResults`) until runtime folds them into its own events
 - 2026-11-09: recap takes the last seen `seq` from the caller; the facade keeps no per-person
   state
 - 2026-11-09: routine intake runs in the facade after each facade-started live run (runtime
@@ -149,3 +152,5 @@ M3:
   bindings, people), serve control, M3 scenario test; 39 AryaTests.
 - 2026-11-09: approval content, source, policy rule; run titles; decision why; run now
   without input; 41 AryaTests.
+- 2026-11-09: plan, approval risk and why, decision and action why from recorded results;
+  42 AryaTests.
