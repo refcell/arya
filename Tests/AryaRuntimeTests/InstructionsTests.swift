@@ -48,7 +48,9 @@ private let golden = """
     Do not change any external system yourself. Read through the tools you were given, then \
     return one result matching the result schema: a summary, your decisions, and the actions \
     you propose. arya applies the approval policy and carries out approved actions. To run a \
-    routine, propose an action of kind routine with params.name.
+    routine, propose an action of kind routine with params.name. Keep a plan toward your \
+    outcome: when it changes, return the whole plan (each step with id, text, status pending, \
+    in_progress, done, skipped, or blocked, and a rationale).
 
     """
 
@@ -78,4 +80,21 @@ private let golden = """
         metric: InstructionMetric(name: "open", unit: "count", direction: "down", target: 0))
     #expect(
         InstructionComposer.compose(inputs).contains("- open (count, lower is better), target 0"))
+}
+
+@Test func composesThePlanBeforeTheFinishRules() {
+    var inputs = InstructionInputs(name: "Triage", outcome: "Issues are labeled.")
+    inputs.plan = [
+        PlanItem(id: "p1", text: "Label new issues", status: .inProgress),
+        PlanItem(id: "p2", text: "Close stale ones", status: .skipped, rationale: "too risky"),
+    ]
+    let text = InstructionComposer.compose(inputs)
+    let section = [
+        "## Plan", "- [p1] in_progress: Label new issues",
+        "- [p2] skipped: Close stale ones (too risky)", "", "## How to finish",
+    ].joined(separator: "\n")
+    #expect(text.contains(section))
+    #expect(
+        !InstructionComposer.compose(InstructionInputs(name: "T", outcome: "O")).contains("## Plan")
+    )
 }

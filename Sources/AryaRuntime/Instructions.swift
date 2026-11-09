@@ -93,6 +93,8 @@ public struct InstructionInputs: Sendable, Hashable {
     public var memory: [InstructionNote]
     /// Live routines.
     public var routines: [InstructionRoutine]
+    /// The steward's current plan.
+    public var plan: [PlanItem] = []
 
     /// Creates composer inputs.
     public init(
@@ -117,7 +119,7 @@ public enum InstructionComposer {
         let sections = [
             header(inputs), metric(inputs.metric), guardrails(inputs.guardrails),
             bindings(inputs.bindings), memory(inputs.memory), routines(inputs.routines),
-            resultRules(),
+            plan(inputs.plan), resultRules(),
         ]
         return sections.compactMap { $0 }.joined(separator: "\n\n") + "\n"
     }
@@ -172,13 +174,25 @@ public enum InstructionComposer {
         return "## Routines\n" + lines.joined(separator: "\n")
     }
 
+    private static func plan(_ items: [PlanItem]) -> String? {
+        guard !items.isEmpty else { return nil }
+        let lines = items.map { item in
+            var line = "- [\(item.id)] \(item.status.rawValue): \(oneLine(item.text))"
+            if let rationale = item.rationale { line += " (\(oneLine(rationale)))" }
+            return line
+        }
+        return "## Plan\n" + lines.joined(separator: "\n")
+    }
+
     private static func resultRules() -> String {
         """
         ## How to finish
         Do not change any external system yourself. Read through the tools you were given, then \
         return one result matching the result schema: a summary, your decisions, and the \
         actions you propose. arya applies the approval policy and carries out approved \
-        actions. To run a routine, propose an action of kind routine with params.name.
+        actions. To run a routine, propose an action of kind routine with params.name. Keep a \
+        plan toward your outcome: when it changes, return the whole plan (each step with id, \
+        text, status pending, in_progress, done, skipped, or blocked, and a rationale).
         """
     }
 

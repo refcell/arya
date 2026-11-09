@@ -197,11 +197,13 @@ public struct RunEngine: Sendable {
     {
         let lease = try leases.acquire(run)
         defer { lease.release() }
-        let context = try MemoryView(try await sink.events(from: 1)).context(
+        let events = try await sink.events(from: 1)
+        let context = try MemoryView(events).context(
             steward: request.steward, input: request.input.text,
             caseID: request.rehearsal?.caseID, candidate: request.routine)
+        let plan = try PlanBook(events).plans[request.steward] ?? []
         let instructions = InstructionComposer.compose(
-            InstructionInputs(charter: charter, context: context))
+            InstructionInputs(charter: charter, context: context, plan: plan))
         try await recordStart(run, request, charter, version, instructions, context)
         let driver = RunDriver(
             loop: self, request: request, charter: charter, run: run, instructions: instructions,

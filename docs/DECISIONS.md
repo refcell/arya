@@ -289,3 +289,17 @@ on its own when the window activates, so a Return typed for something else grant
 approval. Approval cards now answer only Command-Return (approve) and Command-Delete (deny);
 other primary buttons keep plain Return. STYLE.md Buttons notes the exception. Why: granting an
 action is the one write that must never happen by accident, and the modifier costs one key.
+
+### 0035 — 2026-11-09 — Stewards keep a plan
+
+A run's `run/result.plan` (PROTOCOL.md: steps `{id, text, status, rationale?}` with status
+`pending`, `in_progress`, `done`, `skipped`, or `blocked`) is the steward's whole plan. When a
+live top-level or join run returns a plan whose ids, texts, or statuses differ from the current
+one, the runtime records `plan.updated {items, reason?}` (actor: the steward, run: that run;
+`reason` is the run's summary) after the run's decisions. Crew children and rehearsals never
+change the plan; an empty plan means none, and a malformed one (empty or repeated id, empty
+text) is ignored without failing the run. The next run's instructions show the current plan
+under "Plan", and the finish rules ask for the whole plan whenever it changes. The payload
+`PlanUpdated` and projection `PlanBook` live in `AryaRuntime`, the only writer; read models
+adapt to it. Why: a steward owns an outcome over many runs, so it needs a durable plan it can
+revise, not only one-shot decisions.

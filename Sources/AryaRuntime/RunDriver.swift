@@ -210,6 +210,17 @@ final class RunDriver: @unchecked Sendable {
         }
     }
 
+    /// Records `plan.updated` when the result carries a plan that differs from the current one.
+    private func recordPlan(_ result: RunResult) async throws {
+        guard let plan = PlanBook.plan(in: result) else { return }
+        let current = try PlanBook(try await loop.sink.events(from: 1)).plans[charter.id]
+        guard PlanBook.differs(plan, current) else { return }
+        let reason = result.summary.isEmpty ? nil : result.summary
+        try await append(
+            PlanEventType.updated, .steward(charter.id),
+            try Payload.encode(PlanUpdated(items: plan, reason: reason)))
+    }
+
     /// Records `memory.added` for each new, valid note a live run proposes (memory's intake
     /// drops duplicates of live notes and invalid notes).
     private func recordMemories(_ memories: [RunResult.Memory]) async throws {
@@ -262,6 +273,7 @@ final class RunDriver: @unchecked Sendable {
                 try Payload.encode(RunDecision(decision: recorded)))
         }
         if case .live = request.mode {
+            if !request.isCrewChild { try await recordPlan(result) }
             try await recordMemories(result.memories)
             for measurement in result.measurements {
                 try await append(
@@ -378,6 +390,7 @@ public enum RunResultSchema {
             "memories": list(["text"]),
             "routines": list(["name", "language", "content"]),
             "measurements": list(["metric", "value"]),
+            "plan": list(["id", "text", "status"]),
         ],
     ]
 

@@ -181,6 +181,8 @@ M4:
 - `RuntimeService` is the process holding `scheduler.lock`: `run(every:)` recovers, then
   ticks. Each tick expires due approvals, fires due interval triggers, and announces newly
   pending approvals once to an `ApprovalNotifier`. `deliver` forwards message triggers.
+- Plans (decision 0035): `PlanBook.plan(in: RunResult)` maps adapters' `plan` steps;
+  `PlanBook` projects the current plan per steward from `plan.updated {items, reason?}`.
 
 ## Questions
 
@@ -227,3 +229,4 @@ M4:
 - 2026-11-09: binding proxy process upstream, host, launch wiring, and ledger recordings for replay
 - 2026-11-09: `BindingActionExecutor` for MCP and person bindings
 - 2026-11-09: `RuntimeService` (serve loop) with approval announcements
+- 2026-11-09: steward plans: `plan.updated`, `PlanBook`, plan in instructions (decision 0035)

@@ -59,8 +59,9 @@ struct MemoryView {
 
 extension InstructionInputs {
     /// Inputs for `charter` with the notes and routines of `context`.
-    init(charter: Charter, context: RunMemoryContext) {
+    init(charter: Charter, context: RunMemoryContext, plan: [PlanItem] = []) {
         self.init(charter: charter)
+        self.plan = plan
         memory = context.notes.map { InstructionNote(id: $0.note.id.rawValue, text: $0.note.text) }
         routines = context.routines.map {
             InstructionRoutine(name: $0.name, version: $0.version, summary: $0.summary)
