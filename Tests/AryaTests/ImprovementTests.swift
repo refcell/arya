@@ -103,3 +103,40 @@ extension JSONValue {
         try await workspace.correct(steward: "st_inbox", case: "case-1")
     }
 }
+
+@Test func improveViewHasRehearsalReadinessProposalsAndCases() async throws {
+    let opened = try await Opened(improvementScript())
+    let workspace = opened.workspace
+    var charter = inboxCharter()
+    charter.scorer = .exact(fields: ["decisions.choice", "actions.kind", "actions.target"])
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    let before = try await workspace.improve(steward: "st_inbox")
+    #expect(before.rehearsal == nil)
+    #expect(before.rehearsalText == "Not rehearsed yet.")
+    #expect(!before.ready)
+    #expect(before.cases.isEmpty)
+
+    _ = try await workspace.importCasebook(
+        steward: "st_inbox", data: try casebookLines(), name: "inbox")
+    let rehearsal = try await workspace.rehearse(steward: "st_inbox")
+    var next = charter
+    next.outcome = "Every new message is routed within thirty minutes."
+    _ = try await workspace.proposeCharter(
+        steward: "st_inbox", charter: try CanonicalJSON.encode(next), baseVersion: 1,
+        title: "Tighter target")
+
+    let view = try await workspace.improve(steward: "st_inbox")
+
+    #expect(view.rehearsal?.id == rehearsal.id)
+    #expect(view.rehearsalText.hasPrefix("Passed 2 of 3 cases on inbox (charter v1), mean score"))
+    #expect(!view.ready)
+    #expect(view.readinessText.hasPrefix("not ready"))
+    #expect(!view.readinessReasons.isEmpty)
+    #expect(view.proposals.map(\.gate) == ["Not checked yet."])
+    #expect(view.cases.map(\.caseID) == ["case-1", "case-2", "case-3"])
+    let failed = try #require(view.cases.last)
+    #expect(!failed.passed)
+    #expect(failed.wouldHave != failed.expected)
+    #expect(!failed.wouldHave.isEmpty && !failed.diff.isEmpty)
+    #expect(view.cases.first?.diff == "matches expected")
+}

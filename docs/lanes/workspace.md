@@ -168,3 +168,5 @@ M3:
 - 2026-11-09: approval and run-detail risk from runtime's `action.proposed.risk` (0037), hint as
   fallback; `autonomy:<level>:<risk>` holds get plain `policyText`; 48 tests. `correct(run:)`
   waits on eval's `Corrector.correct(run:)`.
+- 2026-11-09: one-call screen reads `improve(steward:) -> ImproveView` and
+  `knowledge(steward:) -> KnowledgeView`, sentences written in the facade; 50 tests.

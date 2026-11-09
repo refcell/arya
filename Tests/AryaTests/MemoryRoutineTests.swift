@@ -126,3 +126,36 @@ private func propose(_ opened: Opened, _ body: String, reason: String) async thr
     #expect(try await workspace.caseExpected(casebook: imported.version, case: "case-99") == nil)
     #expect(try await workspace.caseExpected(casebook: "missing", case: "case-1") == nil)
 }
+
+@Test func knowledgeViewExplainsNotesAndRoutineVersions() async throws {
+    let opened = try await Opened()
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let ids = Ambient.fixed()
+    let local = MemoryAuthor(kind: .human, id: "local")
+    let corrected = try MemoryNote(
+        id: ids.newID(NoteID.self), text: "Card updates are billing",
+        provenance: MemoryProvenance(
+            caseID: try #require(CaseID(rawValue: "case-3")), author: local))
+    let typed = try MemoryNote(
+        id: ids.newID(NoteID.self), text: "Answer in English",
+        provenance: MemoryProvenance(author: MemoryAuthor(kind: .human, id: "alex")))
+    try await append(workspace, MemoryEventType.added, MemoryAddedPayload(note: corrected))
+    try await append(workspace, MemoryEventType.added, MemoryAddedPayload(note: typed))
+    let first = try await propose(opened, "echo billing\n", reason: "label billing mail")
+    try await append(
+        workspace, RoutineEventType.promoted,
+        RoutinePromotedPayload(name: "tag-billing", version: first))
+    let second = try await propose(opened, "echo billing-v2\n", reason: "new label")
+
+    let view = try await workspace.knowledge(steward: "st_inbox")
+
+    #expect(view.notes.map(\.note.text) == ["Answer in English", "Card updates are billing"])
+    #expect(
+        view.notes.map(\.provenance) == ["Added by alex.", "From your correction to case case-3."])
+    #expect(view.notes.allSatisfy { !$0.time.absolute.isEmpty })
+    let routine = try #require(view.routines.first)
+    #expect(routine.routine.name == "tag-billing")
+    #expect(routine.versions.map(\.version) == [second, first])
+    #expect(routine.versions.map(\.approval) == ["Waiting for approval", "Live"])
+}
