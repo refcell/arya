@@ -73,6 +73,14 @@ public struct MemoryProjection: Sendable, Equatable {
         added[steward]?[id]
     }
 
+    /// Every note ever added to a steward, oldest first, with whether it was retracted. For
+    /// listings (`arya memory --all`, the app's memory view); runs only see live notes.
+    public func allNotes(steward: StewardID) -> [(note: LiveNote, retracted: Bool)] {
+        (added[steward] ?? [:]).values.sorted { $0.seq < $1.seq }.map {
+            ($0, live[steward]?[$0.note.id] == nil)
+        }
+    }
+
     /// Stewards with at least one live note, sorted.
     public var stewards: [StewardID] {
         live.filter { !$0.value.isEmpty }.keys.sorted()

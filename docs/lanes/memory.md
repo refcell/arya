@@ -25,6 +25,21 @@ M2:
 - [x] Routine proposals from `run/result` routed to `AryaEval` gates (through the protocol the
   runtime wires).
 
+M3 (integration toward the end-to-end scenario):
+- [x] `run/result.memories` intake: `MemoryIntake.notes` drafts `memory.added` by the steward
+  with run provenance, ids from `Ambient`, duplicates of live notes skipped.
+- [x] Run preparation: `RunPreparation.context` builds the snapshot (`run.started.memory`),
+  live routine versions (`run.started.routines`), and composer inputs from the projections;
+  `MemoryQuery.forRun` derives tags from the input text and case.
+- [x] Listings for `arya memory --all` and the app: `MemoryProjection.allNotes` with retracted
+  flags.
+- [ ] Blob store adoption: conform the ledger's blob store to `RoutineBlobStore` and drop the
+  stub once `AryaLedger` ships it.
+- [ ] Facade read models for the app's Memory and Routines views (provenance line, history,
+  diff between any two versions) once the runtime publishes the facade's memory API.
+- [ ] Replay check helper: given a recorded `run.started.memory`, recompute the snapshot from
+  the projection at that `seq` and report a divergence.
+
 ## Decisions
 
 - Memory and routine payloads (`memory.*`, `routine.*`) live in `AryaMemory`, not `AryaLedger`
@@ -84,6 +99,12 @@ M2:
   by name in one result are rejected, an already proposed version is `unchanged`);
   `RoutineGatekeeper` checks a pending version through `RoutineGateChecking` and drafts the
   promotion only on a pass; `override` needs a human actor.
+- Run-proposed notes are deduplicated against live notes by exact trimmed text; ids come from
+  `Ambient.newID(NoteID.self)` so replay reproduces them. Provenance `event` is the event that
+  carried the result when the runtime passes it.
+- `MemoryQuery.forRun` tags = known live-note tags that appear as words in the input text
+  (lowercased; words are runs of letters, digits, `-_:.`, trailing dots dropped), plus
+  `case:<id>` for case runs, so a rehearsal of a corrected case sees its correction first.
 
 ## Questions
 
@@ -98,3 +119,4 @@ M2:
 - 2026-11-09: routine diff (Myers, unified hunks) landed (08fd695).
 - 2026-11-09: shell routine execution, `RoutineInvocation`, `RoutineOutcome` landed (1da32d6).
 - 2026-11-09: projections read ledger `Event`s; payloads conform to `EventPayload` (d82f2b3).
+- 2026-11-09: routine proposals, `RoutineGatekeeper`, decision 0025 landed (77bd06a).
