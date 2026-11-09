@@ -1,17 +1,12 @@
+import AryaCore
+
 // Agents propose, arya disposes (decision 0005). The classifier decides, for each proposed
 // action, whether arya executes it (`auto`), holds it for a person (`ask`), or refuses it
 // (`deny`). It is a pure function of the action and the charter's policy and bindings, so every
 // disposition replays exactly.
 
-/// What arya does with a proposed action.
-public enum ActionDisposition: String, Codable, Sendable, CaseIterable {
-    /// Execute through the binding or routine without asking.
-    case auto
-    /// Hold in the approval queue until a person grants or denies it.
-    case ask
-    /// Refuse and record `action.rejected`.
-    case deny
-}
+/// What arya does with a proposed action: `auto`, `ask`, or `deny` (core's `PolicyDecision`).
+public typealias ActionDisposition = PolicyDecision
 
 /// One `policy.rules[]` entry: a disposition for an action kind, optionally only through one
 /// binding.
@@ -112,5 +107,19 @@ public struct ActionPolicy: Sendable, Hashable {
             return "not_allowed:\(binding).\(action.kind)"
         }
         return nil
+    }
+}
+
+extension ActionPolicy {
+    /// The policy of a charter: its default and rules, and the actions each binding allows.
+    public init(charter: Charter) {
+        self.init(
+            defaultDisposition: charter.policy.default,
+            rules: charter.policy.rules.map {
+                PolicyRule(action: $0.action, binding: $0.binding, decision: $0.decision)
+            },
+            bindingActions: Dictionary(
+                charter.bindings.map { ($0.id, Set($0.actions)) },
+                uniquingKeysWith: { first, _ in first }))
     }
 }

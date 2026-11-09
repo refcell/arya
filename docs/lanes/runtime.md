@@ -13,7 +13,7 @@ M1:
 - [ ] `Workspace.open(home:ambient:)` in `Arya`: creates the home layout, opens the ledger,
   exposes stewards, runs, approvals, and an event stream. The facade is the only API the CLI and
   app import.
-- [ ] Steward lifecycle: create (records `steward.created` with the charter), update charter
+- [x] Steward lifecycle: create (records `steward.created` with the charter), update charter
   (`steward.charter.updated`, version + 1), pause, retire.
 - [x] Instruction composer: charter outcome, metric, guardrails, memory snapshot, live routines,
   result schema; deterministic output with a golden test.
@@ -74,6 +74,11 @@ M4:
   actor; expiry is `system`. The projection keeps the first decision and ignores later ones, so
   two processes racing to decide cannot flip an approval. Any person may decide (single user);
   `to` is advisory.
+- Steward lifecycle on core `Charter`: create validates and rejects duplicates; updates bump the
+  version and keep readiness (gating arrives in M2); pause needs `active`, resume needs
+  `paused`, retire needs not `retired`. Adds `steward.resumed` (decision 0022).
+  `ActionDisposition` is now an alias of core `PolicyDecision`; `ActionPolicy(charter:)` and
+  `InstructionInputs(charter:)` map a charter.
 
 ## Questions
 
@@ -88,3 +93,4 @@ M4:
 - 2026-11-09: policy classifier, run phases, instruction composer, and the `Workspace` facade
   API (stubs throwing `unavailable`) landed; cli-e2e and app lanes can code against
   `Sources/Arya` (0d5c02b)
+- 2026-11-09: `EventSink` seam with an in-memory double and the approval queue (9d8e381)

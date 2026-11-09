@@ -142,3 +142,12 @@ Extends 0020. The SDK declares a `State()` macro alongside the `State` property 
 `typealias AryaState<Value> = SwiftUI.State<Value>`; app code writes
 `@AryaState private var isOpen = false`. `@Environment`, `@Binding`, `@FocusState`, and
 `@Observable` are unaffected. Why: same toolchain constraint as 0020, with the smallest fix.
+
+### 0022 — 2026-11-09 — Stewards can be resumed; runtime events have runtime payloads
+
+The runtime adds event type `steward.resumed` (payload `{}`) so a paused steward can take
+triggers again; `steward.paused` and `steward.retired` carry `{reason?}`, and `steward.created`
+and `steward.charter.updated` carry `{charter, version, reason?}`. Like 0019, the payload
+structs for `steward.*`, `run.*`, `action.*`, and `approval.*` live with their writer in
+`AryaRuntime`; the ledger stores them as opaque JSON. Why: one writer per event type keeps the
+shape and its tests in one place.

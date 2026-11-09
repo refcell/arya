@@ -1,3 +1,4 @@
+import AryaCore
 import Foundation
 
 // Composes the instructions a run sees (ARCHITECTURE.md "Runs", step 1). The output is a pure
@@ -188,5 +189,24 @@ public enum InstructionComposer {
 
     private static func number(_ value: Double) -> String {
         value.rounded() == value && abs(value) < 1e15 ? String(Int(value)) : String(value)
+    }
+}
+
+extension InstructionInputs {
+    /// Inputs for a charter, with the run's memory snapshot and live routines.
+    public init(
+        charter: Charter, memory: [InstructionNote] = [], routines: [InstructionRoutine] = []
+    ) {
+        self.init(
+            name: charter.name, outcome: charter.outcome,
+            metric: InstructionMetric(
+                name: charter.metric.name, unit: charter.metric.unit,
+                direction: charter.metric.direction.rawValue, target: charter.metric.target),
+            guardrails: charter.guardrails,
+            bindings: charter.bindings.map {
+                InstructionBinding(
+                    id: $0.id, kind: $0.kind.rawValue, read: $0.read, actions: $0.actions)
+            },
+            memory: memory, routines: routines)
     }
 }
