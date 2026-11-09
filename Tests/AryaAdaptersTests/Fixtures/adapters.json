@@ -1,0 +1,5 @@
+{"v":1,"profiles":{
+  "exec-default":{"command":"claude","promptVia":"stdin","parse":"text",
+    "args":{"low":["-p"],"medium":["-p"],"high":["-p"]},"mcpConfig":"none"},
+  "fake":{"command":"arya-fake-adapter","args":{"medium":["--script","s.json"]},
+    "env":{"FAKE_MODE":"1"}}}}

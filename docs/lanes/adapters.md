@@ -30,7 +30,7 @@ M1:
 M2:
 - [x] `ReplayAdapter`: serves recorded `run.adapter.event` messages in order, fails loudly when
   the runtime sends something the recording did not contain.
-- [ ] Adapter profiles (`adapters.json`) types and loading, effort mapping.
+- [x] Adapter profiles (`adapters.json`) types and loading, effort mapping.
 - [ ] `arya-exec-adapter`: `text` and `jsonl` output parsers, prompt via stdin or argument,
   workdir, result schema validation; tested with a shell script standing in for an agent.
 
@@ -72,6 +72,11 @@ M4:
   `source` only for `connection`.
 - `ReplayAdapter` checks each host line against the recording by decoded message (method,
   id, params), so ids must match: the runtime makes the same calls in the same order.
+- `AdapterProfiles` derives `kind` (`exec` when an exec-only field is present) so the PROTOCOL
+  example and the triage example both load unchanged; a missing effort falls back to
+  `medium`, which lets one-argument-list profiles work at every effort.
+- An exec profile launches `arya-exec-adapter --profile <name> --profiles <file>` and the exec
+  adapter maps effort from `run/start`, so the host needs no exec-specific logic.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 

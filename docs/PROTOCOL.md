@@ -207,6 +207,24 @@ in its profile (`adapters.json`), so charters never name models.
   "args":{"low":["-p"],"medium":["-p"],"high":["-p"]},"mcpConfig":"none"}}}
 ```
 
+`adapters.json` profile fields (`AdapterProfiles` in `AryaAdapters`):
+
+| field | meaning |
+| --- | --- |
+| `kind` | `adapter` (the command speaks this protocol) or `exec` (wrapped by `arya-exec-adapter`); when absent, `exec` if any exec field below is present, else `adapter` |
+| `command` | a path, or a name looked up on `PATH` |
+| `args` | arguments per effort (`low`, `medium`, `high`); a missing effort uses `medium`'s, then none |
+| `env` | variables added to the environment arya passes |
+| `promptVia` | exec: `stdin` (default) or `argument` (appended last) |
+| `parse` | exec: `text` (default) or `jsonl` |
+| `mcpConfig` | exec: `none` (default) or `file` (a config written into `workdir`; its path replaces `{mcpConfig}` in `args`) |
+| `sandbox` | exec: `workdir` if these arguments confine or disable the agent's write tools, else `none` (default); reported as the `sandbox` capability |
+
+An `adapter` profile runs `command` with `args[effort]`. An `exec` profile runs
+`arya-exec-adapter --profile <name> --profiles <adapters.json>`, which maps effort itself from
+`run/start.effort`. Unknown effort keys, an empty command, and `mcpConfig: "file"` without a
+`{mcpConfig}` argument are rejected when the file is loaded.
+
 ### Fake adapter scripts
 
 `arya-fake-adapter --script <file>` and the in-process `FakeAdapter` run the same server from a

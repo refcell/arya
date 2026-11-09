@@ -75,6 +75,7 @@ M3:
 - (from memory) Facade memory/routine API can map `MemoryProjection(ledger:)`, `RoutineLibrary(ledger:)`, `allNotes`, `overview`, `history`, `diff(…store:)`, `RunPreparation.context`, `MemoryIntake.notes`, `RoutineProposals.intake` (see memory.md Decisions).
 - (from eval) `CaseRunRequest.routine` names a candidate routine: run the case with `RoutineLibrary.candidateRoutines(for:)` instead of the live routines; wire `AryaEval.RoutineRehearsalGate` into `RoutineGatekeeper` and `RehearsalGate` into `ProposalDesk`/`GateChecking`.
 - (from app-views) the app also needs a case's expected result for rehearsal review: proposed `Workspace.caseExpected(casebook:case:) -> JSONValue?` (nil when missing), alongside the planned `routine(name:version:)`.
+- (from adapters) `AryaAdapters.AdapterProfiles` is public now (validation, `env`, exec profiles); proposed default: replace the internal `AdapterProfiles` in `Sources/Arya/AdapterProfiles.swift` with `try AdapterProfiles.load(from:).profile(charter.adapter).command(name:profilesFile:effort:environment:)`.
 
 ## Log
 
