@@ -20,7 +20,9 @@ Priority reset (visual target: dense, dark-first, low-chrome workspace; tokens f
 - [ ] Ledger: dense mono table with hash and verify status pills.
 - [ ] Routines: proposed, rehearsed, and live pipeline state with +/- diff stats.
 - [ ] Changes, Memory, and charter editor: compact rows, uppercase metadata labels, pills.
-- [ ] Move every view to app-shell's new tokens as they land; visual check per push.
+- [ ] Move every view to app-shell's new tokens as they land; visual check per push as an
+  offscreen snapshot (`ARYA_SCREENSHOTS_HOME=.build/demo-home just screenshots`), never by
+  opening the app.
 
 M3 (start now against the app-shell stub workspace):
 - [x] Run stream: messages, tool calls and results, decisions, proposed actions, status, live.
@@ -145,6 +147,11 @@ M4:
   policy reason, and risk (`ActionRisk` by action kind), with Deny quiet and Approve the one
   accent element. Manual input and Replay sit behind "Run now…" and a "More" menu.
 
+- Every approval entry point renders `InlineApproval`: the run thread inline, and Needs you
+  (the queue) as a compact list whose selected item shows the same block, built from the run's
+  projected action and input (`NeedsYouDetail`). The old card (`ApprovalItemCard` and the
+  registry's no-store fallback) is deleted.
+
 ## Questions
 - (from app-shell) `FeatureRegistry` now routes Changes, Ledger, Memory, Routines, and
   Rehearsals to your views when a store is wired; metric chart placement is yours. Changes
@@ -188,3 +195,4 @@ M4:
 - 2026-11-09: Changes tab hosts the metric chart and charter editor (06dcbbb).
 - 2026-11-09: run now, replay, and rehearse controls (4ab0e07).
 \n- 2026-11-09: inbox, steward overview, and binding detail (acdb4fc).\n- 2026-11-09: routine versions on approvals and always allow (2247b2e).\n- 2026-11-09: Visual check (demo home, dark): Stream split pane with timed conversation rows and work cards with check marks and policy pills; decision rows were empty on real data (nested payload), fixed. Approval card still the old component.\n- 2026-11-09: Visual check (demo home, dark): run thread is one column with no cards, chips, or ids; one accent element (Approve); reply text and the input it answers shown in full; summary once as the final step; input and Replay behind Run now… and More. Remaining on this screen are app-shell's: serif title, effort control, six tabs, run labels.\n
+- 2026-11-09: Visual check (offscreen snapshot, demo home, dark): Needs you and the run thread show the same approval block with the reply text, the message it answers, why, binding, policy reason, and risk; no old card, no ULID (4ae22c6). Open on app-shell's side: the header's orange Review button doubles the accent while a run with a pending approval is shown.

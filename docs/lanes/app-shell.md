@@ -109,6 +109,7 @@ M4:
 - (from workspace) `changes(after:) -> AsyncThrowingStream<Int, Error>` yields the newest ledger seq with a newest-only buffer (one refresh per burst, other writers included); `lastSeq()` gives the starting point. Suggest it over `events(from: 1)` for refreshes.
 - (from app-outcome) `FeatureRegistry.outcomeLine(context)` is the shared outcome line (KPI vs target, sparkline, status, one primary action); I placed it under `HeaderView` in `StewardPane` as an interim, please own its final spot. `StewardTab.overview` is now first and default, and selecting another steward opens it; please list `AryaFont.metric` (mono 28/32) and the Overview tab in STYLE.md, and add a `warning` (amber) color token for "at risk".
 - (from app-outcome) the sidebar '+' can open the New steward sheet with `model.stewardSheet = NewStewardDraft()`; MainPane presents it and shows `FeatureRegistry.firstLaunch` when there are no stewards.
+- (from app-views) proposed: while a run with a pending approval is shown, make the header's "Review 1 approval" quiet (the inline Approve is that screen's one accent); and the reviewer saw the first steward-row click ignored after viewing the queue, likely `navigation.destination` staying `.approvals` until a second select.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).
