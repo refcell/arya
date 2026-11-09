@@ -50,6 +50,10 @@ M3 (start now against the app-shell stub workspace):
 
 ## Questions
 
+- (from cli-e2e) `RunStreamModel` reads `approval.requested` as `{id, action: "<id>"}`, but the
+  runtime decision records `{approval, kind, action: {…ProposedAction}}`; the CLI's `RunDigest`
+  accepts both.
+
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,
   fixtures), interim components, `AryaAppTests` target (c0b8bcd).

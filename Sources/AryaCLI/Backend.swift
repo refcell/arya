@@ -56,13 +56,13 @@ enum ApprovalDecision: String, Sendable, Codable, Equatable {
 protocol CLIBackend: Sendable {
     func initHome() async throws(CLIError) -> InitReport
     func createSteward(charterPath: String) async throws(CLIError) -> StewardDetail
-    func listStewards() async throws(CLIError) -> [StewardSummary]
+    func listStewards() async throws(CLIError) -> [StewardRow]
     func showSteward(_ id: String) async throws(CLIError) -> StewardDetail
     func startRun(steward: String, input: String?) async throws(CLIError) -> RunReport
     func listApprovals(steward: String?, scope: ApprovalScope) async throws(CLIError)
-        -> [ApprovalSummary]
+        -> [ApprovalRow]
     func decide(approval: String, decision: ApprovalDecision, note: String?)
-        async throws(CLIError) -> ApprovalSummary
+        async throws(CLIError) -> ApprovalRow
     func tailLedger(count: Int, steward: String?) async throws(CLIError) -> [EventSummary]
     func verifyLedger() async throws(CLIError) -> VerifyReport
 }
@@ -75,40 +75,3 @@ enum ApprovalScope: Sendable, Equatable {
 
 /// Opens the backend for a home directory.
 typealias BackendFactory = @Sendable (URL) -> any CLIBackend
-
-/// The backend used until the `Workspace` facade lands in `Sources/Arya` (runtime lane). Every
-/// command fails with a clear "not available yet" message and exit status 69, which `just e2e`
-/// reports as a pending step. Delete this once `WorkspaceBackend` exists.
-struct PendingBackend: CLIBackend {
-    let home: URL
-
-    private func pending(_ what: String) -> CLIError {
-        .unavailable("\(what) needs the Workspace facade in Sources/Arya (runtime lane)")
-    }
-
-    func initHome() async throws(CLIError) -> InitReport { throw pending("arya init") }
-    func createSteward(charterPath: String) async throws(CLIError) -> StewardDetail {
-        throw pending("arya steward create")
-    }
-    func listStewards() async throws(CLIError) -> [StewardSummary] {
-        throw pending("arya steward list")
-    }
-    func showSteward(_ id: String) async throws(CLIError) -> StewardDetail {
-        throw pending("arya steward show")
-    }
-    func startRun(steward: String, input: String?) async throws(CLIError) -> RunReport {
-        throw pending("arya run")
-    }
-    func listApprovals(steward: String?, scope: ApprovalScope) async throws(CLIError)
-        -> [ApprovalSummary]
-    { throw pending("arya approvals") }
-    func decide(approval: String, decision: ApprovalDecision, note: String?)
-        async throws(CLIError) -> ApprovalSummary
-    { throw pending(decision == .grant ? "arya approve" : "arya deny") }
-    func tailLedger(count: Int, steward: String?) async throws(CLIError) -> [EventSummary] {
-        throw pending("arya ledger tail")
-    }
-    func verifyLedger() async throws(CLIError) -> VerifyReport {
-        throw pending("arya ledger verify")
-    }
-}

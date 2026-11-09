@@ -24,13 +24,13 @@ final class Capture: @unchecked Sendable {
 final class FakeBackend: CLIBackend, @unchecked Sendable {
     private let lock = NSLock()
     private var log: [String] = []
-    var verifyResult = VerifyReport(isValid: true, events: 3, segments: 1, firstBreak: nil)
+    var verifyResult = VerifyReport(isValid: true, events: 3, firstBreak: nil)
     var runStatus = "completed"
 
     var calls: [String] { lock.withLock { log } }
     private func record(_ call: String) { lock.withLock { log.append(call) } }
 
-    static let summary = StewardSummary(
+    static let summary = StewardRow(
         id: "st_triage", name: "Support inbox triage", state: .draft, charterVersion: 1,
         pendingApprovals: 1, lastRun: nil)
     static let detail = StewardDetail(
@@ -38,7 +38,7 @@ final class FakeBackend: CLIBackend, @unchecked Sendable {
         metric: "routed_within_1h (ratio, up, target 0.95)",
         guardrails: ["Never delete a message."], bindings: ["inbox", "person:alex"],
         triggers: ["manual", "every 900s"], adapter: "fake", effort: "medium")
-    static let approval = ApprovalSummary(
+    static let approval = ApprovalRow(
         id: "ap_1", steward: "st_triage", run: "run_1", action: "reply", target: "inbox:MSG-1",
         rationale: "customer asked a known question", state: .pending,
         requestedAt: "2026-01-01T12:00:00.000Z")
@@ -51,7 +51,7 @@ final class FakeBackend: CLIBackend, @unchecked Sendable {
         record("create \(charterPath)")
         return Self.detail
     }
-    func listStewards() async throws(CLIError) -> [StewardSummary] {
+    func listStewards() async throws(CLIError) -> [StewardRow] {
         record("list")
         return [Self.summary]
     }
@@ -75,17 +75,17 @@ final class FakeBackend: CLIBackend, @unchecked Sendable {
             ])
     }
     func listApprovals(steward: String?, scope: ApprovalScope) async throws(CLIError)
-        -> [ApprovalSummary]
+        -> [ApprovalRow]
     {
         record("approvals \(steward ?? "-") \(scope)")
         return [Self.approval]
     }
     func decide(approval: String, decision: ApprovalDecision, note: String?)
-        async throws(CLIError) -> ApprovalSummary
+        async throws(CLIError) -> ApprovalRow
     {
         record("decide \(approval) \(decision.rawValue) \(note ?? "-")")
         let a = Self.approval
-        return ApprovalSummary(
+        return ApprovalRow(
             id: approval, steward: a.steward, run: a.run, action: a.action, target: a.target,
             rationale: a.rationale, state: decision == .grant ? .granted : .denied,
             requestedAt: a.requestedAt)

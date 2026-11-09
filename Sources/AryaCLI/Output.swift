@@ -64,7 +64,7 @@ enum TextRender {
         }
     }
 
-    static func stewards(_ stewards: [StewardSummary]) -> [String] {
+    static func stewards(_ stewards: [StewardRow]) -> [String] {
         guard !stewards.isEmpty else {
             return ["no stewards yet; create one with `arya steward create`"]
         }
@@ -84,8 +84,8 @@ enum TextRender {
             "\(summary.id)  \(summary.name)",
             "state      \(summary.state.rawValue), charter v\(summary.charterVersion)",
             "outcome    \(detail.outcome)",
-            "metric     \(detail.metric)",
-            "adapter    \(detail.adapter), effort \(detail.effort)",
+            "metric     \(detail.metric ?? "-")",
+            "adapter    \(detail.adapter ?? "-"), effort \(detail.effort ?? "-")",
             "bindings   \(list(detail.bindings))",
             "triggers   \(list(detail.triggers))",
             "approvals  \(summary.pendingApprovals) pending",
@@ -111,7 +111,7 @@ enum TextRender {
         return lines
     }
 
-    static func approvals(_ approvals: [ApprovalSummary]) -> [String] {
+    static func approvals(_ approvals: [ApprovalRow]) -> [String] {
         guard !approvals.isEmpty else { return ["no approvals waiting"] }
         var table = Table(headers: ["id", "steward", "action", "target", "state", "requested"])
         for approval in approvals {
@@ -123,7 +123,7 @@ enum TextRender {
         return table.lines
     }
 
-    static func decision(_ approval: ApprovalSummary) -> [String] {
+    static func decision(_ approval: ApprovalRow) -> [String] {
         ["\(approval.id) \(approval.state.rawValue): \(approval.action) \(approval.target)"]
     }
 
@@ -140,7 +140,7 @@ enum TextRender {
     }
 
     static func verify(_ report: VerifyReport) -> [String] {
-        let counts = "\(report.events) events in \(report.segments) segment(s)"
+        let counts = "\(report.events) events"
         if report.isValid { return ["ledger ok: \(counts)"] }
         guard let firstBreak = report.firstBreak else { return ["ledger broken (\(counts))"] }
         return ["ledger broken at seq \(firstBreak.seq): \(firstBreak.reason) (\(counts))"]

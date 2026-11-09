@@ -9,5 +9,5 @@ let context = CLI.Context(
         fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true))
 let status = await CLI.run(
     Array(CommandLine.arguments.dropFirst()), context: context, output: .standard,
-    backend: { PendingBackend(home: $0) })
+    backend: { WorkspaceBackend(home: $0) })
 exit(status.rawValue)

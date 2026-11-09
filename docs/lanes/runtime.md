@@ -87,6 +87,11 @@ M4:
   reads answered from its `context.toolResults`, no action executed, returning the run id, the
   result shaped like the case's `expected`, and `leak`. Eval cannot import the runtime's types
   the other way, so the facade wires a runtime-backed `CaseRunner` into `CasebookRehearser`.
+- (from cli-e2e) The CLI needs from `Workspace`: the live charter for `arya steward show`
+  (proposed `charter(_ id:) -> Data`), a run detail with decisions and per-action dispositions
+  (proposed `run(_ id:) -> RunDetail`), and the M2 calls behind `casebook import`, `rehearse`,
+  `correct`, `ready`, `metrics`, and `replay`. Until then `arya run` reads the run's ledger
+  entries.
 
 ## Log
 

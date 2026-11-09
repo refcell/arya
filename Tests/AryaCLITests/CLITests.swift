@@ -83,11 +83,11 @@ import Testing
 @Test func brokenLedgerExitsNonZero() async {
     let backend = FakeBackend()
     backend.verifyResult = VerifyReport(
-        isValid: false, events: 9, segments: 1,
+        isValid: false, events: 9,
         firstBreak: .init(seq: 4, reason: "hash mismatch"))
     let (status, capture) = await runCLI(["ledger", "verify"], backend: backend)
     #expect(status == .failure)
-    #expect(capture.out == ["ledger broken at seq 4: hash mismatch (9 events in 1 segment(s))"])
+    #expect(capture.out == ["ledger broken at seq 4: hash mismatch (9 events)"])
 }
 
 @Test func notFoundMapsToItsExitStatus() async {
@@ -116,16 +116,6 @@ import Testing
     let (_, one) = await runCLI(["help", "ledger", "tail"])
     #expect(one.out.first == "usage: arya ledger tail [--count <n>] [--steward <id>]")
     #expect(one.outText.contains("-n, --count <n>  how many events (default 20)"))
-}
-
-@Test func pendingBackendReportsWhatIsMissing() async {
-    let capture = Capture()
-    let status = await CLI.run(
-        ["steward", "list"], context: testContext, output: capture.output,
-        backend: { PendingBackend(home: $0) })
-    #expect(status == .unavailable)
-    #expect(status.rawValue == 69)
-    #expect(capture.errText.contains("not available yet: arya steward list"))
 }
 
 @Test func homeResolutionOrder() {

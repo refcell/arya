@@ -23,7 +23,7 @@ enum StewardState: String, Codable, Sendable {
 }
 
 /// One row of `arya steward list`.
-struct StewardSummary: Codable, Sendable, Equatable {
+struct StewardRow: Codable, Sendable, Equatable {
     let id: String
     let name: String
     let state: StewardState
@@ -39,17 +39,18 @@ struct StewardSummary: Codable, Sendable, Equatable {
 
 /// `arya steward show` and `arya steward create`.
 struct StewardDetail: Codable, Sendable, Equatable {
-    let summary: StewardSummary
+    let summary: StewardRow
     let outcome: String
-    /// The success metric, rendered for people: `triaged_within_1h (ratio, up, target 0.95)`.
-    let metric: String
+    /// The success metric, rendered for people: `routed_within_1h (ratio, up, target 0.95)`.
+    /// Charter details are `nil` or empty when the facade does not expose the charter.
+    let metric: String?
     let guardrails: [String]
     /// Binding ids: `inbox`, `person:alex`.
     let bindings: [String]
     /// Trigger descriptions: `manual`, `every 900s`.
     let triggers: [String]
-    let adapter: String
-    let effort: String
+    let adapter: String?
+    let effort: String?
 
     enum CodingKeys: String, CodingKey {
         case summary, outcome, metric, guardrails, bindings, triggers, adapter, effort
@@ -58,6 +59,8 @@ struct StewardDetail: Codable, Sendable, Equatable {
 
 /// What the runtime did with one proposed action.
 enum ActionDisposition: String, Codable, Sendable {
+    /// No disposition recorded yet.
+    case proposed
     case executed
     /// Held for approval; see `ActionOutcome.approval`.
     case held
@@ -96,7 +99,7 @@ enum ApprovalState: String, Codable, Sendable {
 }
 
 /// One row of `arya approvals`, and the result of `arya approve` and `arya deny`.
-struct ApprovalSummary: Codable, Sendable, Equatable {
+struct ApprovalRow: Codable, Sendable, Equatable {
     let id: String
     let steward: String
     let run: String
@@ -137,11 +140,10 @@ struct VerifyReport: Codable, Sendable, Equatable {
 
     let isValid: Bool
     let events: Int
-    let segments: Int
     let firstBreak: Break?
 
     enum CodingKeys: String, CodingKey {
         case isValid = "ok"
-        case events, segments, firstBreak
+        case events, firstBreak
     }
 }
