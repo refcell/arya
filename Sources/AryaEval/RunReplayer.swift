@@ -137,6 +137,11 @@ struct RunRecording: Sendable {
         guard let steward = started.draft.steward else { throw EvalError.unknownRun(run) }
         var request = RunRequest(
             steward: steward, input: input, actor: started.draft.actor, parent: body.parent)
+        if body.parent != nil, input.kind != .join {
+            // A crew child ran with the adapter, effort, and limits recorded at its start.
+            request.crew = CrewBudget(
+                adapter: body.adapter, effort: body.effort, limits: body.limits)
+        }
         if let rehearsal = body.rehearsal, let caseID = body.caseID {
             try await rehearse(&request, rehearsal, caseID, body, casebooks)
         }

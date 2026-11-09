@@ -317,15 +317,28 @@ public struct RunResult: Sendable, Hashable, Codable {
         public var id: String
         public var title: String
         public var input: String
+        /// The adapter profile to run the child with; absent means the parent's. arya runs it
+        /// only when the charter's `crew.adapters` lists it.
+        public var adapter: String?
+        /// The child's effort; arya caps it at the parent's.
+        public var effort: String?
+        /// The child's budget; arya caps each limit at the parent's.
+        public var limits: RunLimits?
 
-        public init(id: String, title: String, input: String) {
+        public init(
+            id: String, title: String, input: String, adapter: String? = nil,
+            effort: String? = nil, limits: RunLimits? = nil
+        ) {
             self.id = id
             self.title = title
             self.input = input
+            self.adapter = adapter
+            self.effort = effort
+            self.limits = limits
         }
 
         enum CodingKeys: String, CodingKey {
-            case id, title, input
+            case id, title, input, adapter, effort, limits
         }
     }
 

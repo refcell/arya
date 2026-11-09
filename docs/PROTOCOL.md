@@ -172,6 +172,8 @@ Sent exactly once per run:
   `routine` uses `params.name` instead.
 - `delegations` become child runs after this run finishes, followed by one join run
   ([ARCHITECTURE.md](ARCHITECTURE.md#crews)).
+  A delegation may add `adapter` (a profile the charter's `crew.adapters` lists), `effort`, and
+  `limits` (as in `run/start`); arya caps each at the parent run's (decision 0043).
 - `plan` (optional) is the run's plan as it stood at the end, so a person can see what the run
   set out to do and how far it got. Each step has `id`, `text`, `status` (`pending`,
   `in_progress`, `done`, `skipped`, or `blocked`), and an optional `rationale`. An empty plan

@@ -414,3 +414,18 @@ relay tool named by the action kind with the params, `target`, and `to` (the add
 bindings now keep their `actions` in the encoded charter when they have any. The relay is
 responsible for returning each message once. Why: people work in email and chat, and a steward
 that owns an outcome has to meet them there without a second message path.
+
+### 0043 — 2026-11-09 — Crew children get bounded budgets and are recorded as delegations
+
+A `run/result` delegation may ask for an `adapter`, an `effort`, and `limits` (any of
+`maxTurns`, `timeoutSeconds`, `maxCostMicros`) for its child run. arya caps all of them at
+the parent's: the adapter must be the charter's own or listed in the new `crew.adapters`, a
+higher effort becomes the parent's, and each limit is the smaller of the asked and the
+parent's (at least 1). Policy, autonomy, risk, and sandbox are always the parent charter's, and
+children still only propose. Each delegation records `run.delegated {delegation, title,
+child?, adapter?, effort?, limits?, refused?}` on the parent run (actor: the steward) before
+its child starts; a delegation asking for an unlisted adapter or an unknown effort is refused
+there (`adapter_not_allowed:<name>`, `unknown_effort:<value>`) and reported to the join run as
+`refused:<reason>`. The child's `run.started` records its parent and the adapter, effort, and
+limits it ran with, so replay rebuilds the same child. Why: sub-agents are only safe to hand
+work to when they can never get more budget, reach, or authority than the run that asked.

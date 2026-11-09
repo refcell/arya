@@ -196,6 +196,9 @@ M4:
 - Relays (decision 0042): `CharterBinding.via` (core); `Inbox.pull` for inbound,
   `ExecutionRequest.relay` and `BindingActionExecutor` for outbound;
   `RuntimeService(relays:)` pulls every relay each tick (errors in `ServiceTick.relayErrors`).
+- Crew budgets (decision 0043): `CrewBudget`, `RunDelegated` in `Crews.swift`; additive
+  `RunResult.Delegation` fields (adapters), `Crew.adapters` (core), and a replay line in
+  `RunReplayer` (eval) so crew children replay with their recorded budget.
 
 ## Questions
 
@@ -250,3 +253,4 @@ M4:
 - 2026-11-09: email and chat relays for person bindings (decision 0042)
 - 2026-11-09: `RuntimeService` pulls relay bindings each tick when given `relays`
 - 2026-11-09: default risk by action kind (`Risk.defaults`), `Workspace.risk` read (0037)
+- 2026-11-09: crew children with bounded adapter, effort, and limits; `run.delegated` (0043)

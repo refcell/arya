@@ -398,11 +398,26 @@ public enum RunResultSchema {
                 properties: ["risk": ["enum": ["low", "medium", "high"]], "why": why],
                 description: "Proposed actions; `risk` is a hint and `why` one line a person reads."
             ),
-            "delegations": list(["id", "title", "input"]),
+            "delegations": list(
+                ["id", "title", "input"],
+                properties: [
+                    "adapter": ["type": "string"],
+                    "effort": ["enum": ["low", "medium", "high"]],
+                    "limits": [
+                        "type": "object",
+                        "properties": [
+                            "maxTurns": ["type": "integer"],
+                            "timeoutSeconds": ["type": "integer"],
+                            "maxCostMicros": ["type": "integer"],
+                        ],
+                    ],
+                ],
+                description:
+                    "Child subtasks; their adapter, effort, and limits never exceed this run's."
+            ),
             "memories": list(["text"]),
             "routines": list(["name", "language", "content"]),
             "measurements": list(["metric", "value"]),
-            "plan": list(["id", "text", "status"]),
         ],
     ]
 

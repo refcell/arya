@@ -120,10 +120,27 @@ public enum Effort: String, Hashable, Sendable, Codable, CaseIterable {
 /// Fan-out settings for crews.
 public struct Crew: Hashable, Sendable, Codable {
     public var maxParallel: Int
+    /// Adapter profiles a delegation may name besides the charter's own; omitted when empty.
+    public var adapters: [String]
 
-    public init(maxParallel: Int = 1) { self.maxParallel = maxParallel }
+    public init(maxParallel: Int = 1, adapters: [String] = []) {
+        self.maxParallel = maxParallel
+        self.adapters = adapters
+    }
 
-    private enum CodingKeys: String, CodingKey { case maxParallel }
+    private enum CodingKeys: String, CodingKey { case maxParallel, adapters }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        maxParallel = try c.decode(Int.self, forKey: .maxParallel)
+        adapters = try c.decodeIfPresent([String].self, forKey: .adapters) ?? []
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(maxParallel, forKey: .maxParallel)
+        if !adapters.isEmpty { try c.encode(adapters, forKey: .adapters) }
+    }
 }
 
 /// Per-run limits.

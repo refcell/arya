@@ -62,6 +62,11 @@ public struct RunRequest: Sendable, Hashable {
     /// A routine version to run in place of the live version of its name (or added, for a new
     /// name): a routine proposal under rehearsal.
     public var routine: CandidateRoutine?
+    /// For a crew child: the adapter, effort, and limits it runs with instead of the charter's.
+    public var crew: CrewBudget?
+    /// The run id to use instead of a fresh one (a crew child's id is recorded on
+    /// `run.delegated` before it starts).
+    var id: RunID?
 
     /// Creates a request.
     public init(
@@ -187,9 +192,10 @@ public struct RunEngine: Sendable {
         let steward = try await StewardLifecycle(sink: sink).book().records[request.steward]
         guard let steward else { throw StewardError.notFound(request.steward) }
         guard steward.status != .retired else { throw RunError.stewardRetired(steward.id) }
-        let charter = request.charter ?? steward.charter
+        var charter = request.charter ?? steward.charter
+        if let crew = request.crew { charter = crew.applied(to: charter) }
         let version = request.charter == nil ? steward.version : 0
-        let run = ambient.newID(RunID.self)
+        let run = request.id ?? ambient.newID(RunID.self)
         var outcome = try await drive(run, request, charter, version)
         if request.fansOut, let delegations = outcome.result?.delegations, !delegations.isEmpty {
             outcome.crew = try await runCrew(

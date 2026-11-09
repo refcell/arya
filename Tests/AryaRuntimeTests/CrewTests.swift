@@ -121,3 +121,103 @@ private func answer(_ count: Int, in harness: RunHarness) async throws {
         .rehearsal(CaseContext()), charter: crewCharter(maxParallel: 2))
     #expect(outcome.crew == nil)
 }
+
+/// A factory that records which adapter profile each run asked for.
+private actor AdapterLog {
+    var names: [String] = []
+    func add(_ name: String) { names.append(name) }
+}
+
+private struct LoggingFactory: AdapterFactory {
+    let inner: FakeFactory
+    let log: AdapterLog
+    func makeAdapter(for charter: Charter, run: RunID) async throws -> any Adapter {
+        await log.add(charter.adapter)
+        return try await inner.makeAdapter(for: charter, run: run)
+    }
+}
+
+@Test func delegationsGetBoundedBudgetsAndAllowedAdapters() async throws {
+    let parentResult: JSONValue = [
+        "summary": "Split.",
+        "delegations": [
+            [
+                "id": "d1", "title": "Logs", "input": "check logs", "adapter": "helper",
+                "effort": "low", "limits": ["maxTurns": 5, "maxCostMicros": 99_000_000],
+            ],
+            ["id": "d2", "title": "Rogue", "input": "rogue", "adapter": "unlisted"],
+            ["id": "d3", "title": "Loud", "input": "loud", "effort": "extreme"],
+            ["id": "d4", "title": "History", "input": "check history", "effort": "high"],
+        ],
+    ]
+    let script = FakeScript(runs: [
+        FakeScript.Run(input: parentText, result: parentResult),
+        FakeScript.Run(input: "check logs", result: childResult("logs")),
+        FakeScript.Run(input: "check history", result: childResult("history")),
+        FakeScript.Run(result: joinResult),
+    ])
+    let harness = RunHarness(script: script)
+    let log = AdapterLog()
+    let ambient = Ambient.fixed(stepMillis: 1)
+    let engine = RunEngine(
+        sink: harness.sink, ambient: ambient,
+        adapters: LoggingFactory(inner: FakeFactory(script: script), log: log),
+        dispatcher: ActionDispatcher(
+            sink: harness.sink, approvals: harness.approvals, executor: harness.executor),
+        approvals: harness.approvals, workdir: { "scratch/\($0.rawValue)" },
+        questionPoll: .milliseconds(1))
+    var charter = crewCharter(maxParallel: 1)
+    charter.effort = .medium
+    charter.crew.adapters = ["helper"]
+    try await harness.lifecycle.create(charter)
+    let outcome = try await engine.run(.manual(charter.id, text: parentText))
+    let crew = try #require(outcome.crew)
+    #expect(crew.children.count == 2)
+    #expect(await log.names == ["fake", "helper", "fake", "fake"])
+
+    let events = try await harness.sink.events(from: 1)
+    let delegated = events.filter { $0.type == RunDelegated.type.rawValue }
+    #expect(delegated.allSatisfy { $0.draft.run == outcome.run })
+    #expect(delegated.allSatisfy { $0.draft.actor == .steward(charter.id) })
+    let byID = Dictionary(
+        uniqueKeysWithValues: delegated.map { ($0.payload["delegation"]?.stringValue ?? "", $0) })
+    #expect(byID["d2"]?.payload["refused"] == "adapter_not_allowed:unlisted")
+    #expect(byID["d3"]?.payload["refused"] == "unknown_effort:extreme")
+    let logs = try #require(byID["d1"]?.payload)
+    #expect(logs["adapter"] == "helper")
+    #expect(logs["effort"] == "low")
+    #expect(logs["limits"]?["maxTurns"] == 5)
+    // Asking for more than the parent gets the parent's.
+    #expect(logs["limits"]?["maxCostMicros"] == 2_000_000)
+    #expect(byID["d4"]?.payload["effort"] == "medium")
+    #expect(byID["d4"]?.payload["adapter"] == "fake")
+
+    // Each child's run.started links to the parent and records what it ran with.
+    let childID = try #require(logs["child"]?.stringValue)
+    let started = try #require(
+        events.first { $0.type == "run.started" && $0.draft.run?.rawValue == childID })
+    #expect(started.payload["parent"]?.stringValue == outcome.run.rawValue)
+    #expect(started.payload["adapter"] == "helper")
+    #expect(started.payload["effort"] == "low")
+    #expect(started.payload["limits"]?["maxTurns"] == 5)
+
+    // The join hears about refusals too.
+    let joinStarted = try #require(
+        events.first { $0.type == "run.started" && $0.draft.run == crew.join.run })
+    let input = joinStarted.payload["input"]?["text"]?.stringValue ?? ""
+    #expect(input.contains("refused:adapter_not_allowed:unlisted"))
+}
+
+@Test func crewBudgetsNeverExceedTheCharter() {
+    var charter = triageCharter()
+    charter.effort = .low
+    charter.limits = Limits(maxTurns: 10, timeoutSeconds: 60, maxCostMicros: 1000)
+    let applied = CrewBudget(
+        adapter: "elsewhere", effort: .high,
+        limits: Limits(maxTurns: 0, timeoutSeconds: 600, maxCostMicros: 5)
+    ).applied(to: charter)
+    #expect(applied.adapter == charter.adapter)
+    #expect(applied.effort == .low)
+    #expect(applied.limits == Limits(maxTurns: 1, timeoutSeconds: 60, maxCostMicros: 5))
+    #expect(applied.policy == charter.policy)
+}
