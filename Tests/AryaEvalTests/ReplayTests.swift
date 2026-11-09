@@ -344,7 +344,7 @@ private struct WhatIfRunner: CaseRunner {
         proposed: BacktestVariant(charterVersion: 0, charter: inboxCharter()))
     #expect(same.ready)
     #expect(same.runs.map(\.run) == [run])
-    #expect(same.summary == "ready: casebook 1/1, 1 recent runs checked, none changed")
+    #expect(same.summary == "Ready: casebook 1/1, none of last 1 runs would change")
 
     var proposed = inboxCharter()
     proposed.guardrails = ["Invoice questions are how-to."]
@@ -354,7 +354,11 @@ private struct WhatIfRunner: CaseRunner {
     #expect(!changed.ready)
     #expect(changed.runs.map(\.verdict) == [.regressed])
     #expect(changed.regressions == ["c1", "run \(run.rawValue)"])
-    #expect(changed.summary == "not ready: c1, run \(run.rawValue) regressed")
+    #expect(changed.summary == "Not ready: c1 would regress; 1 of last 1 runs would change")
+    #expect(
+        changed.regressionLines.first
+            == "c1: decisions[0].choice: expected billing, got how-to")
+    #expect(changed.regressionLines.last?.hasPrefix("run \(run.rawValue): with the change") == true)
 
     // Once a person corrects the run to how-to, the change improves it.
     try await Corrector(sink: sink, blobs: blobs, ambient: .fixed(seed: 22)).correct(
@@ -368,7 +372,7 @@ private struct WhatIfRunner: CaseRunner {
         proposed: BacktestVariant(charterVersion: 0, charter: proposed))
     #expect(fixed.runs.map(\.verdict) == [.improved])
     #expect(fixed.ready)
-    #expect(fixed.summary == "ready: casebook 1/1, 1 recent runs checked, 1 improved")
+    #expect(fixed.summary == "Ready: casebook 1/1, 1 of last 1 runs would improve")
 }
 
 @Test func facadeCorrectionFindsTheStewardsCasebook() async throws {

@@ -1,0 +1,107 @@
+{
+  "adapter": "fake-triage-v2",
+  "bindings": [
+    {
+      "actions": [
+        "label",
+        "route",
+        "reply"
+      ],
+      "args": [],
+      "command": "inbox-mcp",
+      "id": "inbox",
+      "kind": "mcp",
+      "read": [
+        "search",
+        "get"
+      ]
+    },
+    {
+      "actions": [
+        "refund"
+      ],
+      "args": [],
+      "command": "billing-mcp",
+      "id": "billing",
+      "kind": "mcp",
+      "read": [
+        "order"
+      ]
+    },
+    {
+      "channel": "inbox",
+      "id": "person:sam",
+      "kind": "person"
+    }
+  ],
+  "crew": {
+    "maxParallel": 1
+  },
+  "effort": "medium",
+  "gate": {
+    "samples": 1,
+    "tolerance": 0.0
+  },
+  "guardrails": [
+    "Never delete a message.",
+    "Ask before replying to a customer.",
+    "Questions about the card on file are how-to questions."
+  ],
+  "id": "st_triage",
+  "limits": {
+    "maxCostMicros": 0,
+    "maxTurns": 10,
+    "timeoutSeconds": 60
+  },
+  "metric": {
+    "direction": "up",
+    "name": "routed_within_1h",
+    "target": 0.95,
+    "unit": "ratio"
+  },
+  "name": "Support inbox triage",
+  "outcome": "Every new message in the support inbox is labeled and routed to the right queue within one hour.",
+  "policy": {
+    "default": "ask",
+    "rules": [
+      {
+        "action": "label",
+        "decision": "auto"
+      },
+      {
+        "action": "route",
+        "decision": "auto"
+      },
+      {
+        "action": "reply",
+        "decision": "ask"
+      },
+      {
+        "action": "refund",
+        "decision": "ask"
+      },
+      {
+        "action": "delete",
+        "decision": "deny"
+      }
+    ]
+  },
+  "scorer": {
+    "fields": [
+      "decisions.choice",
+      "actions.kind",
+      "actions.target"
+    ],
+    "kind": "exact"
+  },
+  "triggers": [
+    {
+      "everySeconds": 900,
+      "kind": "interval"
+    },
+    {
+      "kind": "manual"
+    }
+  ],
+  "v": 1
+}

@@ -36,6 +36,10 @@ Priority (replay before live, visible in the app):
   case with provenance in `source`, recorded as a new casebook version.
 - [x] Performance: a 50-case rehearsal on the fake adapter through the run engine finishes in
   under 10 s (about 0.3 s idle), pinned by `fiftyCaseRehearsalIsFast`.
+- [x] Live readiness reads as one sentence (`Not ready: case-0005 would regress; 2 of last 20
+  runs would change`) plus `regressionLines`, one per regression.
+- [x] Demo charter v2 (`Fixtures/backtest/demo`): proposed against the example charter on the
+  example casebook it improves case-0006 and regresses case-0005; seeding is cli-e2e's.
 
 M1:
 - [x] Interfaces only, so other lanes can compile against them: `Replayer`, `Rehearser`,
@@ -208,3 +212,4 @@ Later:
 - 2026-11-09: run corrections as cases, one-sentence scores, single-run what-if
 - 2026-11-09: live readiness gate, casebook builder from history, 50-case perf test
 - 2026-11-09: facade wrapper `Corrector.correct(run:expected:note:person:)`
+- 2026-11-09: readiness sentence and regression lines, demo charter v2 fixture

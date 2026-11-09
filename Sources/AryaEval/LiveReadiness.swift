@@ -32,9 +32,12 @@ public struct LiveReadiness: Hashable, Sendable, Codable {
     public var runs: [RunCheck]
     /// Regressed casebook cases (`case-0005`) then regressed or failed runs (`run run_01…`).
     public var regressions: [String]
+    /// One line per regression, shown verbatim: `case-0005: decisions[0].choice: expected
+    /// security, got account` or `run run_…: with the change it would have: …`.
+    public var regressionLines: [String]
     public var ready: Bool
-    /// One line, shown verbatim: `ready: casebook 8/8, 20 recent runs unchanged` or
-    /// `not ready: case-0005 regressed; run run_… regressed`.
+    /// One sentence, shown verbatim: `Ready: casebook 8/8, none of the last 20 runs would
+    /// change` or `Not ready: case-0005 would regress; 2 of last 20 runs would change`.
     public var summary: String
 }
 
@@ -70,27 +73,36 @@ public struct LiveReadinessGate: Sendable {
         _ steward: StewardID, _ proposal: ProposalID?, _ casebook: BacktestComparison,
         _ runs: [RunCheck]
     ) -> LiveReadiness {
-        let caseRegressions = casebook.cases.filter { $0.change == .regressed }.map(
-            \.caseID.rawValue)
-        let runRegressions = runs.filter { $0.verdict == .regressed || $0.verdict == .failed }
-            .map { "run \($0.run.rawValue)" }
-        let regressions = caseRegressions + runRegressions
-        let ready = casebook.verdict.passed && runRegressions.isEmpty
-        let summary: String
-        if ready {
-            let improved = runs.filter { $0.verdict == .improved }.count
-            summary =
-                "ready: casebook \(casebook.proposed.passed)/\(casebook.cases.count), "
-                + "\(runs.count) recent runs checked"
-                + (improved > 0 ? ", \(improved) improved" : ", none changed")
-        } else if regressions.isEmpty {
-            summary = "not ready: \(casebook.verdict.reason)"
-        } else {
-            summary = "not ready: " + regressions.joined(separator: ", ") + " regressed"
-        }
+        let cases = casebook.cases.filter { $0.change == .regressed }
+        let bad = runs.filter { $0.verdict == .regressed || $0.verdict == .failed }
+        let ready = casebook.verdict.passed && bad.isEmpty
         return LiveReadiness(
             steward: steward, proposal: proposal, casebook: casebook, runs: runs,
-            regressions: regressions, ready: ready, summary: summary)
+            regressions: cases.map(\.caseID.rawValue) + bad.map { "run \($0.run.rawValue)" },
+            regressionLines: cases.map { "\($0.caseID.rawValue): \($0.proposed.diffText)" }
+                + bad.map { "run \($0.run.rawValue): \($0.whatIf.summary)" },
+            ready: ready, summary: sentence(ready, casebook, cases, bad, runs))
+    }
+
+    static func sentence(
+        _ ready: Bool, _ casebook: BacktestComparison, _ cases: [BacktestCase],
+        _ bad: [RunCheck], _ runs: [RunCheck]
+    ) -> String {
+        let last = "of last \(runs.count) runs"
+        let improved = runs.filter { $0.verdict == .improved }.count
+        if ready {
+            let change =
+                improved > 0 ? "\(improved) \(last) would improve" : "none \(last) would change"
+            return "Ready: casebook \(casebook.proposed.passed)/\(casebook.cases.count), \(change)"
+        }
+        var parts: [String] = []
+        if !cases.isEmpty {
+            let ids = cases.map(\.caseID.rawValue)
+            parts.append(ids.joined(separator: ", ") + " would regress")
+        }
+        if !bad.isEmpty { parts.append("\(bad.count) \(last) would change") }
+        if parts.isEmpty { parts.append(casebook.verdict.reason) }
+        return "Not ready: " + parts.joined(separator: "; ")
     }
 
     static func verdict(_ whatIf: RunCounterfactual) -> RunVerdict {
