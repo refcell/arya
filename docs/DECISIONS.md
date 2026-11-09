@@ -199,3 +199,13 @@ the effort it used in `run.started`, so baselines stay comparable: a rehearsal a
 effort is visible as such. Why: the header selector in the app must act at once, and effort
 never changes instructions.
 
+### 0027 — 2026-11-09 — Gates judge proposals by the live charter's rules
+
+`AryaEval.RehearsalGate` scores both the baseline and the candidate with the live charter's
+`scorer` and applies the live charter's `gate` settings, whatever the candidate says. When no
+baseline exists for the live version and casebook version, the gate rehearses the live charter
+first. Only rehearsals without a proposal serve as baselines. `ProposalDesk.accept` is the one
+path that makes a candidate live: it requires a passing gate or a person's override, refuses a
+proposal written against an older live version (`stale`), and records
+`steward.charter.updated` followed by `proposal.accepted`. Why: a proposal must not loosen its
+own gate, and a gate must never pass for lack of a baseline.

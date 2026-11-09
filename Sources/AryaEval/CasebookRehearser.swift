@@ -42,18 +42,19 @@ public protocol CasebookSource: Sendable {
 /// Rehearses a steward on a casebook: every case `samples` times, at most `maxParallel` runs
 /// at once. Events (actor `system`) are recorded after all runs finish, in case-id order, so
 /// the ledger order does not depend on which run finished first. A run that throws scores 0
-/// for that sample.
+/// for that sample. Cases are scored by the charter's scorer unless `scorer` overrides it.
 public struct CasebookRehearser: Rehearser {
     public var runner: any CaseRunner
     public var casebooks: any CasebookSource
-    public var scorer: any Scorer
+    /// Overrides the charter's scorer when set.
+    public var scorer: (any Scorer)?
     public var sink: any EventSink
     public var ambient: Ambient
     public var maxParallel: Int
 
     public init(
-        runner: any CaseRunner, casebooks: any CasebookSource, scorer: any Scorer,
-        sink: any EventSink, ambient: Ambient, maxParallel: Int = 1
+        runner: any CaseRunner, casebooks: any CasebookSource, sink: any EventSink,
+        ambient: Ambient, scorer: (any Scorer)? = nil, maxParallel: Int = 1
     ) {
         self.runner = runner
         self.casebooks = casebooks
@@ -81,7 +82,8 @@ public struct CasebookRehearser: Rehearser {
                     charter: charter, rehearsal: id, caseItem: item, sample: $0)
             }
         }
-        let done = await runAll(jobs)
+        let scorer = try self.scorer ?? charter.scorer.makeScorer()
+        let done = await runAll(jobs, scorer: scorer)
         var outcomes: [CaseOutcome] = []
         for (index, item) in book.cases.enumerated() {
             let slice = done[(index * request.samples)..<((index + 1) * request.samples)]
@@ -111,7 +113,7 @@ public struct CasebookRehearser: Rehearser {
     }
 
     /// Runs every job with bounded parallelism and returns results in job order.
-    func runAll(_ jobs: [CaseRunRequest]) async -> [Done] {
+    func runAll(_ jobs: [CaseRunRequest], scorer: any Scorer) async -> [Done] {
         var results = [Done?](repeating: nil, count: jobs.count)
         await withTaskGroup(of: (Int, Done).self) { group in
             var next = 0
@@ -119,7 +121,7 @@ public struct CasebookRehearser: Rehearser {
                 guard next < jobs.count else { return }
                 let index = next
                 next += 1
-                group.addTask { (index, await runOne(jobs[index])) }
+                group.addTask { (index, await runOne(jobs[index], scorer: scorer)) }
             }
             for _ in 0..<min(maxParallel, jobs.count) { launch() }
             while let (index, done) = await group.next() {
@@ -130,7 +132,7 @@ public struct CasebookRehearser: Rehearser {
         return results.compactMap { $0 }
     }
 
-    func runOne(_ job: CaseRunRequest) async -> Done {
+    func runOne(_ job: CaseRunRequest, scorer: any Scorer) async -> Done {
         do {
             let outcome = try await runner.run(job)
             var score = scorer.score(expected: job.caseItem.expected, actual: outcome.result)

@@ -63,8 +63,8 @@ private func rehearser(
     ambient: Ambient = .fixed()
 ) throws -> CasebookRehearser {
     CasebookRehearser(
-        runner: runner, casebooks: FixedCasebooks(book: try makeBook()),
-        scorer: ExactScorer(fields: ["choice"]), sink: sink, ambient: ambient,
+        runner: runner, casebooks: FixedCasebooks(book: try makeBook()), sink: sink,
+        ambient: ambient, scorer: ExactScorer(fields: ["choice"]),
         maxParallel: parallel)
 }
 
