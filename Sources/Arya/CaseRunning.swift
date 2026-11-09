@@ -10,7 +10,7 @@ import AryaRuntime
 /// recorded but never executed. The scored result is the run's `run/result` encoded as JSON,
 /// which has the shape of a case's `expected` (`decisions`, `actions`, ...).
 struct RuntimeCaseRunner: CaseRunner {
-    let loop: RunLoop
+    let loop: RunEngine
     let sink: any EventSink
 
     func run(_ request: CaseRunRequest) async throws -> CaseRunOutcome {

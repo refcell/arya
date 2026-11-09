@@ -71,12 +71,12 @@ struct CaseHarness {
     let ambient = Ambient.fixed(stepMillis: 1)
     let sink: MemoryEventSink
     let executor = RecordingExecutor()
-    let loop: RunLoop
+    let loop: RunEngine
 
     init(_ runs: [FakeScript.Run]) {
         sink = MemoryEventSink(ambient: ambient)
         let approvals = ApprovalQueue(sink: sink, ambient: ambient)
-        loop = RunLoop(
+        loop = RunEngine(
             sink: sink, ambient: ambient, adapters: ScriptedFactory(script: FakeScript(runs: runs)),
             dispatcher: ActionDispatcher(sink: sink, approvals: approvals, executor: executor),
             approvals: approvals, workdir: { "scratch/\($0.rawValue)" })
