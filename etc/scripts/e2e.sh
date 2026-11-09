@@ -29,13 +29,12 @@ trap cleanup EXIT
 unset ARYA_HOME
 
 echo "e2e: building"
-for product in arya arya-fake-adapter; do
-  if ! swift build --product "$product" >"$work/build.log" 2>&1; then
-    cat "$work/build.log"
-    echo "e2e: FAILED to build $product"
-    exit 1
-  fi
-done
+# The same testable build as `just build` and `just test`, so after `just ci` this is a no-op.
+if ! just build >"$work/build.log" 2>&1; then
+  cat "$work/build.log"
+  echo "e2e: FAILED to build"
+  exit 1
+fi
 bin=$(swift build --show-bin-path)
 
 state=ok    # ok, then fail or pending after the first step that is not ok

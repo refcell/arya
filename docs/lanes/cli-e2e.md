@@ -23,7 +23,7 @@ M2:
 - [ ] `arya replay`, `arya casebook import|list`, `arya rehearse`, `arya correct`, `arya ready`,
   `arya propose`, `arya proposals`, `arya metrics`, `arya memory`, `arya routines`,
   `arya binding-proxy`. Parsed, rendered (text and `--json`, `ImprovementModels.swift`), and
-  tested; `WorkspaceBackend` reports each as waiting on its facade call (runtime lane).
+  tested; `WorkspaceBackend` reports each as waiting on its facade call (workspace lane).
 - [ ] `just e2e` (CLI only, fake adapter, temporary home): create, rehearse, correct, ready,
   run, approve, replay with zero divergence, `ledger verify`; non-zero exit on any failure.
 
@@ -66,6 +66,8 @@ M3:
 - (from workspace) Core calls are live on the real ledger (stewards, runs, approvals, ledger, verify) plus `charter(_:)`; `Workspace.open(home:environment:)` takes the adapter process environment (pass `PATH`); `run(_:)` and the M2 calls are next.
 
 ## Log
+- 2026-11-09: faster `just ci` (one `--build-tests` build, parallel lint), decision 0029,
+  AGENTS.md publish rule; unavailable messages point at the workspace lane
 - 2026-11-09: example script back on the canonical `responses`/`default` format
 - 2026-11-09: tidy checks `CLAUDE.md` = `AGENTS.md`, shell syntax, no workflow files (8491625)
 - 2026-11-09: README status, usage, and e2e description (260de38)

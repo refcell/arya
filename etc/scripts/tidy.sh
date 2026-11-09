@@ -102,7 +102,7 @@ for d in Package.swift Sources Tests; do
 done
 if [ "${#swift_dirs[@]}" -gt 0 ]; then
   if swift format --version >/dev/null 2>&1; then
-    if ! swift format lint --strict --recursive --configuration etc/swift-format.json \
+    if ! swift format lint --strict --parallel --recursive --configuration etc/swift-format.json \
       "${swift_dirs[@]}"; then
       echo "tidy: swift format lint failed; run \`just fmt\`"
       fail=1

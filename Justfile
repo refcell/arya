@@ -13,16 +13,17 @@ alias t := test
 default:
     @just --list
 
-# Build every target (debug)
+# Build every target and test target once (debug, testable; `just test` reuses it)
 build *args:
-    swift build {{ swift_flags }} {{ args }}
+    swift build {{ swift_flags }} --build-tests {{ args }}
 
 # Run tests, optionally filtered: just test AryaCoreTests
 test filter='':
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -n "{{ filter }}" ]; then swift test {{ swift_flags }} --filter "{{ filter }}"
-    else swift test {{ swift_flags }}; fi
+    swift build {{ swift_flags }} --build-tests
+    if [ -n "{{ filter }}" ]; then swift test {{ swift_flags }} --skip-build --filter "{{ filter }}"
+    else swift test {{ swift_flags }} --skip-build; fi
 
 # Format Swift sources in place
 fmt:

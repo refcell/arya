@@ -221,3 +221,16 @@ rehearsals in their modules; they adopt `LedgerProjection` when the workspace la
 ledger-backed `EventSink`. The ledger itself projects only `LedgerIndex` (counts, per-steward
 counts, run spans). Why: the same reason as 0019, 0022, and 0023 (one owner per shape), and
 duplicate projections in two modules would drift.
+
+### 0029 — 2026-11-09 — Publishing under push races; one testable build in `just ci`
+
+The first publish of a change runs the full `just ci` on a rebased `main`. If that push is
+rejected and `git rebase origin/main` applies with no conflicts, re-check with
+`just tidy && just build && just test <YourModuleTests>` and push right away; do this at most
+three times, then run the full `just ci` again. A rebase with conflicts always needs the full
+`just ci`. If `main` goes red, the lane whose commit broke it fixes it first (smallest fix);
+any lane that notices may fix it. `just build` builds every target and test target once with
+`--build-tests`, `just test` reuses that build with `--skip-build`, and tidy lints formatting
+in parallel. Why: `main` moves faster than a full run, and plain `swift build` followed by
+`swift test` compiled every module twice (testable and not); after a change in `AryaCore` the
+full run went from 120 s to 59 s on the same machine.

@@ -28,8 +28,10 @@ byte-identical copy of this file; edit both together (`cp AGENTS.md CLAUDE.md`).
    git fetch origin main && git rebase origin/main && just ci && git push origin HEAD:main
    ```
    Push every small, coherent, green step, and at least every 30-60 minutes of work. If the push
-   is rejected, fetch, rebase (on conflicts keep both sides), re-run `just ci`, and push again.
-   Never force-push `main`.
+   is rejected, fetch and rebase right away. A rebase without conflicts needs only
+   `just tidy && just build && just test <YourModuleTests>` before pushing again, at most three
+   times in a row; after that, or after any conflict (keep both sides), run the full `just ci`
+   ([decision 0029](docs/DECISIONS.md)). Never force-push `main`.
 3. **Run `just hooks` once per clone.** It wires the local denylist and secret scan into git
    so it runs on every commit. The denylist lives untracked in the git common
    directory (`$(git rev-parse --git-common-dir)/info/denylist` and

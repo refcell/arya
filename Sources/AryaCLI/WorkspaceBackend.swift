@@ -117,7 +117,7 @@ private func call<T>(
         return try await body()
     } catch let error as WorkspaceError {
         switch error {
-        case .unavailable: throw .unavailable("Workspace.\(name) (runtime lane)")
+        case .unavailable: throw .unavailable("Workspace.\(name) (workspace lane)")
         case .notFound(let id): throw .notFound(id)
         case .rejected(let detail): throw rejection(detail)
         }
@@ -131,11 +131,11 @@ private func optional<T>(_ body: () async throws -> T) async -> T? {
     try? await body()
 }
 
-// The improvement loop. The facade does not expose these calls yet (runtime lane, M2); each
+// The improvement loop. The facade does not expose these calls yet (workspace lane, M2); each
 // names the call it will use so `just e2e` reports exactly what is missing.
 extension WorkspaceBackend {
     private func missing(_ call: String) -> CLIError {
-        .unavailable("Workspace.\(call) (runtime lane)")
+        .unavailable("Workspace.\(call) (workspace lane)")
     }
 
     func importCasebook(steward: String, path: String, name: String?) async throws(CLIError)
