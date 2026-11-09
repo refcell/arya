@@ -1,0 +1,4 @@
+# Lane files are append-only logs and question lists: merge both sides' new lines without
+# conflicts during rebase (AGENTS.md, rule 8).
+docs/lanes/*.md merge=union
+docs/lanes/README.md merge=union

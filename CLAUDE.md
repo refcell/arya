@@ -59,7 +59,9 @@ byte-identical copy of this file; edit both together (`cp AGENTS.md CLAUDE.md`).
    [docs/lanes/README.md](docs/lanes/README.md). Edit other lanes' files only for tiny
    integration fixes (a build break, a missing `public`). Shared files (`Package.swift`,
    `Justfile`, `README.md`, `docs/DECISIONS.md`, `docs/ROADMAP.md`) take small, additive edits;
-   on rebase conflicts keep both sides.
+   on rebase conflicts keep both sides. Files in `docs/lanes/` merge with git's `union` driver
+   (`.gitattributes`), so rebases keep both sides' new lines without conflicts: append new Log
+   and Questions lines, edit only your own lines, and never reorder or reflow lines there.
 9. **Never write `.github/workflows/`.** The push credential lacks workflow scope. CI is staged
    in `etc/ci/`.
 10. **Determinism first.** Library code never reads the wall clock, random numbers, UUIDs, the
