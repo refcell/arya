@@ -2,9 +2,8 @@ import AryaCore
 import Foundation
 
 // The runtime's seam to the ledger. Everything the runtime does is an appended event, and all
-// of its state is a projection of those events (ARCHITECTURE.md "Goals"). Until `AryaLedger`
-// lands this protocol has only an in-memory double; then a conformance over the ledger store
-// replaces it and the envelope types below are deleted in favor of the ledger's.
+// of its state is a projection of those events (ARCHITECTURE.md "Goals").
+// The real store is `LedgerEventSink`; `MemoryEventSink` is the test double.
 
 /// Who caused an event: kind `human`, `steward`, `adapter`, or `system`, and an id.
 public struct RuntimeActor: Sendable, Hashable, Codable {
@@ -30,9 +29,9 @@ public struct RuntimeActor: Sendable, Hashable, Codable {
     public static func steward(_ id: StewardID) -> RuntimeActor {
         RuntimeActor(kind: "steward", id: id.rawValue)
     }
-    /// The adapter process of a run.
-    public static func adapter(_ run: RunID) -> RuntimeActor {
-        RuntimeActor(kind: "adapter", id: run.rawValue)
+    /// An adapter, identified by its profile name (the charter's `adapter`).
+    public static func adapter(_ profile: String) -> RuntimeActor {
+        RuntimeActor(kind: "adapter", id: profile)
     }
 }
 

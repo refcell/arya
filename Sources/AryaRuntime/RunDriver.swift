@@ -144,7 +144,8 @@ final class RunDriver: @unchecked Sendable {
                 RunAdapterEvent(
                     direction: direction, raw: String(decoding: record.line, as: UTF8.self))
             }
-        try await append(RunEventType.adapterEvent, .adapter(run), try Payload.encode(payload))
+        try await append(
+            RunEventType.adapterEvent, .adapter(charter.adapter), try Payload.encode(payload))
     }
 
     // MARK: Ending

@@ -117,6 +117,9 @@ M4:
 - Rehearsal mode (`RunMode.rehearsal(context)`): dispositions are recorded as
   `action.proposed` only. Until the binding proxy serves reads, a leak is a `tool_call` event
   whose `(tool, input)` has no entry in `context.toolResults`.
+- `LedgerEventSink` is the real `EventSink`: appends through `LedgerStore`, reads through
+  `LedgerReader`. `RuntimeEvent`/`RuntimeActor` stay as thin views so eval and the facade keep
+  compiling; `RuntimeActor.adapter(profile)` carries the adapter profile, as the ledger does.
 
 ## Questions
 
@@ -143,3 +146,6 @@ M4:
   (0d7d127)
 - 2026-11-09: `RunBook`, run leases, and restart recovery (`RunRecovery`); renamed `RunLoop`
   to `RunEngine` and fixed the workspace lane's use (bb35150)
+- 2026-11-09: run, action, and approval payloads are the ledger's typed structs (d190a54);
+  rehearsal runs carry a `RehearsalTag` (d0d97f5)
+- 2026-11-09: `LedgerEventSink` over the real ledger; end-to-end run and restart on a temp home
