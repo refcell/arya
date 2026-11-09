@@ -33,7 +33,7 @@ M2:
 - [x] Routine gate (decision 0025): `RoutineRehearsalGate` conforms to `RoutineGateChecking`.
 - [x] Casebook projection from `casebook.imported` (names, versions, latest per name) and a
   `CasebookSource` over blobs, for `arya casebook list`, rehearsal, and gates.
-- [ ] Rehearsal review model for the app: per case expected versus actual, score notes, leak,
+- [x] Rehearsal review model for the app: per case expected versus actual, score notes, leak,
   and corrections applied.
 
 Later:
@@ -61,6 +61,10 @@ Later:
   comparing. Adapter lines, `env.read` and human events are inputs and are not compared.
   Rehearsal runs replay in rehearsal mode from the stored casebook and, for a candidate, the
   proposal's charter.
+- `RehearsalReports.report(_:)` builds the review model from the ledger and the stored casebook.
+  `rehearsal.case.scored` now keeps each sample's result (optional `results`, absent in older
+  events). `ResultDiff` compares only what a case states: object keys the case omits are
+  ignored, arrays compare item by item. Corrections are those recorded with the rehearsal's id.
 - `GateRule` (pure, decision 0017): a missing baseline or differing case sets fail the gate; a
   `leak` case counts as failed in every sample and scores 0 in the mean. Scorer paths fan out
   through arrays (`actions.kind`), and an exact or rubric scorer with nothing to check fails.

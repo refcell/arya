@@ -25,11 +25,14 @@ public struct RehearsalCaseScoredPayload: Hashable, Sendable, Codable {
     public var runs: [RunID?]
     public var scores: [CaseScore]
     public var leak: Bool
+    /// Each sample's result in the shape of `expected`; `nil` where the run failed. Absent in
+    /// events recorded before results were kept.
+    public var results: [JSONValue?]?
 
     enum CodingKeys: String, CodingKey {
         case v, rehearsal
         case caseID = "case"
-        case runs, scores, leak
+        case runs, scores, leak, results
     }
 }
 

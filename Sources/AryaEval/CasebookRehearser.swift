@@ -99,7 +99,7 @@ public struct CasebookRehearser: Rehearser {
                 EvalEventType.rehearsalCaseScored, request.steward,
                 RehearsalCaseScoredPayload(
                     rehearsal: id, caseID: item.id, runs: slice.map(\.run),
-                    scores: outcome.samples, leak: outcome.leak))
+                    scores: outcome.samples, leak: outcome.leak, results: slice.map(\.result)))
         }
         let result = RehearsalResult(id: id, request: request, outcomes: outcomes)
         try await record(
@@ -115,6 +115,7 @@ public struct CasebookRehearser: Rehearser {
         var run: RunID?
         var score: CaseScore
         var leak: Bool
+        var result: JSONValue?
     }
 
     /// Runs every job with bounded parallelism and returns results in job order.
@@ -144,7 +145,8 @@ public struct CasebookRehearser: Rehearser {
             if outcome.leak {
                 score = CaseScore(value: 0, passed: false, notes: score.notes + ["leak"])
             }
-            return Done(run: outcome.run, score: score, leak: outcome.leak)
+            return Done(
+                run: outcome.run, score: score, leak: outcome.leak, result: outcome.result)
         } catch {
             let note = "run failed: \(String(describing: error))"
             return Done(
