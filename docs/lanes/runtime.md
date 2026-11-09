@@ -241,3 +241,4 @@ M4:
 - 2026-11-09: routines and binding servers sandboxed, recorded on `run.started` (decision 0040)
 - 2026-11-09: schedule status: `SchedulePlan.status` / `Scheduler.status` (next wake, last N outcomes)
 - 2026-11-09: harness sandbox via `run/start.sandbox` for `os` adapters; `run.sandboxed`
+- 2026-11-09: integration fix in `RunReplayer`: replays sandbox when the recorded run did

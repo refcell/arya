@@ -48,7 +48,8 @@ public struct RunReplayer: Replayer {
             dispatcher: ActionDispatcher(
                 sink: scratch, approvals: approvals,
                 executor: RecordedExecutor(outcomes: recording.executions)),
-            approvals: approvals, workdir: { workdir ?? "replay/\($0.rawValue)" })
+            approvals: approvals, workdir: { workdir ?? "replay/\($0.rawValue)" },
+            sandbox: recording.started.payload["sandbox"].map { $0 != .null } ?? false)
         let outcome = try await engine.run(request)
         return await scratch.appended().filter { $0.draft.run == outcome.run }
     }
