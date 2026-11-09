@@ -30,6 +30,22 @@ enum FeatureWrite: Hashable, Sendable {
     case createSteward(StewardDraft)
 }
 
+/// One event as the inspector shows it.
+struct FeatureEventDetail: Hashable, Sendable {
+    /// Where the event sits in its run: its position from 1, the run's event count, and title.
+    struct Step: Hashable, Sendable {
+        var run: String
+        var index: Int
+        var count: Int
+        var title: String
+    }
+
+    var payloadText: String
+    var hash: String
+    var prev: String
+    var step: Step?
+}
+
 /// The result of replaying a run from the ledger alone.
 struct FeatureReplayResult: Hashable, Sendable {
     /// Where a replay first differed from the recording.
@@ -95,6 +111,8 @@ protocol FeatureWorkspace: Sendable {
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON?
     /// Replays a finished run and reports the first difference from the recording.
     func replay(run: String) async throws -> FeatureReplayResult
+    /// One event's inspector detail (hash chain, run position, readable payload), or nil.
+    func eventDetail(seq: Int) async throws -> FeatureEventDetail?
     /// Yields once whenever new events may be available.
     func changes() -> AsyncStream<Void>
 }
@@ -108,6 +126,12 @@ extension FeatureWorkspace {
     /// Workspaces without a casebook read report that expected results are not available yet.
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON? {
         throw FeatureReadError.unavailable("expected results")
+    }
+
+    /// Workspaces without an event read report it unavailable; the inspector then shows the
+    /// raw event it already has.
+    func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
+        throw FeatureReadError.unavailable("event detail")
     }
 
     /// Workspaces without a replay engine report that replay is not available yet.

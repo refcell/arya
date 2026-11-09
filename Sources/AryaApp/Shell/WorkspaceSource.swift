@@ -30,6 +30,8 @@ protocol WorkspaceSource: Sendable {
     func expectedResult(casebook: String, caseID: String) async throws -> FeatureJSON?
     /// Replays a run from the ledger alone.
     func replayRun(_ run: String) async throws -> FeatureReplayResult
+    /// One event's inspector detail.
+    func eventDetail(seq: Int) async throws -> FeatureEventDetail?
 }
 
 extension WorkspaceSource {
@@ -43,6 +45,10 @@ extension WorkspaceSource {
 
     func replayRun(_ run: String) async throws -> FeatureReplayResult {
         throw FeatureReadError.unavailable("replay")
+    }
+
+    func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
+        throw FeatureReadError.unavailable("event detail")
     }
 }
 
@@ -118,6 +124,16 @@ extension Workspace: WorkspaceSource {
 
     func replayRun(_ run: String) async throws -> FeatureReplayResult {
         Self.featureReplay(try await replay(run: run))
+    }
+
+    func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
+        guard let detail = try await event(seq: seq) else { return nil }
+        return FeatureEventDetail(
+            payloadText: detail.payloadText, hash: detail.hash, prev: detail.prev,
+            step: detail.step.map {
+                FeatureEventDetail.Step(
+                    run: $0.run, index: $0.index, count: $0.count, title: $0.title)
+            })
     }
 
     /// A facade replay summary in the feature views' shape.

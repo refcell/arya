@@ -112,6 +112,7 @@ M4:
 - (from app-views) proposed: while a run with a pending approval is shown, make the header's "Review 1 approval" quiet (the inline Approve is that screen's one accent); and the reviewer saw the first steward-row click ignored after viewing the queue, likely `navigation.destination` staying `.approvals` until a second select.
 - (from app-outcome) one time rule per screen (CEO): relative under 24 h, clock time after. `OutcomeTime.short` (Features/Outcome) does `ThreadRow.shortTime` under 24 h, then `yesterday 14:02`, `Mon 14:02` within a week, else `9 Nov`; please move it into AryaDesign (for example `AryaTime.short`) and use it for threads too, and I will switch to it.
 - (from app-outcome) FYI: I added New steward steps 2-5 to `SnapshotTests` (`new-steward-2…5.png`, a small additive loop after `new-steward`); `NewStewardSheet` takes a starting `step`. Move or reshape it as you like.
+- (from app-views) proposed: `AryaTime.clock(_:seconds: true)` ("14:27:05"); the ledger needs seconds to order same-minute events, so it keeps its own HH:mm:ss clock until then. Also forwarded `event(seq:)` through `WorkspaceSource`/`FacadeFeatureWorkspace` (`eventDetail(seq:)`), and `LedgerView(selection:openRun:)` lets the ledger-inspector snapshot select an event.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

@@ -10,6 +10,8 @@ struct LedgerView: View {
     var steward: String?
     /// The selected event when the shell drives it (navigation, snapshots); else local.
     var selection: Binding<String?>?
+    /// Opens a run's thread (run, steward) from the inspector.
+    var openRun: ((String, String) -> Void)?
     @AryaState private var filter = LedgerFilter.all
     @AryaState private var localSelection: String?
 
@@ -50,7 +52,10 @@ struct LedgerView: View {
             }
             if let event = table.rows.first(where: { $0.id == selected.wrappedValue }) {
                 AryaHairline(.vertical)
-                LedgerInspector(event: event, title: event.run.flatMap { table.runTitles[$0] }) {
+                LedgerInspector(
+                    store: store, event: event, title: event.run.flatMap { table.runTitles[$0] },
+                    openRun: openRun
+                ) {
                     selected.wrappedValue = nil
                 }
                 .frame(width: AryaSize.readingWidth / 2)
@@ -69,14 +74,20 @@ private struct LedgerToolbar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
-                TextField("Search events", text: $filter.query)
-                    .textFieldStyle(.plain)
-                    .aryaText(AryaFont.body, AryaColor.ink)
+                VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                        Image(systemName: "magnifyingglass")
+                            .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                            .accessibilityHidden(true)
+                        TextField("Search events", text: $filter.query)
+                            .textFieldStyle(.plain)
+                            .aryaText(AryaFont.body, AryaColor.ink)
+                    }
+                    AryaHairline()
+                }
                 filterMenu
             }
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                Text(LedgerText.count(table)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                Text("·").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 verifyStatus
                 Spacer(minLength: 0)
             }
@@ -84,21 +95,20 @@ private struct LedgerToolbar: View {
         }
     }
 
+    /// Before verifying: the count and a quiet Verify. After: the result as a status.
     @ViewBuilder private var verifyStatus: some View {
         if store.isVerifying {
             Text("verifying…").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
         } else if let result = store.verifyResult {
-            Button(LedgerText.verifyStatus(result)) { Task { await store.verify() } }
-                .buttonStyle(.plain)
+            Text(LedgerText.verifyStatus(result, count: LedgerText.count(table)))
                 .aryaText(
-                    AryaFont.monoSmall,
-                    result.isIntact ? AryaColor.inkMuted : AryaColor.negative
+                    AryaFont.monoSmall, result.isIntact ? AryaColor.inkMuted : AryaColor.negative
                 )
                 .help(LedgerText.verify(result))
         } else {
-            Button("verify chain") { Task { await store.verify() } }
-                .buttonStyle(.plain)
-                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+            Text(LedgerText.count(table)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            Button("Verify") { Task { await store.verify() } }
+                .buttonStyle(.aryaTertiary)
                 .help("Check every hash and sequence number in the ledger")
         }
     }
@@ -151,6 +161,41 @@ private struct LedgerRows: View {
     var table: LedgerTable
     var showsSteward: Bool
     @Binding var selected: String?
+    @AryaState private var expanded: Set<String> = []
+
+    private func run(_ line: LedgerLine) -> String? {
+        switch line {
+        case .event(let event): event.run
+        case .adapterRun(_, let events): events.first?.run
+        }
+    }
+
+    /// A collapsed run of adapter events: one quiet line that expands in place.
+    private func folded(_ id: String, _ events: [FeatureEvent], repeatsRun: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
+            Text(LedgerText.pad("", table.seqWidth)).aryaText(
+                AryaFont.monoSmall, AryaColor.inkFaint
+            )
+            .fixedSize()
+            Text(StreamStepText.clock(events[0].at)).aryaText(
+                AryaFont.monoSmall, AryaColor.inkFaint
+            )
+            .fixedSize()
+            Text(LedgerText.pad("\(events.count) adapter events", table.typeWidth))
+                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted).fixedSize()
+            Text(repeatsRun ? "" : LedgerText.runLabel(events[0], titles: table.runTitles))
+                .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                .lineLimit(1).truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, AryaSpace.s1)
+        .padding(.horizontal, AryaSpace.s2)
+        .contentShape(Rectangle())
+        .onTapGesture { expanded.insert(id) }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Shows each adapter event")
+    }
 
     var body: some View {
         if table.rows.isEmpty {
@@ -161,8 +206,14 @@ private struct LedgerRows: View {
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(table.rows.enumerated()), id: \.element.id) { index, event in
-                        row(event, repeatsRun: index > 0 && table.rows[index - 1].run == event.run)
+                    let lines = table.lines(expanded: expanded)
+                    ForEach(Array(lines.enumerated()), id: \.element.id) { index, line in
+                        let repeats = index > 0 && run(lines[index - 1]) == run(line)
+                        switch line {
+                        case .event(let event): row(event, repeatsRun: repeats)
+                        case .adapterRun(_, let events):
+                            folded(line.id, events, repeatsRun: repeats)
+                        }
                     }
                 }
                 .padding(.horizontal, AryaSpace.s3)
@@ -176,7 +227,7 @@ private struct LedgerRows: View {
         return HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
             Text(LedgerText.pad(String(event.seq), table.seqWidth, leading: true))
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).fixedSize()
-            Text(AryaTime.clock(event.at))
+            Text(StreamStepText.clock(event.at))
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).fixedSize()
                 .help(FeatureTime.absolute(event.at))
             Text(LedgerText.pad(event.type, table.typeWidth))
@@ -203,11 +254,16 @@ private struct LedgerRows: View {
     }
 }
 
-/// The selected event's machine detail: ids, hash, actor, and the payload pretty-printed.
+/// The selected event: what it is in words (type, time, actor, its place in a run with a link
+/// there), then the machine detail (payload pretty-printed, hash, prev). The detail comes from
+/// the workspace's event read, else from the event already loaded.
 private struct LedgerInspector: View {
+    @ObservedObject var store: FeatureStore
     var event: FeatureEvent
     var title: String?
+    var openRun: ((String, String) -> Void)?
     var close: () -> Void
+    @AryaState private var detail: FeatureEventDetail?
 
     var body: some View {
         ScrollView {
@@ -219,18 +275,45 @@ private struct LedgerInspector: View {
                         .labelStyle(.iconOnly).buttonStyle(.plain)
                         .aryaText(AryaFont.caption, AryaColor.inkFaint)
                 }
-                if let title { Text(title).aryaText(AryaFont.body, AryaColor.inkMuted) }
-                ForEach(LedgerText.detail(event), id: \.label) { field in
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(field.label).aryaText(AryaFont.overline, AryaColor.inkFaint)
-                        Text(field.value).aryaText(AryaFont.monoSmall, AryaColor.ink)
-                            .textSelection(.enabled)
-                    }
-                }
+                Text(AryaTime.label(event.at, now: store.now, style: .long))
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                field("Actor", LedgerTable.actorLabel(event.actor))
+                runLink
                 Text("Payload").aryaText(AryaFont.overline, AryaColor.inkFaint)
-                MachineText(event.payload.prettyText)
+                MachineText(detail?.payloadText ?? event.payload.prettyText)
+                field("Seq", String(event.seq))
+                field("Id", event.id)
+                field("Hash", detail?.hash ?? (event.hash.isEmpty ? "—" : event.hash))
+                if let prev = detail?.prev, !prev.isEmpty { field("Prev", prev) }
             }
             .padding(AryaSpace.s4)
+        }
+        .task(id: event.seq) {
+            detail = try? await store.workspace.eventDetail(seq: event.seq)
+        }
+    }
+
+    @ViewBuilder private var runLink: some View {
+        if let run = event.run {
+            let words = LedgerText.step(detail?.step, title: title, run: run)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Run").aryaText(AryaFont.overline, AryaColor.inkFaint)
+                if let openRun, let steward = event.steward {
+                    Button(words) { openRun(run, steward) }
+                        .buttonStyle(.plain)
+                        .aryaText(AryaFont.body, AryaColor.ink)
+                        .help("Open this run's thread")
+                } else {
+                    Text(words).aryaText(AryaFont.body, AryaColor.ink)
+                }
+            }
+        }
+    }
+
+    private func field(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(label).aryaText(AryaFont.overline, AryaColor.inkFaint)
+            Text(value).aryaText(AryaFont.monoSmall, AryaColor.ink).textSelection(.enabled)
         }
     }
 }

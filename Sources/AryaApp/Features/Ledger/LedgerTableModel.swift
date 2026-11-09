@@ -164,11 +164,69 @@ extension FeatureVerifyResult {
 }
 
 extension LedgerText {
-    /// "chain intact" or "chain broken at 412", for the status line.
-    static func verifyStatus(_ result: FeatureVerifyResult) -> String {
+    /// "✓ chain verified · 829 events" or "✗ chain broken at 412 · 829 events".
+    static func verifyStatus(_ result: FeatureVerifyResult, count: String) -> String {
         switch result {
-        case .intact: "chain intact"
-        case .broken(let seq, _): "chain broken at \(seq)"
+        case .intact: "✓ chain verified · \(count)"
+        case .broken(let seq, _): "✗ chain broken at \(seq) · \(count)"
         }
+    }
+}
+
+extension LedgerText {
+    /// "Step 3 of 18 · Labeled MSG-201 as billing", else the run title, else a short id.
+    static func step(_ step: FeatureEventDetail.Step?, title: String?, run: String) -> String {
+        let recorded = step.map(\.title).flatMap { $0.isEmpty ? nil : $0 }
+        let name = recorded ?? title ?? "run …" + run.suffix(6)
+        guard let step else { return name }
+        return "Step \(step.index) of \(step.count) · \(name)"
+    }
+}
+
+/// One line of the ledger list: an event, or a collapsed run of consecutive adapter events.
+enum LedgerLine: Identifiable, Hashable, Sendable {
+    case event(FeatureEvent)
+    /// Consecutive `run.adapter.event` rows of one run, newest first; `id` is the newest seq.
+    case adapterRun(id: Int, events: [FeatureEvent])
+
+    var id: String {
+        switch self {
+        case .event(let event): event.id
+        case .adapterRun(let id, _): "adapter-\(id)"
+        }
+    }
+}
+
+extension LedgerTable {
+    static let collapsedType = "run.adapter.event"
+
+    /// The rows as lines, folding each run of two or more consecutive adapter events of one
+    /// run into one line unless its id is in `expanded`.
+    func lines(expanded: Set<String>) -> [LedgerLine] {
+        var lines: [LedgerLine] = []
+        var pending: [FeatureEvent] = []
+        func flush() {
+            let group = LedgerLine.adapterRun(id: pending.first?.seq ?? 0, events: pending)
+            if pending.count >= 2, !expanded.contains(group.id) {
+                lines.append(group)
+            } else {
+                lines += pending.map(LedgerLine.event)
+            }
+            pending = []
+        }
+        for event in rows {
+            if event.type == Self.collapsedType, pending.isEmpty || pending.last?.run == event.run {
+                pending.append(event)
+                continue
+            }
+            if !pending.isEmpty { flush() }
+            if event.type == Self.collapsedType {
+                pending.append(event)
+            } else {
+                lines.append(.event(event))
+            }
+        }
+        if !pending.isEmpty { flush() }
+        return lines
     }
 }

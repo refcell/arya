@@ -123,8 +123,8 @@ private struct CaseLine: View {
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                     MarkGlyph(mark: result.passed ? .ok : .failed)
                     Text(result.id).aryaText(AryaFont.mono, AryaColor.ink)
-                    Text(ImproveText.wouldHaveDone(result, events: events))
-                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                    Text(ImproveText.choice(result, events: events))
+                        .aryaText(AryaFont.body, AryaColor.inkMuted)
                         .lineLimit(1).truncationMode(.tail)
                     Spacer(minLength: AryaSpace.s2)
                     if showsScore {

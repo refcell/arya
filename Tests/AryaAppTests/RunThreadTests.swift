@@ -31,7 +31,7 @@ private func reply() -> ProposedActionStep {
     ]
     #expect(PolicyText.describe(action, charter: noted) == "Replies to customers need sign-off")
     #expect(
-        PolicyText.describe(action, charter: nil) == "Reply actions need approval (charter rule).")
+        PolicyText.describe(action, charter: nil) == "Reply actions need approval.")
     var unnamed = action
     unnamed.rule = "default"
     #expect(

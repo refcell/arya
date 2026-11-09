@@ -306,6 +306,21 @@ enum ImproveText {
         return CaseOutcome.actual(events: events, run: run).text
     }
 
+    /// The case row's headline: what the steward chose ("chose billing"), leaving the actions
+    /// for the expanded row; the whole result when it chose nothing.
+    static func choice(_ result: CaseResult, events: [FeatureEvent]) -> String {
+        let decisions: [String]
+        if let recorded = result.results.compactMap({ $0 }).first {
+            decisions = recorded["decisions"]?.array?.map(ResultWords.value) ?? []
+        } else if let run = result.firstRun {
+            decisions = CaseOutcome.actual(events: events, run: run).decisions
+        } else {
+            decisions = []
+        }
+        guard !decisions.isEmpty else { return wouldHaveDone(result, events: events) }
+        return "chose " + decisions.joined(separator: ", ")
+    }
+
     /// Scores add nothing when every case scored the same, so the column is hidden.
     static func showsScores(_ item: RehearsalItem) -> Bool {
         Set(item.cases.map(\.meanValue)).count > 1

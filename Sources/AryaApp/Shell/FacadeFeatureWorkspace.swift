@@ -30,6 +30,10 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.replayRun(run)
     }
 
+    func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
+        try await source.eventDetail(seq: seq)
+    }
+
     func verify() async throws -> FeatureVerifyResult {
         let check = try await source.verifyLedger()
         if check.ok { return .intact(events: check.events) }

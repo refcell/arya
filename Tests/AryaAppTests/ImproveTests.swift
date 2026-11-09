@@ -41,3 +41,23 @@ private let now = FeatureTestClock.now
     #expect(ImproveText.summary(item, ready: nil, now: now) == "Running, 2 of 2 scored")
     #expect(CaseOutcome(decisions: [], actions: []).text == "nothing")
 }
+
+@Test func caseHeadlinesShowTheChoiceOnly() throws {
+    let events = PreviewFixtures.triage(now: now)
+    let item = try #require(RehearsalList.build(events: events).rehearsals.first)
+    let failing = try #require(item.cases.first { $0.id == PreviewFixtures.failingCase })
+    #expect(ImproveText.choice(failing, events: events) == "chose question")
+    let leaked = try #require(item.cases.first { $0.id == "case-0009" })
+    #expect(ImproveText.choice(leaked, events: events) == "no result")
+}
+
+@Test func inspectorStepNamesThePlaceInTheRun() async throws {
+    let workspace = PreviewWorkspace.triage(now: now)
+    let events = try await workspace.events()
+    let event = try #require(events.last { $0.run == PreviewFixtures.finishedRun })
+    let detail = try #require(try await workspace.eventDetail(seq: event.seq))
+    let step = try #require(detail.step)
+    #expect(step.index == step.count)
+    #expect(LedgerText.step(step, title: nil, run: event.run!).hasPrefix("Step \(step.count) of "))
+    #expect(LedgerText.step(nil, title: "Labeled it", run: "run_01ABCDEF") == "Labeled it")
+}

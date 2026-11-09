@@ -429,7 +429,7 @@ enum PolicyText {
                     && (rule["binding"]?.string == nil || rule["binding"]?.string == action.binding)
             }
             if let note = rule?["note"]?.string, !note.isEmpty { return note }
-            return "\(label) actions need approval (charter rule)."
+            return "\(label) actions need approval."
         }
         switch reason {
         case "default": return "Actions the charter does not name need approval."

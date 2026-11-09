@@ -198,6 +198,22 @@ actor PreviewWorkspace: FeatureWorkspace {
     }
 
     /// Replays match the recording exactly in preview, except runs listed in `divergent`.
+    func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
+        let all = try await events()
+        guard let index = all.firstIndex(where: { $0.seq == seq }) else { return nil }
+        let event = all[index]
+        let step = event.run.map { run -> FeatureEventDetail.Step in
+            let own = all.filter { $0.run == run }
+            let position = (own.firstIndex { $0.seq == seq } ?? 0) + 1
+            let title = LedgerTable.runTitles(all)[run] ?? ""
+            return FeatureEventDetail.Step(
+                run: run, index: position, count: own.count, title: title)
+        }
+        return FeatureEventDetail(
+            payloadText: event.payload.prettyText, hash: event.hash,
+            prev: index > 0 ? all[index - 1].hash : "", step: step)
+    }
+
     func replay(run: String) async throws -> FeatureReplayResult {
         let events = log.filter { $0.run == run }
         guard !events.isEmpty else { throw FeatureReadError.unavailable("run \(run)") }
