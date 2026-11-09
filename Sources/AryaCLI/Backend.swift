@@ -58,6 +58,10 @@ protocol CLIBackend: ImprovementBackend {
     func createSteward(charterPath: String) async throws(CLIError) -> StewardDetail
     func listStewards() async throws(CLIError) -> [StewardRow]
     func showSteward(_ id: String) async throws(CLIError) -> StewardDetail
+    /// Pauses a steward and returns it as it is now.
+    func pauseSteward(_ id: String) async throws(CLIError) -> StewardDetail
+    /// Resumes a paused steward and returns it as it is now.
+    func resumeSteward(_ id: String) async throws(CLIError) -> StewardDetail
     func startRun(steward: String, input: String?) async throws(CLIError) -> RunReport
     func showRun(_ id: String) async throws(CLIError) -> RunReport
     /// Fires triggers every `every` seconds until the process stops.

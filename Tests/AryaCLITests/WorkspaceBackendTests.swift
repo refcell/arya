@@ -267,3 +267,16 @@ private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
     #expect(!events.isEmpty)
     #expect(events.allSatisfy { $0.at.hasPrefix("2026-10-12T09:00:00.") })
 }
+
+@Test func pauseAndResumeChangeTheStewardState() async throws {
+    try await withTemporaryHome { home in
+        let backend = WorkspaceBackend(home: home)
+        _ = try await backend.initHome()
+        let charter = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("etc/examples/triage/charter.json")
+        _ = try await backend.createSteward(charterPath: charter.path)
+        #expect(try await backend.pauseSteward("st_triage").summary.state == .paused)
+        #expect(try await backend.resumeSteward("st_triage").summary.state != .paused)
+    }
+}

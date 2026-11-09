@@ -61,6 +61,16 @@ final class FakeBackend: CLIBackend, @unchecked Sendable {
         guard id == "st_triage" else { throw .notFound("steward \(id)") }
         return Self.detail
     }
+    func pauseSteward(_ id: String) async throws(CLIError) -> StewardDetail {
+        record("pause \(id)")
+        guard id == "st_triage" else { throw .notFound("steward \(id)") }
+        return Self.detail
+    }
+    func resumeSteward(_ id: String) async throws(CLIError) -> StewardDetail {
+        record("resume \(id)")
+        guard id == "st_triage" else { throw .notFound("steward \(id)") }
+        return Self.detail
+    }
     func startRun(steward: String, input: String?) async throws(CLIError) -> RunReport {
         record("run \(steward) \(input ?? "-")")
         return RunReport(

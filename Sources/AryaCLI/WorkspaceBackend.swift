@@ -80,6 +80,18 @@ struct WorkspaceBackend: CLIBackend {
             summary, outcome: steward.outcome, charter: charter.flatMap(CharterDigest.init(json:)))
     }
 
+    func pauseSteward(_ id: String) async throws(CLIError) -> StewardDetail {
+        let workspace = try await open()
+        try await call("pauseSteward") { try await workspace.pauseSteward(id) }
+        return try await showSteward(id)
+    }
+
+    func resumeSteward(_ id: String) async throws(CLIError) -> StewardDetail {
+        let workspace = try await open()
+        try await call("resumeSteward") { try await workspace.resumeSteward(id) }
+        return try await showSteward(id)
+    }
+
     func startRun(steward: String, input: String?) async throws(CLIError) -> RunReport {
         let workspace = try await open()
         let run = try await call("startRun") {

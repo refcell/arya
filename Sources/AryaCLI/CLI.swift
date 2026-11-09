@@ -64,6 +64,12 @@ enum CLI {
         case .stewardShow:
             let id = try invocation.positional("steward")
             try output.emit(await backend.showSteward(id), json: json, text: TextRender.steward)
+        case .stewardPause:
+            let id = try invocation.positional("steward")
+            try output.emit(await backend.pauseSteward(id), json: json, text: TextRender.steward)
+        case .stewardResume:
+            let id = try invocation.positional("steward")
+            try output.emit(await backend.resumeSteward(id), json: json, text: TextRender.steward)
         case .run:
             let report = try await backend.startRun(
                 steward: try invocation.positional("steward"), input: invocation.values["input"])

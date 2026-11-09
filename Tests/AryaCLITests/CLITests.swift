@@ -35,6 +35,7 @@ import Testing
     let listings: [[String]] = [
         ["steward", "list"], ["approvals"], ["ledger", "tail"], ["ledger", "verify"], ["init"],
         ["steward", "show", "st_triage"], ["run", "st_triage"], ["approve", "ap_1"],
+        ["steward", "pause", "st_triage"], ["steward", "resume", "st_triage"],
     ]
     for arguments in listings {
         let (status, capture) = await runCLI(arguments + ["--json"])
@@ -147,4 +148,12 @@ import Testing
 @Test func tableAlignsColumnsWithoutTrailingSpaces() {
     let table = Table(headers: ["a", "bb"], rows: [["xxx", "y"], ["z", ""]])
     #expect(table.lines == ["A    BB", "xxx  y", "z"])
+}
+
+@Test func pauseAndResumeReachTheBackend() async {
+    let backend = FakeBackend()
+    #expect(await runCLI(["steward", "pause", "st_triage"], backend: backend).0 == .ok)
+    #expect(await runCLI(["steward", "resume", "st_triage"], backend: backend).0 == .ok)
+    #expect(backend.calls == ["pause st_triage", "resume st_triage"])
+    #expect(await runCLI(["steward", "pause", "st_missing"]).0 != .ok)
 }
