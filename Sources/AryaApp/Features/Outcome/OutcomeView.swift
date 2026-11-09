@@ -181,7 +181,7 @@ struct OutcomePlanSection: View {
                 .frame(minHeight: AryaSize.outcomeRowHeight)
             }
             if let reason = plan.reason {
-                Text("Changed \(AryaTime.label(plan.updated, now: now)): \(reason)")
+                Text("Changed \(AryaTime.label(plan.updated, now: now, style: .long)): \(reason)")
                     .aryaText(AryaFont.caption, AryaColor.inkFaint)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, AryaSpace.s1)

@@ -14,11 +14,11 @@ private let now = FeatureTestClock.now
     #expect(fromRun.tags == ["routing", "login"])
     let at = fromRun.addedAt.addingTimeInterval(120)
     #expect(
-        MemoryText.provenance(fromRun, now: at) == "by st_triage · from run_0001 (ev_6) · 2m ago")
+        MemoryText.provenance(fromRun, now: at) == "by st_triage · from run_0001 (ev_6) · 2m")
     let fromCase = list.live[0]
     #expect(
         MemoryText.provenance(fromCase, now: fromCase.addedAt)
-            == "by local · from case case-0007 · just now")
+            == "by local · from case case-0007 · now")
 }
 
 @Test func retractingRecordsTheLocalUserAndMovesTheNote() async throws {

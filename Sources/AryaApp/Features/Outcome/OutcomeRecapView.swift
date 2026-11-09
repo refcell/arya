@@ -34,7 +34,8 @@ enum OutcomeRecapText {
         guard recap.runsSince > 0 || !recap.actionsSince.isEmpty || waiting != nil else {
             return nil
         }
-        var text = "Since you looked \(AryaTime.label(seenAt, now: now, timeZone: timeZone))"
+        var text =
+            "Since you looked \(AryaTime.label(seenAt, now: now, style: .long, timeZone: timeZone))"
         let news = since(recap)
         let list = news.replacing(" · ", with: ", ")
         text += news == "nothing new" ? ", nothing new ran." : ": \(list)."

@@ -227,7 +227,7 @@ enum RehearsalsText {
 
     /// "Ready since 2m ago, marked by local".
     static func ready(_ mark: ReadyRecord, now: Date) -> String {
-        "Ready since \(FeatureTime.relative(mark.at, now: now)), marked by \(mark.by.id)"
+        "Ready since \(FeatureTime.phrase(mark.at, now: now)), marked by \(mark.by.id)"
     }
 }
 
@@ -284,7 +284,7 @@ enum ImproveText {
         }
         var text = "\(totals.passed)/\(item.caseCount) passed"
         if totals.leaks > 0 { text += " · \(totals.leaks) leak" + (totals.leaks == 1 ? "" : "s") }
-        if let ready { text += " · ready since \(FeatureTime.relative(ready.at, now: now))" }
+        if let ready { text += " · ready since \(FeatureTime.phrase(ready.at, now: now))" }
         return text
     }
 
@@ -297,7 +297,7 @@ enum ImproveText {
             return summary(item, ready: ready, now: now)
         }
         guard let ready else { return written.rehearsalText }
-        return written.rehearsalText + " Ready since \(FeatureTime.relative(ready.at, now: now))."
+        return written.rehearsalText + " Ready since \(FeatureTime.phrase(ready.at, now: now))."
     }
 
     /// "charter v1 · casebook 1a2b3c", with "· for a proposal" when it rehearsed one.
@@ -366,7 +366,7 @@ enum ImproveText {
         Set(item.cases.map(\.meanValue)).count > 1
     }
 
-    /// "2h ago · 6/8 passed" for the history menu.
+    /// "2h · 6/8 passed" for the history menu.
     static func historyLabel(_ item: RehearsalItem, now: Date) -> String {
         let when = FeatureTime.relative(item.startedAt, now: now)
         guard let totals = item.totals else { return "\(when) · running" }

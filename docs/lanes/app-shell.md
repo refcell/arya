@@ -205,3 +205,8 @@ M4:
 - Visual check (`just snapshot`, reseeded 3-steward demo): MSG-203 reads "Nov 8" on Overview,
   sidebar, and Needs you; the plan line reads "Changed Nov 8". The sidebar shows paused muted,
   needs-you orange, and `0.84 / 0.90` on the selected row. R1-R5 pass.
+- 2026-11-09: one time wording. Rows say `now`, `12m`, `3h`, `Nov 8`, or `Nov 8, 2025`; only
+  sentences say "ago" (`FeatureTime.phrase`, `AryaTime.label(style: .long)`). Off-track dot is
+  `negative`; the paused dot is a hollow ring beside the muted word.
+- Visual check (`just snapshot` stewards, needs-you): paused shows a hollow ring and the word;
+  needs-you rows are orange; meta reads `9m` and `Nov 8` with no "ago"; R1-R5 pass.

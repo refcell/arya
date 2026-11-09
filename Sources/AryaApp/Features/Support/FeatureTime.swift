@@ -3,10 +3,14 @@ import Foundation
 
 /// Time formatting for feature views. Takes `now` explicitly so output is deterministic.
 enum FeatureTime {
-    /// The one time rule (`AryaTime.label`, STYLE.md Time): "just now", "2m ago", "3h ago",
-    /// then "Nov 8".
+    /// The one time rule for rows and meta lines (`AryaTime.label`): "now", "2m", "3h", "Nov 8".
     static func relative(_ date: Date, now: Date) -> String {
         AryaTime.label(date, now: now)
+    }
+
+    /// The same rule inside a sentence: "just now", "2m ago", "3h ago", "Nov 8".
+    static func phrase(_ date: Date, now: Date) -> String {
+        AryaTime.label(date, now: now, style: .long)
     }
 
     /// An absolute time for tooltips: "9 Nov 2026, 14:02".

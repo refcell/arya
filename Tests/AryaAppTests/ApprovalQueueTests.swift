@@ -52,11 +52,11 @@ private func twoPending() -> [FeatureEvent] {
     #expect(denied.verdict == .denied)
     #expect(denied.actor == .localUser)
     #expect(
-        ApprovalText.verdict(denied, now: denied.at) == "Denied by local: over budget · just now")
+        ApprovalText.verdict(denied, now: denied.at) == "Denied by local: over budget · now")
     let granted = try #require(queue.decided[1].decision)
     #expect(
         ApprovalText.verdict(granted, now: granted.at.addingTimeInterval(90))
-            == "Approved by local · 1m ago")
+            == "Approved by local · 1m")
 }
 
 @Test func expiredApprovalsLeaveTheQueue() {
@@ -90,7 +90,7 @@ private func twoPending() -> [FeatureEvent] {
     #expect(item.summary == "Wants to assign tracker:ISSUE-7.")
     #expect(item.rationale == "Alex owns the login page.")
     let meta = ApprovalText.meta(item, now: item.requestedAt.addingTimeInterval(300))
-    #expect(meta == "st_triage · run_0001 · 5m ago")
+    #expect(meta == "st_triage · run_0001 · 5m")
 }
 
 @Test func streamCardMatchesTheQueueItem() throws {

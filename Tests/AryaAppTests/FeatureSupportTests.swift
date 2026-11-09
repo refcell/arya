@@ -22,9 +22,9 @@ import Testing
 
 @Test func timesFormatDeterministically() {
     let now = FeatureTestClock.now
-    #expect(FeatureTime.relative(now.addingTimeInterval(-30), now: now) == "just now")
-    #expect(FeatureTime.relative(now.addingTimeInterval(-120), now: now) == "2m ago")
-    #expect(FeatureTime.relative(now.addingTimeInterval(-7200), now: now) == "2h ago")
+    #expect(FeatureTime.relative(now.addingTimeInterval(-30), now: now) == "now")
+    #expect(FeatureTime.relative(now.addingTimeInterval(-120), now: now) == "2m")
+    #expect(FeatureTime.relative(now.addingTimeInterval(-7200), now: now) == "2h")
     #expect(FeatureTime.relative(now.addingTimeInterval(-172_800), now: now) == "Jan 13")
     let utc = TimeZone(identifier: "UTC") ?? .current
     let epoch = Date(timeIntervalSince1970: 0)

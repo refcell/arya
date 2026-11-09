@@ -4,19 +4,19 @@ import Foundation
 /// Feature views use `label` and `clock`, never their own formatters, so every screen reads the
 /// same. `relative` and `absolute` remain for current callers until they move to `label`.
 extension AryaTime {
-    /// How much room a label has.
+    /// Where the time sits.
     public enum Style: Sendable {
-        /// Sidebar threads and table cells: "now", "4m", "2h", then "Nov 8".
+        /// Rows, cells, and meta lines, the default: "now", "12m", "3h", "Nov 8", "Nov 8, 2025".
         case short
-        /// Prose and detail lines: "just now", "4m ago", "2h ago", then "Nov 8".
+        /// Inside a sentence ("Changed 3h ago", "Ready since Nov 8"): "just now", "12m ago",
+        /// "3h ago", then the date as in `short`.
         case long
     }
 
-    /// `date` relative to `now` while under 24 hours old, the calendar date after. Clock time
-    /// belongs only in transcript gutters (`clock`).
-    /// A date in the future counts as now. `timeZone` and the POSIX locale keep it deterministic.
+    /// The one time rule (STYLE.md Time): relative under 24 hours, then the date, with the
+    /// year only when it is not the current one. A date in the future counts as now.
     public static func label(
-        _ date: Date, now: Date, style: Style = .long, timeZone: TimeZone = .current
+        _ date: Date, now: Date, style: Style = .short, timeZone: TimeZone = .current
     ) -> String {
         let seconds = max(0, Int(now.timeIntervalSince(date)))
         if seconds < 86_400 {
@@ -28,7 +28,10 @@ extension AryaTime {
             }
             return style == .short ? short : short + " ago"
         }
-        return clock(date, format: "MMM d", timeZone: timeZone)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let sameYear = calendar.component(.year, from: date) == calendar.component(.year, from: now)
+        return clock(date, format: sameYear ? "MMM d" : "MMM d, yyyy", timeZone: timeZone)
     }
 
     /// Clock time alone, "14:27", for step gutters in a transcript; "14:27:05" with `seconds`

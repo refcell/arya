@@ -126,7 +126,8 @@ display scale (`1 / displayScale` pt) in `rule`.
 ### Sidebar row
 
 24 pt, 12 pt horizontal padding, `selection` fill with a 4 pt radius when selected. A 6 pt
-status dot (`accent` live, `positive` idle and ready, `negative` failed, `inkFaint` paused),
+status dot (`accentFill` needs you, `accent` running, `positive` on track, `negative` off track
+or failed, a hollow `inkFaint` ring plus the word `paused` when paused),
 then the name in `body`. Counts are `monoSmall`; the "Needs you" count is `accent`.
 
 ### Thread row
@@ -138,9 +139,9 @@ or id. The time right-aligned in `monoSmall`/`inkFaint` (`AryaTime` short style)
 
 ### Time
 
-Every time goes through `AryaTime`: relative under 24 hours, the date after. Short style for
-rows and cells (`now`, `4m`, `2h`, `Nov 8`); long style for prose (`just now`, `4m ago`,
-`2h ago`, `Nov 8`). Clock time (`AryaTime.clock`, `14:27`) only in transcript gutters; the full
+Every time goes through `AryaTime`: relative under 24 hours, the date after, with the year
+only when it is not the current one. Rows, cells, and meta lines use the short default (`now`,
+`12m`, `3h`, `Nov 8`, `Nov 8, 2025`); only sentences say "ago" (`Changed 3h ago`, `just now`). Clock time (`AryaTime.clock`, `14:27`) only in transcript gutters; the full
 date and time (`AryaTime.absolute`) only in tooltips. Views never format dates themselves.
 
 ### Choices

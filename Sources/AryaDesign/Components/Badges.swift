@@ -12,7 +12,10 @@ public struct StatusDot: View {
 
     public var body: some View {
         Circle()
-            .fill(status.dotToken.color)
+            .fill(status.isHollow ? Color.clear : status.dotToken.color)
+            .overlay {
+                if status.isHollow { Circle().strokeBorder(status.dotToken.color, lineWidth: 1) }
+            }
             .frame(width: AryaSize.statusDot, height: AryaSize.statusDot)
             .opacity(dimmed ? AryaMotion.pulseMinOpacity : 1)
             .onAppear {

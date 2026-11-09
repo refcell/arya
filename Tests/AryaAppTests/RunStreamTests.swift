@@ -99,7 +99,7 @@ private func stream(_ run: String = PreviewFixtures.finishedRun) -> RunStream {
     let step = run.steps[1]
     #expect(
         StreamStepText.spoken(step, now: step.at.addingTimeInterval(120))
-            == "Step 2, thinking, hm, 2m ago")
+            == "Step 2, thinking, hm, 2m")
 }
 
 @Test func toolCallCaptionsAndRunningState() {

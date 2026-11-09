@@ -8,7 +8,8 @@ import Testing
 
     @Test func relativeUnderADayClockAfter() {
         func long(_ seconds: TimeInterval) -> String {
-            AryaTime.label(now.addingTimeInterval(-seconds), now: now, timeZone: utc)
+            AryaTime.label(
+                now.addingTimeInterval(-seconds), now: now, style: .long, timeZone: utc)
         }
         #expect(long(-30) == "just now")
         #expect(long(59) == "just now")
@@ -28,6 +29,7 @@ import Testing
         #expect(short(7200) == "2h")
         #expect(short(3 * 86_400) == "Nov 6")
         #expect(AryaTime.clock(now, timeZone: utc) == "14:53")
+        #expect(short(400 * 86_400) == "Oct 5, 2024")
         #expect(AryaTime.clock(now, seconds: true, timeZone: utc) == "14:53:20")
     }
 }

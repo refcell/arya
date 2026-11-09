@@ -276,7 +276,7 @@ private struct LedgerInspector: View {
                         .labelStyle(.iconOnly).buttonStyle(.plain)
                         .aryaText(AryaFont.caption, AryaColor.inkFaint)
                 }
-                Text(AryaTime.label(event.at, now: store.now, style: .long))
+                Text(AryaTime.label(event.at, now: store.now))
                     .aryaText(AryaFont.caption, AryaColor.inkMuted)
                 field("Actor", LedgerTable.actorLabel(event.actor))
                 runLink

@@ -22,14 +22,17 @@ public enum AryaStatus: String, CaseIterable, Sendable {
         switch self {
         case .running: .accent
         case .needsYou: .accentFill
-        case .failed, .denied: .negative
+        case .failed, .denied, .offTrack: .negative
         case .done, .executed, .passed, .onTrack: .positive
-        case .waiting, .idle, .paused, .offTrack: .inkFaint
+        case .waiting, .idle, .paused: .inkFaint
         }
     }
 
     /// Whether the dot pulses (only the live indicator does, and not under Reduce Motion).
     public var isLive: Bool { self == .running }
+
+    /// Whether the dot is an outline (paused: present but not working).
+    public var isHollow: Bool { self == .paused }
 }
 
 /// A proposal's gate policy.
