@@ -29,8 +29,9 @@ struct RunStreamView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: AryaSpace.s4) {
                     RunStatusLine(status: stream.status)
+                    FeatureWriteErrorLine(store: store)
                     ForEach(stream.steps) { step in
-                        StreamStepRow(step: step, now: store.now)
+                        StreamStepRow(step: step, now: store.now, context: context(stream))
                             .transition(.opacity)
                     }
                 }
@@ -41,6 +42,21 @@ struct RunStreamView: View {
             .background(AryaColor.canvas)
         }
     }
+}
+
+extension RunStreamView {
+    fileprivate func context(_ stream: RunStream) -> StepContext {
+        StepContext(steward: stream.steward, run: stream.run) { write in
+            Task { await store.perform(write) }
+        }
+    }
+}
+
+/// What a step needs beyond its own data: where it lives and how to record a decision.
+struct StepContext {
+    var steward: String?
+    var run: String
+    var decide: (FeatureWrite) -> Void
 }
 
 /// The run's status as a dot and a word.
@@ -71,6 +87,7 @@ struct RunStatusLine: View {
 struct StreamStepRow: View {
     var step: StreamStep
     var now: Date
+    var context: StepContext
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
@@ -87,7 +104,7 @@ struct StreamStepRow: View {
                         .foregroundStyle(AryaColor.inkFaint)
                         .help(FeatureTime.absolute(step.at))
                 }
-                StepBody(kind: step.kind)
+                StepBody(step: step, now: now, context: context)
             }
         }
         .accessibilityElement(children: .combine)
@@ -137,6 +154,16 @@ enum StreamStepText {
         }
     }
 
+    /// The approval card data for an action waiting in this stream.
+    static func approval(
+        _ action: ProposedActionStep, _ approval: String, step: StreamStep, context: StepContext
+    ) -> ApprovalItem {
+        ApprovalItem(
+            id: approval, actionID: action.actionID, kind: action.kind, target: action.target,
+            summary: action.summary, rationale: action.rationale, steward: context.steward,
+            run: context.run, requestedAt: step.at)
+    }
+
     /// The VoiceOver label: "Step 4, decision, bug, 2m ago".
     static func spoken(_ step: StreamStep, now: Date) -> String {
         let parts = [
@@ -174,10 +201,12 @@ private struct StepTitle: View {
 }
 
 private struct StepBody: View {
-    var kind: StreamStep.Kind
+    var step: StreamStep
+    var now: Date
+    var context: StepContext
 
     var body: some View {
-        switch kind {
+        switch step.kind {
         case .toolCall(let call): ToolCallBody(call: call)
         case .decision(let id, _, let rationale, let alternatives):
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -188,17 +217,29 @@ private struct StepBody: View {
                 Text(id).aryaText(AryaFont.monoSmall).foregroundStyle(AryaColor.inkFaint)
             }
         case .action(let action):
-            VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                HStack(spacing: AryaSpace.s2) {
-                    muted(action.rationale)
-                    Spacer(minLength: AryaSpace.s2)
-                    PolicyChip(policy: action.policy)
-                }
-                Text(StreamStepText.outcome(action.outcome))
-                    .aryaText(AryaFont.caption)
-                    .foregroundStyle(outcomeColor(action.outcome))
+            if case .awaitingApproval(let approval) = action.outcome {
+                let item = StreamStepText.approval(action, approval, step: step, context: context)
+                ApprovalCard(
+                    item: item, now: now,
+                    onApprove: { context.decide(.approve(approval: approval)) },
+                    onDeny: { context.decide(.deny(approval: approval, reason: "")) })
+            } else {
+                actionBody(action)
             }
         default: EmptyView()
+        }
+    }
+
+    private func actionBody(_ action: ProposedActionStep) -> some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            HStack(spacing: AryaSpace.s2) {
+                muted(action.rationale)
+                Spacer(minLength: AryaSpace.s2)
+                PolicyChip(policy: action.policy)
+            }
+            Text(StreamStepText.outcome(action.outcome))
+                .aryaText(AryaFont.caption)
+                .foregroundStyle(outcomeColor(action.outcome))
         }
     }
 

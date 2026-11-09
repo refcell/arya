@@ -127,3 +127,5 @@ extension FeatureJSON: ExpressibleByStringLiteral, ExpressibleByBooleanLiteral,
         self = .object(Dictionary(elements, uniquingKeysWith: { _, last in last }))
     }
 }
+
+extension FeatureJSON: ExpressibleByStringInterpolation {}

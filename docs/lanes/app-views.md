@@ -11,7 +11,7 @@ metrics, and the charter editor. All visuals come from `AryaDesign`; no raw colo
 
 M3 (start now against the app-shell stub workspace):
 - [x] Run stream: messages, tool calls and results, decisions, proposed actions, status, live.
-- [ ] Approval queue and approval cards: action, rationale, target, approve and deny with the
+- [x] Approval queue and approval cards: action, rationale, target, approve and deny with the
   local user recorded as actor.
 - [ ] Ledger table: filter by steward, run, type, actor; event detail; Verify button with result.
 - [ ] Changes tab: proposals with gate results, accept, reject, override (recorded).
@@ -24,6 +24,11 @@ M3 (start now against the app-shell stub workspace):
 - [ ] Empty, loading, and error states for every view.
 
 ## Decisions
+
+- Approval cards appear in the queue (all stewards, or one) and inline in the run stream for
+  actions waiting on a person. The primary label names the effect ("Approve and assign"). Deny
+  records an empty reason for now; a reason field follows with the shared text-field
+  component. Action ids are matched within their run, since ids such as `a1` repeat per run.
 
 - Feature views read events through local seams in `Features/Support`: `FeatureEvent` (the
   ledger envelope with a `FeatureJSON` payload), `FeatureWorkspace` (events, `record` of a
@@ -46,3 +51,5 @@ M3 (start now against the app-shell stub workspace):
 ## Questions
 
 ## Log
+- 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,
+  fixtures), interim components, `AryaAppTests` target (c0b8bcd).
