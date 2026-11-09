@@ -24,13 +24,17 @@ enum OutcomeRecapText {
 
     /// The recap as one paragraph for a person coming back, or nil on a first visit or when
     /// nothing happened and nothing waits.
-    static func paragraph(_ recap: OutcomeRecap, seenAt: Date?, now: Date) -> String? {
-        guard let seenAt else { return nil }
+    static func paragraph(
+        _ recap: OutcomeRecap, seenAt: Date?, now: Date, timeZone: TimeZone = .current
+    ) -> String? {
+        guard let seenAt, now.timeIntervalSince(seenAt) >= OutcomeTime.recapGapSeconds else {
+            return nil
+        }
         let waiting = unresolved(recap)
         guard recap.runsSince > 0 || !recap.actionsSince.isEmpty || waiting != nil else {
             return nil
         }
-        var text = "Since you looked \(AryaTime.relative(seenAt, now: now))"
+        var text = OutcomeTime.since(seenAt, now: now, timeZone: timeZone)
         let news = since(recap)
         let list = news.replacing(" · ", with: ", ")
         text += news == "nothing new" ? ", nothing new ran." : ": \(list)."
@@ -54,6 +58,8 @@ struct OutcomeActivitySection: View {
     let activity: [OutcomeActivity]
     let now: Date
     let openRun: (String) -> Void
+    /// Opens the approval a waiting action is held on.
+    let openApprovals: () -> Void
     /// Rows shown before "Show all".
     static let collapsedCount = 8
     @AryaState private var showAll = false
@@ -69,7 +75,10 @@ struct OutcomeActivitySection: View {
                 ForEach(shown) { item in
                     OutcomeActivityRow(
                         item: item, now: now, isExpanded: expanded == item.id, openRun: openRun,
-                        toggle: { expanded = expanded == item.id ? nil : item.id })
+                        toggle: {
+                            if item.state == .waiting { return openApprovals() }
+                            expanded = expanded == item.id ? nil : item.id
+                        })
                 }
                 if activity.count > Self.collapsedCount {
                     Button(showAll ? "Show fewer" : "Show all \(activity.count)") {
@@ -83,7 +92,7 @@ struct OutcomeActivitySection: View {
 }
 
 /// One action on one line: a mark, the action and target in mono, and a muted why. A click
-/// shows the policy and risk that applied, the run, and when.
+/// opens the approval when it waits on the person, else shows the policy, risk, and run.
 struct OutcomeActivityRow: View {
     let item: OutcomeActivity
     let now: Date
@@ -104,15 +113,18 @@ struct OutcomeActivityRow: View {
                         .aryaText(AryaFont.body, AryaColor.inkFaint)
                         .lineLimit(1)
                     Spacer(minLength: AryaSpace.s2)
-                    Text(AryaTime.relative(item.at, now: now))
+                    Text(OutcomeTime.short(item.at, now: now))
                         .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        .help(AryaTime.absolute(item.at, timeZone: .current))
                 }
                 .frame(minHeight: AryaSize.outcomeRowHeight)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(OutcomeActivityText.spoken(item))
-            .accessibilityHint("Shows the policy, risk, and run")
+            .accessibilityHint(
+                item.state == .waiting
+                    ? "Opens the approval" : "Shows the policy, risk, and run")
             if isExpanded { detail }
         }
     }

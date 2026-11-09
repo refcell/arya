@@ -1,8 +1,7 @@
 import Foundation
 
 /// Preview events for the Outcome tab that the shared triage fixture does not carry yet:
-/// the steward's plan, revised once, in the `plan.updated` shape the app-outcome lane
-/// proposed to the workspace lane.
+/// the steward's plan, revised once, in the runtime's `plan.updated` shape.
 enum OutcomeFixtures {
     /// Why the steward revised its plan.
     static let revision =
@@ -13,37 +12,36 @@ enum OutcomeFixtures {
         log.add(
             "plan.updated", run: PreviewFixtures.finishedRun, after: 2,
             [
-                "v": 1,
-                "steps": [
+                "items": [
                     [
-                        "id": "s1", "title": "Label every new issue within 15 minutes",
-                        "status": "doing",
+                        "id": "s1", "text": "Label every new issue within 15 minutes",
+                        "status": "in_progress",
                     ],
-                    ["id": "s2", "title": "Route login bugs to their owner", "status": "todo"],
-                    ["id": "s3", "title": "Close stale duplicates", "status": "todo"],
+                    ["id": "s2", "text": "Route login bugs to their owner", "status": "pending"],
+                    ["id": "s3", "text": "Close stale duplicates", "status": "pending"],
                 ],
                 "reason": "First plan from the charter.",
             ])
         log.add(
             "plan.updated", run: PreviewFixtures.liveRun, after: 2,
             [
-                "v": 1,
-                "steps": [
+                "items": [
                     [
-                        "id": "s1", "title": "Label every new issue within 15 minutes",
+                        "id": "s1", "text": "Label every new issue within 15 minutes",
                         "status": "done",
                     ],
                     [
-                        "id": "s2", "title": "Route login bugs to their owner", "status": "doing",
-                        "note": "waiting on sign-off",
+                        "id": "s2", "text": "Route login bugs to their owner",
+                        "status": "in_progress",
+                        "rationale": "waiting on sign-off",
                     ],
                     [
-                        "id": "s4", "title": "Ask a person when a duplicate is unclear",
-                        "status": "todo",
+                        "id": "s4", "text": "Ask a person when a duplicate is unclear",
+                        "status": "pending",
                     ],
                     [
-                        "id": "s5", "title": "Write a routine for duplicate search",
-                        "status": "todo",
+                        "id": "s5", "text": "Write a routine for duplicate search",
+                        "status": "pending",
                     ],
                 ],
                 "reason": .string(revision),

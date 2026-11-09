@@ -14,6 +14,7 @@ enum FeatureRegistry {
                 OverviewTab(
                     store: store, steward: steward,
                     openRun: { run in context.model.navigation.select(run: run, steward: steward) },
+                    openApprovals: { context.model.navigation.showApprovals() },
                     rehearse: { context.model.navigation.tab = .improve })
             } else {
                 EmptyState(

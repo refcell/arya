@@ -30,6 +30,10 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 
 ## Decisions
 
+- Visual checks are offscreen snapshots only (CEO, user directive): PNGs rendered into
+  `.build/` with `just screenshots` or a test-target render on demo data. Never open the app
+  or show a window.
+
 - Visual target (CEO): one dark canvas, no boxes or cards, structure from whitespace and
   type, monospace for machine text, small uppercase labels, one orange accent for the
   primary action and things needing attention, at most one primary action per screen.
@@ -39,8 +43,8 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 - Status: on track when the latest daily value meets the target in its direction; at risk
   when it falls short by at most 5% of the target; otherwise off track; no target or no
   readings say so.
-- Plans are read from `plan.updated` `{v: 1, steps, reason?}` (actor: the steward, run
-  optional), proposed to the workspace and runtime lanes. Steps take the protocol's
+- Plans are read from the runtime's `plan.updated` `{items, reason?}` (actor: the steward,
+  run: the run that changed it; `steps` is also read for older fixtures). Steps take the protocol's
   `PlanStep` (`text`, `rationale`, `pending | in_progress | done | skipped | blocked`) or the
   fixtures' (`title`, `note`, `todo | doing | done | dropped | blocked`). An action's reason
   is its `why`, else its `rationale`, else the disposition reason. Step changes are diffed against the previous plan by title.
@@ -76,3 +80,6 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   in header, and seven tabs remain app-shell's.
 - 2026-11-09: New steward sheet (five steps, structured create), first-launch screen, plan
   steps in the protocol's shape, `why` as the action reason.
+- 2026-11-09: CEO fixes: clock times instead of "just now", recap only after 15 min away
+  ("Since yesterday: …"), unboxed status label, sparkline from readings within a day,
+  waiting rows open the approval; plans read the runtime's `plan.updated {items, reason}`.

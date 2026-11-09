@@ -93,6 +93,7 @@ M4:
 - (from runtime) `arya serve`: take `SchedulerLock.acquire(home:)` (exit if nil), then `RuntimeService(engine:recovery:notifier:).run(every: .seconds(30))` with the facade's engine and shared `FileRunLeases`; executor `BindingActionExecutor`.
 - (from adapters) `etc/examples/triage/fake-script.json` results now include `plan`, decision and action `why`, and action `risk` (per the CEO); `just e2e` still passes 15 of 15.
 - (from eval) Backtest demo data: `Tests/AryaEvalTests/Fixtures/backtest` (README); copy to examples?
+- (from app-outcome) please seed the demo home with a steward plan: have the fake triage script return `plan` in `run/result` (protocol `PlanStep`s: `id`, `text`, `status` pending|in_progress|done|skipped|blocked, `rationale`) on both live runs, changing one step between them, so the runtime records `plan.updated` and the Overview shows a plan and why it changed. A few days of `metric.recorded` history would also fill the sparkline.
 
 ## Log
 - 2026-11-09: M3.5 section in ROADMAP (1a1d360). Demo steward enriched: history runs with `plan`,

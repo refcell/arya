@@ -138,18 +138,22 @@ private func triage() -> OutcomeSnapshot {
 
 @Test func recapParagraphAppearsOnlyForAReturningPerson() throws {
     let recap = triage().recap
-    #expect(OutcomeRecapText.paragraph(recap, seenAt: nil, now: now) == nil)
+    let utc = try #require(TimeZone(identifier: "UTC"))
+    #expect(OutcomeRecapText.paragraph(recap, seenAt: nil, now: now, timeZone: utc) == nil)
+    let recent = now.addingTimeInterval(-60)
+    #expect(OutcomeRecapText.paragraph(recap, seenAt: recent, now: now, timeZone: utc) == nil)
     let text = try #require(
-        OutcomeRecapText.paragraph(recap, seenAt: now.addingTimeInterval(-7200), now: now))
+        OutcomeRecapText.paragraph(
+            recap, seenAt: now.addingTimeInterval(-86_400), now: now, timeZone: utc))
     #expect(
         text
-            == "Since you looked 2h ago: 1 run ended, 1 action taken. Last run done: Labeled "
+            == "Since yesterday: 1 run ended, 1 action taken. Last run done: Labeled "
             + "ISSUE-7 and asked to assign it. Waiting on you: 1 approval, 1 question, 2 proposals."
     )
     let quiet = OutcomeRecap(
         goal: "", lastRun: nil, runsSince: 0, actionsSince: [], pending: [], questions: 0,
         failedActions: 0, openProposals: 0)
-    #expect(OutcomeRecapText.paragraph(quiet, seenAt: now, now: now) == nil)
+    #expect(OutcomeRecapText.paragraph(quiet, seenAt: .distantPast, now: now) == nil)
 }
 
 @Test func outcomeLineOffersReviewWhenApprovalsWait() {
@@ -188,4 +192,36 @@ private func triage() -> OutcomeSnapshot {
     #expect(plan.steps.map(\.status) == [.done, .doing, .dropped, .todo])
     #expect(plan.steps[1].note == "drafted")
     #expect(plan.activeCount == 3)
+}
+
+@Test func timesAreClockTimesNotJustNow() throws {
+    let utc = try #require(TimeZone(identifier: "UTC"))
+    // 1_800_000_000 is Friday 15 Jan 2027, 08:00 UTC.
+    #expect(OutcomeTime.short(now.addingTimeInterval(-30), now: now, timeZone: utc) == "07:59")
+    #expect(
+        OutcomeTime.short(now.addingTimeInterval(-86_400), now: now, timeZone: utc)
+            == "yesterday 08:00")
+    #expect(
+        OutcomeTime.short(now.addingTimeInterval(-3 * 86_400), now: now, timeZone: utc)
+            == "Tue 08:00")
+    #expect(
+        OutcomeTime.short(now.addingTimeInterval(-30 * 86_400), now: now, timeZone: utc) == "16 Dec"
+    )
+    #expect(
+        OutcomeTime.since(now.addingTimeInterval(-3600), now: now, timeZone: utc) == "Since 07:00")
+    #expect(
+        OutcomeTime.since(now.addingTimeInterval(-3 * 86_400), now: now, timeZone: utc)
+            == "Since Tuesday")
+}
+
+@Test func sparklineFallsBackToReadingsWithinOneDay() {
+    var log = FeatureEventBuilder(start: now)
+    log.add("steward.created", ["charter": PreviewFixtures.charter, "version": 1])
+    log.add("metric.recorded", ["metric": "triaged_within_1h", "value": 0.7])
+    log.add("metric.recorded", ["metric": "triaged_within_1h", "value": 0.8])
+    log.add("metric.recorded", ["metric": "other", "value": 9])
+    let state = OutcomeState.build(events: log.events, steward: steward, now: now)
+    #expect(state.points.count == 1)
+    #expect(state.trend == [0.7, 0.8])
+    #expect(triage().state.trend.count >= 5)
 }

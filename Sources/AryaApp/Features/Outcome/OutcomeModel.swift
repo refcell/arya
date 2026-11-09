@@ -178,6 +178,8 @@ struct OutcomeState: Hashable, Sendable {
     var readiness: OutcomeReadiness
     var autonomy: OutcomeAutonomy
     var wake: OutcomeWake
+    /// Values for the sparkline: daily means, or each reading while there is under two days.
+    var trend: [Double]
 
     var latest: Double? { points.last?.value }
 
@@ -191,13 +193,84 @@ struct OutcomeState: Hashable, Sendable {
                 OutcomeStatus.of(
                     value: points.last?.value, target: $0.target, direction: $0.direction)
             } ?? .noTarget
+        var trend = points.map(\.value)
+        if trend.count < 2, let name = metric?.name {
+            trend = events.compactMap { event in
+                guard event.steward == steward, event.type == "metric.recorded",
+                    event.payload["metric"]?.string == name
+                else { return nil }
+                return event.payload["value"]?.number
+            }
+        }
         return OutcomeState(
             outcome: charter?["outcome"]?.string ?? "",
             metric: metric, points: points, status: status,
             success: charter?["success"]?.string ?? OutcomeText.success(metric),
             readiness: OutcomeReadiness.build(events: events, steward: steward),
             autonomy: OutcomeAutonomy.build(charter: charter),
-            wake: OutcomeWake.build(events: events, steward: steward, charter: charter, now: now))
+            wake: OutcomeWake.build(events: events, steward: steward, charter: charter, now: now),
+            trend: trend)
+    }
+}
+
+/// Times as the Overview writes them: clock times, never "just now" on every row.
+enum OutcomeTime {
+    /// How long a person must have been away before the recap paragraph shows.
+    static let recapGapSeconds: TimeInterval = 15 * 60
+
+    /// "14:02" today, "yesterday 14:02", "Mon 14:02" within a week, else "9 Nov".
+    static func short(_ date: Date, now: Date, timeZone: TimeZone = .current) -> String {
+        let calendar = calendar(timeZone)
+        let clock = clockTime(date, calendar)
+        let days = dayDistance(date, now, calendar)
+        switch days {
+        case ...0: return clock
+        case 1: return "yesterday \(clock)"
+        case 2...6: return "\(weekday(date, calendar)) \(clock)"
+        default: return dayMonth(date, calendar)
+        }
+    }
+
+    /// "Since 14:02", "Since yesterday", "Since Monday", or "Since 9 Nov".
+    static func since(_ date: Date, now: Date, timeZone: TimeZone = .current) -> String {
+        let calendar = calendar(timeZone)
+        switch dayDistance(date, now, calendar) {
+        case ...0: return "Since \(clockTime(date, calendar))"
+        case 1: return "Since yesterday"
+        case 2...6: return "Since \(weekday(date, calendar, long: true))"
+        default: return "Since \(dayMonth(date, calendar))"
+        }
+    }
+
+    private static func calendar(_ timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
+    }
+
+    private static func dayDistance(_ date: Date, _ now: Date, _ calendar: Calendar) -> Int {
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.startOfDay(for: now)
+        return calendar.dateComponents([.day], from: start, to: end).day ?? 0
+    }
+
+    private static func clockTime(_ date: Date, _ calendar: Calendar) -> String {
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+    }
+
+    private static func weekday(_ date: Date, _ calendar: Calendar, long: Bool = false) -> String {
+        let names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        let name = names[(calendar.component(.weekday, from: date) - 1) % 7]
+        return long ? name : String(name.prefix(3))
+    }
+
+    private static func dayMonth(_ date: Date, _ calendar: Calendar) -> String {
+        let months = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        ]
+        let parts = calendar.dateComponents([.day, .month], from: date)
+        return "\(parts.day ?? 1) \(months[((parts.month ?? 1) - 1) % 12])"
     }
 }
 

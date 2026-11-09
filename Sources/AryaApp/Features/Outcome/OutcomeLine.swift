@@ -44,8 +44,8 @@ struct OutcomeLineContent: View {
                     .lineLimit(1)
             }
             .fixedSize()
-            if state.points.count >= 2 {
-                OutcomeSparkline(values: state.points.map(\.value), target: state.metric?.target)
+            if state.trend.count >= 2 {
+                OutcomeSparkline(values: state.trend, target: state.metric?.target)
                     .frame(maxWidth: AryaSize.outcomeSparklineWidth)
             }
             OutcomeStatusPill(status: state.status)

@@ -41,6 +41,8 @@ struct OverviewTab: View {
     let steward: String
     /// Opens a run's transcript.
     let openRun: (String) -> Void
+    /// Opens the approvals waiting on the person.
+    let openApprovals: () -> Void
     /// Opens rehearsals, the next step for a steward that is not ready.
     let rehearse: () -> Void
     /// The seq the person had seen before this visit; read once per steward.
@@ -97,7 +99,8 @@ struct OverviewTab: View {
                 }
                 OutcomePlanSection(plan: snapshot.plan, now: store.now, openRun: openRun)
                 OutcomeActivitySection(
-                    activity: snapshot.activity, now: store.now, openRun: openRun)
+                    activity: snapshot.activity, now: store.now, openRun: openRun,
+                    openApprovals: openApprovals)
                 OutcomeDetails(state: snapshot.state, now: store.now)
                 if let error = store.writeError {
                     Text(error).aryaText(AryaFont.caption, AryaColor.negative)
@@ -176,7 +179,7 @@ struct OutcomePlanSection: View {
                     .frame(minHeight: AryaSize.outcomeRowHeight)
                 }
                 if let reason = plan.reason {
-                    Text("Changed \(AryaTime.relative(plan.updated, now: now)): \(reason)")
+                    Text("Changed \(OutcomeTime.short(plan.updated, now: now)): \(reason)")
                         .aryaText(AryaFont.caption, AryaColor.inkFaint)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, AryaSpace.s1)

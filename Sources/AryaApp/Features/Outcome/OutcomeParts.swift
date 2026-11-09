@@ -29,16 +29,14 @@ struct OutcomeSection<Content: View>: View {
     }
 }
 
-/// A pill for the outcome status: the word always shows, color only reinforces it.
+/// The outcome status as a plain uppercase colored label: the word always shows, color only
+/// reinforces it.
 struct OutcomeStatusPill: View {
     let status: OutcomeStatus
 
     var body: some View {
         Text(status.word)
             .aryaText(AryaFont.overline, color)
-            .padding(.horizontal, AryaSpace.s2)
-            .padding(.vertical, AryaSpace.s1 / 2)
-            .overlay(Capsule().strokeBorder(color))
             .accessibilityLabel("Status: \(status.word)")
     }
 

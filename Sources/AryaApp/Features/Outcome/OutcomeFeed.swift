@@ -39,7 +39,8 @@ struct OutcomePlan: Hashable, Sendable {
     var doneCount: Int { steps.filter { $0.status == .done }.count }
     var activeCount: Int { steps.filter { $0.status != .dropped }.count }
 
-    /// The newest plan, from `plan.updated` `{v, steps: [{id, title, status, note?}], reason?}`.
+    /// The newest plan, from the runtime's `plan.updated` `{items: [{id, text, status,
+    /// rationale?}], reason?}` (`steps` with `title` and `note` also read, for older fixtures).
     static func build(events: [FeatureEvent], steward: String) -> OutcomePlan? {
         let plans = events.filter { $0.steward == steward && $0.type == "plan.updated" }
         guard let latest = plans.last else { return nil }
@@ -57,7 +58,8 @@ struct OutcomePlan: Hashable, Sendable {
     /// Steps in the adapter protocol's shape (`text`, `rationale`, `pending | in_progress |
     /// done | skipped | blocked`) or the app's (`title`, `note`, `todo | doing | ...`).
     private static func parse(_ payload: FeatureJSON) -> [Step] {
-        (payload["steps"]?.array ?? []).enumerated().compactMap { index, step in
+        (payload["items"]?.array ?? payload["steps"]?.array ?? []).enumerated().compactMap {
+            index, step in
             guard let title = step["text"]?.string ?? step["title"]?.string else { return nil }
             return Step(
                 id: step["id"]?.string ?? "s\(index + 1)", title: title,
