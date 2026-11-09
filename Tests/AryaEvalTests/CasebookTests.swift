@@ -21,6 +21,15 @@ actor MemoryBlobs: EvalBlobStore {
         blobs[key] = data
         return key
     }
+
+    func overwrite(_ hex: String, with data: Data) {
+        blobs[hex] = data
+    }
+
+    func getBlob(_ hex: String) async throws -> Data {
+        guard let data = blobs[hex] else { throw EvalError.unknownCasebook(hex) }
+        return data
+    }
 }
 
 @Test func parsesAndSortsCases() throws {

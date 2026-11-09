@@ -15,4 +15,8 @@ public enum EvalError: Error, Equatable, Sendable {
     case unknownRubricCheck(String)
     /// The case is not in the casebook.
     case unknownCase(CaseID)
+    /// No casebook with this version was imported.
+    case unknownCasebook(String)
+    /// A stored casebook's content does not hash to its version.
+    case casebookMismatch(expected: String, actual: String)
 }

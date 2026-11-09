@@ -1,4 +1,5 @@
 import AryaCore
+import AryaLedger
 import AryaRuntime
 import Foundation
 
@@ -29,11 +30,18 @@ public struct CasebookImported: Hashable, Sendable, Codable {
     }
 }
 
-/// Content-addressed blob storage. A stand-in until `AryaLedger` publishes its blob store; the
-/// facade adapts the real store to it.
+/// Content-addressed blob storage. `AryaLedger.BlobStore` conforms; tests use an in-memory
+/// store.
 public protocol EvalBlobStore: Sendable {
     /// Stores `data` and returns its lowercase hex SHA-256.
     func putBlob(_ data: Data) async throws -> String
+    /// The bytes stored under `hex`.
+    func getBlob(_ hex: String) async throws -> Data
+}
+
+extension BlobStore: EvalBlobStore {
+    public func putBlob(_ data: Data) async throws -> String { try put(data) }
+    public func getBlob(_ hex: String) async throws -> Data { try get(hex) }
 }
 
 /// Records casebooks into blobs and the ledger.
