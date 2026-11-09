@@ -68,6 +68,11 @@ actor PreviewWorkspace: FeatureWorkspace {
             let payload: FeatureJSON = ["proposal": .string(id), "reason": .string(reason)]
             emit(created, "proposal.overridden", .localUser, payload)
             emit(created, "proposal.accepted", .localUser, payload)
+        case .retractMemory(let note, let reason):
+            let added = try liveNote(note)
+            emit(
+                added, "memory.retracted", .localUser,
+                ["v": 1, "note": .string(note), "reason": .string(reason)])
         }
         notify()
         return Array(log[start...])
@@ -129,6 +134,19 @@ actor PreviewWorkspace: FeatureWorkspace {
                 ? FeatureWriteError.gatePassed(id) : FeatureWriteError.gateNotPassed(id)
         }
         return created
+    }
+
+    private func liveNote(_ id: String) throws -> FeatureEvent {
+        guard
+            let added = log.first(where: {
+                $0.type == "memory.added" && $0.payload["note"]?["id"]?.string == id
+            })
+        else { throw FeatureWriteError.unknownNote(id) }
+        if log.contains(where: { $0.type == "memory.retracted" && $0.payload["note"]?.string == id }
+        ) {
+            throw FeatureWriteError.alreadyRetracted(id)
+        }
+        return added
     }
 
     private func emit(

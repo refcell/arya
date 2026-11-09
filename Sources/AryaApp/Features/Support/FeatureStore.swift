@@ -94,6 +94,10 @@ final class FeatureStore: ObservableObject {
             return "Proposal \(id) has not passed its gate. Rehearse it again, or override."
         case FeatureWriteError.gatePassed(let id):
             return "Proposal \(id) passed its gate; accept it instead of overriding."
+        case FeatureWriteError.unknownNote(let id):
+            return "Memory note \(id) no longer exists. Reload memory and try again."
+        case FeatureWriteError.alreadyRetracted(let id):
+            return "Memory note \(id) was already retracted."
         default:
             return "Could not read the workspace: \(error.localizedDescription)"
         }

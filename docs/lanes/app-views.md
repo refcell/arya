@@ -15,7 +15,7 @@ M3 (start now against the app-shell stub workspace):
   local user recorded as actor.
 - [x] Ledger table: filter by steward, run, type, actor; event detail; Verify button with result.
 - [x] Changes tab: proposals with gate results, accept, reject, override (recorded).
-- [ ] Memory view: notes with provenance, retract.
+- [x] Memory view: notes with provenance, retract.
 - [ ] Routines view: names, live version, history, version diff.
 - [ ] Rehearsals view: per-case results, expected versus actual, correction, Mark ready.
 - [ ] Metric chart: the steward's outcome metric over time against its target (Swift Charts).
@@ -59,6 +59,10 @@ M3 (start now against the app-shell stub workspace):
   `{proposal, reason?}`. Accept needs a passing gate; Override is offered only for a failed
   gate and records `proposal.overridden` then `proposal.accepted`, both by the local user.
 
+- Memory reads `memory.added` `{v, note: MemoryNote}` and `memory.retracted`
+  `{v, note, reason?}` (AryaMemory's payloads). Retract asks for no reason yet; retracted notes
+  stay listed behind "Show retracted" because the ledger keeps them.
+
 ## Questions
 
 ## Log
@@ -68,3 +72,4 @@ M3 (start now against the app-shell stub workspace):
   components (d20b497).
 - 2026-11-09: ledger table with filters, event detail, and verify (8d48473).
 - 2026-11-09: changes tab with gate results, accept, reject, override (c3960b2).
+- 2026-11-09: payload readers switched to the runtime's shapes; question cleared (4c7a2d4).

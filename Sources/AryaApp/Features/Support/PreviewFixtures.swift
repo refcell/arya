@@ -32,6 +32,8 @@ enum PreviewFixtures {
     static let pendingApproval = "ap_0001"
     static let passingProposal = "pr_0001"
     static let failingProposal = "pr_0002"
+    static let stewardNote = "note_0001"
+    static let correctionNote = "note_0002"
 
     static func triage(now: Date) -> [FeatureEvent] {
         var log = FeatureEventBuilder(start: now.addingTimeInterval(-3600))
@@ -42,6 +44,7 @@ enum PreviewFixtures {
         let live = liveRun
         log.add("run.started", run: live, after: 1200, ["trigger": "interval"])
         proposals(&log)
+        memory(&log)
         log.add(
             "run.adapter.event", run: live, actor: adapter,
             wire(1, ["kind": "status", "state": "working", "detail": "Reading new issues"]))
@@ -92,6 +95,35 @@ enum PreviewFixtures {
         log.add(
             "run.finished", run: run,
             ["status": "completed", "summary": "Labeled ISSUE-7 and asked to assign it."])
+    }
+
+    private static func memory(_ log: inout FeatureEventBuilder) {
+        log.add(
+            "memory.added", run: finishedRun, after: 5,
+            [
+                "v": 1,
+                "note": [
+                    "id": .string(stewardNote), "text": "Login issues usually belong to Alex.",
+                    "tags": ["routing", "login"],
+                    "provenance": [
+                        "run": .string(finishedRun), "event": "ev_6",
+                        "author": ["kind": "steward", "id": .string(steward)],
+                    ],
+                ],
+            ])
+        log.add(
+            "memory.added", actor: .localUser, after: 20,
+            [
+                "v": 1,
+                "note": [
+                    "id": .string(correctionNote),
+                    "text": "Timeouts on the login page are bugs, not questions.",
+                    "tags": ["labels"],
+                    "provenance": [
+                        "case": "case-0007", "author": ["kind": "human", "id": "local"],
+                    ],
+                ],
+            ])
     }
 
     private static func proposals(_ log: inout FeatureEventBuilder) {

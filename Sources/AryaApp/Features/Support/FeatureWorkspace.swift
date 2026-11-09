@@ -10,6 +10,8 @@ enum FeatureWrite: Hashable, Sendable {
     case rejectProposal(String, reason: String)
     /// Accepts a proposal whose gate failed; recorded as `proposal.overridden`.
     case overrideProposal(String, reason: String)
+    /// Hides a memory note from future runs (`memory.retracted`).
+    case retractMemory(note: String, reason: String)
 }
 
 /// The result of checking the ledger's hash chain.
@@ -40,4 +42,6 @@ enum FeatureWriteError: Error, Hashable, Sendable {
     case proposalClosed(String)
     case gateNotPassed(String)
     case gatePassed(String)
+    case unknownNote(String)
+    case alreadyRetracted(String)
 }
