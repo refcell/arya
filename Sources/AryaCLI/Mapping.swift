@@ -124,6 +124,16 @@ enum Mapping {
         }
     }
 
+    static func replay(_ summary: ReplaySummary) -> ReplayReport {
+        ReplayReport(
+            run: summary.run, events: summary.events,
+            divergences: summary.divergences.map {
+                Divergence(
+                    seq: $0.seq ?? $0.index, type: $0.type, field: $0.field,
+                    recorded: $0.recorded, replayed: $0.replayed)
+            })
+    }
+
     /// RFC 3339 UTC with milliseconds, the ledger's time format.
     static func timestamp(_ date: Date) -> String {
         let millis = Int64((date.timeIntervalSince1970 * 1000).rounded(.down))

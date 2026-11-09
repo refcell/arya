@@ -254,7 +254,11 @@ extension WorkspaceBackend {
     func routines(steward: String) async throws(CLIError) -> [RoutineRow] {
         throw missing("routines")
     }
-    func replay(run: String) async throws(CLIError) -> ReplayReport { throw missing("replay") }
+    func replay(run: String) async throws(CLIError) -> ReplayReport {
+        let workspace = try await open()
+        let summary = try await call("replay") { try await workspace.replay(run: run) }
+        return Mapping.replay(summary)
+    }
     func serveBindingProxy(run: String, binding: String) async throws(CLIError) {
         throw missing("bindingProxy")
     }

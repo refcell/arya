@@ -203,3 +203,19 @@ private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
     #expect(backend.calls.first == "show run run_1")
     #expect(capture.out.first == "run run_1 (st_triage) completed")
 }
+
+@Test func replaySummaryMapsDivergences() throws {
+    let summary = try decode(
+        ReplaySummary.self,
+        """
+        {"run":"run_1","events":12,"divergences":[
+          {"index":3,"seq":7,"type":"run.decision","field":"payload.choice",
+           "recorded":"\\"billing\\"","replayed":"\\"bug\\""},
+          {"index":9,"type":"run.finished","field":"payload.status",
+           "recorded":"completed","replayed":"failed"}]}
+        """)
+    let report = Mapping.replay(summary)
+    #expect(report.events == 12)
+    #expect(report.divergences.map(\.seq) == [7, 9])
+    #expect(report.divergences[0].replayed == "\"bug\"")
+}
