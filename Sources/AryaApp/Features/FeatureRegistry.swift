@@ -36,7 +36,8 @@ enum FeatureRegistry {
             }
         case .improve:
             if let store = context.store, let steward = context.steward?.id {
-                ImproveView(store: store, steward: steward)
+                ImproveView(
+                    store: store, steward: steward, paused: context.steward?.status == .paused)
             } else {
                 EmptyState(
                     "Nothing to improve yet.",
@@ -77,7 +78,8 @@ enum FeatureRegistry {
     static func transcript(_ context: FeatureContext) -> some View {
         if let store = context.store, let steward = context.steward?.id {
             StreamTab(
-                store: store, steward: steward, run: context.run?.id ?? context.runs.first?.id)
+                store: store, steward: steward, run: context.run?.id ?? context.runs.first?.id,
+                paused: context.steward?.status == .paused)
         } else {
             EmptyState(
                 "No runs yet.",

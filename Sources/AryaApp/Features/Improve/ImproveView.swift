@@ -7,6 +7,8 @@ import SwiftUI
 struct ImproveView: View {
     @ObservedObject var store: FeatureStore
     var steward: String
+    /// The steward is paused: Rehearse still works, scheduled runs are off.
+    var paused = false
     @AryaState private var chosen: String?
     @AryaState private var expanded: String?
     /// The workspace's sentences for the newest rehearsal, when the workspace can write them.
@@ -64,6 +66,7 @@ struct ImproveView: View {
                     }
                 }
                 Text(ImproveText.meta(item)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                ActionNote(store: store, paused: paused)
                 if let written, !written.ready {
                     ForEach(written.readinessReasons, id: \.self) { reason in
                         Text(reason).aryaText(AryaFont.caption, AryaColor.inkMuted)
@@ -87,6 +90,7 @@ struct ImproveView: View {
                 Spacer(minLength: AryaSpace.s3)
                 Button("Rehearse") { rehearse() }.buttonStyle(.aryaSecondary)
             }
+            ActionNote(store: store, paused: paused)
         }
     }
 

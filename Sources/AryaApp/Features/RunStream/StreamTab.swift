@@ -6,15 +6,18 @@ struct StreamTab: View {
     @ObservedObject var store: FeatureStore
     var steward: String
     var run: String?
+    /// The steward is paused: manual runs still start, scheduled ones do not.
+    var paused = false
 
     var body: some View {
         if let run {
             RunStreamView(
                 store: store, run: run,
-                accessory: AnyView(RunControls(store: store, steward: steward, run: run).id(run)))
+                accessory: AnyView(
+                    RunControls(store: store, steward: steward, run: run, paused: paused).id(run)))
         } else {
             VStack(alignment: .leading, spacing: AryaSpace.s3) {
-                RunControls(store: store, steward: steward, run: nil)
+                RunControls(store: store, steward: steward, run: nil, paused: paused)
                 Text("No runs yet. A run starts when a trigger fires or you start one here.")
                     .aryaText(AryaFont.body, AryaColor.inkMuted)
             }
@@ -29,6 +32,7 @@ private struct RunControls: View {
     @ObservedObject var store: FeatureStore
     var steward: String
     var run: String?
+    var paused = false
     @AryaState private var input = ""
     @AryaState private var replay: FeatureReplayResult?
     @AryaState private var replayProblem: String?
@@ -60,6 +64,7 @@ private struct RunControls: View {
                     .buttonStyle(.aryaSecondary)
                     .popover(isPresented: $asking, arrowEdge: .bottom) { runNow }
             }
+            ActionNote(store: store, paused: paused)
             if let replayProblem {
                 Text(replayProblem).aryaText(AryaFont.caption, AryaColor.negative)
             }

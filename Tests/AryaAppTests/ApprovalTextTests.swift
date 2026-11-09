@@ -107,3 +107,7 @@ private struct DetailWorkspace: FeatureWorkspace {
     #expect(corrected.payload["expected"]?["decisions"]?.array?.first?["choice"]?.string == "bug")
     #expect(events.last?.type == "case.corrected")
 }
+
+@Test func pausedStewardsSayScheduledRunsAreOff() {
+    #expect(ActionNote.pausedText == "Paused: scheduled runs are off.")
+}
