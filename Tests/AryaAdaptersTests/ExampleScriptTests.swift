@@ -43,6 +43,21 @@ let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     }
 }
 
+/// An input the script does not know reports itself with status events, never an agent
+/// `message`, so the app never shows the fallback as something the agent said.
+@Test func triageExampleFallbackIsNeverAMessage() async throws {
+    let examples = repositoryRoot.appendingPathComponent("etc/examples/triage")
+    let script = try FakeScript.load(from: examples.appendingPathComponent("fake-script.json"))
+    let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
+    _ = try await adapter.start(Sample.start("New message MSG-999: unknown"))
+    let updates = await collect(adapter, until: \.isResult)
+    let kinds = updates.compactMap(\.event).map(\.event.kind)
+    #expect(!kinds.isEmpty)
+    #expect(!kinds.contains("message"), "\(kinds)")
+    #expect(kinds.contains("status"))
+    #expect(updates.compactMap(\.result).first?.status == .completed)
+}
+
 @Test func mapAndListFormsDecodeAlike() throws {
     let map = #"""
         {"v":1,"responses":{"a":{"events":[{"kind":"thinking","text":"x"}],"result":{}}},

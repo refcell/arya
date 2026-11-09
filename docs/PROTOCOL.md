@@ -274,6 +274,8 @@ last 8 MiB of output is kept for parsing, and `.arya-mcp.json` is deleted when t
 `arya-fake-adapter --script <file>` and the in-process `FakeAdapter` run the same server from a
 JSON script. `responses` maps the exact `run/start.input.text` to a response; other inputs get
 `default`; with neither, `run/start` fails with `-32004`. The session id is `fake-<run>`.
+A `default` response should report itself with a `status` or `error` event, never a `message`, so
+the app does not show the fallback as something the agent said.
 
 ```json
 {"v":1,
