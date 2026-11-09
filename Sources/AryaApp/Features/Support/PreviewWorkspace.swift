@@ -95,6 +95,7 @@ actor PreviewWorkspace: FeatureWorkspace {
                 added, "memory.retracted", .localUser,
                 ["v": 1, "note": .string(note), "reason": .string(reason)])
         case .correctCase(let correction): try correct(correction)
+        case .proposeCharter(let proposal): try propose(proposal)
         case .markReady(let steward, let version, let rehearsal):
             var payload: FeatureJSON = ["v": 1, "charterVersion": .number(Double(version))]
             if let rehearsal, case .object(var members) = payload {
@@ -176,6 +177,18 @@ actor PreviewWorkspace: FeatureWorkspace {
             throw FeatureWriteError.alreadyRetracted(id)
         }
         return added
+    }
+
+    /// `proposal.created` for a candidate charter one version above the live one.
+    private func propose(_ proposal: CharterProposal) throws {
+        let live = LiveCharter.find(events: log, steward: proposal.steward)?.version ?? 0
+        if live != proposal.baseVersion { throw FeatureWriteError.staleCharter(live: live) }
+        let payload: FeatureJSON = [
+            "id": .string("pr_w\(nextID)"), "kind": "charter",
+            "candidateVersion": .number(Double(live + 1)), "title": .string(proposal.title),
+            "reason": .string(proposal.reason), "charter": proposal.charter,
+        ]
+        emit(steward: proposal.steward, run: nil, "proposal.created", .localUser, payload)
     }
 
     /// `case.corrected` plus the memory note a correction becomes, both by the person.

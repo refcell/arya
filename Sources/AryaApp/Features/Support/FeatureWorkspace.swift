@@ -17,6 +17,18 @@ enum FeatureWrite: Hashable, Sendable {
     case correctCase(CaseCorrection)
     /// Marks a steward ready for live triggers after reviewing a rehearsal (`steward.ready`).
     case markReady(steward: String, charterVersion: Int, rehearsal: String?)
+    /// Proposes a new charter version (`proposal.created`); it goes live only through a gate.
+    case proposeCharter(CharterProposal)
+}
+
+/// A proposed charter change from the editor.
+struct CharterProposal: Hashable, Sendable {
+    var steward: String
+    /// The live version the draft started from.
+    var baseVersion: Int
+    var charter: FeatureJSON
+    var title: String
+    var reason: String
 }
 
 /// A correction of one rehearsed case.
@@ -83,4 +95,5 @@ enum FeatureWriteError: Error, Hashable, Sendable {
     case unknownNote(String)
     case alreadyRetracted(String)
     case correctionEmpty
+    case staleCharter(live: Int)
 }
