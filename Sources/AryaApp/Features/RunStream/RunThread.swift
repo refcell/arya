@@ -210,8 +210,10 @@ struct InlineApproval: View {
     }
 
     @ViewBuilder private var approve: some View {
-        let button = Button("Approve and \(action.kind)") { decide(.approve(approval: approval)) }
-            .buttonStyle(.aryaPrimary)
+        let button = Button(RunThreadText.approveLabel(action)) {
+            decide(.approve(approval: approval))
+        }
+        .buttonStyle(.aryaPrimary)
         if primary { button.keyboardShortcut(.defaultAction) } else { button }
     }
 }
@@ -264,6 +266,11 @@ enum RunThreadText {
             return "blocked by \(rule.replacingOccurrences(of: ":", with: " "))"
         case .denied(_, let reason): return reason.isEmpty ? "denied" : "denied: \(reason)"
         }
+    }
+
+    /// "Approve and reply"; a question is just "Approve".
+    static func approveLabel(_ action: ProposedActionStep) -> String {
+        action.kind == "question" ? "Approve" : "Approve and \(action.kind)"
     }
 
     /// "Reply to inbox:MSG-201".

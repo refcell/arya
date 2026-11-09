@@ -118,34 +118,13 @@ enum FeatureRegistry {
     /// The approval queue across all stewards.
     @ViewBuilder
     static func approvals(_ context: FeatureContext) -> some View {
-        let approvals = context.model.approvals
         if let store = context.store {
             ApprovalQueueView(store: store)
-        } else if approvals.isEmpty {
-            EmptyState(
-                "Nothing is waiting for you.",
-                guidance: "Approvals appear here when a steward asks.")
         } else {
-            ScrollView {
-                VStack(spacing: AryaSpace.s4) {
-                    ForEach(approvals) { approval in
-                        ApprovalCard(
-                            action: [approval.actionKind, approval.target].compactMap { $0 }
-                                .joined(separator: " "),
-                            summary: approval.kind == .question
-                                ? "A question" : "Approve this action",
-                            rationale: approval.text,
-                            context: "\(approval.steward) · \(approval.run)",
-                            approveLabel: approval.kind == .question
-                                ? "Answer yes" : "Approve and run",
-                            onDeny: { Task { await context.model.deny(approval.id) } },
-                            onApprove: { Task { await context.model.approve(approval.id) } })
-                    }
-                }
-                .frame(maxWidth: AryaSize.readingWidth)
+            Text("Nothing needs you right now.")
+                .aryaText(AryaFont.body, AryaColor.inkMuted)
                 .padding(AryaSpace.s5)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 }

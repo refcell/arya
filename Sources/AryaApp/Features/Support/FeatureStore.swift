@@ -115,8 +115,9 @@ final class FeatureStore: ObservableObject {
     /// has one (the facade's errors say what failed), never an enum's localized placeholder.
     nonisolated static func sentence(_ error: any Error) -> String {
         let text: String
-        if let described = error as? CustomStringConvertible, !(type(of: error) is NSError.Type) {
-            text = described.description
+        let kind = type(of: error)
+        if kind is CustomStringConvertible.Type, !(kind is NSError.Type) {
+            text = String(describing: error)
         } else {
             let localized =
                 (error as NSError).localizedFailureReason

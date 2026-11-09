@@ -76,5 +76,6 @@ private enum PlainError: Error { case failed }
     #expect(FeatureStore.describe(DescribedError.refused) == "Steward st_triage is paused.")
     let plain = FeatureStore.describe(PlainError.failed)
     #expect(!plain.contains("error 0"))
+    #expect(plain.contains("PlainError"))
     #expect(plain.hasSuffix("."))
 }
