@@ -188,3 +188,9 @@ M4:
   `AryaTime.clock(_:seconds:)`.
 - Visual check (`just snapshot` knowledge, ledger-inspector, dark and light): Knowledge R1-R5 pass,
   no chips, pills, buttons, or ids; ledger shows the event inspector on reseeded, dated data.
+- 2026-11-09: autonomy holds read as the workspace's sentence (`PolicyText.autonomy`), never the
+  raw `autonomy:<level>:<risk>` token.
+- Visual check (`just snapshot` needs-you-autonomy, current main): "This steward only suggests
+  changes, so a person approves each action."; R1-R5 pass.
+- (to app-views) `PolicyText` gained the autonomy branch in `RunStreamModel.swift`; unknown
+  reasons now read "The steward's policy holds this action for a person." instead of the token.

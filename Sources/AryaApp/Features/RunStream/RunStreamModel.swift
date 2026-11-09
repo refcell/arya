@@ -431,11 +431,34 @@ enum PolicyText {
             if let note = rule?["note"]?.string, !note.isEmpty { return note }
             return "\(label) actions need approval."
         }
+        if reason.hasPrefix("autonomy:") { return autonomy(reason) }
         switch reason {
         case "default": return "Actions the charter does not name need approval."
         case "routine_default":
             return "A routine version needs approval until the charter names it."
-        default: return "Held for approval (\(reason))."
+        default: return "The steward's policy holds this action for a person."
+        }
+    }
+
+    /// `autonomy:<level>:<risk>` (decision 0037) as the workspace words it.
+    static func autonomy(_ reason: String) -> String {
+        let parts = reason.split(separator: ":").map(String.init)
+        let level = parts.count > 1 ? parts[1] : ""
+        let risk = parts.count > 2 ? parts[2] : nil
+        let risky = risk.map { "this one is \($0) risk" }
+        switch level {
+        case "observe":
+            return "This steward only observes, so it takes no action without a person."
+        case "suggest":
+            return "This steward only suggests changes, so a person approves each action."
+        case "act_low":
+            return "This steward acts on low-risk actions only; "
+                + (risky ?? "this one may not be") + ", so it asks you."
+        case "act_medium":
+            return "This steward acts on low- and medium-risk actions only; "
+                + (risky ?? "this one may be high risk") + ", so it asks you."
+        default:
+            return "This steward's autonomy level holds this action for a person."
         }
     }
 }
