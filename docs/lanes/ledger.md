@@ -50,15 +50,16 @@ M3:
 M3 (extended by the lane):
 - [x] Fast `seq`-addressed reads: `memchr` line splitting and skipping known lines in the first
   segment (5,000 events: tail read 1.5 s to 0.05 s). Perf probe: `ARYA_PERF=1 just test perf`.
-- [ ] Faster full reads: decode the envelope without `JSONDecoder` (it is ~80% of a full read),
-  so the runtime's books and the app's first load stay fast as the ledger grows.
-- [ ] `LedgerEventSink` catch-up: let runtime books fold only new events through `Projected`
-  and `ProjectionCache` (offer it in runtime's Questions; the runtime owns the books).
-- [ ] `arya ledger verify` output helpers: a stable, human-readable report from
-  `LedgerVerification` for the CLI and the app's verify button.
+- [ ] (1) Faster full reads: decode the envelope without `JSONDecoder` (~80% of a full read
+  today, about 1.9 s for 5,000 events). Target: a full read of 5,000 events under 0.3 s, with a
+  benchmark test that skips in CI when slow machines would make it flaky.
+- [ ] (2) Readable `verify` report: a stable text rendering of `LedgerVerification` that the CLI
+  and the app's verify button can show.
+- [ ] (3) Runtime books on `Projected`/`catchUp`/`ProjectionCache`: asked in runtime.md
+  Questions; make it a small integration edit only if runtime agrees.
 
 M4:
-- [ ] Signed checkpoints for ledger compaction (Later in ROADMAP): design note first.
+- [ ] (4) Signed checkpoints for ledger compaction (Later in ROADMAP): design note first.
 
 ## Decisions
 
@@ -123,6 +124,16 @@ M4:
 
 
 ## Log
+- HANDOFF 2026-11-09 (session ended near auto-compaction): main is green at f19e82f. Next item
+  is (1), the envelope decoder. The probe is `ARYA_PERF=1 just test perf`
+  (Tests/AryaLedgerTests/PerfProbeTests.swift): `JSONDecoder` decode of `Event` takes ~0.4-1.1
+  s and hashing ~0.1 s for 5,000 lines. `JSONSerialization` into `JSONValue` measured no faster,
+  so write a small byte-level parser for `JSONValue` in AryaCore (strings, numbers, nesting) and
+  build `Event` from it in `LedgerLine.open`; the goldens and verify tests guard correctness.
+  Publish rules: full `just ci` on the first push; after a clean rebase, tidy, build, and
+  `just test AryaLedgerTests`, at most 3 times, then full CI again. Commit through
+  `sh -c 'git commit -S -m …'`. Cross-lane notes go as one `- (from ledger)` line appended to
+  the end of the target lane's Questions.
 - 2026-11-09: ids, Timestamp, Ambient, JSONValue, canonical JSON landed in AryaCore (5fdc638).
 - 2026-11-09: Charter, Case, GateChecking with validation and goldens (5b7d61a).
 - 2026-11-09: Event envelope, Actor, EventType, line sealing (decision 0012), EventPayload
