@@ -85,8 +85,8 @@ struct CaseHarness {
     func rehearser(_ book: Casebook) -> CasebookRehearser {
         CasebookRehearser(
             runner: RuntimeCaseRunner(loop: loop, sink: sink), casebooks: OneCasebook(book: book),
-            scorer: ExactScorer(fields: ["decisions.choice", "actions.kind", "actions.target"]),
-            sink: sink, ambient: ambient)
+            sink: sink, ambient: ambient,
+            scorer: ExactScorer(fields: ["decisions.choice", "actions.kind", "actions.target"]))
     }
 }
 
