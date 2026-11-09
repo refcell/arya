@@ -46,7 +46,12 @@ struct LedgerFilter: Hashable, Sendable {
 /// filter can take.
 struct LedgerTable: Hashable, Sendable {
     var rows: [FeatureEvent]
+    /// Every event in the ledger.
     var total: Int
+    /// The events in scope (the selected steward's, else all), before the person's filters.
+    var scopedTotal: Int = 0
+    /// Whether the table is scoped to one steward.
+    var scoped = false
     var stewards: [String]
     var runs: [String]
     var namespaces: [String]
@@ -61,7 +66,7 @@ struct LedgerTable: Hashable, Sendable {
             rows: events.filter {
                 filter.matches($0) && filter.matchesQuery($0, title: $0.run.flatMap { titles[$0] })
             }.reversed(),
-            total: events.count,
+            total: events.count, scopedTotal: scoped.count, scoped: filter.steward != nil,
             stewards: distinct(events.compactMap(\.steward)),
             runs: distinct(scoped.compactMap(\.run)),
             namespaces: distinct(events.map(namespace)),
@@ -117,10 +122,21 @@ enum LedgerText {
         return label == "Prev" ? "none (first event)" : "—"
     }
 
-    /// "Showing 3 of 42 events".
+    /// "42 events", "40 events for this steward", or "3 matching" once the person filters.
+    /// Nothing is ever paged away, so the count is never "of" a larger number.
     static func count(_ table: LedgerTable) -> String {
-        if table.rows.count == table.total { return "\(table.total) events" }
-        return "Showing \(table.rows.count) of \(table.total) events"
+        if table.rows.count != table.scopedTotal { return "\(table.rows.count) matching" }
+        return table.scoped
+            ? "\(table.scopedTotal) events for this steward" : "\(table.total) events"
+    }
+
+    /// The muted line after a steward's events, saying what the scope leaves out; nil when
+    /// nothing is left out.
+    static func outOfScope(_ table: LedgerTable) -> String? {
+        let others = table.total - table.scopedTotal
+        guard table.scoped, others > 0 else { return nil }
+        let words = others == 1 ? "event in the ledger belongs" : "events in the ledger belong"
+        return "\(others) more \(words) to other stewards or the system."
     }
 
     /// `text` padded with spaces to `width` characters, leading or trailing, for mono columns.
@@ -171,10 +187,11 @@ extension FeatureVerifyResult {
 
 extension LedgerText {
     /// "✓ chain verified · 829 events" or "✗ chain broken at 412 · 829 events".
-    static func verifyStatus(_ result: FeatureVerifyResult, count: String) -> String {
+    /// Verify always checks the whole chain, so it reports the whole ledger's count.
+    static func verifyStatus(_ result: FeatureVerifyResult, total: Int) -> String {
         switch result {
-        case .intact: "✓ chain verified · \(count)"
-        case .broken(let seq, _): "✗ chain broken at \(seq) · \(count)"
+        case .intact(let events): "✓ chain verified · \(events) events"
+        case .broken(let seq, _): "✗ chain broken at \(seq) · \(total) events"
         }
     }
 }

@@ -21,7 +21,7 @@ private let events = PreviewFixtures.triage(now: FeatureTestClock.now)
     var filter = LedgerFilter(run: PreviewFixtures.finishedRun, type: "action.")
     var table = LedgerTable.build(events: events, filter: filter)
     #expect(table.rows.map(\.type) == ["action.proposed", "action.executed", "action.proposed"])
-    #expect(LedgerText.count(table) == "Showing 3 of \(events.count) events")
+    #expect(LedgerText.count(table) == "3 matching")
     filter.type = "action.executed"
     table = LedgerTable.build(events: events, filter: filter)
     #expect(table.rows.count == 1)
@@ -68,4 +68,20 @@ private let events = PreviewFixtures.triage(now: FeatureTestClock.now)
     await store.verify()
     #expect(store.verifyResult == .broken(seq: 4, reason: "hash mismatch"))
     #expect(store.isVerifying == false)
+}
+
+@Test func aStewardScopeSaysWhatItLeavesOut() {
+    var log = FeatureEventBuilder(start: FeatureTestClock.now)
+    log.add("run.started", steward: "st_a", run: "run_a")
+    log.add("run.started", steward: "st_b", run: "run_b")
+    log.add("run.finished", steward: "st_b", run: "run_b")
+    let table = LedgerTable.build(events: log.events, filter: LedgerFilter(steward: "st_b"))
+    #expect(LedgerText.count(table) == "2 events for this steward")
+    #expect(
+        LedgerText.outOfScope(table)
+            == "1 more event in the ledger belongs to other stewards or the system.")
+    let all = LedgerTable.build(events: log.events, filter: .all)
+    #expect(LedgerText.outOfScope(all) == nil)
+    let verified = LedgerText.verifyStatus(.intact(events: 3), total: 3)
+    #expect(verified == "✓ chain verified · 3 events")
 }

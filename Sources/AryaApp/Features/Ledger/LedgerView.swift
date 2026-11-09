@@ -101,7 +101,7 @@ private struct LedgerToolbar: View {
         if store.isVerifying {
             Text("verifying…").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
         } else if let result = store.verifyResult {
-            Text(LedgerText.verifyStatus(result, count: LedgerText.count(table)))
+            Text(LedgerText.verifyStatus(result, total: table.total))
                 .aryaText(
                     AryaFont.monoSmall, result.isIntact ? AryaColor.inkMuted : AryaColor.negative
                 )
@@ -215,6 +215,13 @@ private struct LedgerRows: View {
                         case .adapterRun(_, let events):
                             folded(line.id, events, repeatsRun: repeats)
                         }
+                    }
+                    if table.rows.count == table.scopedTotal,
+                        let note = LedgerText.outOfScope(table)
+                    {
+                        Text(note).aryaText(AryaFont.caption, AryaColor.inkFaint)
+                            .padding(.horizontal, AryaSpace.s2)
+                            .padding(.vertical, AryaSpace.s3)
                     }
                 }
                 .padding(.horizontal, AryaSpace.s3)

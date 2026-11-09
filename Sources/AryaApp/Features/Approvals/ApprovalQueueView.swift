@@ -47,8 +47,12 @@ struct ApprovalQueueView: View {
         let current = items.first { $0.id == selected } ?? items[0]
         if items.count > 1 {
             VStack(alignment: .leading, spacing: 0) {
+                let names = StewardNames.build(events: events)
                 ForEach(items) { item in
-                    NeedsYouRow(item: item, now: store.now, isSelected: item.id == current.id) {
+                    NeedsYouRow(
+                        item: item, stewardName: item.steward.map { names[$0] ?? $0 },
+                        now: store.now, isSelected: item.id == current.id
+                    ) {
                         selected = item.id
                     }
                 }
@@ -98,6 +102,7 @@ struct ApprovalQueueView: View {
 /// One pending item: what and where in mono, the steward, and how long it has waited.
 private struct NeedsYouRow: View {
     var item: ApprovalItem
+    var stewardName: String?
     var now: Date
     var isSelected: Bool
     var select: () -> Void
@@ -109,10 +114,11 @@ private struct NeedsYouRow: View {
                     .aryaText(AryaFont.mono, isSelected ? AryaColor.ink : AryaColor.inkMuted)
                     .lineLimit(1).truncationMode(.middle)
                 Spacer(minLength: AryaSpace.s2)
-                if let steward = item.steward {
-                    Text(steward).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                if let stewardName {
+                    Text(stewardName).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                        .lineLimit(1)
                 }
-                Text(FeatureTime.relative(item.requestedAt, now: now))
+                Text(AryaTime.label(item.requestedAt, now: now, style: .short))
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             }
             .padding(.vertical, AryaSpace.s1)
@@ -168,5 +174,19 @@ struct FeatureWriteErrorLine: View {
                     .buttonStyle(.aryaTertiary)
             }
         }
+    }
+}
+
+/// Steward names from their charters in the ledger, newest charter last, by steward id.
+enum StewardNames {
+    static func build(events: [FeatureEvent]) -> [String: String] {
+        var names: [String: String] = [:]
+        for event in events {
+            guard let steward = event.steward,
+                let name = event.payload["charter"]?["name"]?.string, !name.isEmpty
+            else { continue }
+            names[steward] = name
+        }
+        return names
     }
 }

@@ -111,3 +111,8 @@ private struct DetailWorkspace: FeatureWorkspace {
 @Test func pausedStewardsSayScheduledRunsAreOff() {
     #expect(ActionNote.pausedText == "Paused: scheduled runs are off.")
 }
+
+@Test func needsYouRowsNameTheStewardFromItsCharter() {
+    let names = StewardNames.build(events: PreviewFixtures.triage(now: FeatureTestClock.now))
+    #expect(names[PreviewFixtures.steward] == "Issue triage")
+}

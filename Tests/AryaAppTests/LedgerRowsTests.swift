@@ -35,10 +35,10 @@ private let now = FeatureTestClock.now
     #expect(LedgerText.pad("12", 4, leading: true) == "  12")
     #expect(LedgerText.pad("run.started", 14) == "run.started   ")
     #expect(
-        LedgerText.verifyStatus(.broken(seq: 41, reason: "hash"), count: "3 events")
+        LedgerText.verifyStatus(.broken(seq: 41, reason: "hash"), total: 3)
             == "✗ chain broken at 41 · 3 events")
     #expect(
-        LedgerText.verifyStatus(.intact(events: 3), count: "3 events")
+        LedgerText.verifyStatus(.intact(events: 3), total: 3)
             == "✓ chain verified · 3 events")
 }
 
