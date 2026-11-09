@@ -16,6 +16,13 @@ public protocol ToolUpstream: Sendable {
     func listTools() async throws -> [JSONValue]
     /// Calls one tool; returns the `tools/call` result object.
     func call(_ tool: String, arguments: JSONValue) async throws -> JSONValue
+    /// Ends the connection; later calls fail.
+    func close() async
+}
+
+extension ToolUpstream {
+    /// Nothing to close by default.
+    public func close() async {}
 }
 
 /// Where a proxy's answers come from.

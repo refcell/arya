@@ -51,7 +51,7 @@ public actor ProcessToolUpstream: ToolUpstream {
     }
 
     /// Ends the server: closes its stdin and terminates it.
-    public func close() {
+    public func close() async {
         guard !closed else { return }
         closed = true
         try? stdin.fileHandleForWriting.close()
