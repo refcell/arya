@@ -44,7 +44,7 @@ M3, extended (toward the end-to-end scenario and `just demo`):
 
 M4:
 - [x] Approval notifications (local `UserNotifications`) with Approve and Deny actions.
-- [ ] Person-binding inbox entry in the rail.
+- [ ] Person-binding inbox entry in the rail (waits on runtime's M4 person bindings).
 
 ## Decisions
 
@@ -112,3 +112,4 @@ M4:
 - 2026-11-09: Return and Escape on focused approval cards (5b52dba).
 - 2026-11-09: approval notifications with Approve and Deny actions (b0260e4).
 - 2026-11-09: every steward tab routed to app-views' views; screenshots per tab (78c9c17).
+- 2026-11-09: Steward menu (Start Run, Pause, Resume) through the facade (8258cb7).
