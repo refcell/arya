@@ -50,9 +50,10 @@ M3:
 M3 (extended by the lane):
 - [x] Fast `seq`-addressed reads: `memchr` line splitting and skipping known lines in the first
   segment (5,000 events: tail read 1.5 s to 0.05 s). Perf probe: `ARYA_PERF=1 just test perf`.
-- [ ] (1) Faster full reads: decode the envelope without `JSONDecoder` (~80% of a full read
-  today, about 1.9 s for 5,000 events). Target: a full read of 5,000 events under 0.3 s, with a
-  benchmark test that skips in CI when slow machines would make it flaky.
+- [x] (1) Faster full reads: `JSONParser` (AryaCore) replaces `JSONDecoder` in
+  `LedgerLine.open`. 5,000 events, debug build, thread CPU time: full read 0.09 s (was about
+  0.2 s CPU, 1.9 s wall on a busy machine), verify 0.10 s. Benchmark:
+  `perfFullReadOf5000EventsIsUnderTarget` asserts < 0.3 s under `ARYA_PERF=1`.
 - [ ] (2) Readable `verify` report: a stable text rendering of `LedgerVerification` that the CLI
   and the app's verify button can show.
 - [ ] (3) Runtime books on `Projected`/`catchUp`/`ProjectionCache`: asked in runtime.md
@@ -119,11 +120,25 @@ M4:
   `pageBackward(_:before:limit:)` (opens at the newest). Cursors are `seq`s. Both stream the
   ledger; the `LedgerIndex` run spans can narrow a run query later if scans get slow.
 - `Case.expected` stays a free-form `JSONValue` object because scorers read it by path.
+- `JSONParser` gives exactly `JSONDecoder`'s `JSONValue` for every input (corpus, fixtures,
+  seeded round trips, and byte-mutation fuzz pin it; `ARYA_FUZZ_ITERATIONS` searches longer).
+  Its number rule: plain integers exact; other tokens via `Double`, integral values in
+  ±2^63 become the exact decimal `int`; a token whose decimal has a fraction yet rounds to an
+  integral `Double` goes to `JSONDecoder` itself (never written canonically). Two deliberate
+  differences: nesting past `maxDepth` (128) and any raw NUL byte are errors. The writer
+  refuses payloads deeper than `maxDepth - 1` (`LedgerError.payloadTooDeep`) so every
+  written line reads back; no existing writer comes near that depth.
+- Perf probes measure thread CPU time, not wall time, so a loaded machine does not make them
+  flaky. Hot loops in `JSONParser` and `LedgerLine` use index loops and plain byte compares:
+  tests run debug builds, where range patterns and generic slice algorithms cost metadata
+  lookups per byte.
 
 ## Questions
 
 
 ## Log
+- 2026-11-09: (1) done: `JSONParser` and envelope building without `JSONDecoder`; full
+  read of 5,000 events 0.09 s CPU in debug.
 - HANDOFF 2026-11-09 (session ended near auto-compaction): main is green at f19e82f. Next item
   is (1), the envelope decoder. The probe is `ARYA_PERF=1 just test perf`
   (Tests/AryaLedgerTests/PerfProbeTests.swift): `JSONDecoder` decode of `Event` takes ~0.4-1.1

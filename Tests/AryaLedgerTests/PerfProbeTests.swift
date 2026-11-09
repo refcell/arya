@@ -4,51 +4,61 @@ import Testing
 
 @testable import AryaLedger
 
-@Test(.enabled(if: ProcessInfo.processInfo.environment["ARYA_PERF"] == "1"))
-func perfProbe() throws {
-    let home = try TempHome()
-    defer { home.cleanup() }
-    let store = try LedgerStore(home: home.url, ambient: .fixed())
-    let clock = ContinuousClock()
-    let payload: JSONValue = ["text": .string(String(repeating: "x", count: 400)), "n": 1]
-    let appendTime = try clock.measure {
-        for _ in 0..<20 {
-            try store.append(
-                (0..<250).map { _ in EventDraft(type: .runDecision, actor: .local, payload: payload)
-                })
-        }
-    }
-    let single = try clock.measure {
-        for _ in 0..<50 {
-            try store.append(EventDraft(type: .runDecision, actor: .local, payload: payload))
-        }
-    }
-    let readTime = try clock.measure { _ = try LedgerReader(home: home.url).events() }
-    let tailTime = try clock.measure { _ = try LedgerReader(home: home.url).events(from: 5040) }
-    print(
-        "PERF batch-append 5000: \(appendTime); 50 single appends: \(single); "
-            + "read all: \(readTime); read tail: \(tailTime)"
-    )
+// Perf probes run only with `ARYA_PERF=1 just test perf`, never in CI. They measure this
+// thread's CPU time, not wall time, so a busy machine slows them less than it would a stopwatch.
+
+private let perfEnabled = ProcessInfo.processInfo.environment["ARYA_PERF"] == "1"
+
+/// CPU seconds this thread spends in `body`.
+private func cpuSeconds(_ body: () throws -> Void) rethrows -> Double {
+    let start = clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
+    try body()
+    return Double(clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) - start) / 1e9
 }
 
-@Test(.enabled(if: ProcessInfo.processInfo.environment["ARYA_PERF"] == "1"))
-func perfBreakdown() throws {
+private func format(_ seconds: Double) -> String {
+    String(format: "%.3f s", seconds)
+}
+
+/// A store holding 5,000 events with a 400-byte text payload each.
+private func filledHome() throws -> TempHome {
     let home = try TempHome()
-    defer { home.cleanup() }
     let store = try LedgerStore(home: home.url, ambient: .fixed())
     let payload: JSONValue = ["text": .string(String(repeating: "x", count: 400)), "n": 1]
     try store.append(
         (0..<5000).map { _ in EventDraft(type: .runDecision, actor: .local, payload: payload) })
-    let lines = try home.lines(1).map { Data($0.utf8) }
-    let clock = ContinuousClock()
-    let hash = clock.measure { for l in lines { _ = LedgerLine.hexSHA256(l) } }
-    let decoder = try clock.measure {
-        for l in lines { _ = try JSONDecoder().decode(Event.self, from: l) }
-    }
+    return home
+}
+
+/// Target from the ledger lane: a full read of 5,000 events under 0.3 s (debug build).
+@Test(.enabled(if: perfEnabled)) func perfFullReadOf5000EventsIsUnderTarget() throws {
+    let home = try filledHome()
+    defer { home.cleanup() }
     let reader = LedgerReader(home: home.url)
-    let segment = try reader.existingSegments()[0]
     var count = 0
-    let scan = try clock.measure { try reader.scanLines(segment) { _, _, _ in count += 1 } }
-    let open = try clock.measure { for l in lines { _ = try LedgerLine.open(l) } }
-    print("PERF hash: \(hash); decode: \(decoder); scan: \(scan) (\(count)); open: \(open)")
+    let read = try cpuSeconds { count = try reader.events().count }
+    let tail = try cpuSeconds { _ = try reader.events(from: 4990) }
+    let verify = try cpuSeconds { _ = try LedgerVerifier(home: home.url).verify() }
+    print("PERF read all: \(format(read)); read tail: \(format(tail)); verify: \(format(verify))")
+    #expect(count == 5000)
+    #expect(read < 0.3)
+}
+
+@Test(.enabled(if: perfEnabled)) func perfBreakdown() throws {
+    let home = try filledHome()
+    defer { home.cleanup() }
+    let lines = try home.lines(1).map { Array($0.utf8) }
+    let hash = cpuSeconds { for line in lines { _ = LedgerLine.hexSHA256(line) } }
+    let parse = try cpuSeconds { for line in lines { _ = try JSONParser.parse(line) } }
+    let open = try cpuSeconds { for line in lines { _ = try LedgerLine.open(line) } }
+    let decoder = try cpuSeconds {
+        for line in lines { _ = try JSONDecoder().decode(Event.self, from: Data(line)) }
+    }
+    let store = try LedgerStore(home: home.url, ambient: .fixed())
+    let append = try cpuSeconds {
+        for _ in 0..<50 { try store.append(EventDraft(type: .runDecision, actor: .local)) }
+    }
+    print(
+        "PERF hash: \(format(hash)); parse: \(format(parse)); open: \(format(open)); "
+            + "JSONDecoder: \(format(decoder)); 50 single appends: \(format(append))")
 }

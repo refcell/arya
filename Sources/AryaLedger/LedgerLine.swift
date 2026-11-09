@@ -19,6 +19,10 @@ public enum LedgerLine {
         _ draft: EventDraft, seq: Int64, prev: String, id: EventID, at: Timestamp
     ) throws -> (event: Event, line: [UInt8]) {
         guard case .object = draft.payload else { throw LedgerError.payloadNotObject }
+        // The payload sits one level inside the envelope; deeper lines could not be read back.
+        guard JSONParser.nests(draft.payload, within: JSONParser.maxDepth - 1) else {
+            throw LedgerError.payloadTooDeep
+        }
         var fields: [String: JSONValue] = [
             "v": 1, "seq": .int(seq), "id": .string(id.rawValue), "at": .string(at.description),
             "actor": try CanonicalJSON.jsonValue(draft.actor),
@@ -43,46 +47,96 @@ public enum LedgerLine {
     /// Checks the hash of one line (without its newline) and decodes it. Does not check
     /// `seq` or `prev` continuity; `LedgerVerifier` does.
     public static func open(_ line: some Collection<UInt8>) throws -> Event {
-        let bytes = Array(line)
+        if let event = try line.withContiguousStorageIfAvailable({ try open(buffer: $0) }) {
+            return event
+        }
+        return try Array(line).withUnsafeBufferPointer { try open(buffer: $0) }
+    }
+
+    private static func open(buffer bytes: UnsafeBufferPointer<UInt8>) throws -> Event {
         guard bytes.count > suffixLength + 1 else { throw LineProblem.tooShort }
         let split = bytes.count - suffixLength
-        let suffix = bytes[split...]
-        guard suffix.starts(with: suffixHead), bytes.last == UInt8(ascii: "}"),
-            bytes[bytes.count - 2] == UInt8(ascii: "\"")
-        else { throw LineProblem.missingHashSuffix }
-        let claimed = String(decoding: suffix.dropFirst(suffixHead.count).prefix(64), as: UTF8.self)
-        guard claimed.utf8.allSatisfy(isLowerHex) else { throw LineProblem.missingHashSuffix }
-        let body = bytes[..<split] + [UInt8(ascii: "}")]
-        guard hexSHA256(body) == claimed else { throw LineProblem.hashMismatch }
+        guard hasHashSuffix(bytes, at: split) else { throw LineProblem.missingHashSuffix }
+        var hasher = SHA256()
+        hasher.update(
+            bufferPointer: UnsafeRawBufferPointer(UnsafeBufferPointer(rebasing: bytes[..<split])))
+        hasher.update(data: closingBrace)
+        let digest = hexDigest(hasher.finalize())
+        let claimed = split + suffixHead.count
+        var offset = 0
+        while offset < 64 {
+            guard digest[offset] == bytes[claimed + offset] else { throw LineProblem.hashMismatch }
+            offset += 1
+        }
         let event: Event
         do {
-            event = try JSONDecoder().decode(Event.self, from: Data(bytes))
-        } catch {
-            throw LineProblem.badEnvelope(String(describing: error))
+            event = try Event(envelope: JSONParser.parse(bytes))
+        } catch let problem as JSONParseError {
+            throw LineProblem.badEnvelope(problem.description)
+        } catch let problem as EnvelopeProblem {
+            throw LineProblem.badEnvelope(problem.field)
         }
         guard event.v == 1 else { throw LineProblem.badEnvelope("unsupported version") }
         guard case .object = event.payload else { throw LineProblem.badEnvelope("payload") }
-        guard event.prev.utf8.count == 64, event.prev.utf8.allSatisfy(isLowerHex) else {
-            throw LineProblem.badEnvelope("prev")
-        }
+        guard isHex64(event.prev) else { throw LineProblem.badEnvelope("prev") }
         return event
     }
 
+    /// Whether `bytes` ends, from `split`, in `,"hash":"` + 64 lowercase hex digits + `"}`.
+    private static func hasHashSuffix(_ bytes: UnsafeBufferPointer<UInt8>, at split: Int) -> Bool {
+        // Index loops, not generic slice algorithms, which are slow in debug builds.
+        let head = suffixHead
+        var offset = 0
+        while offset < head.count {
+            guard bytes[split + offset] == head[offset] else { return false }
+            offset += 1
+        }
+        while offset < head.count + 64 {
+            guard isLowerHex(bytes[split + offset]) else { return false }
+            offset += 1
+        }
+        return bytes[bytes.count - 2] == UInt8(ascii: "\"") && bytes[bytes.count - 1] == 125
+    }
+
+    private static func isHex64(_ text: String) -> Bool {
+        var text = text
+        return text.withUTF8 { utf8 in
+            guard utf8.count == 64 else { return false }
+            var offset = 0
+            while offset < 64 {
+                guard isLowerHex(utf8[offset]) else { return false }
+                offset += 1
+            }
+            return true
+        }
+    }
+
+    private static let closingBrace = Data([UInt8(ascii: "}")])
+
     /// Lowercase hex SHA-256.
     public static func hexSHA256(_ bytes: some Sequence<UInt8>) -> String {
-        let digest = SHA256.hash(data: Data(bytes))
-        let hex = Array("0123456789abcdef".utf8)
-        var out = [UInt8]()
-        out.reserveCapacity(64)
-        for byte in digest {
-            out.append(hex[Int(byte >> 4)])
-            out.append(hex[Int(byte & 15)])
+        String(decoding: hexDigest(SHA256.hash(data: Data(bytes))), as: UTF8.self)
+    }
+
+    private static func hexDigest(_ digest: SHA256.Digest) -> [UInt8] {
+        var out = [UInt8](repeating: 0, count: 64)
+        digest.withUnsafeBytes { raw in
+            var index = 0
+            while index < raw.count {
+                out[2 * index] = hexDigit(raw[index] >> 4)
+                out[2 * index + 1] = hexDigit(raw[index] & 15)
+                index += 1
+            }
         }
-        return String(decoding: out, as: UTF8.self)
+        return out
+    }
+
+    private static func hexDigit(_ nibble: UInt8) -> UInt8 {
+        nibble < 10 ? nibble + 48 : nibble + 87
     }
 
     private static func isLowerHex(_ byte: UInt8) -> Bool {
-        (48...57).contains(byte) || (97...102).contains(byte)
+        byte &- 48 < 10 || byte &- 97 < 6
     }
 }
 
@@ -107,6 +161,9 @@ public enum LineProblem: Error, Hashable, Sendable, CustomStringConvertible {
 public enum LedgerError: Error, Hashable, Sendable {
     /// A draft's payload was not a JSON object.
     case payloadNotObject
+    /// A draft's payload nests deeper than `JSONParser.maxDepth - 1` levels, so its line
+    /// could not be read back.
+    case payloadTooDeep
     /// `Event.payload(as:)` was asked for the wrong type.
     case payloadType(seq: Int64, expected: EventType, actual: EventType)
 }
