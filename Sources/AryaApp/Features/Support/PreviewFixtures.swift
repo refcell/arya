@@ -8,16 +8,19 @@ struct FeatureEventBuilder {
     init(start: Date) { clock = start }
 
     /// Appends one event `seconds` after the previous one.
+    /// Pass `at` to stamp a specific time without moving the builder's clock.
     mutating func add(
         _ type: String, steward: String? = PreviewFixtures.steward, run: String? = nil,
-        actor: FeatureActor? = nil, after seconds: Double = 5, _ payload: FeatureJSON = [:]
+        actor: FeatureActor? = nil, after seconds: Double = 5, at: Date? = nil,
+        _ payload: FeatureJSON = [:]
     ) {
-        clock = clock.addingTimeInterval(seconds)
+        if at == nil { clock = clock.addingTimeInterval(seconds) }
+        let stamp = at ?? clock
         let seq = events.count + 1
         let who = actor ?? FeatureActor(kind: .steward, id: steward ?? "arya")
         events.append(
             FeatureEvent(
-                seq: seq, id: "ev_\(seq)", at: clock, steward: steward, run: run, actor: who,
+                seq: seq, id: "ev_\(seq)", at: stamp, steward: steward, run: run, actor: who,
                 type: type, payload: payload,
                 hash: String(repeating: String(seq % 10), count: 64)))
     }
@@ -66,7 +69,8 @@ enum PreviewFixtures {
         var log = FeatureEventBuilder(start: now.addingTimeInterval(-3600))
         let human = FeatureActor.localUser
         let adapter = FeatureActor(kind: .adapter, id: "fake")
-        log.add("steward.created", actor: human, ["name": "Issue triage", "version": 1])
+        log.add("steward.created", actor: human, ["charter": charter, "version": 1])
+        metrics(&log, now: now)
         finished(&log, adapter: adapter)
         let live = liveRun
         log.add("run.started", run: live, after: 1200, ["trigger": "interval"])
@@ -180,6 +184,45 @@ enum PreviewFixtures {
                 "disposition": "auto", "reason": "auto label",
             ])
         log.add("run.finished", run: run, ["status": "completed", "summary": ""])
+    }
+
+    /// The fixture steward's charter, in the JSON shape of ARCHITECTURE.md.
+    static let charter: FeatureJSON = [
+        "v": 1, "id": .string(steward), "name": "Issue triage",
+        "outcome": "Every new issue in the tracker is labeled and routed within one hour.",
+        "metric": [
+            "name": "triaged_within_1h", "unit": "ratio", "direction": "up", "target": 0.95,
+        ],
+        "guardrails": ["Never close an issue.", "Ask before assigning to a person."],
+        "bindings": [
+            [
+                "id": "tracker", "kind": "mcp", "command": "tracker-mcp", "args": [],
+                "read": ["search", "get"], "actions": ["label", "comment", "assign"],
+            ],
+            ["id": "person:alex", "kind": "person", "channel": "inbox"],
+        ],
+        "triggers": [["kind": "interval", "everySeconds": 900], ["kind": "manual"]],
+        "policy": [
+            "default": "ask",
+            "rules": [
+                ["action": "label", "decision": "auto"], ["action": "close", "decision": "deny"],
+            ],
+        ],
+        "adapter": "exec-default", "effort": "medium",
+    ]
+
+    /// Daily values of the outcome metric over the last five days, two readings a day.
+    static let metricValues: [Double] = [0.82, 0.84, 0.86, 0.88, 0.87, 0.9, 0.9, 0.92, 0.93, 0.93]
+
+    private static func metrics(_ log: inout FeatureEventBuilder, now: Date) {
+        let system = FeatureActor(kind: .system, id: "arya")
+        for (index, value) in metricValues.enumerated() {
+            let day = Double(5 - index / 2) * 86_400
+            let at = now.addingTimeInterval(-day + Double(index % 2) * 3600)
+            log.add(
+                "metric.recorded", actor: system, at: at,
+                ["v": 1, "metric": "triaged_within_1h", "value": .number(value)])
+        }
     }
 
     private static func routines(_ log: inout FeatureEventBuilder) {

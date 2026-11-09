@@ -18,7 +18,7 @@ M3 (start now against the app-shell stub workspace):
 - [x] Memory view: notes with provenance, retract.
 - [x] Routines view: names, live version, history, version diff.
 - [x] Rehearsals view: per-case results, expected versus actual, correction, Mark ready.
-- [ ] Metric chart: the steward's outcome metric over time against its target (Swift Charts).
+- [x] Metric chart: the steward's outcome metric over time against its target (Swift Charts).
 - [ ] Charter editor: outcome, metric, guardrails, bindings, triggers, policy, effort; saving
   creates a proposal, never an in-place edit.
 - [ ] Empty, loading, and error states for every view.
@@ -75,6 +75,11 @@ M3 (start now against the app-shell stub workspace):
   ready is the pane's primary action, offered once per charter version for a finished
   rehearsal that is not a proposal's candidate.
 
+- The metric chart plots per-UTC-day means of `metric.recorded` `{metric, value}` for the
+  metric named in the latest `steward.created|charter.updated` charter, the target as a dashed
+  rule, and the latest point as the accent dot. `MetricChartView(store:steward:)` is a
+  self-contained block the shell can place in the steward overview.
+
 ## Questions
 
 ## Log
@@ -87,3 +92,4 @@ M3 (start now against the app-shell stub workspace):
 - 2026-11-09: payload readers switched to the runtime's shapes; question cleared (4c7a2d4).
 - 2026-11-09: memory view with provenance and retract (f71088f).
 - 2026-11-09: routines view with history and version diff (1c91228).
+- 2026-11-09: rehearsals view with case review, corrections, and Mark ready (95a77e5).
