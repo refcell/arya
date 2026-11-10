@@ -60,7 +60,7 @@ is. Fix these five before any other app work:
 2. Dead space everywhere. The bottom 40% of every screen is empty, the inspector is mostly blank, and the top padding is large. Density must come from real content, not wider margins.
 3. Controls read as plain labels ("Edit charter...", "Pause", Low/Medium/High). Actions need clear, compact, keyboard-hinted affordances.
 4. The feel is missing: no sense of an agent working live, no streaming, no motion or progress, no inline diffs, no keyboard-driven flow beyond the palette. It feels like a static report.
-5. The content is thin: 3 stewards and a short plan. The demo home must look like a busy, real workspace.
+5. The content is thin: 3 stewards and a short plan. The demo home must look like a busy, real workspace. Landed (cli-e2e, 2026-11-10): 11 stewards across 8 departments, 685 runs over 4-8 weeks with weekday rhythm and one bad week, 11 approvals waiting, messages, proposals, and a live run in progress during `just snapshot`.
 
 The M3 checklist passes, but the app was far from the target experience. Owners are in
 parentheses; status as of 2026-11-09, evening. "Landed" means on main. The reviewer passed the
