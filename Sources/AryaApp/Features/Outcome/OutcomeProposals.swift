@@ -298,6 +298,10 @@ struct OutcomeProposalRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
             }
+            if let neutral = review.impact.neutralSentence {
+                Text(neutral).aryaText(AryaFont.body, AryaColor.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let diff = review.diff {
                 Button {
                     showDiff = !diffOpen(diff)

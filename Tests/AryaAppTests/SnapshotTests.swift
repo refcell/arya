@@ -80,6 +80,17 @@ import Testing
             .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
             .background(AryaColor.canvas)
             try write("improve-proposals", scheme: scheme, render(section, dark: dark))
+            // The demo's own proposal (guardrail, adapter, and rule notes) with its whole diff.
+            let tall = CGSize(width: Self.size.width, height: 2000)
+            let demo = OutcomeProposalsSection(
+                store: store, list: ChangeList.build(events: store.events, steward: steward.id),
+                events: store.events, latestRun: nil
+            )
+            .padding(AryaSpace.s5)
+            .frame(width: tall.width, height: tall.height, alignment: .topLeading)
+            .background(AryaColor.canvas)
+            try write(
+                "improve-proposal-full", scheme: scheme, render(demo, dark: dark, size: tall))
         }
         // Offscreen renders run no tasks, so load what the Knowledge tab would.
         if let store = model.featureStore {
@@ -136,7 +147,7 @@ import Testing
         model.navigation = NavigationState()
         model.navigation.select(steward: steward.id)
         let sheet = FeatureRegistry.newSteward(model.featureContext())
-            .frame(width: 560, height: 640, alignment: .top)
+            .frame(width: AryaSize.newStewardWidth, height: 640, alignment: .top)
             .frame(width: Self.size.width, height: Self.size.height)
             .background(AryaColor.canvas)
         try write("new-steward", scheme: scheme, render(sheet, dark: dark))
@@ -146,7 +157,7 @@ import Testing
                 let page = NewStewardSheet(
                     store: store, draft: .example, step: step, created: { _ in }, cancel: {}
                 )
-                .frame(width: 560, height: 640, alignment: .top)
+                .frame(width: AryaSize.newStewardWidth, height: 640, alignment: .top)
                 .frame(width: Self.size.width, height: Self.size.height)
                 .background(AryaColor.canvas)
                 try write(
@@ -168,7 +179,7 @@ import Testing
                 let page = NewStewardSheet(
                     store: store, draft: draft, step: step, created: { _ in }, cancel: {}
                 )
-                .frame(width: 560, height: 640, alignment: .top)
+                .frame(width: AryaSize.newStewardWidth, height: 640, alignment: .top)
                 .frame(width: Self.size.width, height: Self.size.height)
                 .background(AryaColor.canvas)
                 try write(name, scheme: scheme, render(page, dark: dark))
@@ -306,10 +317,10 @@ import Testing
     }
 
     /// PNG bytes of a view at `size`, drawn through AppKit so scroll views render too.
-    private func render(_ view: some View, dark: Bool) -> Data? {
+    private func render(_ view: some View, dark: Bool, size: CGSize = Self.size) -> Data? {
         let host = NSHostingView(rootView: view.environment(\.colorScheme, dark ? .dark : .light))
         host.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-        host.frame = NSRect(origin: .zero, size: Self.size)
+        host.frame = NSRect(origin: .zero, size: size)
         host.layoutSubtreeIfNeeded()
         guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else {
             return nil

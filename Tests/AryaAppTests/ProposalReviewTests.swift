@@ -74,7 +74,7 @@ private func reviews() throws -> (
     #expect(owns.impact.needsConfirm)
     let warning = try #require(owns.impact.ownsSentence)
     #expect(warning.hasPrefix("This changes what the steward owns: “Every new issue"))
-    #expect(warning.contains("→ “Feature requests are labeled and routed within a day.”"))
+    #expect(warning.hasSuffix("→ “Feature requests are labeled and routed within a day.”"))
     #expect(ProposalText.confirm(owns).contains("This changes what the steward owns"))
     #expect(regressed.impact.changesOwnership)
     // Adding a guardrail is not a loosening; that proposal keeps the orange Accept.
@@ -111,6 +111,26 @@ private func reviews() throws -> (
             + "delete no longer blocked; sign-off no longer required for refund; "
             + "adapter a → b.")
     #expect(ProposalImpact.build(live: live, proposed: live).needsConfirm == false)
+    // ask → auto through the default, for a kind with no rule of its own.
+    let looserDefault = ProposalImpact.build(
+        live: ["policy": ["default": "ask", "rules": [["action": "label", "decision": "auto"]]]],
+        proposed: [
+            "policy": [
+                "default": "auto",
+                "rules": [["action": "label", "decision": "auto"], ["action": "reply"]],
+            ]
+        ])
+    #expect(looserDefault.loosened.first == "actions without a rule go from ask to auto")
+    // Dropping rule notes keeps every decision: said plainly, and no confirm.
+    let notes = ProposalImpact.build(
+        live: ["policy": ["rules": [["action": "refund", "decision": "ask", "note": "Money."]]]],
+        proposed: ["policy": ["rules": [["action": "refund", "decision": "ask"]]]])
+    #expect(!notes.needsConfirm)
+    #expect(
+        notes.neutralSentence
+            == "Sign-off decisions stay the same; drops the explanation on 1 rule.")
+    #expect(ProposalImpact.sentence("ends “in a day.”") == "ends “in a day.”")
+    #expect(ProposalImpact.sentence("plain") == "plain.")
     let metric = ProposalImpact.build(
         live: ["metric": ["name": "m", "target": 0.95, "direction": "up"]],
         proposed: ["metric": ["name": "m", "target": 0.9, "direction": "up"]])

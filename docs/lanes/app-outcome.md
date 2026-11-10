@@ -180,3 +180,19 @@ is. Fix these five first; this lane owns its share:
   ownership change (quiet Accept…), a tightening (orange Accept), a regression with an
   outcome change, and the demo's loosening (guardrail and adapter sentence), dark and
   light, pass the 5 requirements.
+- 2026-11-09: the sign-off line on the demo proposal: the detector was right (every decision
+  is unchanged; the proposal drops the rule notes), so a muted line now says "Sign-off
+  decisions stay the same; drops the explanation on 5 rules."; tests cover ask → auto per
+  kind and through the default. Sentences no longer double their period after a quote. The
+  New steward sheet and charter editor are two columns (920 pt): a step rail with checks
+  (done steps reachable, later ones faint until the earlier ones are complete; the editor
+  lists what changed) and the step on the right with its footer at the bottom. Visual check
+  (offscreen `just snapshot`, reseeded demo home): new-steward-2..5, charter-editor,
+  charter-editor-5, improve-proposal-full (the demo's whole diff, 2000 pt tall), dark and
+  light, pass the 5 requirements.
+- 2026-11-09: Paused for the night by the user's order. Stopped after the two-column sheets
+  and the sign-off line. Next: the dense Overview outcome line and the composer at the
+  bottom, the inspector's steward context (plan, schedule, connections, people), palette
+  commands for my actions, then parity: onboarding ("Getting to know your team"), scope plus
+  multiple metrics, Impact, Findings. The user judged the app under 60% of the visual target;
+  visual feel is tomorrow's top priority.

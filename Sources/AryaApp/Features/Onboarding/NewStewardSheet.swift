@@ -39,22 +39,98 @@ struct NewStewardSheet: View {
 
     private var finalTitle: String { draft.editing == nil ? "Create steward" : "Propose change" }
 
+    /// Two columns: the steps on the left, the current step on the right.
     var body: some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s4) {
-            VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                Text(heading)
-                    .aryaText(AryaFont.overline, AryaColor.inkFaint)
-                Text(step.title).aryaText(AryaFont.heading, AryaColor.ink)
-                Text(step.question).aryaText(AryaFont.body, AryaColor.inkMuted)
+        HStack(alignment: .top, spacing: 0) {
+            rail
+                .frame(width: AryaSize.newStewardRail, alignment: .topLeading)
+                .frame(maxHeight: .infinity, alignment: .topLeading)
+            AryaHairline(.vertical)
+            VStack(alignment: .leading, spacing: AryaSpace.s4) {
+                VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                    Text(step.title).aryaText(AryaFont.heading, AryaColor.ink)
+                    Text(step.question).aryaText(AryaFont.body, AryaColor.inkMuted)
+                }
+                NewStewardFields(step: step, draft: $draft, advanced: $advanced)
+                problems
+                Spacer(minLength: 0)
+                footer
             }
-            NewStewardFields(step: step, draft: $draft, advanced: $advanced)
-            problems
-            footer.padding(.top, AryaSpace.s2)
+            .padding(AryaSpace.s5)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(AryaSpace.s5)
-        .frame(width: AryaSize.readingWidth, alignment: .topLeading)
+        .frame(width: AryaSize.newStewardWidth)
         .frame(minHeight: AryaSize.newStewardHeight, alignment: .top)
         .background(AryaColor.canvas)
+    }
+
+    /// The heading, then each step: done ones checked and reachable, the current one in ink,
+    /// later ones faint until every step before them is complete.
+    private var rail: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(heading).aryaText(AryaFont.overline, AryaColor.inkFaint)
+                .padding(.bottom, AryaSpace.s3)
+            ForEach(NewStewardDraft.Step.allCases, id: \.self) { item in railRow(item) }
+            if draft.editing != nil {
+                let changed = draft.changedFields()
+                Text(
+                    changed.isEmpty
+                        ? "Nothing changed yet."
+                        : "Changes "
+                            + changed.joined(
+                                separator: ", ")
+                )
+                .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, AryaSpace.s3)
+            }
+        }
+        .padding(AryaSpace.s5)
+    }
+
+    private var changesLine: String {
+        let changed = draft.changedFields()
+        return changed.isEmpty
+            ? "Nothing changed yet." : "Changes " + changed.joined(separator: ", ")
+    }
+
+    private func railRow(_ item: NewStewardDraft.Step) -> some View {
+        let current = item == step
+        let open = reachable(item)
+        let color: Color = current ? AryaColor.ink : open ? AryaColor.inkMuted : AryaColor.inkFaint
+        return Button {
+            if open { move(to: item) }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                Text(mark(item)).aryaText(AryaFont.mono, markColor(item))
+                    .frame(width: AryaSize.newStewardCheck, alignment: .leading)
+                Text(item.title).aryaText(current ? AryaFont.bodyStrong : AryaFont.body, color)
+                Spacer(minLength: 0)
+            }
+            .frame(height: AryaSize.rowHeight)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!open)
+        .accessibilityLabel("Step \(item.rawValue + 1), \(item.title)")
+        .accessibilityAddTraits(current ? .isSelected : [])
+    }
+
+    private func reachable(_ item: NewStewardDraft.Step) -> Bool {
+        NewStewardDraft.Step.allCases.prefix(item.rawValue).allSatisfy {
+            draft.problems($0).isEmpty
+        }
+    }
+
+    private func mark(_ item: NewStewardDraft.Step) -> String {
+        if item != step, item.rawValue < step.rawValue, draft.problems(item).isEmpty {
+            return "✓"
+        }
+        return "\(item.rawValue + 1)"
+    }
+
+    private func markColor(_ item: NewStewardDraft.Step) -> Color {
+        mark(item) == "✓" ? AryaColor.positive : item == step ? AryaColor.ink : AryaColor.inkFaint
     }
 
     @ViewBuilder private var problems: some View {
@@ -347,7 +423,10 @@ struct FirstLaunchView: View {
 }
 
 extension AryaSize {
-    static let newStewardHeight: CGFloat = 420
+    static let newStewardHeight: CGFloat = 560
+    /// The two-column sheet: the step rail plus a step wide enough for the sign-off table.
+    static let newStewardWidth: CGFloat = 920
+    static let newStewardRail: CGFloat = 220
     static let newStewardNumberWidth: CGFloat = 96
     static let newStewardCheck: CGFloat = 16
 }

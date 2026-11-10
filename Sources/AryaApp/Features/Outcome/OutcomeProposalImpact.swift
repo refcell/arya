@@ -9,6 +9,8 @@ struct ProposalImpact: Hashable, Sendable {
     var removedGuardrails: [String] = []
     /// "sign-off no longer required for refund", "adapter a → b".
     var loosened: [String] = []
+    /// Changes that keep every decision: "drops the explanation on 5 sign-off rules".
+    var neutral: [String] = []
 
     var changesOwnership: Bool { !owns.isEmpty }
     var loosens: Bool { !removedGuardrails.isEmpty || !loosened.isEmpty }
@@ -17,7 +19,24 @@ struct ProposalImpact: Hashable, Sendable {
 
     /// "This changes what the steward owns: “…” → “…”."
     var ownsSentence: String? {
-        owns.isEmpty ? nil : "This changes what the steward owns: \(owns.joined(separator: "; "))."
+        owns.isEmpty
+            ? nil
+            : Self.sentence("This changes what the steward owns: \(owns.joined(separator: "; "))")
+    }
+
+    /// "Sign-off decisions stay the same; drops the explanation on 5 rules."
+    var neutralSentence: String? {
+        guard let first = neutral.first else { return nil }
+        return Self.sentence(
+            ([first.prefix(1).uppercased() + first.dropFirst()] + neutral.dropFirst())
+                .joined(separator: "; "))
+    }
+
+    /// Ends `text` with a period unless it already ends in punctuation, inside a quote or not.
+    static func sentence(_ text: String) -> String {
+        var tail = text
+        while let last = tail.last, "”\"’')".contains(last) { tail.removeLast() }
+        return tail.last.map { ".!?".contains($0) } == true ? text : text + "."
     }
 
     /// "Removes 2 guardrails: “…”, “…”; sign-off no longer required for refund."
@@ -33,7 +52,7 @@ struct ProposalImpact: Hashable, Sendable {
         guard let first = parts.first else { return nil }
         let text = ([first.prefix(1).uppercased() + first.dropFirst()] + parts.dropFirst())
             .joined(separator: "; ")
-        return text + "."
+        return Self.sentence(text)
     }
 
     static func build(live: FeatureJSON, proposed: FeatureJSON) -> ProposalImpact {
@@ -49,6 +68,13 @@ struct ProposalImpact: Hashable, Sendable {
         let kept = Set(proposed["guardrails"]?.strings ?? [])
         impact.removedGuardrails = (live["guardrails"]?.strings ?? []).filter { !kept.contains($0) }
         impact.loosened = signOff(live["policy"], proposed["policy"])
+        let dropped = droppedNotes(live["policy"], proposed["policy"])
+        if dropped > 0 {
+            let noun = dropped == 1 ? "rule" : "rules"
+            impact.neutral.append(
+                (impact.loosened.isEmpty ? "sign-off decisions stay the same; " : "")
+                    + "drops the explanation on \(dropped) \(noun)")
+        }
         let oldAdapter = live["adapter"]?.string ?? ""
         let newAdapter = proposed["adapter"]?.string ?? ""
         if oldAdapter != newAdapter {
@@ -101,6 +127,20 @@ struct ProposalImpact: Hashable, Sendable {
                     ? "\(action) no longer blocked" : "sign-off no longer required for \(action)")
         }
         return out
+    }
+
+    /// Rules that keep their action but lose their `note`.
+    static func droppedNotes(_ live: FeatureJSON?, _ proposed: FeatureJSON?) -> Int {
+        var kept: [String: Bool] = [:]
+        for rule in proposed?["rules"]?.array ?? [] {
+            if let action = rule["action"]?.string { kept[action] = rule["note"]?.string != nil }
+        }
+        return (live?["rules"]?.array ?? []).filter { rule in
+            guard rule["note"]?.string != nil, let action = rule["action"]?.string else {
+                return false
+            }
+            return kept[action] == false
+        }.count
     }
 
     static func strictness(_ decision: String) -> Int {
