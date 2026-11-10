@@ -561,3 +561,22 @@ result. Replay answers from the recorded `host/delegate` responses (`RunRequest.
 and replays the child as a crew member. Why: one path for crews keeps the safety rules and
 eval's scoring (`CrewTree`, by `run.delegated`) the same for both kinds.
 
+### 0053 — 2026-11-10 — Stewards learn from the results of their actions
+
+Context: a steward never found out whether what it did worked. Decision: an executed action
+with a target, through an MCP binding that lists the `outcome` read tool, gets follow-up checks:
+an hour after it ran (a minute under demo pace) arya calls `outcome` with the target, kind, and
+time, and records `action.checked` on the action's run (`action`, `kind`, `binding`, `target`,
+`attempt`, `status`, `at`, `note`, `metric`). The answer is normalized: status trimmed and
+lowercased (empty is `unknown`), note cut to 280 characters, a non-finite metric dropped.
+`resolved` and `reopened` settle the action; `open` and `unknown` are checked again after
+another delay, three checks at most. `Effectiveness` scores each kind a steward executed:
+executed and failed counts, resolved and reopened among the latest checks, and credit: the
+change between two consecutive `metric.recorded` readings of the charter's metric, in its good
+direction, split equally among the actions executed between them. Live runs see the scored
+kinds under "What has worked" in their instructions (rehearsals do not, so cases stay
+reproducible); the facade's `effectiveness(steward:)` and `checks(steward:)` feed the recap.
+The serve loop and `RuntimeService(outcomes:)` run the checks. Why: an outcome owner has to
+know which of its moves pay off, and the simplest honest credit is the metric's movement in
+the window the action ran.
+

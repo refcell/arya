@@ -19,12 +19,18 @@ extension Workspace {
         let scheduler = scheduler
         let heartbeat = Self.tickFile(home)
         let pause = demoPace ? min(interval, .seconds(2)) : interval
+        // Follow-up checks of executed actions through each binding's `outcome` tool (runtime
+        // decision 0053): an hour after an action, or a minute under demo pace.
+        let outcomes = OutcomeChecker(
+            sink: sink, delay: demoPace ? 60_000 : FollowUps.delay,
+            connect: BindingActionExecutor.spawn)
         let task = Task {
             if demoPace { await scheduler.setDemoPace(DemoPacer()) }
             // A tick fails only when the ledger cannot be read; keep trying at the next one.
             while !Task.isCancelled {
                 let now = ambient.now()
                 _ = try? await scheduler.pace(now: now)
+                _ = try? await outcomes.check(now: now)
                 if (try? await scheduler.tick(now: now)) != nil {
                     try? Data(String(now.millis).utf8).write(to: heartbeat, options: .atomic)
                 }

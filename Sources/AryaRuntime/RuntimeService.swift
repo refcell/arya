@@ -20,6 +20,10 @@ public struct ServiceTick: Sendable, Hashable {
     public var relayed: Int = 0
     /// Relays that failed this tick, as `<steward>/<binding>: <error>`; the next tick retries.
     public var relayErrors: [String] = []
+    /// Follow-up checks recorded this tick (decision 0053).
+    public var checked: Int = 0
+    /// Follow-up checks that failed (tried again next tick).
+    public var checkErrors: [String] = []
 }
 
 /// The long-running side of arya (`arya serve`, M4): the one process holding `scheduler.lock`.
@@ -32,14 +36,17 @@ public actor RuntimeService {
     private let notifier: (any ApprovalNotifier)?
     private let relays: (@Sendable (CharterBinding) async throws -> any ToolUpstream)?
     private var announced: Set<ApprovalID> = []
+    private let outcomes: OutcomeChecker?
 
     /// Creates a service. `recovery` must share `engine`'s leases. With `relays`, each tick
     /// pulls messages from every relay binding (decision 0042) of stewards that take live
     /// triggers, connecting with it (for example `BindingActionExecutor.spawn`).
     public init(
         engine: RunEngine, recovery: RunRecovery, notifier: (any ApprovalNotifier)? = nil,
-        relays: (@Sendable (CharterBinding) async throws -> any ToolUpstream)? = nil
+        relays: (@Sendable (CharterBinding) async throws -> any ToolUpstream)? = nil,
+        outcomes: OutcomeChecker? = nil
     ) {
+        self.outcomes = outcomes
         self.engine = engine
         self.scheduler = Scheduler(engine: engine)
         self.recovery = recovery
@@ -66,14 +73,18 @@ public actor RuntimeService {
         let expired = expiredRecords.map(\.id)
         let scheduled = try await scheduler.tick(now: now)
         let (relayed, relayErrors) = try await pullRelays()
+        let checks = try await outcomes?.check(now: now)
         let fresh = try await engine.approvals.book().pending.filter {
             !announced.contains($0.id)
         }
         announced.formUnion(fresh.map(\.id))
         if let notifier, !fresh.isEmpty { await notifier.pending(fresh) }
-        return ServiceTick(
+        var result = ServiceTick(
             expired: expired, scheduled: scheduled, announced: fresh.map(\.id), relayed: relayed,
             relayErrors: relayErrors)
+        result.checked = checks?.checked.count ?? 0
+        result.checkErrors = checks?.errors ?? []
+        return result
     }
 
     private func pullRelays() async throws -> (Int, [String]) {

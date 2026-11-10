@@ -95,6 +95,8 @@ public struct InstructionInputs: Sendable, Hashable {
     public var routines: [InstructionRoutine]
     /// The steward's current plan.
     public var plan: [PlanItem] = []
+    /// How each action kind has worked so far (decision 0053).
+    public var effects: [KindEffect] = []
 
     /// Creates composer inputs.
     public init(
@@ -119,7 +121,7 @@ public enum InstructionComposer {
         let sections = [
             header(inputs), metric(inputs.metric), guardrails(inputs.guardrails),
             bindings(inputs.bindings), memory(inputs.memory), routines(inputs.routines),
-            plan(inputs.plan), resultRules(),
+            plan(inputs.plan), effects(inputs.effects), resultRules(),
         ]
         return sections.compactMap { $0 }.joined(separator: "\n\n") + "\n"
     }
@@ -182,6 +184,13 @@ public enum InstructionComposer {
             return line
         }
         return "## Plan\n" + lines.joined(separator: "\n")
+    }
+
+    /// Kinds with results (settled checks or metric credit), so the plan can favor what worked.
+    private static func effects(_ effects: [KindEffect]) -> String? {
+        let known = effects.filter { $0.resolved + $0.reopened > 0 || $0.credited > 0 }
+        guard !known.isEmpty else { return nil }
+        return "## What has worked\n" + known.map { "- \($0.line)" }.joined(separator: "\n")
     }
 
     private static func resultRules() -> String {

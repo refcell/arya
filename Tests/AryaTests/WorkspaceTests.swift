@@ -562,3 +562,36 @@ struct Opened {
         try await workspace.context(steward: "st_none")
     }
 }
+
+private struct ResolvedOutcome: ToolUpstream {
+    func listTools() async throws -> [JSONValue] { [] }
+    func call(_ tool: String, arguments: JSONValue) async throws -> JSONValue {
+        ["structuredContent": ["target": arguments["target"] ?? .null, "status": "resolved"]]
+    }
+    func close() async {}
+}
+
+@Test func effectivenessScoresCheckedActionsByKind() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    var charter = inboxCharter()
+    charter.id = StewardID(unchecked: "st_inbox")
+    charter.bindings = [
+        .mcp(
+            "inbox", command: "inbox-mcp", read: ["get", "outcome"],
+            actions: ["label", "route", "reply"])
+    ]
+    charter.policy = Policy(rules: [Policy.Rule(action: "label", decision: .auto)])
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let far = Timestamp(millis: Int64(Date().timeIntervalSince1970 * 1000) + 10 * 86_400_000)
+    let checked = try await OutcomeChecker(sink: workspace.sink) { _ in ResolvedOutcome() }
+        .check(now: far)
+    #expect(checked.checked.map(\.kind) == ["label"])
+    let effects = try await workspace.effectiveness(steward: "st_inbox")
+    let label = try #require(effects.first { $0.kind == "label" })
+    #expect(label.resolved == 1)
+    #expect(label.successRate == 1)
+    let checks = try await workspace.checks(steward: "st_inbox")
+    #expect(checks.map(\.status) == ["resolved"])
+}

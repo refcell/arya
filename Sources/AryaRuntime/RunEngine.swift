@@ -243,8 +243,12 @@ public struct RunEngine: Sendable {
         } else {
             plan = try PlanBook(events).plans[request.steward] ?? []
         }
-        let instructions = InstructionComposer.compose(
-            InstructionInputs(charter: charter, context: context, plan: plan))
+        var inputs = InstructionInputs(charter: charter, context: context, plan: plan)
+        // A rehearsal sees no live results, so a case composes the same way every time.
+        if case .live = request.mode {
+            inputs.effects = try Effectiveness.of(request.steward, in: events)
+        }
+        let instructions = InstructionComposer.compose(inputs)
         try await recordStart(run, request, charter, version, instructions, context)
         let driver = RunDriver(
             loop: self, request: request, charter: charter, run: run, instructions: instructions,
