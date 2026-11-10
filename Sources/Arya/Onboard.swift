@@ -22,11 +22,13 @@ public struct OnboardSummary: Sendable, Hashable, Codable {
     public var documents: Int
     /// Tool calls that failed.
     public var failed: Int
+    /// Past records summarized from `history` (runtime decision 0063); nil when none were read.
+    public var records: Int?
 }
 
 extension Workspace {
     /// Runs an onboard run of `steward` now. Nil when its charter has no binding that lists
-    /// the `directory` or `process` read tool.
+    /// the `directory`, `process`, or `history` read tool.
     @discardableResult
     public func onboard(steward: String, by person: String = "local") async throws
         -> OnboardSummary?
@@ -53,6 +55,6 @@ extension Workspace {
             steward: id.rawValue, run: latest.run.rawValue, at: latest.at.date,
             sources: done.sources, notes: done.notes, duplicates: done.duplicates,
             people: done.people, queues: done.queues, rules: done.rules,
-            documents: done.documents, failed: done.failed)
+            documents: done.documents, failed: done.failed, records: done.records)
     }
 }

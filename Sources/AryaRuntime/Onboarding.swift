@@ -32,13 +32,16 @@ public struct OnboardRead: Sendable, Hashable, Codable {
     public var queues: Int?
     public var rules: Int?
     public var documents: Int?
+    /// Past records read through `history` (decision 0063).
+    public var records: Int?
     /// Set when the call failed; the counts are then absent.
     public var error: String?
 
     public init(
         binding: String, tool: String, people: Int? = nil, queues: Int? = nil,
-        rules: Int? = nil, documents: Int? = nil, error: String? = nil
+        rules: Int? = nil, documents: Int? = nil, records: Int? = nil, error: String? = nil
     ) {
+        self.records = records
         self.binding = binding
         self.tool = tool
         self.people = people
@@ -62,6 +65,8 @@ public struct OnboardCompleted: Sendable, Hashable, Codable {
     public var documents: Int
     /// Tool calls that failed.
     public var failed: Int
+    /// Past records read through `history` (decision 0063); absent before history ingestion.
+    public var records: Int?
 
     public init(
         sources: [String] = [], notes: Int = 0, duplicates: Int = 0, people: Int = 0,
@@ -90,7 +95,13 @@ public typealias BindingConnect = @Sendable (CharterBinding) async throws -> any
 /// What onboarding reads and how it words notes.
 public enum Onboarding {
     /// The convention tools onboarding reads.
-    public static let tools = [BindingTools.directory, BindingTools.process]
+    public static let tools = [BindingTools.directory, BindingTools.process, BindingTools.history]
+    /// Most past records one onboard run reads from one binding's `history` (decision 0063).
+    public static let historyCap = 500
+    /// Records per `history` page while onboarding.
+    public static let historyPage = 100
+    /// Most people, choices, and resolutions history notes name.
+    public static let historyTop = 5
     /// Longest document text kept in one note.
     public static let documentChars = 1500
     /// The memory tag every onboarding note carries.
@@ -150,6 +161,99 @@ public enum Onboarding {
         return queues + rules + documents
     }
 
+    /// Notes summarizing past records from `binding` (decision 0063): who handled what, how
+    /// records were routed, how they turned out, and common resolutions. Each says how many
+    /// records back it and the span they cover; nothing is kept per record.
+    public static func notes(history items: [HistoryItem], from binding: String)
+        -> [ProposedNote]
+    {
+        guard !items.isEmpty else { return [] }
+        let tags = { (kind: String) in [tag, "history", kind, "from:\(binding)"] }
+        let span = "\(items.count) past records, \(day(items.first!.at)) to \(day(items.last!.at))"
+        func top(_ counts: [String: Int], _ n: Int = historyTop) -> [(String, Int)] {
+            counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
+                .prefix(n).map { ($0.key, $0.value) }
+        }
+        func describe(_ action: HistoryAction) -> String {
+            action.target.map { "\(action.kind) \($0)" } ?? action.kind
+        }
+        var notes: [ProposedNote] = []
+
+        // Who handles what.
+        var handled: [String: Int] = [:]
+        var doing: [String: [String: Int]] = [:]
+        for item in items {
+            for person in Set(item.actions.compactMap(\.by)) { handled[person, default: 0] += 1 }
+            for action in item.actions {
+                guard let by = action.by else { continue }
+                doing[by, default: [:]][describe(action), default: 0] += 1
+            }
+        }
+        for (person, count) in top(handled) {
+            let usual = top(doing[person] ?? [:], 3).map { "\($0.0) (\($0.1))" }
+            let mostly = usual.isEmpty ? "" : ", mostly " + usual.joined(separator: ", ")
+            let about = person.hasPrefix("person:") ? person : "person:\(person)"
+            notes.append(
+                ProposedNote(
+                    text: "Who handles what: \(person) acted on \(count) of \(span)\(mostly).",
+                    tags: tags("people") + [about]))
+        }
+
+        // Routing patterns.
+        var choices: [String: Int] = [:]
+        var firstAction: [String: [String: Int]] = [:]
+        for item in items {
+            guard let choice = item.choice?.trimmingCharacters(in: .whitespaces), !choice.isEmpty
+            else { continue }
+            choices[choice, default: 0] += 1
+            if let first = item.actions.first {
+                firstAction[choice, default: [:]][describe(first), default: 0] += 1
+            }
+        }
+        for (choice, count) in top(choices) where count >= 2 {
+            let usual = top(firstAction[choice] ?? [:], 1).first.map { ", usually \($0.0) first" }
+            notes.append(
+                ProposedNote(
+                    text: "Routing pattern: \(count) of \(span) were \(choice)\(usual ?? "").",
+                    tags: tags("routing")))
+        }
+
+        // How records turned out.
+        let outcomes = items.compactMap { $0.outcome?.status.lowercased() }
+        if !outcomes.isEmpty {
+            let resolved = outcomes.filter { $0 == "resolved" }.count
+            let reopened = outcomes.filter { $0 == "reopened" }.count
+            var reopenedBy: [String: Int] = [:]
+            for item in items where item.outcome?.status.lowercased() == "reopened" {
+                if let choice = item.choice { reopenedBy[choice, default: 0] += 1 }
+            }
+            var text = "Outcomes: of \(span), \(resolved) resolved and \(reopened) reopened"
+            if let worst = top(reopenedBy, 1).first, worst.1 >= 2 {
+                text += "; most reopened: \(worst.0) (\(worst.1))"
+            }
+            notes.append(ProposedNote(text: text + ".", tags: tags("outcomes")))
+        }
+
+        // Common resolutions.
+        var resolutions: [String: Int] = [:]
+        for item in items where item.outcome?.status.lowercased() == "resolved" {
+            guard let note = item.outcome?.note?.trimmingCharacters(in: .whitespacesAndNewlines),
+                !note.isEmpty
+            else { continue }
+            resolutions[String(note.prefix(200)), default: 0] += 1
+        }
+        for (resolution, count) in top(resolutions, 3) where count >= 2 {
+            notes.append(
+                ProposedNote(
+                    text: "Common resolution (\(count) of \(span)): \(resolution)",
+                    tags: tags("resolutions")))
+        }
+        return notes
+    }
+
+    /// The date part of an RFC 3339 time.
+    private static func day(_ at: String) -> String { String(at.prefix(10)) }
+
     /// The latest `onboard.completed` of `steward`, with its run, or nil if it never onboarded.
     public static func latest(_ steward: StewardID, in events: [RuntimeEvent]) throws
         -> (run: RunID, completed: OnboardCompleted, at: Timestamp)?
@@ -199,6 +303,9 @@ extension RunEngine {
                     totals.queues += read.event.queues ?? 0
                     totals.rules += read.event.rules ?? 0
                     totals.documents += read.event.documents ?? 0
+                    if let records = read.event.records {
+                        totals.records = (totals.records ?? 0) + records
+                    }
                 } else {
                     totals.failed += 1
                 }
@@ -240,6 +347,14 @@ extension RunEngine {
     ) async -> (event: OnboardRead, notes: [ProposedNote]) {
         do {
             let upstream = try await connect(binding)
+            if tool == BindingTools.history {
+                defer { Task { await upstream.close() } }
+                let items = try await readHistory(upstream)
+                return (
+                    OnboardRead(binding: binding.id, tool: tool, records: items.count),
+                    Onboarding.notes(history: items, from: binding.id)
+                )
+            }
             let value: JSONValue
             do {
                 value = try await upstream.call(tool, arguments: [:])
@@ -267,6 +382,25 @@ extension RunEngine {
         } catch {
             return (OnboardRead(binding: binding.id, tool: tool, error: "\(error)"), [])
         }
+    }
+
+    /// Up to `Onboarding.historyCap` past records, oldest first, page by page.
+    private static func readHistory(_ upstream: any ToolUpstream) async throws -> [HistoryItem] {
+        var items: [HistoryItem] = []
+        var cursor: String?
+        repeat {
+            let limit = min(Onboarding.historyPage, Onboarding.historyCap - items.count)
+            var arguments: [String: JSONValue] = ["limit": .int(Int64(limit))]
+            if let cursor { arguments["cursor"] = .string(cursor) }
+            let value = try await upstream.call(
+                BindingTools.history, arguments: .object(arguments))
+            let page = try CanonicalJSON.decode(
+                HistoryListResult.self,
+                from: try CanonicalJSON.encode(value["structuredContent"] ?? value))
+            items += page.items.prefix(Onboarding.historyCap - items.count)
+            cursor = page.items.isEmpty ? nil : page.next
+        } while cursor != nil && items.count < Onboarding.historyCap
+        return items
     }
 
     private func append<P: Encodable>(

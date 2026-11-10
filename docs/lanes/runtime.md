@@ -289,3 +289,4 @@ M4:
 - 2026-11-10: self-onboarding (0059): onboard runs read `directory`/`process` bindings into memory notes with provenance, `onboard.read`/`onboard.completed`; automatic before a new steward's first live run; facade `onboard`/`onboarding`; `arya steward onboard`.
 - 2026-11-10: per-person memory (0061): `person:<id>` notes recalled only for runs acting for that person (sender, named bindings, `person:<id>` in the input), inbox corrections tagged with the sender, facade `personMemory`.
 - 2026-11-10: shared routines (0062): one version per content hash across stewards, followers and upgrades (`RoutineUpgrades`), upgrade is a gated adoption; facade `routineUses`, `routineUpgrades`, `upgradeRoutine`.
+- 2026-11-10: onboarding reads `history` (0063): up to 500 past records summarized into who-handles-what, routing, outcome, and resolution notes with provenance; `records` on read/completed/summary.

@@ -128,6 +128,7 @@ is. Fix these five first; this lane owns its share:
 - (from eval) `comparison(proposal:)` rows now carry `fields` (choice/action: expected,
   current, proposed, matches, changed), both scores and run ids; `learnedChecks` has `result`.
 - (from runtime) Onboarding (decision 0059): `Workspace.onboarding(steward:)` (what a steward learned: people, queues, rules, documents, from which bindings) and `onboard(steward:)` for an "Onboard again" button; onboarding notes carry the `onboarding` and `from:<binding>` tags.
+- (from runtime) Onboarding now reads `history` too (decision 0063): `OnboardSummary.records` (nil when none); notes tagged `history` with kinds `people`, `routing`, `outcomes`, `resolutions`. Show the record count on the getting-to-know-your-team card.
 
 ## Log
 

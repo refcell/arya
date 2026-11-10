@@ -154,6 +154,7 @@ M4:
   `demoProposalTitlesDescribeTheirDiffs`); port demo.sh's refunds history (`binding:
   "billing"`), triage/refunds reviews, and `etc/examples/proposals.json`.
 - (from runtime) Integration edits (decision 0059): `arya steward onboard <steward>` (`CommandID.stewardOnboard`, `OnboardReport`, `TextRender.onboard`, backend default in the `CLIBackend` extension). Demo: a triage binding listing `directory` and `process` over the example `inbox-history.json` data would make the demo home show onboarding notes; add an e2e step if you wire it.
+- (from runtime) `OnboardSummary.records` (decision 0063): past records summarized from `history`; worth a word in `arya steward onboard` text and an e2e step with a history binding.
 
 ## Log
 - 2026-11-10: `arya steward onboarding|gate|trajectories|metrics` (onboardingState, goLiveGate,

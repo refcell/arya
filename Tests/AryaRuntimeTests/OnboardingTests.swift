@@ -139,3 +139,73 @@ private func onboardingCharter() -> Charter {
     #expect(try await harness.sink.events(from: 1).allSatisfy { !$0.type.hasPrefix("onboard.") })
     #expect(try await harness.loop.onboard(triage, connect: { _ in OrgChart() }) == nil)
 }
+
+/// A `history` binding with `count` past tickets, paged by offset cursor.
+private struct TicketHistory: ToolUpstream {
+    var count: Int
+    func listTools() async throws -> [JSONValue] { [] }
+    func call(_ tool: String, arguments: JSONValue) async throws -> JSONValue {
+        let all = (0..<count).map { i in
+            let billing = i % 3 != 2
+            return HistoryItem(
+                id: "T-\(i)", at: String(format: "2026-09-%02dT10:00:00Z", 1 + i % 28),
+                input: "New ticket T-\(i)",
+                actions: [
+                    HistoryAction(
+                        kind: "route", target: billing ? "queue:billing" : "queue:help",
+                        by: billing ? "person:sam" : "person:ana")
+                ],
+                choice: billing ? "billing" : "how-to",
+                outcome: HistoryOutcome(
+                    status: i % 5 == 4 ? "reopened" : "resolved",
+                    note: billing ? "Refunded the duplicate charge." : nil))
+        }
+        let params = try CanonicalJSON.decode(
+            HistoryListParams.self, from: try CanonicalJSON.encode(arguments))
+        let page = BindingHistory.page(all, params)
+        return [
+            "structuredContent": try CanonicalJSON.decode(
+                JSONValue.self, from: try CanonicalJSON.encode(page))
+        ]
+    }
+    func close() async {}
+}
+
+@Test func onboardingSummarizesPastRecordsIntoCappedNotes() async throws {
+    let harness = RunHarness(FakeScript.Run(result: triageResult))
+    var charter = triageCharter()
+    charter.bindings.append(.mcp("desk", command: "desk-mcp", read: ["history"], actions: []))
+    try await harness.lifecycle.create(charter)
+    let outcome = try #require(
+        try await harness.loop.onboard(triage, connect: { _ in TicketHistory(count: 700) }))
+    // The cap bounds what one onboarding reads.
+    #expect(outcome.completed.records == Onboarding.historyCap)
+    let notes = try await harness.sink.events(from: 1)
+        .filter { $0.type == "memory.added" && $0.draft.run == outcome.run }
+        .map { try Payload.decode(MemoryAddedPayload.self, $0.payload).note }
+    let texts = notes.map(\.text)
+    #expect(texts.contains { $0.hasPrefix("Who handles what: person:sam acted on 334 of 500") })
+    #expect(texts.contains { $0.contains("mostly route queue:billing (334)") })
+    #expect(
+        texts.contains {
+            $0.hasPrefix("Routing pattern: 334 of 500")
+                && $0.contains("billing, usually route queue:billing first")
+        })
+    #expect(
+        texts.contains {
+            $0.hasPrefix("Outcomes: of 500 past records")
+                && $0.contains("400 resolved and 100 reopened")
+        })
+    #expect(
+        texts.contains {
+            $0.contains("Common resolution") && $0.hasSuffix("Refunded the duplicate charge.")
+        })
+    #expect(notes.allSatisfy { $0.tags.contains("history") && $0.tags.contains("from:desk") })
+    #expect(notes.allSatisfy { $0.provenance.run == outcome.run })
+    let sam = try #require(notes.first { $0.text.contains("person:sam acted") })
+    #expect(sam.tags.contains("person:sam"))
+    // A second onboarding adds no duplicates.
+    let again = try #require(
+        try await harness.loop.onboard(triage, connect: { _ in TicketHistory(count: 700) }))
+    #expect(again.completed.notes == 0)
+}

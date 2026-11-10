@@ -690,3 +690,17 @@ otherwise. The facade has `routineUses(name:)` (each steward's live version and 
 follows), `routineUpgrades(steward:)`, and `upgradeRoutine(steward:name:)`. Why: a fix to a
 shared routine should reach every steward that uses it, but only through each one's own gate.
 
+### 0063 — 2026-11-10 — Onboarding learns from past records, summarized and capped
+
+Context: onboarding (0059) read people and process, but not what was done before arya arrived.
+Decision: a binding that lists the `history` read tool is also an onboarding source. One onboard
+run reads at most 500 of its past records (pages of 100) and keeps summaries, never records:
+who handles what (each of the top 5 people, with their usual actions, tagged with the person so
+per-person memory (0061) recalls it), routing patterns (choices seen at least twice and the
+usual first action), how records turned out (resolved, reopened, the most reopened choice), and
+common resolutions (resolution notes seen at least twice). Every note says how many records
+back it and the dates they span, and keeps 0059's provenance (the onboard run, `from:<binding>`)
+plus the `history` tag; duplicates are skipped. `onboard.read` and `onboard.completed` carry
+`records`. Why: the habits of a team live in its past tickets and messages; a new steward
+should start from them, without copying every record into memory.
+
