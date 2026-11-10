@@ -111,3 +111,75 @@ import Testing
     #expect(Workspace.recordTool(try binding(["order", "get"])) == "billing.get")
     #expect(Workspace.recordTool(try binding(["history"])) == nil)
 }
+
+private final class ProductsMarker {}
+
+/// A steward bound to a real local connector, `arya-binding folder <dir>`: importing from it
+/// pages the folder's `history.csv` into the casebook and the review queue, newest first, and
+/// each record is served as the binding's `get` so a rehearsal does not leak.
+@Test func historyImportsFromARealFolderConnector() async throws {
+    let folder = FileManager.default.temporaryDirectory
+        .appendingPathComponent("arya-folder-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let csv = """
+        id,at,subject,body,action.label.label,target,by,acted_at,choice,outcome
+        T-1,2026-09-01T09:00:00Z,Export broken,Nothing happens.,bug,inbox:T-1,person:alex,\
+        2026-09-01T09:30:00Z,bug,reopened
+        T-2,2026-09-02T10:00:00Z,Refund please,Charged twice.,billing,inbox:T-2,person:sam,\
+        2026-09-02T10:20:00Z,billing,resolved
+        T-3,2026-09-03T08:00:00Z,Unsolicited offer,Buy followers.,spam,inbox:T-3,person:sam,,spam,
+
+        """
+    try Data(csv.utf8).write(to: folder.appendingPathComponent("history.csv"))
+    let binary = Bundle(for: ProductsMarker.self).bundleURL.deletingLastPathComponent()
+        .appendingPathComponent("arya-binding").path
+
+    let opened = try await Opened(improvementScript())
+    let workspace = opened.workspace
+    var charter = inboxCharter()
+    charter.bindings = [
+        .mcp(
+            "inbox", command: binary, args: ["folder", folder.path], read: ["get", "history"],
+            actions: ["label", "route"])
+    ]
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+
+    let summary = try await workspace.importHistory(steward: "st_inbox", binding: "inbox")
+    #expect(summary.added == ["hist-T-3", "hist-T-2", "hist-T-1"], "\(summary.summary)")
+    #expect(summary.invalid.isEmpty && summary.duplicates.isEmpty)
+    let again = try await workspace.importHistory(steward: "st_inbox", binding: "inbox")
+    #expect(again.added.isEmpty && again.duplicates.count == 3)
+    let queue = try #require(try await workspace.reviewQueue(steward: "st_inbox"))
+    #expect(queue.total == 3 && queue.reviewed == 0)
+}
+
+/// The http-json connector's `history` page (`{"items": [...], "next": ...}`) imports from a
+/// saved file the same way, so a page fetched by hand is a valid export.
+@Test func anHTTPJSONHistoryPageImportsAsAnExport() async throws {
+    let opened = try await Opened(improvementScript())
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(inboxCharter()))
+    let page = """
+        {"items": [{"id": "H-1", "at": "2026-09-01T00:00:00Z", "input": "New record H-1",
+        "actions": [{"kind": "route", "params": {"queue": "help"}, "by": "person:sam"}],
+        "choice": "how-to"}], "next": "1"}
+        """
+    let summary = try await workspace.importHistory(
+        steward: "st_inbox", data: Data(page.utf8), source: "history.json")
+    #expect(summary.added == ["hist-H-1"] && summary.invalid.isEmpty)
+}
+
+/// The go-live gate reads the steward's own review queue, rehearsal, and checks: right after a
+/// history import nothing is agreed yet, so it is not ready and says what is missing.
+@Test func goLiveGateReadsTheStewardsEvidence() async throws {
+    let opened = try await Opened(improvementScript())
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(inboxCharter()))
+    let fresh = try await workspace.goLiveGate(steward: "st_inbox")
+    #expect(!fresh.ready && fresh.conditions.map(\.key) == ["review", "rehearsal", "checks"])
+    #expect(fresh.summary.hasPrefix("Not ready: import history to review; "))
+    await #expect(throws: WorkspaceError.notFound("nope")) {
+        try await workspace.goLiveGate(steward: "nope")
+    }
+}

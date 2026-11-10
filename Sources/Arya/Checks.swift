@@ -12,6 +12,19 @@ extension Workspace {
         return try await LearnedChecks(sink: sink, casebooks: casebookSource).view(steward: id)
     }
 
+    /// Whether the steward is ready to go live after onboarding: `agreed` agreed reviews (or
+    /// every case of a smaller queue), a passing live rehearsal, and every learned check
+    /// rehearsed and green. For onboarding's "Ready to go live" step.
+    public func goLiveGate(steward: String, agreed: Int = GoLiveGate.defaultAgreed)
+        async throws -> GoLiveSummary
+    {
+        let id = try await existing(steward).id
+        return GoLiveGate.evaluate(
+            steward: steward, review: try await reviewQueue(steward: steward),
+            readiness: try await ReadinessReports(sink: readSink).report(id),
+            checks: try await learnedChecks(steward: steward), agreed: agreed)
+    }
+
     /// Records a new version of the steward's learned checks when its corrections or
     /// agreements changed them.
     func rebuildChecks(_ steward: StewardID, by person: String) async throws {
@@ -24,3 +37,4 @@ extension Workspace {
 public typealias LearnedChecksSummary = LearnedChecksView
 /// One learned check and whether the newest live rehearsal passes it.
 public typealias LearnedCheckLine = LearnedCheckResult
+public typealias GoLiveSummary = GoLiveGateResult

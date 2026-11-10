@@ -326,3 +326,10 @@ Parity (CEO gap map):
   (generated ones ungated to keep seed load down). Seeder now loads `fake-triage-v2`, so the
   triage proposal rehearses (96% to 96%, fails on case-0005 as designed). Visual check skipped
   under load; reviewer judges after publish (point 5).
+- 2026-11-10: `arya history import <steward> --from <binding>` pages a real local connector
+  (`arya-binding folder`); facade test and e2e step import the triage export served from a
+  folder (25 cases, review queue). Go-live gate (`GoLiveGate`, facade `goLiveGate`): N agreed
+  reviews (default 10, or every case of a smaller queue), a passing live rehearsal, and every
+  learned check rehearsed and green; one sentence names what is missing. Next: trajectory
+  grading (credit actions with outcome checks weeks later) for Impact confidence.
+
