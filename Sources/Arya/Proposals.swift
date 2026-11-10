@@ -89,13 +89,13 @@ extension Workspace {
     public func proposals(steward: String) async throws -> [ProposalSummary] {
         let id = try await existing(steward).id
         return try await measured(
-            ProposalBook(try facadeState().runtime).all(steward: id).reversed())
+            facadeState().proposals.all(steward: id).reversed())
     }
 
     /// One proposal, or `nil`.
     public func proposal(_ id: String) async throws -> ProposalSummary? {
         guard
-            let record = try ProposalBook(try facadeState().runtime)
+            let record = try facadeState().proposals
                 .records[ProposalID(unchecked: id)]
         else { return nil }
         return try await measured([record]).first
@@ -104,14 +104,9 @@ extension Workspace {
     /// Summaries with their impact against the charter each was written against (its base
     /// version), so a decided proposal keeps showing what it changed.
     func measured(_ records: [ProposalRecord]) async throws -> [ProposalSummary] {
-        var book = StewardBook()
-        var versions: [StewardID: [Int: Charter]] = [:]
-        for event in try facadeState().runtime {
-            try book.apply(event)
-            guard let steward = event.draft.steward, let record = book.records[steward]
-            else { continue }
-            versions[steward, default: [:]][record.version] = record.charter
-        }
+        let state = try facadeState()
+        let book = state.stewards
+        let versions = state.charterVersions
         return records.map { record in
             var summary = ProposalSummary(record)
             let base =

@@ -110,7 +110,7 @@ extension Workspace {
         var proposalID: ProposalID?
         if let proposal {
             guard
-                let found = try ProposalBook(try facadeState().runtime)
+                let found = try facadeState().proposals
                     .records[ProposalID(unchecked: proposal)],
                 found.steward == record.steward
             else { throw WorkspaceError.notFound(proposal) }

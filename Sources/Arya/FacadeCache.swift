@@ -24,6 +24,10 @@ struct FacadeState: Sendable {
     /// Each steward's events, oldest first, for per-steward reads (metrics, outcomes).
     var bySteward: [StewardID: [RuntimeEvent]] = [:]
     var rehearsals = RehearsalBook()
+    var proposals = ProposalBook()
+    /// Each steward's charter by version, from the versions folded here (a book seeded from
+    /// the disk cache has no older versions; readers fall back to the live charter).
+    var charterVersions: [StewardID: [Int: Charter]] = [:]
     /// Step counts, last step titles, and run lengths, for `liveRuns()`.
     var live = LiveTally(keepSteps: false)
     /// Imported casebooks, oldest first.
@@ -38,7 +42,12 @@ struct FacadeState: Sendable {
 
     mutating func apply(_ event: Event) throws {
         if event.seq > seeded.runs { try runs.apply(event) }
-        if event.seq > seeded.stewards { try stewards.apply(event) }
+        if event.seq > seeded.stewards {
+            try stewards.apply(event)
+            if let steward = event.steward, let record = stewards.records[steward] {
+                charterVersions[steward, default: [:]][record.version] = record.charter
+            }
+        }
         if event.seq > seeded.approvals { try approvals.apply(event) }
         fold(event)
         seq = event.seq
@@ -61,6 +70,7 @@ struct FacadeState: Sendable {
         if let steward = event.steward { bySteward[steward, default: []].append(runtimeEvent) }
         if let run = event.run { byRun[run, default: []].append(event) }
         try? rehearsals.apply(runtimeEvent)
+        try? proposals.apply(runtimeEvent)
         live.add(event)
         if let casebook = Workspace.casebookSummary(event) { casebooks.append(casebook) }
         let type = event.type.rawValue
@@ -166,7 +176,14 @@ final class FacadeCache: @unchecked Sendable {
         // least caught-up book; reads continue from there, and each book skips what it has.
         let reader = LedgerReader(home: home)
         let start = min(runs.seq, stewards.seq, approvals.seq)
+        var versions = StewardBook()
         try reader.forEach { event in
+            // Charter versions for proposal impact, which the seeded book does not keep.
+            if let steward = event.steward, (try? versions.apply(event)) != nil,
+                let record = versions.records[steward]
+            {
+                fresh.charterVersions[steward, default: [:]][record.version] = record.charter
+            }
             guard event.seq <= start else { return }
             fresh.fold(event)
             if event.seq == start { fresh.hash = event.hash }

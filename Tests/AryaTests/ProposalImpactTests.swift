@@ -1,4 +1,5 @@
 import AryaCore
+import AryaRuntime
 import Foundation
 import Testing
 
@@ -39,6 +40,11 @@ private func encoded(_ charter: Charter) throws -> Data { try JSONEncoder().enco
         steward: "st_inbox", charter: try encoded(renamed), baseVersion: 1)
     #expect(harmless.impact.isEmpty && harmless.removed.isEmpty)
     #expect(harmless.detail?.needsConfirm == false)
+
+    // Once the charter moves on, a fresh workspace still measures against the base version.
+    _ = try await StewardLifecycle(sink: await workspace.sink).updateCharter(renamed)
+    let reopened = try await Workspace.open(home: opened.home.url)
+    #expect(try await reopened.proposal(proposal.id)?.impact == proposal.impact)
 }
 
 @Test func proposalImpactRulesMatchTheApp() throws {
