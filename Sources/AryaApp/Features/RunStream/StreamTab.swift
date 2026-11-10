@@ -15,7 +15,10 @@ struct StreamTab: View {
             RunStreamView(
                 store: store, run: run,
                 accessory: AnyView(
-                    RunControls(store: store, steward: steward, run: run, paused: paused).id(run)),
+                    HStack(spacing: AryaSpace.s3) {
+                        RunGovernanceControls(store: store, run: run)
+                        RunControls(store: store, steward: steward, run: run, paused: paused)
+                    }.id(run)),
                 openRun: openRun)
         } else {
             VStack(alignment: .leading, spacing: AryaSpace.s3) {

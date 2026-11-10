@@ -27,7 +27,8 @@
       "actions": [
         "label",
         "route",
-        "reply"
+        "reply",
+        "unlabel"
       ]
     },
     {
@@ -94,6 +95,13 @@
         "decision": "deny",
         "note": "The steward never deletes messages; people decide what to throw away."
       }
+    ],
+    "undo": [
+      {
+        "action": "label",
+        "with": "unlabel",
+        "note": "A wrong label is taken back by removing it."
+      }
     ]
   },
   "adapter": "fake-triage",
@@ -120,6 +128,8 @@
   },
   "report": {
     "cadence": "weekly",
-    "to": ["person:sam"]
+    "to": [
+      "person:sam"
+    ]
   }
 }

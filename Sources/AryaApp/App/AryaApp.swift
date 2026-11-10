@@ -42,7 +42,8 @@ struct AryaApp: App {
         .commands { AryaCommands(session: session) }
         // App settings (home, appearance, text size), opened by the gear or Command-comma.
         Settings {
-            AppSettingsView(home: session.model?.source.label)
+            AppSettingsView(
+                home: session.model?.source.label, governance: session.model?.governance)
         }
     }
 }
@@ -50,10 +51,12 @@ struct AryaApp: App {
 /// App-wide settings, apart from any steward: where the home is, appearance, and text size.
 struct AppSettingsView: View {
     /// The Settings window's content size.
-    static let windowSize = CGSize(width: 420, height: 220)
+    static let windowSize = CGSize(width: 460, height: 400)
 
     /// The open home's label; nil before one opens.
     let home: String?
+    /// Retention and encryption for the open home (governance lane); nil before one opens.
+    var governance: (any GovernanceSource)? = nil
     @AppStorage(AryaApp.appearanceKey) private var appearance = AryaAppearance.dark.rawValue
     @AppStorage(TextScale.defaultsKey) private var textScale = Double(TextScale.standard)
 
@@ -78,6 +81,7 @@ struct AppSettingsView: View {
                     selection: TextScale.normalized(textScale)
                 ) { textScale = Double($0) }
             }
+            if governance != nil { HomeGovernanceSection(source: governance) }
         }
         .padding(AryaSpace.s4)
         .frame(

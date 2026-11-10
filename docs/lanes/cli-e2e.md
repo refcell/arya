@@ -118,6 +118,7 @@ M4:
   please add an e2e step that a person's approvals survive a charter proposal.
 - (from workspace) live: `serveStatus()` for `arya serve`; e2e and demo can use `createFromTemplate`, `portfolio()`, `remember(...)` (shared or per steward), and `message(steward:text:intent:by:)`; the templates are in `etc/examples/templates`.
 - (from eval) Added triage/history-export.jsonl, demo history import + review, e2e steps 15-18.
+- (from governance) The triage example charter now has `policy.undo` (label → unlabel) and the inbox binding lists `unlabel`, so the demo and e2e can undo a label (`undoOptions`/`undoAction`).
 
 ## Log
 - 2026-11-10: Paused for the night after the approvers and abort batch. Next: an e2e step per

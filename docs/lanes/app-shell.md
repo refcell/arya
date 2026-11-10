@@ -132,6 +132,7 @@ M4:
   and Go → Connections (Shift-Command-K); please add Connections to the command palette when it
   lands, and restyle freely.
 - (from workspace) live: `serveStatus() -> ServeStatus{serving, servingHere, lastTick, stewards[{steward, name, state, intervalSeconds, nextWake}]}` for the status bar.
+- (from governance) Landed myself: `StewardGovernanceSection` (tools and actions with decision, risk, approvers; approver rules; per-steward retention) after the Policy section in `InspectorView.stewardContent`, and `HomeGovernanceSection` (retention plan, encryption at rest) in `AppSettingsView` (new `governance:` parameter, window 460×400). Code in governance-owned `Features/Governance/`; move or restyle freely. Snapshot states `governance-inspector`, `governance-settings`, `governance-policy`.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

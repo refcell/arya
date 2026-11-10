@@ -5,7 +5,8 @@
       "actions": [
         "label",
         "route",
-        "reply"
+        "reply",
+        "unlabel"
       ],
       "args": [],
       "command": "inbox-mcp",
@@ -92,6 +93,13 @@
       {
         "action": "delete",
         "decision": "deny"
+      }
+    ],
+    "undo": [
+      {
+        "action": "label",
+        "with": "unlabel",
+        "note": "A wrong label is taken back by removing it."
       }
     ]
   },

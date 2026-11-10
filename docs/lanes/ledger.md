@@ -124,6 +124,9 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - [ ] (G4b) Re-seal history written before encryption was enabled: rewrite those segments
   into a sealed copy under a signed checkpoint that maps old to new hashes, once (14)
   defines bundles; until then `encryption().clearEvents` counts them.
+- [x] (G1-G4a in the app) Abort, Undo, policy and approvers, retention, and encryption
+  shown in the app with snapshot states (`Features/Governance/`, hooks in StreamTab,
+  InspectorView, AppSettingsView).
 - [ ] (G5) Signed audit export of a steward's ledger slice: JSON Lines plus a verification
   manifest, from the app.
 - [ ] (G6) Then (13) and (14) above.
@@ -304,6 +307,16 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) New eval event `case.reviewed` {casebook, case, verdict agreed|skipped}; PROTOCOL?
 
 ## Log
+- 2026-11-10: governance visible in the app (governance-owned `Features/Governance/`):
+  Abort (live runs, Command-period, with an abort question) and Undo (executed actions,
+  undo list) in the run header; tools, actions with decision, risk, and approvers, the
+  approver rules, and per-steward retention in the steward inspector; home retention with
+  its plan and encryption at rest (Encrypt with a confirm) in app settings. Snapshot states
+  `governance-inspector`, `governance-run`, `governance-run-controls`, `governance-policy`,
+  `governance-settings`; the triage example gains `policy.undo` (label → unlabel) so the
+  demo run shows Undo. Visual check: `just snapshot` PNGs read; moves point (3) real
+  controls (compact, keyboard-hinted Abort ⌘., Undo with count) and (2) density (the
+  inspector's policy block is dense mono rows, no empty panes).
 - 2026-11-09: Paused for the night (user order) after (G4a) landed. Next: (G5) signed audit
   export (plan: `AuditExport` writes the steward's raw lines, the `system.key.added` lines,
   an optional `payloads.jsonl` of opened payloads, and a manifest signed by the checkpoint

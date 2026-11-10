@@ -232,6 +232,7 @@ struct InspectorView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        StewardGovernanceSection(model: model, steward: steward.id)
         section("Connections") {
             if context.connections.isEmpty {
                 Text("None").aryaText(AryaFont.caption, AryaColor.inkFaint)
