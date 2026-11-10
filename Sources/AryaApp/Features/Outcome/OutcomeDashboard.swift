@@ -295,19 +295,16 @@ struct OutcomeMetricsPanel: View {
     let now: Date
 
     var body: some View {
+        // The chart spans the stream; the series sit beneath it in as many columns as fit.
         OutcomeSection("Metrics", trailing: "\(OutcomeMetrics.windowDays) days") {
-            HStack(alignment: .top, spacing: AryaSpace.s5) {
+            VStack(alignment: .leading, spacing: AryaSpace.s3) {
                 chart.frame(maxWidth: .infinity)
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(metrics.series.filter { !$0.guardrail }) { row($0) }
-                    let guardrails = metrics.series.filter(\.guardrail)
-                    if !guardrails.isEmpty {
-                        Text("GUARDRAILS").aryaText(AryaFont.overline, AryaColor.inkFaint)
-                            .padding(.top, AryaSpace.s2)
-                        ForEach(guardrails) { row($0) }
-                    }
+                grid(metrics.series.filter { !$0.guardrail })
+                let guardrails = metrics.series.filter(\.guardrail)
+                if !guardrails.isEmpty {
+                    Text("GUARDRAILS").aryaText(AryaFont.overline, AryaColor.inkFaint)
+                    grid(guardrails)
                 }
-                .frame(width: AryaSize.outcomeSeriesWidth)
             }
             .padding(.top, AryaSpace.s1)
         }
@@ -356,6 +353,21 @@ struct OutcomeMetricsPanel: View {
     private var axis: (low: Double, high: Double) {
         let values = metrics.points.map(\.value) + [metrics.metric?.target].compactMap { $0 }
         return (values.min() ?? 0, values.max() ?? 1)
+    }
+
+    /// Two columns of series rows (offscreen renders draw no lazy grids).
+    private func grid(_ series: [OutcomeSeries]) -> some View {
+        let pairs = stride(from: 0, to: series.count, by: 2).map {
+            Array(series[$0..<min($0 + 2, series.count)])
+        }
+        return VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
+                HStack(spacing: AryaSpace.s5) {
+                    ForEach(pair) { row($0).frame(maxWidth: .infinity) }
+                    if pair.count == 1 { Spacer().frame(maxWidth: .infinity) }
+                }
+            }
+        }
     }
 
     private func row(_ series: OutcomeSeries) -> some View {

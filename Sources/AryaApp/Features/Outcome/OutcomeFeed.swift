@@ -131,6 +131,8 @@ struct OutcomeActivity: Hashable, Sendable, Identifiable {
     var state: State
     var at: Date
     var seq: Int
+    /// What it writes to the target, one line per parameter: "+bug", "+note: Asked about…".
+    var writes: [String] = []
 
     var id: String { "\(run)/\(action)" }
 }
@@ -215,7 +217,25 @@ enum OutcomeActivityFeed {
             run: run, action: id, kind: kind, target: action?["target"]?.string,
             reason: reason, policy: disposition.flatMap(AryaPolicy.init(rawValue:)),
             risk: event.payload["risk"]?.string ?? action?["risk"]?.string,
-            state: disposition == "deny" ? .rejected : .proposed, at: event.at, seq: event.seq)
+            state: disposition == "deny" ? .rejected : .proposed, at: event.at, seq: event.seq,
+            writes: writes(action?["params"], kind: kind))
+    }
+
+    /// The run pane's diff lines for an action, one per parameter and on one line each: the
+    /// value itself when the key names the action ("bug" for a label), else "key: value".
+    static func writes(_ params: FeatureJSON?, kind: String) -> [String] {
+        guard case .object(let members)? = params else { return [] }
+        return members.keys.sorted().compactMap { key in
+            guard let value = members[key] else { return nil }
+            let text: String =
+                switch value {
+                case .string(let string): string
+                default: value.compactText
+                }
+            let line = text.split(separator: "\n").first.map(String.init) ?? ""
+            // One parameter reads as its value: a note's "+Asked about pricing".
+            return key == kind || members.count == 1 ? line : "\(key): \(line)"
+        }
     }
 }
 

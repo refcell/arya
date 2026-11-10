@@ -270,3 +270,17 @@ private func triage() -> OutcomeSnapshot {
         OutcomeWake.triggers(events: log.events, steward: "st_triage")
             == [true, false, true, true, true])
 }
+
+/// RECENT's inline diff: one line per parameter, a lone parameter as its value.
+@Test func recentWritesReadAsTheRunPaneDiff() {
+    #expect(
+        OutcomeActivityFeed.writes(["text": "qualified: Pricing page visit"], kind: "note")
+            == ["qualified: Pricing page visit"])
+    #expect(
+        OutcomeActivityFeed.writes(["label": "bug", "queue": "billing"], kind: "label")
+            == ["bug", "queue: billing"])
+    #expect(
+        OutcomeActivityFeed.writes(["body": "Hi\nthere", "to": "ana"], kind: "send_email")
+            == ["body: Hi", "to: ana"])
+    #expect(OutcomeActivityFeed.writes(nil, kind: "note").isEmpty)
+}

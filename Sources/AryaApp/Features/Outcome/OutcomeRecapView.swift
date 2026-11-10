@@ -61,7 +61,7 @@ struct OutcomeActivitySection: View {
     /// Opens the approval a waiting action is held on.
     let openApprovals: () -> Void
     /// Rows shown before "Show all".
-    static let collapsedCount = 8
+    static let collapsedCount = 12
     @AryaState private var showAll = false
     @AryaState private var expanded: String?
 
@@ -125,8 +125,32 @@ struct OutcomeActivityRow: View {
             .accessibilityHint(
                 item.state == .waiting
                     ? "Opens the approval" : "Shows the policy, risk, and run")
+            if !item.writes.isEmpty { writes }
             if isExpanded { detail }
         }
+    }
+
+    /// The inline mini diff: what the action writes, green when it was applied, muted while
+    /// it waits or was only proposed, struck through when it was refused.
+    private var writes: some View {
+        let color: Color =
+            switch item.state {
+            case .executed: AryaColor.positive
+            case .failed, .rejected: AryaColor.negative
+            case .waiting, .proposed: AryaColor.inkMuted
+            }
+        return VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(item.writes.prefix(2).enumerated()), id: \.offset) { _, line in
+                Text("+ " + line)
+                    .aryaText(AryaFont.monoSmall, color)
+                    .strikethrough(item.state == .rejected || item.state == .failed)
+                    .lineLimit(1).truncationMode(.tail)
+                    .help(line)
+            }
+        }
+        .padding(.leading, AryaSpace.s4)
+        .padding(.bottom, AryaSpace.s1)
+        .accessibilityLabel("Writes " + item.writes.joined(separator: "; "))
     }
 
     private var detail: some View {
