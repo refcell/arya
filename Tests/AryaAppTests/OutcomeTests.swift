@@ -166,7 +166,7 @@ private func triage() -> OutcomeSnapshot {
     #expect(OutcomeText.review(3) == "Review 3 approvals")
     #expect(
         OutcomeText.spoken(triage().state)
-            == "triaged_within_1h is 0.93 against a target of 0.95, at risk.")
+            == "triaged_within_1h is 0.93 against a target of 0.95, at risk, missed 5 of 5 days.")
     #expect(OutcomeActivity.State.executed.mark == "✓")
     #expect(OutcomeActivity.State.waiting.mark == "◷")
 }

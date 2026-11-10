@@ -52,6 +52,10 @@ protocol WorkspaceSource: Sendable {
     func schedulerServing() async -> Bool?
     /// Runs in progress with their step counts, oldest first; empty when none or unknown.
     func liveLines() async -> [LiveLine]
+    /// Who serves the home and each steward's next wake (`Workspace.serveStatus`).
+    func serveSchedule() async -> FeatureServe?
+    /// Starts firing the home's triggers from this process; false when another one serves.
+    func startServing() async throws -> Bool
     /// Starts a connection's server with its secret and lists its tools (the Test button).
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
         async throws -> ConnectionTest
@@ -63,6 +67,11 @@ extension WorkspaceSource {
     func observeRun(_ run: String) -> AsyncStream<Void> { AsyncStream { $0.finish() } }
 
     func schedulerServing() async -> Bool? { nil }
+    func serveSchedule() async -> FeatureServe? { nil }
+
+    func startServing() async throws -> Bool {
+        throw FeatureReadError.unavailable("serving")
+    }
 
     func liveLines() async -> [LiveLine] { [] }
 
@@ -131,9 +140,6 @@ extension Workspace: WorkspaceSource {
 
     nonisolated var label: String { home.lastPathComponent }
 
-    /// Serving here, or another process holds `<home>/scheduler.lock` (the lock `arya serve`
-    /// takes with an exclusive flock). The probe asks for a shared, non-blocking lock and
-    /// drops it at once; nil when the home has no lock file to ask.
     func liveLines() async -> [LiveLine] {
         ((try? await liveRuns()) ?? []).map {
             LiveLine(
@@ -142,6 +148,23 @@ extension Workspace: WorkspaceSource {
         }
     }
 
+    func serveSchedule() async -> FeatureServe? {
+        guard let status = try? await serveStatus() else { return nil }
+        var serve = FeatureServe(serving: status.serving)
+        for steward in status.stewards {
+            serve.states[steward.steward] = steward.state
+            if let wake = steward.nextWake { serve.wakes[steward.steward] = wake.date }
+        }
+        return serve
+    }
+
+    func startServing() async throws -> Bool {
+        try startServing(every: .seconds(30))
+    }
+
+    /// Serving here, or another process holds `<home>/scheduler.lock` (the lock `arya serve`
+    /// takes with an exclusive flock). The probe asks for a shared, non-blocking lock and
+    /// drops it at once; nil when the home has no lock file to ask.
     func schedulerServing() async -> Bool? {
         if await isServing { return true }
         let path = home.appendingPathComponent("scheduler.lock").path

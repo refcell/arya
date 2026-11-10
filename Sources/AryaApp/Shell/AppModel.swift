@@ -103,7 +103,13 @@ final class AppModel {
             self.efforts = efforts.compactMapValues(AryaEffort.init(rawValue:))
             // Integrity is a status-bar fact; a failed check leaves the last one shown.
             if let check = try? await source.verifyLedger() { ledgerCheck = check }
-            serving = await source.schedulerServing()
+            let serve = await source.serveSchedule()
+            featureStore?.serve = serve
+            if let known = serve?.serving {
+                serving = known
+            } else {
+                serving = await source.schedulerServing()
+            }
             liveLines = await source.liveLines()
             problem = nil
             announce(approvals, stewards: stewards)
@@ -147,6 +153,11 @@ final class AppModel {
     }
 
     /// Pauses or resumes the selected steward.
+    /// Starts firing the home's triggers from this app (NOW's Start serving).
+    func startServing() async {
+        await write { _ = try await self.source.startServing() }
+    }
+
     func setPaused(_ paused: Bool) async {
         guard let steward = navigation.steward else { return }
         await write {

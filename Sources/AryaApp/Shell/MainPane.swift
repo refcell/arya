@@ -36,7 +36,7 @@ struct MainPane: View {
         case .people:
             FeatureRegistry.people(model.featureContext())
         case .portfolio:
-            PortfolioView(model: model, now: Date())
+            PortfolioView(model: model, now: model.featureStore?.now ?? Date())
         case .steward:
             if let steward = model.selectedSteward {
                 StewardPage(model: model, steward: steward)

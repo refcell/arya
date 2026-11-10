@@ -61,13 +61,14 @@ struct StatusBarLine: Equatable {
 
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], waiting: Int,
-        events: [FeatureEvent], check: LedgerCheck?, now: Date, timeZone: TimeZone = .current,
-        liveRuns: [LiveLine] = []
+        events: [FeatureEvent], check: LedgerCheck?, now: Date, serve: FeatureServe? = nil,
+        timeZone: TimeZone = .current, liveRuns: [LiveLine] = []
     ) -> StatusBarLine {
         var next: Date?
         var behind = 0
         for steward in stewards where steward.status == .active {
-            let state = OutcomeState.build(events: events, steward: steward.id, now: now)
+            let state = OutcomeState.build(
+                events: events, steward: steward.id, now: now, serve: serve)
             if case .at(let date) = state.wake { next = min(next ?? date, date) }
             if MetricSeries.build(events: events, steward: steward.id)?.meetsTarget == false {
                 behind += 1
@@ -90,7 +91,10 @@ struct StatusBarLine: Equatable {
         case nil: ledger = "\(events.count) events"
         }
         return StatusBarLine(
-            schedule: next.map { "next run \(AryaTime.upcoming($0, now: now, timeZone: timeZone))" }
+            schedule: next.map {
+                let time = AryaTime.upcoming($0, now: now, timeZone: timeZone)
+                return serve?.serving == false ? "next due \(time)" : "next run \(time)"
+            }
                 ?? "no scheduled runs",
             stewards: fleet.joined(separator: " · "), waiting: waiting, ledger: ledger,
             ledgerOK: check?.ok ?? true,
@@ -121,7 +125,8 @@ struct StatusBar: View {
     var body: some View {
         let line = StatusBarLine.build(
             stewards: model.stewards, runs: model.runs, waiting: model.pendingApprovalCount,
-            events: events, check: model.ledgerCheck, now: now, liveRuns: model.liveLines)
+            events: events, check: model.ledgerCheck, now: now,
+            serve: model.featureStore?.serve, liveRuns: model.liveLines)
         HStack(spacing: AryaSpace.s4) {
             item(StatusBarLine.scheduler(model.serving, live: !line.live.isEmpty))
             if !line.live.isEmpty {

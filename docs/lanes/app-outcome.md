@@ -122,6 +122,23 @@ is. Fix these five first; this lane owns its share:
 
 ## Log
 
+### 2026-11-10 CEO review #8: one schedule source, honest status and impact
+- One source for scheduler state: `FeatureServe` (Outcome/OutcomeServe.swift) maps workspace
+  `serveStatus()` through `WorkspaceSource.serveSchedule()`; `OutcomeState.build(serve:)`
+  resolves the wake, so NOW, the inspector's schedule line, the portfolio and the status bar
+  agree. Stopped reads "Scheduler stopped · next due 09:25" with Start serving
+  (`AppModel.startServing`); one format (`AryaTime.upcoming`) and one clock (the store's).
+- Status and FINDINGS share a 5-day window: on target today after misses is RECOVERING with
+  "missed 3 of 5 days" beside the pill and in the spoken line.
+- IMPACT: credit per window weighted by each kind's share of actions; kinds that always ran
+  together form one group, and when nothing separates the line says so plainly.
+- "Version 1 missed" reads "The current charter missed"; "held for you" is ink, not orange;
+  NOW's last line wraps to two lines with the full text on hover.
+- Snapshot `overview-live`: a run in progress with the progress bar and adapter step.
+- Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
+  next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
+  (live feel) and 2 (no dead space).
+
 - 2026-11-09: lane created; Overview tab (default, first) and the shared outcome line.
   Visual check: demo home shows KPI 1.00 / 0.95 on track, Review 1 approval in orange, Plan
   empty (no `plan.updated` yet), Recent one line each with why; no boxes. Rehearsal case

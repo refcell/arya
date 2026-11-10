@@ -9,11 +9,12 @@ struct OutcomeSnapshot: Hashable, Sendable {
     var activity: [OutcomeActivity]
 
     static func build(
-        events: [FeatureEvent], steward: String, now: Date, lastSeen: Int?
+        events: [FeatureEvent], steward: String, now: Date, lastSeen: Int?,
+        serve: FeatureServe? = nil
     ) -> OutcomeSnapshot {
         let activity = OutcomeActivityFeed.build(events: events, steward: steward)
         return OutcomeSnapshot(
-            state: OutcomeState.build(events: events, steward: steward, now: now),
+            state: OutcomeState.build(events: events, steward: steward, now: now, serve: serve),
             plan: OutcomePlan.build(events: events, steward: steward),
             recap: OutcomeRecap.build(
                 events: events, steward: steward, activity: activity, lastSeen: lastSeen),
@@ -45,6 +46,8 @@ struct OverviewTab: View {
     let openApprovals: () -> Void
     /// Opens rehearsals, the next step for a steward that is not ready.
     let rehearse: () -> Void
+    /// Starts the scheduler from the app; nil where the shell cannot.
+    var startServing: (() -> Void)?
     /// The seq the person had seen before this visit; read once per steward.
     @AryaState private var lastSeen: Int?
     @AryaState private var visited: String?
@@ -78,7 +81,8 @@ struct OverviewTab: View {
 
     private func content(_ events: [FeatureEvent]) -> some View {
         let snapshot = OutcomeSnapshot.build(
-            events: events, steward: steward, now: store.now, lastSeen: lastSeen)
+            events: events, steward: steward, now: store.now, lastSeen: lastSeen,
+            serve: store.serve)
         let seenAt = lastSeen.flatMap { seq in events.last { $0.seq <= seq }?.at }
         return ScrollView {
             VStack(alignment: .leading, spacing: AryaSpace.s4) {
@@ -107,9 +111,9 @@ struct OverviewTab: View {
                     VStack(alignment: .leading, spacing: AryaSpace.s4) {
                         OutcomeNowSection(
                             now: OutcomeNow.build(
-                                events: events, steward: steward, wake: snapshot.state.wake,
+                                events: events, steward: steward, state: snapshot.state,
                                 now: store.now),
-                            openRun: openRun)
+                            openRun: openRun, startServing: startServing)
                         if let plan = snapshot.plan, !plan.steps.isEmpty {
                             OutcomePlanSection(plan: plan, now: store.now, openRun: openRun)
                         }

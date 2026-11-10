@@ -4,11 +4,13 @@ import Foundation
 /// How a steward is doing against its target, as the Outcome tab's status pill shows it.
 enum OutcomeStatus: String, Hashable, Sendable {
     /// `paused` replaces the target status while the steward takes no live triggers.
-    case onTrack, atRisk, offTrack, noTarget, noData, paused
+    /// `recovering`: on target today after missing it on recent days (`OutcomeState.missed`).
+    case onTrack, atRisk, offTrack, noTarget, noData, paused, recovering
 
     var word: String {
         switch self {
         case .paused: "paused"
+        case .recovering: "recovering"
         case .onTrack: "on track"
         case .atRisk: "at risk"
         case .offTrack: "off track"
@@ -179,12 +181,15 @@ enum OutcomeWake: Hashable, Sendable {
 
     /// The schedule line's lead: "Next run 14:00", "Next run Nov 10", "Paused", or
     /// "Runs on demand".
-    func schedule(now: Date, timeZone: TimeZone = .current) -> String {
+    /// With the scheduler stopped a due time is not a promise: "Scheduler stopped · next due
+    /// 09:00".
+    func schedule(now: Date, serving: Bool? = nil, timeZone: TimeZone = .current) -> String {
         switch self {
         case .paused: return "Paused"
         case .onDemand: return "Runs on demand"
         case .at(let date):
-            return "Next run \(AryaTime.upcoming(date, now: now, timeZone: timeZone))"
+            let time = AryaTime.upcoming(date, now: now, timeZone: timeZone)
+            return serving == false ? "Scheduler stopped · next due \(time)" : "Next run \(time)"
         }
     }
 
@@ -213,6 +218,12 @@ struct OutcomeState: Hashable, Sendable {
     var readiness: OutcomeReadiness
     var autonomy: OutcomeAutonomy
     var wake: OutcomeWake
+    /// Whether triggers fire at all (`FeatureServe.serving`); nil when unknown.
+    var serving: Bool? = nil
+    /// Measured days in the recent window that missed the target, and the days measured; the
+    /// status and FINDINGS both use this window.
+    var missed = 0
+    var window = 0
     /// The last five live triggered runs that ended, oldest first: true when it finished.
     var triggers: [Bool] = []
     /// Values for the sparkline: daily means, or each reading while there is under two days.
@@ -220,18 +231,39 @@ struct OutcomeState: Hashable, Sendable {
 
     var latest: Double? { points.last?.value }
 
-    static func build(events: [FeatureEvent], steward: String, now: Date) -> OutcomeState {
+    /// Measured days the status and FINDINGS look back over.
+    static let recentDays = 5
+
+    /// "missed 3 of 5 days", when any recent day missed.
+    var missedText: String? {
+        missed > 0 ? "missed \(missed) of \(window) \(window == 1 ? "day" : "days")" : nil
+    }
+
+    static func build(
+        events: [FeatureEvent], steward: String, now: Date, serve: FeatureServe? = nil
+    ) -> OutcomeState {
         let charter = LiveCharter.find(events: events, steward: steward)?.charter
         let series = MetricSeries.build(events: events, steward: steward)
         let metric = series?.definition
         let points = series?.points ?? []
-        let wake = OutcomeWake.build(events: events, steward: steward, charter: charter, now: now)
+        let ledgerWake = OutcomeWake.build(
+            events: events, steward: steward, charter: charter, now: now)
+        let wake = serve?.wake(ledgerWake, steward: steward) ?? ledgerWake
         let measured =
             metric.map {
                 OutcomeStatus.of(
                     value: points.last?.value, target: $0.target, direction: $0.direction)
             } ?? .noTarget
-        let status: OutcomeStatus = wake == .paused ? .paused : measured
+        var missed = 0
+        let recent = points.suffix(Self.recentDays)
+        if let metric, let target = metric.target {
+            missed =
+                recent.filter {
+                    metric.direction == .up ? $0.value < target : $0.value > target
+                }.count
+        }
+        var status: OutcomeStatus = wake == .paused ? .paused : measured
+        if status == .onTrack, missed > 0 { status = .recovering }
         var trend = points.map(\.value)
         if trend.count < 2, let name = metric?.name {
             trend = events.compactMap { event in
@@ -247,8 +279,8 @@ struct OutcomeState: Hashable, Sendable {
             success: charter?["success"]?.string ?? OutcomeText.success(metric),
             readiness: OutcomeReadiness.build(events: events, steward: steward),
             autonomy: OutcomeAutonomy.build(charter: charter),
-            wake: wake, triggers: OutcomeWake.triggers(events: events, steward: steward),
-            trend: trend)
+            wake: wake, serving: serve?.serving, missed: missed, window: recent.count,
+            triggers: OutcomeWake.triggers(events: events, steward: steward), trend: trend)
     }
 }
 
@@ -278,7 +310,9 @@ enum OutcomeText {
         guard let metric = state.metric else { return "No outcome metric." }
         var text = "\(metric.name) is " + (state.latest.map(MetricText.value) ?? "not measured")
         if let target = metric.target { text += " against a target of \(MetricText.value(target))" }
-        return text + ", \(state.status.word)."
+        text += ", \(state.status.word)"
+        if let missed = state.missedText { text += ", \(missed)" }
+        return text + "."
     }
 
     /// "↑ higher is better" or "↓ lower is better".

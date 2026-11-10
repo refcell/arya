@@ -34,10 +34,12 @@ struct PortfolioRow: Identifiable, Equatable {
 
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], approvals: [ApprovalSummary],
-        events: [FeatureEvent], now: Date, timeZone: TimeZone = .current
+        events: [FeatureEvent], now: Date, serve: FeatureServe? = nil,
+        timeZone: TimeZone = .current
     ) -> [PortfolioRow] {
         let rows = stewards.map { steward -> PortfolioRow in
-            let state = OutcomeState.build(events: events, steward: steward.id, now: now)
+            let state = OutcomeState.build(
+                events: events, steward: steward.id, now: now, serve: serve)
             let series = MetricSeries.build(events: events, steward: steward.id)
             let waiting = approvals.filter { $0.steward == steward.id }.count
             let latest = series?.latest?.value
@@ -54,7 +56,8 @@ struct PortfolioRow: Identifiable, Equatable {
             if steward.status == .paused {
                 wake = "paused"
             } else if case .at(let date) = state.wake {
-                wake = "next \(AryaTime.upcoming(date, now: now, timeZone: timeZone))"
+                let time = AryaTime.upcoming(date, now: now, timeZone: timeZone)
+                wake = state.serving == false ? "due \(time)" : "next \(time)"
             } else {
                 wake = "on demand"
             }
@@ -104,7 +107,7 @@ struct PortfolioView: View {
     var body: some View {
         let rows = PortfolioRow.build(
             stewards: model.stewards, runs: model.runs, approvals: model.approvals,
-            events: events, now: now)
+            events: events, now: now, serve: model.featureStore?.serve)
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
             PageTitle(
                 title: "Stewards",

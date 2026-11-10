@@ -49,6 +49,9 @@ struct OutcomeLineContent: View {
                     .frame(maxWidth: AryaSize.outcomeSparklineWidth)
             }
             OutcomeStatusPill(status: state.status)
+            if let missed = state.missedText, state.status != .paused {
+                Text(missed).aryaText(AryaFont.monoSmall, AryaColor.inkMuted).fixedSize()
+            }
             Spacer(minLength: AryaSpace.s4)
             if waiting > 0 {
                 Button(OutcomeText.review(waiting), action: review).buttonStyle(.aryaPrimary)

@@ -46,7 +46,7 @@ struct OutcomeStatusPill: View {
         switch status {
         case .onTrack: AryaColor.positive
         case .offTrack: AryaColor.negative
-        case .atRisk: AryaColor.ink
+        case .atRisk, .recovering: AryaColor.ink
         case .noTarget, .noData, .paused: AryaColor.inkFaint
         }
     }
@@ -145,7 +145,8 @@ struct OutcomeSchedule: View {
         VStack(alignment: .leading, spacing: AryaSpace.s1 / 2) {
             Text("Schedule").aryaText(AryaFont.overline, AryaColor.inkFaint)
             HStack(spacing: AryaSpace.s1) {
-                Text(state.wake.schedule(now: now)).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                Text(state.wake.schedule(now: now, serving: state.serving))
+                    .aryaText(AryaFont.monoSmall, AryaColor.ink)
                 if !state.triggers.isEmpty {
                     Text("· last \(state.triggers.count)")
                         .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)

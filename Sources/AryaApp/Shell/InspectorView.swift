@@ -53,7 +53,9 @@ struct StewardContext: Equatable {
     /// People who acted on this steward (approved, corrected, edited), most active first.
     var people: [String]
 
-    static func build(events: [FeatureEvent], steward: String, now: Date) -> StewardContext {
+    static func build(
+        events: [FeatureEvent], steward: String, now: Date, serve: FeatureServe? = nil
+    ) -> StewardContext {
         let charter = LiveCharter.find(events: events, steward: steward)?.charter
         let connections = (charter?["bindings"]?.array ?? []).compactMap { binding -> String? in
             guard let id = binding["id"]?.string else { return nil }
@@ -71,7 +73,9 @@ struct StewardContext: Equatable {
         return StewardContext(
             plan: OutcomePlan.build(events: events, steward: steward)?.steps ?? [],
             state: hasCharter
-                ? OutcomeState.build(events: events, steward: steward, now: now) : nil,
+                ? OutcomeState.build(
+                    events: events, steward: steward, now: now, serve: serve)
+                : nil,
             connections: connections, people: people)
     }
 }
@@ -231,7 +235,8 @@ struct InspectorView: View {
     }
 
     @ViewBuilder private func stewardContent(_ steward: StewardSummary) -> some View {
-        let context = StewardContext.build(events: events, steward: steward.id, now: now)
+        let context = StewardContext.build(
+            events: events, steward: steward.id, now: now, serve: model.featureStore?.serve)
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
             HStack(spacing: AryaSpace.s2) {
                 Text(steward.name).aryaText(AryaFont.bodyStrong, AryaColor.ink)

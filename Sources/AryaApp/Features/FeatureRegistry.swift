@@ -30,7 +30,8 @@ enum FeatureRegistry {
                     store: store, steward: steward,
                     openRun: { run in context.model.navigation.select(run: run, steward: steward) },
                     openApprovals: { context.model.navigation.showApprovals() },
-                    rehearse: { context.model.navigation.tab = .improve })
+                    rehearse: { context.model.navigation.tab = .improve },
+                    startServing: { Task { await context.model.startServing() } })
             } else {
                 EmptyState(
                     "No overview yet.", guidance: "A steward's plan and activity appear here.")

@@ -8,12 +8,15 @@ struct RootView: View {
     /// The "now" for relative times; the app passes the clock, previews pass a fixed date.
     var now: () -> Date = Date.init
     @AryaState private var railWidth = AryaSize.railWidth
+    /// The features' clock when a store is wired, so the status bar, inspector, and NOW
+    /// read one time.
+    private var clock: Date { model.featureStore?.now ?? now() }
     @AryaState private var dragStart: CGFloat?
 
     var body: some View {
         VStack(spacing: 0) {
             zones
-            StatusBar(model: model, now: now())
+            StatusBar(model: model, now: clock)
         }
         .overlay(alignment: .top) {
             if model.paletteOpen {
@@ -49,7 +52,7 @@ struct RootView: View {
                         ? 0 : AryaSize.trafficLightInset - AryaSize.titleBarInset)
             if model.navigation.inspector {
                 AryaHairline(.vertical)
-                InspectorView(model: model, now: now())
+                InspectorView(model: model, now: clock)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }

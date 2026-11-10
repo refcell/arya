@@ -27,6 +27,8 @@ final class FeatureStore: ObservableObject {
     @Published var now: Date
     /// The Knowledge screen per steward, kept so the tab draws at once on return.
     @Published var knowledge: [String: FeatureKnowledge] = [:]
+    /// The workspace's serve status, refreshed by the shell (app-outcome's `FeatureServe`).
+    @Published var serve: FeatureServe?
     /// The review queue by steward, once read (Improve loads it; snapshots preload it).
     @Published var reviewQueues: [String: FeatureReviewQueue] = [:]
     /// Unified diffs of routines a run proposed, by work-diff id (the run pane loads them;

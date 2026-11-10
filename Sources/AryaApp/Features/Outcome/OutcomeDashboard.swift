@@ -114,7 +114,7 @@ struct OutcomeMetrics: Hashable, Sendable {
         }
         var series = [
             count("runs", finished), count("actions taken", ledger.executed),
-            count("held for you", ledger.holds, tone: .attention),
+            count("held for you", ledger.holds),
             count("failed runs", failed, tone: .negative),
         ]
         let others = Dictionary(grouping: ledger.metrics) { $0.payload["metric"]?.string ?? "" }
@@ -146,8 +146,11 @@ struct OutcomeNow: Hashable, Sendable {
     var next: String
     var last: String?
 
+    /// Whether "Start serving" belongs beside the next time: the scheduler is stopped.
+    var stopped = false
+
     static func build(
-        events: [FeatureEvent], steward: String, wake: OutcomeWake, now: Date
+        events: [FeatureEvent], steward: String, state: OutcomeState, now: Date
     ) -> OutcomeNow {
         let ledger = OutcomeLedger(events: events, steward: steward)
         let durations = ledger.runs.compactMap { started -> TimeInterval? in
@@ -170,11 +173,11 @@ struct OutcomeNow: Hashable, Sendable {
             ledger.finished[$0.run ?? ""]
         }
         return OutcomeNow(
-            live: live, next: "Next run " + wake.text(now: now),
+            live: live, next: state.wake.schedule(now: now, serving: state.serving),
             last: last.map {
                 ($0.payload["summary"]?.string ?? "Last run") + " · "
                     + AryaTime.label($0.at, now: now, style: .long)
-            })
+            }, stopped: state.serving == false && state.wake != .paused)
     }
 }
 
@@ -190,28 +193,24 @@ struct OutcomeFinding: Hashable, Sendable, Identifiable {
         now: Date
     ) -> [OutcomeFinding] {
         var out: [OutcomeFinding] = []
-        let week = state.points.filter { $0.day >= now.addingTimeInterval(-7 * day) }
-        if let metric = state.metric, let target = metric.target, !week.isEmpty {
-            let below = week.filter {
-                metric.direction == .up ? $0.value < target : $0.value > target
-            }
-            if !below.isEmpty {
-                out.append(
-                    OutcomeFinding(
-                        kind: .negative,
-                        text: "\(metric.name) missed its target on \(below.count) of the last "
-                            + "\(week.count) days"))
-            }
-            if let first = week.first?.value, let last = week.last?.value, week.count >= 2,
-                abs(last - first) >= 0.01
-            {
-                let better = metric.direction == .up ? last > first : last < first
-                out.append(
-                    OutcomeFinding(
-                        kind: better ? .positive : .negative,
-                        text: "\(metric.name) \(last > first ? "rose" : "fell") from "
-                            + "\(MetricText.value(first)) to \(MetricText.value(last)) this week"))
-            }
+        if let metric = state.metric, state.missed > 0 {
+            out.append(
+                OutcomeFinding(
+                    kind: .negative,
+                    text: "\(metric.name) missed its target on \(state.missed) of the last "
+                        + "\(state.window) measured days"))
+        }
+        let recent = state.points.suffix(OutcomeState.recentDays)
+        if let metric = state.metric, let first = recent.first?.value,
+            let last = recent.last?.value, recent.count >= 2, abs(last - first) >= 0.01
+        {
+            let better = metric.direction == .up ? last > first : last < first
+            out.append(
+                OutcomeFinding(
+                    kind: better ? .positive : .negative,
+                    text: "\(metric.name) \(last > first ? "rose" : "fell") from "
+                        + "\(MetricText.value(first)) to \(MetricText.value(last)) over those days")
+            )
         }
         let ledger = OutcomeLedger(events: events, steward: steward)
         let waiting = Set(recap.pending.map(\.approval))
@@ -239,7 +238,10 @@ struct OutcomeFinding: Hashable, Sendable, Identifiable {
         }
         for event in events where event.steward == steward && event.type == "routine.proposed" {
             if let reason = event.payload["reason"]?.string {
-                out.append(OutcomeFinding(kind: .info, text: reason))
+                out.append(
+                    OutcomeFinding(
+                        kind: .info,
+                        text: OutcomeDashboardText.plain(reason, events: events, steward: steward)))
             }
         }
         let list = ChangeList.build(events: events, steward: steward)
@@ -258,17 +260,28 @@ struct OutcomeFinding: Hashable, Sendable, Identifiable {
     }
 }
 
-/// IMPACT: each action kind's estimated share of the metric's moves. Every change between two
-/// readings is split evenly over the kinds executed in between; the sum per kind is its credit.
+/// IMPACT: which actions moved the metric. Each change between two readings is credited to
+/// the action kinds executed in that window, weighted by each kind's share of the window's
+/// actions. Kinds that ran in exactly the same windows cannot be told apart, so they share one
+/// row ("label + route"); when nothing can be told apart, IMPACT says so in one line.
 struct OutcomeImpact: Hashable, Sendable {
     struct Row: Hashable, Sendable, Identifiable {
+        /// One kind, or kinds that always ran together, joined by " + ".
         var kind: String
         var credit: Double
         var actions: Int
+        /// Windows (reading to reading) the kind ran in.
+        var windows: Int
         var id: String { kind }
     }
 
+    /// Separable groups, best first; empty when the actions cannot be told apart.
     var rows: [Row]
+    /// The whole change over the windows with actions, and the actions in them.
+    var total: Double
+    var actions: Int
+    /// Kinds that always ran together, when the rows could not split them.
+    var together: [String]
     var readings: Int
     var direction: MetricDefinition.Direction
 
@@ -281,30 +294,68 @@ struct OutcomeImpact: Hashable, Sendable {
         let ledger = OutcomeLedger(events: events, steward: steward)
         let readings = ledger.metrics.filter { $0.payload["metric"]?.string == metric.name }
         guard readings.count >= 2 else { return nil }
-        var credit: [String: Double] = [:]
-        var counts: [String: Int] = [:]
+        var windows: [(delta: Double, counts: [String: Int])] = []
         for (before, after) in zip(readings, readings.dropFirst()) {
             guard let from = before.payload["value"]?.number,
                 let to = after.payload["value"]?.number
             else { continue }
-            let between = ledger.executed.filter { $0.seq > before.seq && $0.seq <= after.seq }
-            let kinds = between.compactMap(ledger.kind)
+            let kinds = ledger.executed.filter { $0.seq > before.seq && $0.seq <= after.seq }
+                .compactMap(ledger.kind)
             guard !kinds.isEmpty else { continue }
-            let distinct = Set(kinds)
-            for kind in distinct {
-                credit[kind, default: 0] += (to - from) / Double(distinct.count)
-            }
-            for kind in kinds { counts[kind, default: 0] += 1 }
+            windows.append((to - from, Dictionary(kinds.map { ($0, 1) }, uniquingKeysWith: +)))
         }
+        guard !windows.isEmpty else { return nil }
+        // Kinds with the same set of windows are one group.
+        var signature: [String: [Int]] = [:]
+        for (index, window) in windows.enumerated() {
+            for kind in window.counts.keys { signature[kind, default: []].append(index) }
+        }
+        let groups = Dictionary(grouping: signature.keys) { signature[$0] ?? [] }
+            .map { $0.value.sorted() }
+        let total = windows.reduce(0) { $0 + $1.delta }
+        let actions = windows.reduce(0) { $0 + $1.counts.values.reduce(0, +) }
         let good: (Double) -> Double = { metric.direction == .up ? $0 : -$0 }
-        let rows = credit.map { Row(kind: $0.key, credit: $0.value, actions: counts[$0.key] ?? 0) }
+        var rows: [Row] = []
+        if groups.count > 1 {
+            rows = groups.map { kinds in
+                var credit = 0.0
+                var count = 0
+                for window in windows {
+                    let mine = kinds.reduce(0) { $0 + (window.counts[$1] ?? 0) }
+                    let all = window.counts.values.reduce(0, +)
+                    guard mine > 0 else { continue }
+                    credit += window.delta * Double(mine) / Double(all)
+                    count += mine
+                }
+                return Row(
+                    kind: kinds.joined(separator: " + "), credit: credit, actions: count,
+                    windows: signature[kinds[0]]?.count ?? 0)
+            }
             .sorted { good($0.credit) > good($1.credit) }
-        guard !rows.isEmpty else { return nil }
+        }
         return OutcomeImpact(
-            rows: Array(rows.prefix(limit)), readings: readings.count, direction: metric.direction)
+            rows: Array(rows.prefix(limit)), total: total, actions: actions,
+            together: groups.count == 1 ? groups[0] : [], readings: readings.count,
+            direction: metric.direction)
     }
 
-    func helped(_ row: Row) -> Bool { direction == .up ? row.credit >= 0 : row.credit <= 0 }
+    func helped(_ credit: Double) -> Bool { direction == .up ? credit >= 0 : credit <= 0 }
+
+    /// The one honest line when nothing can be split: "Metric +0.17 over 29 actions; label
+    /// and route always ran together, so the change is not split by action."
+    var summary: String {
+        var text = "Metric \(OutcomeDashboardText.credit(total)) over \(actions) "
+        text += actions == 1 ? "action" : "actions"
+        if together.count > 1 {
+            let names =
+                together.dropLast().joined(separator: ", ") + " and "
+                + (together.last ?? "")
+            text += "; \(names) always ran together, so the change is not split by action"
+        } else if let only = together.first {
+            text += ", all of them \(only)"
+        }
+        return text + "."
+    }
 }
 
 // MARK: - Views
@@ -402,6 +453,8 @@ struct OutcomeMetricsPanel: View {
 struct OutcomeNowSection: View {
     let now: OutcomeNow
     let openRun: (String) -> Void
+    /// Starts firing triggers from this app, offered while the scheduler is stopped.
+    var startServing: (() -> Void)?
 
     var body: some View {
         OutcomeSection("Now", trailing: now.live.isEmpty ? nil : "\(now.live.count) running") {
@@ -409,11 +462,19 @@ struct OutcomeNowSection: View {
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                     Text("○").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     Text(now.next).aryaText(AryaFont.mono, AryaColor.ink)
+                    if now.stopped, let startServing {
+                        Spacer(minLength: AryaSpace.s2)
+                        Button("Start serving", action: startServing)
+                            .buttonStyle(.aryaSecondary)
+                            .help("Fire this home's scheduled runs from the app.")
+                    }
                 }
-                .frame(height: AryaSize.rowHeight)
+                .frame(minHeight: AryaSize.rowHeight)
                 if let last = now.last {
-                    Text(last).aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(1)
-                        .frame(height: AryaSize.rowHeight)
+                    Text(last).aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .help(last)
+                        .textSelection(.enabled)
                 }
             }
             ForEach(now.live) { live in
@@ -506,6 +567,11 @@ struct OutcomeImpactSection: View {
 
     var body: some View {
         OutcomeSection("Impact", trailing: "estimated from \(impact.readings) readings") {
+            if impact.rows.isEmpty {
+                Text(impact.summary).aryaText(AryaFont.body, AryaColor.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(minHeight: AryaSize.rowHeight)
+            }
             ForEach(impact.rows) { row in
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                     Text(row.kind).aryaText(AryaFont.mono, AryaColor.ink)
@@ -513,11 +579,14 @@ struct OutcomeImpactSection: View {
                     Text(OutcomeDashboardText.credit(row.credit))
                         .aryaText(
                             AryaFont.mono,
-                            impact.helped(row) ? AryaColor.positive : AryaColor.negative
+                            impact.helped(row.credit) ? AryaColor.positive : AryaColor.negative
                         )
                         .monospacedDigit()
-                    Text("over \(row.actions) \(row.actions == 1 ? "action" : "actions")")
-                        .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    Text(
+                        "\(row.actions) \(row.actions == 1 ? "action" : "actions") in "
+                            + "\(row.windows) of \(impact.readings - 1) windows"
+                    )
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
                     Spacer(minLength: 0)
                 }
                 .frame(height: AryaSize.rowHeight)
@@ -528,6 +597,18 @@ struct OutcomeImpactSection: View {
 
 /// Text for the dashboard, kept apart from layout so it can be tested.
 enum OutcomeDashboardText {
+    /// Rewrites "Version 1 missed …" into plain words: "The current charter missed …" for
+    /// the live version, "Charter version 1 missed …" for an older one.
+    static func plain(_ text: String, events: [FeatureEvent], steward: String) -> String {
+        guard text.hasPrefix("Version ") else { return text }
+        let rest = text.dropFirst("Version ".count)
+        let digits = rest.prefix { $0.isNumber }
+        guard let version = Int(digits) else { return text }
+        let live = LiveCharter.find(events: events, steward: steward)?.version
+        let lead = version == live ? "The current charter" : "Charter version \(version)"
+        return lead + rest.dropFirst(digits.count)
+    }
+
     /// "+0.12", "−0.03".
     static func credit(_ value: Double) -> String {
         (value < 0 ? "−" : "+") + MetricText.value(abs(value))

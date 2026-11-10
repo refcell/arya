@@ -204,6 +204,37 @@ import Testing
                 "people-thread-live", scheme: scheme, render(RootView(model: liveModel), dark: dark)
             )
         }
+        // A run in progress (app-outcome): NOW's live row with its progress bar and the
+        // adapter's latest step, over the demo home's events.
+        if let store = model.featureStore {
+            let base = store.events.map(\.seq).max() ?? 0
+            var live = FeatureEventBuilder(start: store.now.addingTimeInterval(-40))
+            live.add(
+                "run.started", steward: steward.id, run: "run_live",
+                ["input": ["text": "Triage the 09:00 inbox batch"]])
+            live.add(
+                "run.adapter.event", steward: steward.id, run: "run_live", after: 20,
+                [
+                    "message": [
+                        "params": ["event": ["detail": "Labeling MSG-212 as billing (3 of 7)"]]
+                    ]
+                ])
+            let events = live.events.map {
+                var event = $0
+                event.seq += base
+                return event
+            }
+            let liveStore = FeatureStore(
+                workspace: PreviewWorkspace(events: store.events + events, now: store.now),
+                now: store.now)
+            await liveStore.reload()
+            liveStore.serve = store.serve
+            let liveModel = AppModel(source: model.source, featureStore: liveStore)
+            await liveModel.refresh()
+            liveModel.navigation.select(steward: steward.id)
+            try write(
+                "overview-live", scheme: scheme, render(RootView(model: liveModel), dark: dark))
+        }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()
         model.navigation.select(steward: steward.id)
