@@ -136,6 +136,8 @@ protocol FeatureOutcomeReads: Sendable {
     func overviewFindings(steward: String) async throws -> [FeatureOverviewFinding]
     /// Which actions moved the metric, nil without enough readings (app-outcome's IMPACT).
     func impact(steward: String) async throws -> FeatureImpact?
+    /// Imports a binding's past items into the steward's casebook; the workspace's one line.
+    func importHistory(steward: String, binding: String) async throws -> String
 }
 
 extension FeatureOutcomeReads {
@@ -186,5 +188,9 @@ extension FeatureOutcomeReads {
 
     func impact(steward: String) async throws -> FeatureImpact? {
         throw FeatureReadError.unavailable("impact")
+    }
+
+    func importHistory(steward: String, binding: String) async throws -> String {
+        throw FeatureReadError.unavailable("history import")
     }
 }

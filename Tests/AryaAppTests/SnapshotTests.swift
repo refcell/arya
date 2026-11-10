@@ -236,6 +236,27 @@ import Testing
                 "people-thread-live", scheme: scheme, render(RootView(model: liveModel), dark: dark)
             )
         }
+        // Getting to know your team (app-outcome): a new steward with imported history and
+        // the review queue open, over a preview home (the demo's stewards are all live).
+        if Self.wanted("onboarding", file: "") {
+            let events = onboardingEvents()
+            let store = FeatureStore(
+                workspace: PreviewWorkspace(events: events, now: FeatureTestClock.now),
+                now: FeatureTestClock.now)
+            await store.reload()
+            store.reviewQueues["st_new"] = onboardingQueue(total: 40, reviewed: 12)
+            try write(
+                "onboarding", scheme: scheme,
+                render(
+                    OverviewTab(
+                        store: store, steward: "st_new", openRun: { _ in },
+                        openApprovals: {}, rehearse: {}
+                    )
+                    .padding(AryaSpace.s4)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .background(AryaColor.canvas),
+                    dark: dark))
+        }
         // A run in progress (app-outcome): the steward the snapshot home is actually running
         // (snapshot.sh starts a lead follow-up run), with NOW read from stewardLive.
         if let live = model.liveLines.first?.steward ?? model.stewards.first?.id {

@@ -84,6 +84,10 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.impactSummary(steward: steward)
     }
 
+    func importHistory(steward: String, binding: String) async throws -> String {
+        try await source.historyImport(steward: steward, binding: binding)
+    }
+
     func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
         try await source.eventDetail(seq: seq)
     }

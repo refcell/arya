@@ -166,6 +166,16 @@ is. Fix these five first; this lane owns its share:
   inspector (RUNNING 1, Next run 15:00); Support triage NOW reads "Next run 14:11" like its
   inspector and the status bar. Moves points 4 (live feel) and 1 (consistency). Open: header
   "missed 4 of 5" vs FINDINGS "11 of the last 12" (asked workspace for one window).
+- M3.6 #2 onboarding: GETTING TO KNOW YOUR TEAM leads the Overview while a steward is not
+  ready (`Features/Onboarding/OnboardingSteps.swift`, `OnboardingPanel.swift`): 1 learn from
+  past work (Import from <binding> for bindings that read `history`, through
+  `Workspace.importHistory(steward:binding:)`), 2 review what it would have done (the review
+  queue inline), 3 rehearse and go live (Rehearse on past work; Mark ready, primary once every
+  case passed). Snapshot `onboarding`. Empty FINDINGS no longer claims "on target".
+- Visual check: onboarding (dark): step 1 checked with "40 past items in casebook
+  history@v1", step 2 open with the case, its difference in red and Agree/Skip/Correct, step 3
+  waiting. Moves points 5 (busy, real content) and 2 (no dead space at the top of a new
+  steward).
 - Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
   next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
   (live feel) and 2 (no dead space).

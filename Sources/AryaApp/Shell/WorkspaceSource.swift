@@ -49,6 +49,8 @@ protocol WorkspaceSource: Sendable {
     func overviewFindingLines(steward: String) async throws -> [FeatureOverviewFinding]
     /// Which actions moved the metric (`Workspace.impact`).
     func impactSummary(steward: String) async throws -> FeatureImpact?
+    /// Imports a binding's past items as cases (`Workspace.importHistory`); its summary line.
+    func historyImport(steward: String, binding: String) async throws -> String
     /// One person's thread with a steward, oldest first.
     func conversationEntries(steward: String, person: String) async throws
         -> [FeatureConversationEntry]
@@ -149,6 +151,10 @@ extension WorkspaceSource {
 
     func impactSummary(steward: String) async throws -> FeatureImpact? {
         throw FeatureReadError.unavailable("impact")
+    }
+
+    func historyImport(steward: String, binding: String) async throws -> String {
+        throw FeatureReadError.unavailable("history import")
     }
 
     func conversationEntries(steward: String, person: String) async throws
@@ -396,6 +402,10 @@ extension Workspace: WorkspaceSource {
         try await overviewFindings(steward: steward).map {
             FeatureOverviewFinding(kind: $0.kind, text: $0.text, link: $0.link?.kind)
         }
+    }
+
+    func historyImport(steward: String, binding: String) async throws -> String {
+        try await importHistory(steward: steward, binding: binding).summary
     }
 
     func impactSummary(steward: String) async throws -> FeatureImpact? {

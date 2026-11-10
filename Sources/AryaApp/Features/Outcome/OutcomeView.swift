@@ -86,6 +86,9 @@ struct OverviewTab: View {
         let impact = try? await store.workspace.impact(steward: steward)
         store.outcomeReads[steward] = OutcomeReads(
             live: live, findings: findings, impact: impact ?? nil)
+        if let queue = try? await store.workspace.reviewQueue(steward: steward) {
+            store.reviewQueues[steward] = queue
+        }
     }
 
     private func visit() {
@@ -102,12 +105,12 @@ struct OverviewTab: View {
         let seenAt = lastSeen.flatMap { seq in events.last { $0.seq <= seq }?.at }
         return ScrollView {
             VStack(alignment: .leading, spacing: AryaSpace.s4) {
-                if case .notReady(let reason) = snapshot.state.readiness {
-                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                        Text("Not ready: \(reason).").aryaText(AryaFont.body, AryaColor.inkMuted)
-                        Button("Rehearse on past work", action: rehearse)
-                            .buttonStyle(.aryaTertiary)
-                    }
+                if !snapshot.state.readiness.isReady {
+                    OnboardingPanel(
+                        store: store, steward: steward,
+                        steps: OnboardingSteps.build(
+                            events: events, steward: steward,
+                            queue: store.reviewQueues[steward]))
                 }
                 if let recap = OutcomeRecapText.paragraph(
                     snapshot.recap, seenAt: seenAt, now: store.now)

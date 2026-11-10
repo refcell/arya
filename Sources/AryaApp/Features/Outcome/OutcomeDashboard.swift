@@ -435,7 +435,7 @@ struct OutcomeFindingsSection: View {
     var body: some View {
         OutcomeSection("Findings", trailing: findings.isEmpty ? nil : "\(findings.count)") {
             if findings.isEmpty {
-                Text("Nothing stands out: on target, nothing waiting, no failures this week.")
+                Text("Nothing raised: no misses, waits, or failures to report.")
                     .aryaText(AryaFont.caption, AryaColor.inkFaint)
                     .frame(minHeight: AryaSize.rowHeight)
             }
