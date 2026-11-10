@@ -98,18 +98,33 @@ public struct CaseContext: Hashable, Sendable, Codable {
     public var toolResults: [RecordedToolResult]
     /// Memory the steward should see, as recorded (free-form note objects).
     public var memory: [JSONValue]
+    /// The steward's plan when the case happened (plan item objects). A rehearsal shows this
+    /// plan, never the steward's live one, so the same case always gets the same instructions.
+    public var plan: [JSONValue]
 
-    public init(toolResults: [RecordedToolResult] = [], memory: [JSONValue] = []) {
+    public init(
+        toolResults: [RecordedToolResult] = [], memory: [JSONValue] = [], plan: [JSONValue] = []
+    ) {
         self.toolResults = toolResults
         self.memory = memory
+        self.plan = plan
     }
 
-    private enum CodingKeys: String, CodingKey { case toolResults, memory }
+    private enum CodingKeys: String, CodingKey { case toolResults, memory, plan }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         toolResults = try c.decodeIfPresent([RecordedToolResult].self, forKey: .toolResults) ?? []
         memory = try c.decodeIfPresent([JSONValue].self, forKey: .memory) ?? []
+        plan = try c.decodeIfPresent([JSONValue].self, forKey: .plan) ?? []
+    }
+
+    /// `plan` is written only when it has items, so cases without one keep their bytes.
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(toolResults, forKey: .toolResults)
+        try c.encode(memory, forKey: .memory)
+        if !plan.isEmpty { try c.encode(plan, forKey: .plan) }
     }
 }
 

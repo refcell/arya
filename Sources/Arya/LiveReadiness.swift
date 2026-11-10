@@ -16,6 +16,8 @@ public struct LiveReadinessSummary: Sendable, Hashable, Codable {
     public var improved: [String]
     /// Recent live runs checked.
     public var runsChecked: Int
+    /// The fresh casebook backtest, side by side.
+    public var comparison: BacktestView
 }
 
 extension Workspace {
@@ -54,6 +56,10 @@ extension Workspace {
             summary: result.summary, regressions: result.regressionLines,
             improved: result.casebook.cases.filter { $0.change == .improved }
                 .map(\.caseID.rawValue),
-            runsChecked: result.runs.count)
+            runsChecked: result.runs.count,
+            comparison: BacktestView.build(
+                result.casebook, currentLabel: "Live v\(live.version)",
+                proposedLabel: "Proposed v\(found.candidateVersion)",
+                metric: found.charter.metric))
     }
 }

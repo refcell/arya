@@ -55,36 +55,48 @@ private struct ScenarioRunner: CaseRunner {
     }
 }
 
-@Test func backtestScenarioHasOneImprovedAndOneRegressedCase() async throws {
-    let ambient = Ambient.fixed(stepMillis: 3, seed: 35)
-    let sink = MemoryEventSink(ambient: ambient)
-    let blobs = MemoryBlobs()
-    let current = try BacktestScenario.charter("current")
-    let proposed = try BacktestScenario.charter("proposed")
-    try await StewardLifecycle(sink: sink).create(current)
-    let (book, _) = try await CasebookImporter(blobs: blobs, sink: sink).importCasebook(
-        name: "triage", data: try BacktestScenario.data("casebook.jsonl"), steward: current.id)
-    let approvals = ApprovalQueue(sink: sink, ambient: ambient)
-    let engine = RunEngine(
-        sink: sink, ambient: ambient,
-        adapters: ScenarioAdapters(
-            current: try BacktestScenario.script("current"),
-            proposed: try BacktestScenario.script("proposed")),
-        dispatcher: ActionDispatcher(
-            sink: sink, approvals: approvals, executor: RecordingExecutor(outcomes: [:])),
-        approvals: approvals, workdir: { "scratch/\($0.rawValue)" })
-    let casebooks = StoredCasebooks(sink: sink, blobs: blobs)
-    let rehearser = CasebookRehearser(
-        runner: ScenarioRunner(engine: engine), casebooks: casebooks, sink: sink,
-        ambient: ambient)
+extension BacktestScenario {
+    /// Rehearses the fixture's current and proposed charters and compares them.
+    static func compare() async throws -> BacktestComparison { try await run().comparison }
 
-    let comparison = try await Backtester(
-        rehearser: rehearser, reports: RehearsalReports(sink: sink, casebooks: casebooks)
-    ).run(
-        steward: current.id, casebookVersion: book.version,
-        current: BacktestVariant(charterVersion: 1, charter: current),
-        proposed: BacktestVariant(charterVersion: 0, charter: proposed),
-        tolerance: current.gate.tolerance)
+    static func run() async throws -> (
+        comparison: BacktestComparison, sink: MemoryEventSink, steward: StewardID
+    ) {
+        let ambient = Ambient.fixed(stepMillis: 3, seed: 35)
+        let sink = MemoryEventSink(ambient: ambient)
+        let blobs = MemoryBlobs()
+        let current = try BacktestScenario.charter("current")
+        let proposed = try BacktestScenario.charter("proposed")
+        try await StewardLifecycle(sink: sink).create(current)
+        let (book, _) = try await CasebookImporter(blobs: blobs, sink: sink).importCasebook(
+            name: "triage", data: try BacktestScenario.data("casebook.jsonl"), steward: current.id)
+        let approvals = ApprovalQueue(sink: sink, ambient: ambient)
+        let engine = RunEngine(
+            sink: sink, ambient: ambient,
+            adapters: ScenarioAdapters(
+                current: try BacktestScenario.script("current"),
+                proposed: try BacktestScenario.script("proposed")),
+            dispatcher: ActionDispatcher(
+                sink: sink, approvals: approvals, executor: RecordingExecutor(outcomes: [:])),
+            approvals: approvals, workdir: { "scratch/\($0.rawValue)" })
+        let casebooks = StoredCasebooks(sink: sink, blobs: blobs)
+        let rehearser = CasebookRehearser(
+            runner: ScenarioRunner(engine: engine), casebooks: casebooks, sink: sink,
+            ambient: ambient)
+
+        let comparison = try await Backtester(
+            rehearser: rehearser, reports: RehearsalReports(sink: sink, casebooks: casebooks)
+        ).run(
+            steward: current.id, casebookVersion: book.version,
+            current: BacktestVariant(charterVersion: 1, charter: current),
+            proposed: BacktestVariant(charterVersion: 0, charter: proposed),
+            tolerance: current.gate.tolerance)
+        return (comparison, sink, current.id)
+    }
+}
+
+@Test func backtestScenarioHasOneImprovedAndOneRegressedCase() async throws {
+    let (comparison, sink, steward) = try await BacktestScenario.run()
 
     #expect(comparison.cases.count == 8)
     #expect(comparison.current.passed == 7 && comparison.proposed.passed == 7)
@@ -108,7 +120,7 @@ private struct ScenarioRunner: CaseRunner {
     #expect(comparison.cases[0].summary == "case-0001 unchanged: passes both ways")
 
     // Readiness of the live (current) charter after the backtest.
-    let readiness = try await ReadinessReports(sink: sink).report(current.id)
+    let readiness = try await ReadinessReports(sink: sink).report(steward)
     #expect(readiness.summary == "not ready: 7/8 passed, 100% required")
 }
 

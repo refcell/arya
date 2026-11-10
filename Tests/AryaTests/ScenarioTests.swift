@@ -124,4 +124,19 @@ private struct ProfileFactory: AdapterFactory {
     #expect(readiness.improved == ["case-0006"])
     #expect(readiness.summary == "Not ready: case-0005 would regress")
     #expect(readiness.regressions.first?.hasPrefix("case-0005: ") == true)
+    #expect(readiness.comparison.regressed == ["case-0005"])
+
+    // The side-by-side view reuses the gate's two rehearsals.
+    let view = try #require(try await workspace.comparison(proposal: proposed.id))
+    #expect(view.currentLabel == "Live v1" && view.proposedLabel == "Proposed v2")
+    #expect(view.headline == "1 improved, 1 regressed; gate fails: case regressed")
+    #expect(
+        view.metrics.map(\.label)
+            == ["Cases passed", "Mean score", "Leaks", "routed_within_1h"])
+    #expect(view.metrics[3].current != "n/a" && view.metrics[3].proposed != "n/a")
+    #expect(view.metrics[0].current == "7/8" && view.metrics[0].proposed == "7/8")
+    #expect(view.metrics[0].delta == "0" && view.metrics[0].trend == .same)
+    #expect(view.rows.map(\.caseID).prefix(2) == ["case-0005", "case-0006"])
+    #expect(view.rows[0].changeLabel == "Regressed" && view.rows[1].changeLabel == "Improved")
+    #expect(view.rows[2].changeLabel == "Same" && view.rows[2].note == "Both pass.")
 }

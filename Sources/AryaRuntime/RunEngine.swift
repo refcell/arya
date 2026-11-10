@@ -231,7 +231,16 @@ public struct RunEngine: Sendable {
         let context = try MemoryView(events).context(
             steward: request.steward, input: request.input.text,
             caseID: request.rehearsal?.caseID, candidate: request.routine)
-        let plan = try PlanBook(events).plans[request.steward] ?? []
+        // A rehearsal shows the plan its case recorded, never the steward's live plan, so the
+        // same case gets the same instructions however the live plan has moved since.
+        let plan: [PlanItem]
+        if case .rehearsal(let context) = request.mode {
+            plan = context.plan.compactMap {
+                try? CanonicalJSON.decode(PlanItem.self, from: try CanonicalJSON.encode($0))
+            }
+        } else {
+            plan = try PlanBook(events).plans[request.steward] ?? []
+        }
         let instructions = InstructionComposer.compose(
             InstructionInputs(charter: charter, context: context, plan: plan))
         try await recordStart(run, request, charter, version, instructions, context)

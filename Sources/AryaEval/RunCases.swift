@@ -30,10 +30,15 @@ public enum RunCases {
                 context: CaseContext(toolResults: try ToolRecordings.from(events, run: run)),
                 expected: try expected ?? did(events, run: run), source: "run \(run.rawValue)")
         }
+        // The plan the steward had when the run started, so rehearsing the case shows it again.
+        let before = events.filter { $0.seq < started.seq }
+        let plan = try started.draft.steward.flatMap { try PlanBook(before).plans[$0] } ?? []
         return Case(
             id: try caseID(for: run),
             input: CaseInput(text: body.input.text, attachments: body.input.attachments ?? []),
-            context: CaseContext(toolResults: try ToolRecordings.from(events, run: run)),
+            context: CaseContext(
+                toolResults: try ToolRecordings.from(events, run: run),
+                plan: try plan.map { try CanonicalJSON.jsonValue($0) }),
             expected: try expected ?? did(events, run: run), source: "run \(run.rawValue)")
     }
 

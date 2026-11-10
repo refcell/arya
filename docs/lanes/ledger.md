@@ -267,6 +267,7 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 - (from connect) FYI: added optional `name` and `role` to person `CharterBinding`s
   (omitted when unset, golden fixtures unchanged) with `PersonBindingTests`.
+- (from eval) FYI: added optional `CaseContext.plan` in core (omitted from JSON when empty).
 
 ## Log
 - HANDOFF 2026-11-09 (governance session 1, ended near auto-compaction): (G1), (G2a), (G2b),

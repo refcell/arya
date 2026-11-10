@@ -50,6 +50,11 @@ Priority (replay before live, visible in the app):
 - [x] Editor proposals get the same gate: the app gates on propose like the CLI, and the
   facade's `liveReadiness(proposal:recent:)` gives the sentence and regression lines.
 - [x] Readiness sentence wording pinned by `readinessSentenceWording` (`ReadinessCounts`).
+- [x] Side-by-side comparison read: `BacktestView` (column labels, metric rows with deltas and
+  trend, case rows regressed first) via the facade's `comparison(proposal:)`, built from the
+  gate's own rehearsals; also on `LiveReadinessSummary.comparison`.
+- [x] Deterministic rehearsal under re-planning: a case pins the plan (`CaseContext.plan`),
+  rehearsals show that plan instead of the live one, and cases made from runs record it.
 - [x] Improve showed no proposals: the app read `proposal.created.id` and a top-level gate;
   the ledger has `proposal` and `verdict`. Fixed, with ledger-shaped and demo-flow tests.
 
@@ -153,6 +158,10 @@ Later:
 - Crews: runtime keeps rehearsals from fanning out on their own; eval opts in per case, so a
   delegating case is judged on its final outcome. Replay never starts a fresh crew
   (`RunRequest.crew = .skip`) and compares every member run separately.
+- Plans in rehearsal: the case's recorded plan or none, never the live plan; a run's plan is
+  read from the events before it started. Rehearsals never write `plan.updated`.
+- Comparison metric rows: cases passed, mean score, leaks (lower is better), and the charter's
+  outcome metric when results measure it; deltas round to 0.01 and `0` reads as same.
 - Readiness sentence: no trailing period; `the last run` for one run; `no recent runs to check`
   for none; at most three regressed case ids, then `and N more`; failed runs are counted apart
   from changed runs.
@@ -241,3 +250,4 @@ Later:
 - 2026-11-09: crews in rehearsal and replay, editor proposals gated, readiness wording, Improve proposals fix
 - 2026-11-09: Visual check (just snapshot, demo home): Improve lists the v2 proposal, "Score 0.96 against a
   baseline of 0.96", "Regressed: case-0005"; its title is the id because `arya propose` takes no title.
+- 2026-11-10: side-by-side BacktestView and comparison(proposal:), plans pinned in rehearsal
