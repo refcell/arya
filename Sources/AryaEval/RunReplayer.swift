@@ -339,14 +339,23 @@ actor RecordedExecutor: ActionExecutor {
 }
 
 /// Renames ids and timestamps by first appearance so a replay can be compared with its
-/// recording while ambient readings other than the run id are not yet recorded.
+/// recording while ambient readings other than the run id are not yet recorded. Durations
+/// measured by the clock (a step's `millis`) are dropped: a replay runs at its own speed.
 enum Canonicalizer {
+    /// Payload fields that time a step rather than describe it, by event type.
+    static let durations: [String: Set<String>] = ["run.step.finished": ["millis"]]
+
     static func events(_ events: [RuntimeEvent]) -> [ReplayEvent] {
         var names: [String: String] = [:]
         return events.enumerated().map { index, event in
+            var payload = event.payload
+            if let drop = durations[event.type], case .object(var fields) = payload {
+                for key in drop { fields[key] = nil }
+                payload = .object(fields)
+            }
             let envelope: JSONValue = [
                 "actor": .string("\(event.draft.actor.kind):\(event.draft.actor.id)"),
-                "payload": event.payload,
+                "payload": payload,
             ]
             return ReplayEvent(
                 seq: index + 1, type: event.type, payload: rename(envelope, &names))

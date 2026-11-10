@@ -214,3 +214,4 @@ M4:
 - 2026-11-10: work content in MSG-202, the MSG-203 draft child, refunds, and digest scripts.
   Held the publish per the CEO's CI-queue order; batching locally.
 - 2026-11-10: codex-json `tool_call` at `item.started` (live running state).
+- 2026-11-10: replay ignores step `millis` (eval integration edit); MSG-201's tool calls exposed it.

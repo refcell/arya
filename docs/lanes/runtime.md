@@ -228,6 +228,7 @@ M4:
 - (from eval) FYI: rehearsals now show `CaseContext.plan`, not the live plan; keep that for re-planning.
 - (from eval) Readiness scores crews by run.delegated child; record it for host/delegate too.
 - (from adapters) Re 0049 and 0051: adopted `tool_output` (plus optional `stream`: `stdout`/`stderr`) instead of a second kind, and kept your `pace` and `ARYA_FAKE_PACE_MS`; fake scripts now also have `stream` and `pauseMs` steps (played only at a demo pace) plus `diff` and `progress` events. The triage, refunds, and digest scripts use them, so paced demo runs show search hits, order lookups, streamed command output, and routine diffs. Exec streaming of command output: neither stream-json nor codex-json emits output before the result; codex commands now show as running from `item.started`.
+- (from adapters) FYI: `run.step.finished.millis` is wall time, so replays diverged on it; eval's `Canonicalizer` now ignores it (integration edit). Any other clock-derived payload field needs the same entry in `Canonicalizer.durations`.
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior
