@@ -77,6 +77,11 @@ struct OutcomeSeries: Hashable, Sendable, Identifiable {
     var value: String
     var values: [Double]
     var tone: Tone = .plain
+    /// A guardrail metric: it must hold while the primary moves; its target, when set.
+    var guardrail = false
+    var target: Double? = nil
+    /// The workspace's one line, for hover and accessibility.
+    var line: String? = nil
 
     enum Tone: Hashable, Sendable { case plain, attention, negative }
 
@@ -93,9 +98,12 @@ struct OutcomeMetrics: Hashable, Sendable {
     static let windowDays = 30
     static let seriesDays = 14
 
-    static func build(events: [FeatureEvent], steward: String, state: OutcomeState, now: Date)
-        -> OutcomeMetrics
-    {
+    /// Guardrail rows come from the workspace's `metricStatuses` when read (one source);
+    /// without it, other metric readings in the ledger show as plain rows.
+    static func build(
+        events: [FeatureEvent], steward: String, state: OutcomeState, now: Date,
+        statuses: [FeatureMetricStatus]? = nil
+    ) -> OutcomeMetrics {
         let ledger = OutcomeLedger(events: events, steward: steward)
         let from = now.addingTimeInterval(-Double(windowDays) * day)
         let points = state.points.filter { $0.day >= from }
@@ -117,6 +125,10 @@ struct OutcomeMetrics: Hashable, Sendable {
             count("held for you", ledger.holds),
             count("failed runs", failed, tone: .negative),
         ]
+        if let statuses {
+            series += statuses.filter { $0.role == "guardrail" }.map(guardrail)
+            return OutcomeMetrics(metric: state.metric, points: points, series: series)
+        }
         let others = Dictionary(grouping: ledger.metrics) { $0.payload["metric"]?.string ?? "" }
         for (name, readings) in others.sorted(by: { $0.key < $1.key })
         where !name.isEmpty && name != state.metric?.name {
@@ -127,6 +139,18 @@ struct OutcomeMetrics: Hashable, Sendable {
                     name: name, value: MetricText.value(last), values: Array(values.suffix(30))))
         }
         return OutcomeMetrics(metric: state.metric, points: points, series: series)
+    }
+
+    /// "0.03 / ≤ 0.05", red when the guardrail is off track.
+    static func guardrail(_ status: FeatureMetricStatus) -> OutcomeSeries {
+        let value = status.current.map(MetricText.value) ?? "—"
+        let bound = status.target.map {
+            " / \(status.direction == "down" ? "≤" : "≥") \(MetricText.value($0))"
+        }
+        return OutcomeSeries(
+            name: status.name, value: value + (bound ?? ""), values: status.trend.compactMap { $0 },
+            tone: status.status == "off_track" ? .negative : .plain, guardrail: true,
+            target: status.target, line: status.line)
     }
 }
 
@@ -276,7 +300,13 @@ struct OutcomeMetricsPanel: View {
             HStack(alignment: .top, spacing: AryaSpace.s5) {
                 chart.frame(maxWidth: .infinity)
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(metrics.series) { row($0) }
+                    ForEach(metrics.series.filter { !$0.guardrail }) { row($0) }
+                    let guardrails = metrics.series.filter(\.guardrail)
+                    if !guardrails.isEmpty {
+                        Text("GUARDRAILS").aryaText(AryaFont.overline, AryaColor.inkFaint)
+                            .padding(.top, AryaSpace.s2)
+                        ForEach(guardrails) { row($0) }
+                    }
                 }
                 .frame(width: AryaSize.outcomeSeriesWidth)
             }
@@ -335,7 +365,8 @@ struct OutcomeMetricsPanel: View {
                 .lineLimit(1)
                 .frame(width: AryaSize.outcomeSeriesLabel, alignment: .leading)
             OutcomeSparkline(
-                values: series.values, target: nil, height: AryaSize.outcomeSeriesSpark)
+                values: series.values, target: series.target,
+                height: AryaSize.outcomeSeriesSpark)
             Text(series.value)
                 .aryaText(AryaFont.monoSmall, color(series.tone))
                 .monospacedDigit()
@@ -343,7 +374,8 @@ struct OutcomeMetricsPanel: View {
         }
         .frame(height: AryaSize.rowHeight)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(series.name): \(series.value)")
+        .help(series.line ?? "")
+        .accessibilityLabel(series.line ?? "\(series.name): \(series.value)")
     }
 
     private func color(_ tone: OutcomeSeries.Tone) -> Color {

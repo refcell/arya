@@ -85,8 +85,11 @@ struct OverviewTab: View {
         let findings = try? await store.workspace.overviewFindings(steward: steward)
         let impact = try? await store.workspace.impact(steward: steward)
         let onboarding = try? await store.workspace.onboarding(steward: steward)
+        let metrics = try? await store.workspace.metricStatuses(
+            steward: steward, windows: OutcomeMetrics.seriesDays)
         store.outcomeReads[steward] = OutcomeReads(
-            live: live, findings: findings, impact: impact ?? nil, onboarding: onboarding)
+            live: live, findings: findings, impact: impact ?? nil, onboarding: onboarding,
+            metrics: metrics)
         if let queue = try? await store.workspace.reviewQueue(steward: steward) {
             store.reviewQueues[steward] = queue
         }
@@ -135,7 +138,8 @@ struct OverviewTab: View {
                 }
                 OutcomeMetricsPanel(
                     metrics: OutcomeMetrics.build(
-                        events: events, steward: steward, state: snapshot.state, now: store.now),
+                        events: events, steward: steward, state: snapshot.state, now: store.now,
+                        statuses: store.outcomeReads[steward]?.metrics),
                     now: store.now)
                 let reads = store.outcomeReads[steward]
                 let impact = reads?.impact.map(OutcomeImpact.build)

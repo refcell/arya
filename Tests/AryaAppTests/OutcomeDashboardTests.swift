@@ -43,6 +43,32 @@ private func log() -> [FeatureEvent] {
     #expect(byName["runs"]?.values.count == 14)
 }
 
+/// Guardrail metrics come from the workspace's statuses, red when one is off track; the
+/// primary stays on the chart, and ledger-only metric rows give way to the read.
+@Test func metricsShowGuardrailsFromTheWorkspace() {
+    var state = OutcomeState.build(events: log(), steward: steward, now: now)
+    state.metric = metric
+    let statuses = [
+        FeatureMetricStatus(
+            name: "triaged_within_1h", unit: "ratio", direction: "up", target: 0.95,
+            role: "primary", current: 0.9, trend: [0.8, 0.9], status: "off_track",
+            movement: "improving", line: "primary"),
+        FeatureMetricStatus(
+            name: "reopen_rate", unit: "ratio", direction: "down", target: 0.05,
+            role: "guardrail", current: 0.08, trend: [0.04, nil, 0.08], status: "off_track",
+            movement: "worsening",
+            line: "reopen_rate 0.08 ratio, target ≤ 0.05: off track, worsening."),
+    ]
+    let metrics = OutcomeMetrics.build(
+        events: log(), steward: steward, state: state, now: now, statuses: statuses)
+    let guardrails = metrics.series.filter(\.guardrail)
+    #expect(guardrails.map(\.name) == ["reopen_rate"])
+    #expect(guardrails.first?.value == "0.08 / ≤ 0.05")
+    #expect(guardrails.first?.tone == .negative)
+    #expect(guardrails.first?.values == [0.04, 0.08])
+    #expect(!metrics.series.contains { $0.name == "triaged_within_1h" })
+}
+
 /// Status and findings use one window: on target today after missed days reads recovering.
 @Test func recoveringStatusSharesTheFindingsWindow() {
     let state = OutcomeState.build(

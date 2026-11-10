@@ -104,6 +104,10 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.onboardRun(steward: steward)
     }
 
+    func metricStatuses(steward: String, windows: Int) async throws -> [FeatureMetricStatus] {
+        try await source.metricStatusList(steward: steward, windows: windows)
+    }
+
     func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
         try await source.eventDetail(seq: seq)
     }

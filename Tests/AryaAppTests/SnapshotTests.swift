@@ -474,8 +474,10 @@ import Testing
         let live = try? await store.workspace.stewardLive(steward: steward)
         let findings = try? await store.workspace.overviewFindings(steward: steward)
         let impact = try? await store.workspace.impact(steward: steward)
+        let metrics = try? await store.workspace.metricStatuses(
+            steward: steward, windows: OutcomeMetrics.seriesDays)
         store.outcomeReads[steward] = OutcomeReads(
-            live: live, findings: findings, impact: impact ?? nil)
+            live: live, findings: findings, impact: impact ?? nil, metrics: metrics)
     }
 
     /// The seeded demo home when `ARYA_SNAPSHOT_HOME` is set, else the fake workspace.

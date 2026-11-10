@@ -59,6 +59,8 @@ protocol WorkspaceSource: Sendable {
     func onboardingSummary(steward: String) async throws -> FeatureOnboarding
     /// `Workspace.onboard(steward:)`, as one line.
     func onboardRun(steward: String) async throws -> String
+    /// `Workspace.metricStatuses(steward:windows:)`.
+    func metricStatusList(steward: String, windows: Int) async throws -> [FeatureMetricStatus]
     /// One person's thread with a steward, oldest first.
     func conversationEntries(steward: String, person: String) async throws
         -> [FeatureConversationEntry]
@@ -175,6 +177,10 @@ extension WorkspaceSource {
 
     func onboardRun(steward: String) async throws -> String {
         throw FeatureReadError.unavailable("onboarding")
+    }
+
+    func metricStatusList(steward: String, windows: Int) async throws -> [FeatureMetricStatus] {
+        throw FeatureReadError.unavailable("metric statuses")
     }
 
     func conversationEntries(steward: String, person: String) async throws
@@ -462,6 +468,15 @@ extension Workspace: WorkspaceSource {
             },
             summary: state.summary, notes: notes,
             onboardedAt: try await onboarding(steward: steward)?.at)
+    }
+
+    func metricStatusList(steward: String, windows: Int) async throws -> [FeatureMetricStatus] {
+        try await metricStatuses(steward: steward, windows: windows).map {
+            FeatureMetricStatus(
+                name: $0.name, unit: $0.unit, direction: $0.direction, target: $0.target,
+                role: $0.role, current: $0.current, trend: $0.trend.map(\.value),
+                status: $0.status.rawValue, movement: $0.movement, line: $0.line)
+        }
     }
 
     func onboardRun(steward: String) async throws -> String {

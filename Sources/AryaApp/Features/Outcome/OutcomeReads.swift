@@ -55,6 +55,7 @@ struct OutcomeReads: Hashable, Sendable {
     var findings: [FeatureOverviewFinding]?
     var impact: FeatureImpact?
     var onboarding: FeatureOnboarding?
+    var metrics: [FeatureMetricStatus]?
 }
 
 /// A steward's onboarding as the workspace reports it (`onboardingState`, the latest onboard
@@ -82,4 +83,25 @@ struct FeatureOnboarding: Hashable, Sendable {
     var onboardedAt: Date?
 
     func step(_ key: String) -> Step? { steps.first { $0.key == key } }
+}
+
+/// One of the charter's metrics, the primary or a guardrail, as the workspace scores it
+/// (`Workspace.metricStatuses`) over the panel's window.
+struct FeatureMetricStatus: Hashable, Sendable {
+    var name: String
+    var unit: String
+    /// `up` or `down`: which way is better.
+    var direction: String
+    var target: Double?
+    /// `primary` or `guardrail`.
+    var role: String
+    var current: Double?
+    /// One value per window, oldest first; nil where nothing was recorded.
+    var trend: [Double?]
+    /// `on_track`, `off_track`, `no_target`, or `no_data`.
+    var status: String
+    /// `improving`, `worsening`, `flat`, or `unknown`.
+    var movement: String
+    /// `reply_minutes 42 minutes, target ≤ 60: on track, improving.`
+    var line: String
 }

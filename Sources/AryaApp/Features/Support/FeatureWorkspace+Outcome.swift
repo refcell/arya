@@ -190,6 +190,8 @@ protocol FeatureOutcomeReads: Sendable {
     func onboarding(steward: String) async throws -> FeatureOnboarding
     /// Runs an onboard run now (it reads people and process); the workspace's one line.
     func runOnboarding(steward: String) async throws -> String
+    /// The primary metric and each guardrail metric over the last `windows` days.
+    func metricStatuses(steward: String, windows: Int) async throws -> [FeatureMetricStatus]
 }
 
 extension FeatureOutcomeReads {
@@ -262,5 +264,9 @@ extension FeatureOutcomeReads {
 
     func runOnboarding(steward: String) async throws -> String {
         throw FeatureReadError.unavailable("onboarding")
+    }
+
+    func metricStatuses(steward: String, windows: Int) async throws -> [FeatureMetricStatus] {
+        throw FeatureReadError.unavailable("metric statuses")
     }
 }
