@@ -70,6 +70,20 @@ enum ConnectionsText {
         return parts.isEmpty ? "reads and does nothing yet" : parts.joined(separator: " · ")
     }
 
+    /// What the ledger says when nobody tested it this session (a test is a session diagnostic,
+    /// never recorded): "working · last call 2h ago" or "last call failed 2h ago"; nil without
+    /// a settled call.
+    static func evidence(_ call: ConnectionActivity.Call?, now: Date) -> String? {
+        guard let call else { return nil }
+        let when = FeatureTime.phrase(call.at, now: now)
+        return call.kind == .failed ? "last call failed \(when)" : "working · last call \(when)"
+    }
+
+    /// "secret stored"; a local server (no network) needs none; else "no secret".
+    static func secret(stored: Bool, network: Bool) -> String {
+        stored ? "secret stored" : network ? "no secret" : "no secret needed"
+    }
+
     /// The last test in one line, or that it has not run.
     static func lastTest(_ test: ConnectionTest?) -> String {
         guard let test else { return "Not tested yet" }

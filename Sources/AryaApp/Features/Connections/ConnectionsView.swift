@@ -48,7 +48,7 @@ struct ConnectionsView: View {
                         "No connections yet.",
                         guidance: "Connections a steward's charter binds appear here.")
                 } else {
-                    let activity = ConnectionActivity(events: store.events)
+                    let activity = ConnectionActivity(events: store.events, relays: catalog.relays)
                     let (used, unused) = split(catalog)
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(used) { entry in
@@ -65,7 +65,7 @@ struct ConnectionsView: View {
                 if !catalog.adapters.isEmpty { adapters(catalog.adapters) }
                 if !catalog.entries.isEmpty {
                     recentCalls(
-                        ConnectionActivity(events: store.events),
+                        ConnectionActivity(events: store.events, relays: catalog.relays),
                         connections: Set(catalog.entries.map(\.id)))
                 }
             }
@@ -99,7 +99,7 @@ struct ConnectionsView: View {
             HStack(alignment: .center, spacing: AryaSpace.s3) {
                 Text(entry.id).aryaText(AryaFont.monoStrong, AryaColor.ink)
                     .frame(minWidth: 72, alignment: .leading)
-                testStatus(entry)
+                testStatus(entry, last: activity.lastSettled(entry.id))
                 Spacer(minLength: AryaSpace.s3)
                 Sparkline(activity.daily(entry.id, now: store.now))
                     .accessibilityLabel("Calls per day this week")
@@ -120,7 +120,7 @@ struct ConnectionsView: View {
                 Text("used by " + RosterText.names(entry.connected.map(name)))
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     .layoutPriority(-1)
-                Text(hasSecret(entry.id) ? "secret stored" : "no secret")
+                Text(ConnectionsText.secret(stored: hasSecret(entry.id), network: entry.network))
                     .aryaText(
                         AryaFont.monoSmall,
                         hasSecret(entry.id) ? AryaColor.positive : AryaColor.inkFaint)
@@ -190,8 +190,10 @@ struct ConnectionsView: View {
         }
     }
 
-    /// The last test in one line, or "not tested", with a status dot.
-    private func testStatus(_ entry: ConnectionsCatalog.Entry) -> some View {
+    /// The last test in one line, else the ledger's last call, else "not tested", with a dot.
+    private func testStatus(_ entry: ConnectionsCatalog.Entry, last: ConnectionActivity.Call?)
+        -> some View
+    {
         let test = tests.results[entry.id]
         return HStack(spacing: AryaSpace.s1) {
             if tests.testing.contains(entry.id) {
@@ -200,6 +202,14 @@ struct ConnectionsView: View {
             } else if let test {
                 StatusDot(test.complete ? .passed : test.ok ? .waiting : .failed)
                 Text(ConnectionsText.lastTest(test)).aryaText(AryaFont.monoSmall, Self.color(test))
+                    .lineLimit(1)
+            } else if let evidence = ConnectionsText.evidence(last, now: store.now) {
+                StatusDot(last?.kind == .failed ? .failed : .passed)
+                Text(evidence)
+                    .aryaText(
+                        AryaFont.monoSmall,
+                        last?.kind == .failed ? AryaColor.negative : AryaColor.inkMuted
+                    )
                     .lineLimit(1)
             } else {
                 Text("not tested").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
@@ -281,12 +291,27 @@ struct ConnectionsView: View {
     }
 
     private func adapters(_ adapters: [ConnectionsCatalog.Adapter]) -> some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("ADAPTERS").aryaText(AryaFont.label, AryaColor.inkFaint)
+                .padding(.bottom, AryaSpace.s1)
             ForEach(adapters, id: \.name) { adapter in
-                let users = RosterText.names(adapter.stewards.map(name), shown: 3)
-                Text("\(adapter.name) · used by: \(users)")
-                    .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                HStack(alignment: .center, spacing: AryaSpace.s3) {
+                    Text(adapter.name).aryaText(AryaFont.monoStrong, AryaColor.ink)
+                        .frame(minWidth: 72, alignment: .leading)
+                    Text("used by " + RosterText.names(adapter.stewards.map(name), shown: 3))
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                        .lineLimit(1)
+                    Spacer(minLength: AryaSpace.s3)
+                    Text(
+                        adapter.stewards.count == 1
+                            ? "1 steward" : "\(adapter.stewards.count) stewards"
+                    )
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
+                .padding(.horizontal, AryaSpace.s2)
+                .frame(minHeight: AryaSize.rowHeight)
+                .accessibilityElement(children: .combine)
+                AryaHairline()
             }
         }
     }
@@ -402,7 +427,7 @@ struct ConnectionInspector: View {
                         }
                     }
                 }
-                let activity = ConnectionActivity(events: store.events)
+                let activity = ConnectionActivity(events: store.events, relays: catalog.relays)
                 section("Recent calls") {
                     let calls = activity.recent(entry.id)
                     if calls.isEmpty {
@@ -423,12 +448,19 @@ struct ConnectionInspector: View {
                     }
                 }
                 section("Last test") {
-                    Text(ConnectionsText.lastTest(tests.results[entry.id]))
-                        .aryaText(
-                            AryaFont.monoSmall,
-                            tests.results[entry.id].map(ConnectionsView.color) ?? AryaColor.inkMuted
-                        )
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(
+                        tests.results[entry.id] == nil
+                            ? ConnectionsText.evidence(
+                                activity.lastSettled(entry.id), now: store.now
+                            )
+                            .map { "Not tested this session · \($0)" } ?? "Not tested yet"
+                            : ConnectionsText.lastTest(tests.results[entry.id])
+                    )
+                    .aryaText(
+                        AryaFont.monoSmall,
+                        tests.results[entry.id].map(ConnectionsView.color) ?? AryaColor.inkMuted
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
                     if let tools = tests.results[entry.id]?.tools, !tools.isEmpty {
                         Text("tools: " + tools.joined(separator: ", "))
                             .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
@@ -509,7 +541,7 @@ struct ConnectionInspector: View {
         case .did: AryaColor.positive
         case .failed: AryaColor.negative
         case .proposed: AryaColor.warning
-        case .read: AryaColor.inkMuted
+        case .read, .received: AryaColor.inkMuted
         }
     }
 

@@ -2,10 +2,12 @@ import Foundation
 
 /// What stewards did through each connection, read from the ledger: tool calls (an adapter
 /// `tool_call` names `binding.tool`, for example `inbox.search`) and actions (`action.proposed`
-/// on the binding, settled by `action.executed` or `action.failed`).
+/// on the binding, settled by `action.executed` or `action.failed`). A relay connection also
+/// counts what it carries: replies proposed to a person it reaches (`person:lee` via `chat`)
+/// and messages that came in through it (`inbox.message` with `via`).
 struct ConnectionActivity: Hashable, Sendable {
     struct Call: Hashable, Sendable, Identifiable {
-        enum Kind: String, Hashable, Sendable { case read, did, failed, proposed }
+        enum Kind: String, Hashable, Sendable { case read, did, failed, proposed, received }
 
         /// The event id.
         var id: String
@@ -20,9 +22,17 @@ struct ConnectionActivity: Hashable, Sendable {
     /// By connection id, oldest first.
     private(set) var calls: [String: [Call]] = [:]
 
-    init(events: [FeatureEvent]) {
-        // Run/action id → index of its proposed call, so a settle updates it in place.
-        var proposed: [String: (binding: String, index: Int)] = [:]
+    /// `relays` is `ConnectionsCatalog.relays`: connection → steward → person bindings.
+    init(events: [FeatureEvent], relays: [String: [String: [String]]] = [:]) {
+        // "steward/person:lee" → the connection that carries messages to them.
+        var relayOf: [String: String] = [:]
+        for (connection, bySteward) in relays {
+            for (steward, people) in bySteward {
+                for person in people { relayOf["\(steward)/\(person)"] = connection }
+            }
+        }
+        // Run/action id → its proposed calls, so a settle updates them in place.
+        var proposed: [String: [(binding: String, index: Int)]] = [:]
         for event in events {
             switch event.type {
             case "run.adapter.event":
@@ -44,23 +54,49 @@ struct ConnectionActivity: Hashable, Sendable {
                     $0.hasPrefix("person:") ? PeopleDirectory.displayName($0) : $0
                 }
                 let word = ActionWords.kind(kind)
-                calls[binding, default: []].append(
+                let what =
+                    binding.hasPrefix("person:")
+                    ? "\(word) \(PeopleDirectory.displayName(binding))"
+                    : target.map { "\(word) \($0)" } ?? word
+                var through = [binding]
+                if let relay = relayOf["\(event.steward ?? "")/\(binding)"] {
+                    through.append(relay)
+                }
+                for connection in through {
+                    calls[connection, default: []].append(
+                        Call(
+                            id: event.id, at: event.at, steward: event.steward, run: event.run,
+                            kind: .proposed, what: what))
+                    if let run = event.run, let id = action["id"]?.string {
+                        proposed["\(run)/\(id)", default: []].append(
+                            (connection, calls[connection, default: []].count - 1))
+                    }
+                }
+            case "inbox.message":
+                guard let via = event.payload["via"]?.string, !via.isEmpty else { continue }
+                let from = event.payload["from"]?.string.map(PeopleDirectory.displayName)
+                calls[via, default: []].append(
                     Call(
                         id: event.id, at: event.at, steward: event.steward, run: event.run,
-                        kind: .proposed, what: target.map { "\(word) \($0)" } ?? word))
-                if let run = event.run, let id = action["id"]?.string {
-                    proposed["\(run)/\(id)"] = (binding, calls[binding, default: []].count - 1)
-                }
+                        kind: .received, what: from.map { "message from \($0)" } ?? "message"))
             case "action.executed", "action.failed":
                 guard let run = event.run, let id = event.payload["action"]?.string,
                     let found = proposed["\(run)/\(id)"]
                 else { continue }
-                calls[found.binding]?[found.index].kind =
-                    event.type == "action.executed" ? .did : .failed
-                calls[found.binding]?[found.index].at = event.at
+                for call in found {
+                    calls[call.binding]?[call.index].kind =
+                        event.type == "action.executed" ? .did : .failed
+                    calls[call.binding]?[call.index].at = event.at
+                }
             default: continue
             }
         }
+    }
+
+    /// The newest settled call through `connection` (read, done, failed, or received), the
+    /// ledger's evidence of whether it works when nobody has tested it this session.
+    func lastSettled(_ connection: String) -> Call? {
+        calls[connection]?.last { $0.kind != .proposed }
     }
 
     /// The newest calls through `connection`, newest first.

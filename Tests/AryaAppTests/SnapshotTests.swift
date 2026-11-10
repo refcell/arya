@@ -32,6 +32,7 @@ import Testing
             } ?? runs.first { run in !model.approvals.contains { $0.run == run.id } }
 
         func page(_ name: String, _ arrange: (inout NavigationState) -> Void) throws {
+            if let wanted = Self.wanted, !wanted.contains(name) { return }
             var navigation = NavigationState()
             navigation.select(steward: steward.id)
             arrange(&navigation)
@@ -436,6 +437,12 @@ import Testing
             featureStore: FeatureStore(workspace: FacadeFeatureWorkspace(source: workspace)))
         return (model, home)
     }
+
+    /// Page states to render when `ARYA_SNAPSHOT_STATES` lists some (comma-separated), so a
+    /// lane can render only what it changed under load: `ARYA_SNAPSHOT_STATES=people just
+    /// snapshot`. Unset renders every state.
+    static let wanted: Set<String>? = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_STATES"]
+        .map { Set($0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }) }
 
     /// Writes `<name>.png` (dark) or `<name>-light.png` when `ARYA_SNAPSHOT_DIR` is set.
     private func write(_ name: String, scheme: String, _ png: Data?) throws {

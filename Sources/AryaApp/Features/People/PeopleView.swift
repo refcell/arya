@@ -39,7 +39,7 @@ struct PeopleView: View {
             VStack(alignment: .leading, spacing: AryaSpace.s5) {
                 PageTitle(
                     title: "People",
-                    subtitle: "Who a steward works with, how it reaches them, and what they "
+                    subtitle: "Who stewards work with, how they reach them, and what they "
                         + "may approve.")
                 if !stewards.isEmpty {
                     HStack(spacing: AryaSpace.s3) {
@@ -61,7 +61,9 @@ struct PeopleView: View {
                 if let error = store.writeError {
                     InlineError(error) { store.dismissWriteError() }
                 }
-                let roster = PeopleRoster(events: store.events, stewards: stewards.map(\.id))
+                let roster = PeopleRoster(
+                    events: store.events, stewards: stewards.map(\.id),
+                    conversations: store.conversations)
                 if let steward {
                     let people = PeopleDirectory(events: store.events, steward: steward)
                     switch pane {
@@ -160,7 +162,7 @@ struct PeopleView: View {
                     Text(role).aryaText(AryaFont.caption, AryaColor.inkMuted)
                 }
                 Spacer()
-                Text(person.messages == 1 ? "1 message" : "\(person.messages) messages")
+                Text("\(person.inbound) in · \(person.outbound) out")
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 if let first = person.stewards.first {
                     Button("Message") { open(person.id, first) }
@@ -176,16 +178,9 @@ struct PeopleView: View {
                         .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                 }
                 Text(person.first.reach).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                Text(
-                    person.approves.isEmpty
-                        ? "approves nothing"
-                        : "approves "
-                            + person.approves.map {
-                                $0 == "*" ? "any action" : ActionWords.kind($0)
-                            }
-                            .joined(separator: ", ")
-                )
-                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                if let approves = PeopleText.approves(person.approves) {
+                    Text(approves).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
             }
             .lineLimit(1)
         }
@@ -285,17 +280,9 @@ struct PeopleView: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {
                 Text(person.reach).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                Text(
-                    person.approves.isEmpty
-                        ? "approves nothing"
-                        : "approves "
-                            + person.approves.map {
-                                $0 == "*" ? "any action" : ActionWords.kind($0)
-                            }
-                            .joined(
-                                separator: ", ")
-                )
-                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                if let approves = PeopleText.approves(person.approves) {
+                    Text(approves).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                }
                 Text(PeopleThreadText.counts(thread)).aryaText(
                     AryaFont.monoSmall, AryaColor.inkFaint)
                 if let reports = PeopleThreadText.reports(thread, now: store.now) {

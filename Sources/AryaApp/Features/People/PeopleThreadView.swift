@@ -145,13 +145,15 @@ struct PersonInspector: View {
                     }
                 }
                 fact("Reach", found.reach)
+                if let approves = PeopleText.approves(found.approves, prefix: "") {
+                    fact("Approves", approves)
+                }
+                // The counts are this steward's thread; name it, since a person may work with
+                // several and the All stewards row sums them.
                 fact(
-                    "Approves",
-                    found.approves.isEmpty
-                        ? "nothing"
-                        : found.approves.map { $0 == "*" ? "any action" : ActionWords.kind($0) }
-                            .joined(separator: ", "))
-                fact("Messages", PeopleThreadText.counts(thread))
+                    "Messages",
+                    PeopleThreadText.counts(thread) + " with "
+                        + (directory.live?.charter["name"]?.string ?? steward))
                 if let reports = PeopleThreadText.reports(thread, now: store.now) {
                     fact("Reports", reports)
                 }
@@ -242,6 +244,13 @@ enum PeopleThreadText {
     }
 
     /// "3 in · 1 out · 1 open hand-off".
+    /// Messages in and out, reports left out (one source for rows, roster, and inspector).
+    static func tally(_ thread: PeopleThread) -> (inbound: Int, outbound: Int) {
+        let messages = thread.entries.filter { $0.action != "report" }
+        let inbound = messages.filter(\.inbound).count
+        return (inbound, messages.count - inbound)
+    }
+
     static func counts(_ thread: PeopleThread) -> String {
         let messages = thread.entries.filter { $0.action != "report" }
         let inbound = messages.filter(\.inbound).count

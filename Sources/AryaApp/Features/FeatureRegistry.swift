@@ -280,7 +280,10 @@ enum FeatureRegistry {
             // All stewards: the person as their first steward knows them.
             let steward =
                 page
-                ?? PeopleRoster(events: store.events, stewards: model.stewards.map(\.id))
+                ?? PeopleRoster(
+                    events: store.events, stewards: model.stewards.map(\.id),
+                    conversations: store.conversations
+                )
                 .people.first { $0.id == id }?.stewards.first
             if let steward {
                 PersonInspector(store: store, steward: steward, person: id)
@@ -293,8 +296,11 @@ enum FeatureRegistry {
         -> String?
     {
         guard let steward else {
-            return PeopleRoster(events: store.events, stewards: model.stewards.map(\.id))
-                .people.first?.id
+            return PeopleRoster(
+                events: store.events, stewards: model.stewards.map(\.id),
+                conversations: store.conversations
+            )
+            .people.first?.id
         }
         return PeopleDirectory(events: store.events, steward: steward).people.first?.id
     }

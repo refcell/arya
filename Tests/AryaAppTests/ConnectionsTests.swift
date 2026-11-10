@@ -224,6 +224,32 @@ private func events() -> [FeatureEvent] {
         #expect(activity.count("billing", now: now) == 1)
         #expect(activity.count("billing", now: now.addingTimeInterval(8 * 86400)) == 0)
     }
+
+    /// A relay carries replies to the people it reaches and what they send in, so chat shows
+    /// calls while Lee is reached through it.
+    @Test func aRelayCountsRepliesToItsPeopleAndMessagesIn() throws {
+        var log = FeatureEventBuilder(start: start)
+        log.add(
+            "inbox.message", actor: FeatureActor(kind: .human, id: "person:lee"),
+            ["from": "person:lee", "via": "chat", "intent": "ask", "text": "Is it down?"])
+        log.add(
+            "action.proposed", run: "run_9",
+            ["action": ["id": "a1", "kind": "reply", "binding": "person:lee"]])
+        log.add("action.executed", run: "run_9", ["action": "a1", "dryRun": true])
+        let relays = ["chat": [PreviewFixtures.steward: ["person:lee"]]]
+        let activity = ConnectionActivity(events: log.events, relays: relays)
+        #expect(activity.recent("chat").map(\.what) == ["reply Lee", "message from Lee"])
+        #expect(activity.recent("chat").map(\.kind) == [.did, .received])
+        #expect(activity.recent("person:lee").map(\.kind) == [.did])
+        let last = try #require(activity.lastSettled("chat"))
+        #expect(
+            ConnectionsText.evidence(last, now: last.at.addingTimeInterval(7200))
+                == "working · last call 2h ago")
+        #expect(ConnectionsText.evidence(nil, now: start) == nil)
+        #expect(ConnectionsText.secret(stored: false, network: false) == "no secret needed")
+        #expect(ConnectionsText.secret(stored: false, network: true) == "no secret")
+        #expect(ConnectionsText.secret(stored: true, network: true) == "secret stored")
+    }
 }
 
 @Suite struct PeopleChannelsTests {
@@ -286,5 +312,35 @@ private func events() -> [FeatureEvent] {
         #expect(roster.notWith("st_a").map(\.name) == ["Priya"])
         #expect(RosterText.names(["A", "B", "C", "D"]) == "A, B +2")
         #expect(RosterText.names(["A"]) == "A")
+        #expect(PeopleText.approves([]) == nil)
+        #expect(PeopleText.approves(["follow_up", "*"]) == "approves follow-up, any action")
+    }
+
+    /// Lena works with two stewards but wrote to the second: she opens there, and her row
+    /// counts the same thread the inspector does.
+    @Test func aPersonOpensWithTheStewardTheyTalkTo() throws {
+        var log = FeatureEventBuilder(start: Date(timeIntervalSince1970: 1_800_000_000))
+        let lena: FeatureJSON = [
+            "id": "person:lena", "kind": "person", "channel": "inbox", "name": "Lena",
+        ]
+        for id in ["st_a", "st_b"] {
+            log.add(
+                "steward.created", steward: id, actor: .localUser,
+                [
+                    "charter": [
+                        "id": .string(id), "name": .string(id), "adapter": "fake",
+                        "bindings": [lena],
+                    ],
+                    "version": 1,
+                ])
+        }
+        log.add(
+            "inbox.message", steward: "st_b", actor: FeatureActor(kind: .human, id: "person:lena"),
+            ["from": "person:lena", "intent": "correct", "text": "Not lapsed yet."])
+        let person = try #require(
+            PeopleRoster(events: log.events, stewards: ["st_a", "st_b"]).people.first)
+        #expect(person.stewards == ["st_b", "st_a"])
+        #expect(person.inbound == 1)
+        #expect(person.outbound == 0)
     }
 }

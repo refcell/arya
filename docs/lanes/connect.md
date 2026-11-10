@@ -142,6 +142,20 @@ and receive a periodic report from it.
   lacks. Report "(executed)" on drafted replies came from a demo home seeded before the
   runtime's drafted flag (afc02209); a re-seed reads "(drafted, not sent)". Visual check
   pending the snapshot state filter (load over 30).
+- 2026-11-10: Review 13. Connection tests stay a session diagnostic (never recorded), so the
+  seed cannot record one; instead a connection with no test this session shows the ledger's
+  evidence, "working · last call 9h ago" (or "last call failed"), and a local server (no
+  network) reads "no secret needed". A relay counts what it carries: replies proposed to a
+  person it reaches and messages in through it (chat: 5 calls in 7d). People: "approves …"
+  only for approvers; message counts everywhere come from the thread fold (`tally`), each
+  person's stewards are ordered most-talked first so Lena opens on Product adoption, and the
+  inspector says which steward its counts cover. Adapters render as rows. Added
+  `ARYA_SNAPSHOT_STATES` (comma-separated page states) to SnapshotTests so a lane renders
+  only what it changed. No seed change was needed, so nothing to coordinate with cli-e2e.
+- Visual check (2026-11-10, connections, people, people-thread, connections-detail): every
+  used connection green with its last call, chat 5 calls; All stewards People lists 9
+  people with in/out counts, Lena 1 in on row and inspector; only Sam shows approves. Moves
+  (4) live feel and the review-13 consistency items.
 
 ## Questions
 
