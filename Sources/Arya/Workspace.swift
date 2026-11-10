@@ -18,6 +18,8 @@ import Foundation
 public actor Workspace {
     /// The home directory this workspace reads and writes.
     public nonisolated let home: URL
+    /// Where an encrypted home's key lives.
+    let keys: any HomeKeyStore
     nonisolated let reader: LedgerReader
     let ambient: Ambient
     let sink: LedgerEventSink
@@ -33,6 +35,7 @@ public actor Workspace {
 
     private init(home: URL, wiring: Wiring) throws {
         self.home = home
+        keys = wiring.keys
         ambient = wiring.ambient
         leases = wiring.leases
         sink = try LedgerEventSink(home: home, ambient: wiring.ambient)
@@ -71,9 +74,13 @@ public actor Workspace {
 
     /// Opens with an explicit clock, for example `Ambient.fixed(start:stepMillis:)` weeks in the
     /// past, so a seeding tool can write history that reads as old.
-    public static func open(home: URL, environment: [String: String] = [:], ambient: Ambient)
-        async throws -> Workspace
-    {
+    ///
+    /// `keys` is where an encrypted home's key is read from (the login Keychain by default);
+    /// it is read only when the home is encrypted.
+    public static func open(
+        home: URL, environment: [String: String] = [:], ambient: Ambient,
+        keys: any HomeKeyStore = KeychainHomeKeyStore()
+    ) async throws -> Workspace {
         try HomeLayout.create(at: home)
         let leases = try FileRunLeases(directory: HomeLayout.leases(home))
         return try await open(
@@ -81,12 +88,13 @@ public actor Workspace {
             wiring: Wiring(
                 ambient: ambient,
                 adapters: ProfileAdapterFactory(home: home, environment: environment),
-                executor: DryRunExecutor(), leases: leases))
+                executor: DryRunExecutor(), leases: leases, keys: keys))
     }
 
     /// Opens with explicit wiring (tests pass the fake adapter and a fixed ambient).
     static func open(home: URL, wiring: Wiring) async throws -> Workspace {
         try HomeLayout.create(at: home)
+        HomeEncryption.register(home: home, keys: wiring.keys)
         let workspace = try Workspace(home: home, wiring: wiring)
         try await RunRecovery(sink: workspace.sink, leases: wiring.leases).recover()
         return workspace
@@ -504,6 +512,8 @@ struct Wiring: Sendable {
     var executor: any ActionExecutor
     var leases: any RunLeases
     var questionPoll: Duration = .milliseconds(250)
+    /// Where an encrypted home's key lives (read only when the home is encrypted).
+    var keys: any HomeKeyStore = KeychainHomeKeyStore()
     /// Runs `routine` actions' scripts, sandboxed in the run's workdir (decision 0040).
     var routines: any RoutineRunning = SandboxedRoutineRunner()
     /// Records the sandbox on `run.started` and confines binding proxies' servers.

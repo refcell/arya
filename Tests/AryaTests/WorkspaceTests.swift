@@ -53,7 +53,7 @@ struct Opened {
 
     init(
         _ runs: [FakeScript.Run] = [], leases: any RunLeases = MemoryRunLeases(),
-        adapters: (any AdapterFactory)? = nil
+        adapters: (any AdapterFactory)? = nil, keys: any HomeKeyStore = MemoryHomeKeyStore()
     ) async throws {
         workspace = try await Workspace.open(
             home: home.url,
@@ -61,7 +61,7 @@ struct Opened {
                 ambient: .fixed(stepMillis: 1),
                 adapters: adapters ?? ScriptedFactory(script: FakeScript(runs: runs)),
                 executor: executor,
-                leases: leases, questionPoll: .milliseconds(1)))
+                leases: leases, questionPoll: .milliseconds(1), keys: keys))
     }
 
     func types() async throws -> [String] {

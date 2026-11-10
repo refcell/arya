@@ -50,7 +50,7 @@ extension LedgerReader {
                     fd, at: candidate.offset, count: candidate.length, name: segment.name)
                 let event: Event
                 do {
-                    event = try LedgerLine.open(line)
+                    event = try opened(LedgerLine.open(line))
                 } catch let problem as LineProblem {
                     throw LedgerReadError(
                         segment: segment.name, line: candidate.number, offset: candidate.offset,

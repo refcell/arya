@@ -4,14 +4,23 @@ import Foundation
 /// Content-addressed blobs under `blobs/sha256/ab/<hex>`, where `ab` is the first two hex digits
 /// of the SHA-256 of the content. Writes are atomic (temp file in the same directory, `fsync`,
 /// `rename`), so a reader never sees a partial blob, and a put of existing content is a no-op.
+/// In an encrypted home (`HomeEncryption`) new blobs are sealed files; the key stays the
+/// SHA-256 of the plaintext, and `get` opens and checks it.
 public struct BlobStore: Sendable {
     /// The `blobs` directory.
     public let root: URL
 
     /// A store rooted at `home/blobs`.
+    /// The home directory.
+    public let home: URL
+
     public init(home: URL) {
+        self.home = home
         root = home.appendingPathComponent("blobs", isDirectory: true)
     }
+
+    /// The authenticated context of a sealed blob.
+    static func context(_ hex: String) -> String { "blob|" + hex }
 
     /// Stores `data` and returns its lowercase hex SHA-256.
     @discardableResult
@@ -21,7 +30,7 @@ public struct BlobStore: Sendable {
         if FileManager.default.fileExists(atPath: url.path) { return hex }
         let dir = url.deletingLastPathComponent()
         try FileIO.makeDirectory(dir)
-        try FileIO.atomicWrite(data, to: url)
+        try HomeEncryption.write(Array(data), to: url, home: home, context: Self.context(hex))
         return hex
     }
 
@@ -32,8 +41,30 @@ public struct BlobStore: Sendable {
         guard let data = FileManager.default.contents(atPath: url.path) else {
             throw BlobError.missing(hex)
         }
-        guard LedgerLine.hexSHA256(data) == hex else { throw BlobError.corrupt(hex) }
-        return data
+        let plain: [UInt8]
+        do {
+            plain = try HomeEncryption.openFile(Array(data), home: home, context: Self.context(hex))
+        } catch HomeEncryptionError.badBox {
+            throw BlobError.corrupt(hex)
+        }
+        guard LedgerLine.hexSHA256(plain) == hex else { throw BlobError.corrupt(hex) }
+        return Data(plain)
+    }
+
+    /// Every stored blob key, sorted.
+    public func keys() throws -> [String] {
+        let sha = root.appendingPathComponent("sha256", isDirectory: true)
+        let fm = FileManager.default
+        guard let prefixes = try? fm.contentsOfDirectory(atPath: sha.path) else { return [] }
+        var out: [String] = []
+        for prefix in prefixes where prefix.utf8.count == 2 {
+            let dir = sha.appendingPathComponent(prefix, isDirectory: true)
+            for name in (try? fm.contentsOfDirectory(atPath: dir.path)) ?? []
+            where Self.isValidKey(name) && name.hasPrefix(prefix) {
+                out.append(name)
+            }
+        }
+        return out.sorted()
     }
 
     /// Whether a blob with `hex` is stored.

@@ -349,3 +349,64 @@ extension Workspace {
         return try await retention()
     }
 }
+
+// MARK: Encryption at rest (G4)
+
+/// Whether the home is encrypted, and how much of it is still in the clear.
+public struct EncryptionSummary: Sendable, Hashable, Codable {
+    /// Whether new events, blobs, and caches are sealed.
+    public var enabled: Bool
+    /// The key id (`hk_…`), never the key.
+    public var key: String?
+    public var algorithm: String?
+    /// Whether this process can read the key.
+    public var keyAvailable: Bool
+    /// The `seq` of `system.encryption.enabled`; events after it are sealed.
+    public var since: Int?
+    /// Events before `since` (or all when off) whose payload is in the clear, `system.*`
+    /// excluded: the hash chain covers their bytes, so they stay as written.
+    public var clearEvents: Int
+    public var sealedBlobs: Int
+    public var clearBlobs: Int
+}
+
+extension Workspace {
+    /// The home's encryption state.
+    public func encryption() async throws -> EncryptionSummary {
+        let config = try HomeEncryption.config(home)
+        var since: Int64?
+        if config != nil {
+            since = try reader.newest(
+                LedgerFilter(types: [SystemEncryptionEnabled.type]), before: nil, limit: 1
+            ).last?.seq
+        }
+        var clear = 0
+        try reader.forEachEnvelope { event in
+            if let since, event.seq > since { return }
+            if SealedPayload.applies(to: event.type), !SealedPayload.isSealed(event) { clear += 1 }
+        }
+        let blobs = BlobStore(home: home)
+        var sealed = 0
+        var plain = 0
+        for hex in try blobs.keys() {
+            guard let data = FileManager.default.contents(atPath: blobs.path(hex).path) else {
+                continue
+            }
+            if HomeEncryption.isSealedFile(data) { sealed += 1 } else { plain += 1 }
+        }
+        var available = false
+        if let key = config?.key { available = (try? keys.key(key)) != nil }
+        return EncryptionSummary(
+            enabled: config != nil, key: config?.key, algorithm: config?.algorithm,
+            keyAvailable: available, since: since.map(Int.init), clearEvents: clear,
+            sealedBlobs: sealed, clearBlobs: plain)
+    }
+
+    /// Turns encryption on with a new key kept in this workspace's key store (the Keychain
+    /// in the app and CLI), records `system.encryption.enabled` (actor: the person), and seals
+    /// existing blobs and seeds. Enabling an encrypted home changes nothing.
+    public func enableEncryption(as person: String = "local") async throws -> EncryptionSummary {
+        try HomeEncryption.enable(store: sink.store, keys: keys, actor: .human(person))
+        return try await encryption()
+    }
+}

@@ -137,6 +137,7 @@ M3:
 - (from eval) Added `liveReadiness(proposal:recent:)`; case runner scores crews on the join result.
 - (from governance) Integration edits: `ApprovalSummary.approvers`/`approverNote` (filled in `detailed`), `approve(_:note:as:)` with an approver check before the grant (`approve(_:note:)` unchanged); new `Governance.swift` (`policySummary`, `checkApprover`) is governance-owned.
 - (from governance) Integration edit: `Workspace.leases` (from `Wiring`); `abortRun` lives in `Governance.swift`.
+- (from governance) Integration edit (G4): `Workspace.keys` and `Wiring.keys` (default the Keychain store), `open(home:environment:ambient:keys:)`, and `HomeEncryption.register` in `open(home:wiring:)`; the test helper `Opened` takes `keys:` (default in-memory). Decision 0048.
 - (from connect) `Sources/Arya/Connections.swift` adds `CredentialStore` (Keychain and memory)
   and `ConnectionProbe`; please wire a `CredentialStore` into `Workspace.open` so `arya serve`
   and the app hand binding servers their secret once runtime takes a provider.

@@ -200,7 +200,7 @@ extension LedgerReader {
         if tail.terminated { return try open(tail.line, segment: segment, offset: tail.offset) }
         // A torn final line: the last complete one comes before it.
         var last: Event?
-        try scan(segment) { event, _, _ in last = event }
+        try scan(segment, openSealed: false) { event, _, _ in last = event }
         return last
     }
 

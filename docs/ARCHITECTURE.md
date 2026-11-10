@@ -70,11 +70,13 @@ blobs/sha256/ab/abcd…       content-addressed payloads too large for an event
 casebooks/<name>.jsonl      cases, one per line (imported into blobs when used)
 adapters.json               adapter profiles: command, args, effort mapping
 cache/                      projections (charters, run index); safe to delete
+keys/                       checkpoint signing key; encryption.json when the home is encrypted
 ledger.lock                 advisory lock taken for each append
 scheduler.lock              held by the one process that runs triggers
 ```
 
-Only the ledger and blobs are authoritative. Everything in `cache/` is rebuilt from them.
+In an encrypted home (decision 0048) event payloads, blobs, and caches are sealed with a key
+kept in the Keychain; envelopes stay in the clear. Only the ledger and blobs are authoritative. Everything in `cache/` is rebuilt from them.
 Charters are authored as JSON files anywhere and recorded into the ledger by
 `arya steward create` and `arya propose`; the file on disk is not read again afterwards.
 

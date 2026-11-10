@@ -4,11 +4,32 @@ import Foundation
 /// Reads the ledger in `home/ledger/` without taking the append lock. Readers see complete
 /// lines only: a final line with no trailing newline is still being written (or torn) and is
 /// skipped until it completes or the store repairs it.
+///
+/// In an encrypted home, sealed payloads are opened with the key registered for the home
+/// (`HomeEncryption`); a missing key throws `HomeEncryptionError.locked`. `LedgerVerifier`
+/// checks lines without opening them.
 public struct LedgerReader: Sendable {
     public let directory: URL
 
     public init(home: URL) {
         directory = home.appendingPathComponent("ledger", isDirectory: true)
+    }
+
+    /// The home directory.
+    public var home: URL { directory.deletingLastPathComponent() }
+
+    /// Calls `body` with every event in order, sealed payloads left sealed: an envelope read
+    /// (types, stewards, actors, times) that needs no key.
+    public func forEachEnvelope(_ body: (Event) throws -> Void) throws {
+        for segment in try existingSegments() {
+            try scan(segment, openSealed: false) { event, _, _ in try body(event) }
+        }
+    }
+
+    /// `event` with a sealed payload opened.
+    func opened(_ event: Event) throws -> Event {
+        guard SealedPayload.isSealed(event) else { return event }
+        return try HomeEncryption.opened(event, home: home)
     }
 
     /// Every event with `seq >= from`, in order. Each line's hash is checked; a bad line
@@ -121,7 +142,7 @@ public struct LedgerReader: Sendable {
                 guard !contiguous || wanted.contains(seq) else { return }
                 let event: Event
                 do {
-                    event = try LedgerLine.open(line)
+                    event = try opened(LedgerLine.open(line))
                 } catch let problem as LineProblem {
                     throw LedgerReadError(
                         segment: segment.name, line: number, offset: offset, problem: problem)
@@ -178,16 +199,19 @@ public struct LedgerReader: Sendable {
 
     func firstEvent(of segment: Segment) throws -> Event? {
         var found: Event?
-        try scan(segment, stopAfterFirst: true) { event, _, _ in found = event }
+        try scan(segment, stopAfterFirst: true, openSealed: false) { event, _, _ in
+            found = event
+        }
         return found
     }
 
     /// Calls `body(event, offset, lineNumber)` for each complete line of `segment` that
     /// `sieve` admits. When `expectFirst` is set, the first line read is always opened and
-    /// must hold that `seq`, or the scan throws `RescanSegment`.
+    /// must hold that `seq`, or the scan throws `RescanSegment`. With `openSealed` false,
+    /// sealed payloads stay sealed (envelope reads need no key).
     func scan(
         _ segment: Segment, stopAfterFirst: Bool = false, skipLines: Int = 0,
-        sieve: LineSieve? = nil, expectFirst: Int64? = nil,
+        sieve: LineSieve? = nil, expectFirst: Int64? = nil, openSealed: Bool = true,
         _ body: (Event, Int64, Int) throws -> Void
     ) throws {
         let sieve = sieve?.passesAll == false ? sieve : nil
@@ -201,7 +225,8 @@ public struct LedgerReader: Sendable {
             }
             let event: Event
             do {
-                event = try LedgerLine.open(line)
+                let raw = try LedgerLine.open(line)
+                event = openSealed ? try opened(raw) : raw
             } catch let problem as LineProblem {
                 throw LedgerReadError(
                     segment: segment.name, line: number, offset: offset, problem: problem)

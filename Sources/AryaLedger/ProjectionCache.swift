@@ -5,7 +5,8 @@ import Foundation
 /// from the start. Safe to delete: a missing, corrupt, or stale cache only costs a rebuild.
 ///
 /// File format: `{"v":1,"name":…,"seq":…,"hash":…,"value":{…}}`, where `seq` and
-/// `hash` name the last folded event. Writes are atomic (temp file and rename).
+/// `hash` name the last folded event. Writes are atomic (temp file and rename). In an
+/// encrypted home files are sealed (`HomeEncryption`), and seeds keep the sealed bytes.
 public struct ProjectionCache: Sendable {
     /// `home/cache`.
     public let directory: URL
@@ -16,10 +17,24 @@ public struct ProjectionCache: Sendable {
         reader = LedgerReader(home: home)
     }
 
+    var home: URL { directory.deletingLastPathComponent() }
+
+    /// The authenticated context of a sealed cache or seed file named `name`.
+    static func context(_ name: String) -> String { "cache|" + name }
+
+    /// A cache or seed file's plaintext, opened when sealed; nil when missing or unreadable.
+    func plaintext(_ url: URL, name: String) -> Data? {
+        guard let data = FileManager.default.contents(atPath: url.path),
+            let plain = try? HomeEncryption.openFile(
+                Array(data), home: home, context: Self.context(name))
+        else { return nil }
+        return Data(plain)
+    }
+
     /// The saved projection, or nil if there is none or it cannot be read.
     public func load<P: LedgerProjection & Codable>(_ type: P.Type, name: String) -> Projected<P>? {
         guard Self.isValidName(name),
-            let data = FileManager.default.contents(atPath: url(name).path),
+            let data = plaintext(url(name), name: name),
             let file = try? JSONDecoder().decode(CacheFile<P>.self, from: data),
             file.v == 1, file.name == name, file.seq >= 0, BlobStore.isValidKey(file.hash)
         else { return nil }
@@ -33,7 +48,9 @@ public struct ProjectionCache: Sendable {
         let file = CacheFile(
             v: 1, name: name, seq: projected.seq, hash: projected.hash, value: projected.value)
         try FileIO.makeDirectory(directory)
-        try FileIO.atomicWrite(try CanonicalJSON.encode(file), to: url(name))
+        try HomeEncryption.write(
+            Array(try CanonicalJSON.encode(file)), to: url(name), home: home,
+            context: Self.context(name))
     }
 
     /// Loads the cache (or starts empty), catches up with the ledger, saves the result if it
@@ -82,9 +99,9 @@ public struct ProjectionCache: Sendable {
         for checkpoint in found.reversed() {
             guard Checkpoints.checkSignature(checkpoint, ring: ring) == nil,
                 let digest = checkpoint.projections[name],
-                let data = FileManager.default.contents(
-                    atPath: checkpoints.seedDirectory(checkpoint.through)
-                        .appendingPathComponent(name + ".json").path),
+                let data = plaintext(
+                    checkpoints.seedDirectory(checkpoint.through)
+                        .appendingPathComponent(name + ".json"), name: name),
                 case .object(let fields)? = try? JSONParser.parse(Array(data)),
                 let value = fields["value"], (try? Checkpoints.digest(value)) == digest,
                 let file = try? JSONDecoder().decode(CacheFile<P>.self, from: data),
@@ -104,13 +121,14 @@ public struct ProjectionCache: Sendable {
         for file in names.sorted() where file.hasSuffix(".json") {
             let name = String(file.dropLast(5))
             guard Self.isValidName(name),
-                let data = FileManager.default.contents(atPath: url(name).path),
+                let raw = FileManager.default.contents(atPath: url(name).path),
+                let data = plaintext(url(name), name: name),
                 case .object(let fields)? = try? JSONParser.parse(Array(data)),
                 fields["v"] == 1, fields["name"] == .string(name),
                 fields["seq"] == .int(head.seq), fields["hash"] == .string(head.hash),
                 let value = fields["value"]
             else { continue }
-            out.append((name, try Checkpoints.digest(value), Array(data)))
+            out.append((name, try Checkpoints.digest(value), Array(raw)))
         }
         return out
     }

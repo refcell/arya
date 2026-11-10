@@ -16,6 +16,10 @@ import Foundation
 /// decides.
 ///
 /// For each event the store reads `ambient.now()` and then `ambient.newID(EventID.self)`.
+///
+/// In an encrypted home (`HomeEncryption`) each payload that is not `system.*` is sealed
+/// before its line is hashed; the returned events carry the plaintext payload. Appending to an
+/// encrypted home whose key is not available throws `HomeEncryptionError.locked`.
 public final class LedgerStore: Sendable {
     public static let defaultSegmentLimitBytes: Int64 = 64 * 1024 * 1024
 
@@ -56,14 +60,23 @@ public final class LedgerStore: Sendable {
         if drafts.isEmpty { return [] }
         return try withAppendLock { writer in
             var head = try writer.prepare()
+            let cipher = try HomeEncryption.sealing(home)
             var sealed: [(Event, [UInt8])] = []
             for draft in drafts {
                 let at = ambient.now()
                 let id = ambient.newID(EventID.self)
-                let (event, line) = try LedgerLine.seal(
-                    draft, seq: head.seq + 1, prev: head.hash, id: id, at: at)
-                sealed.append((event, line))
+                var stored = draft
+                if let cipher, SealedPayload.applies(to: draft.type) {
+                    try LedgerLine.checkPayload(draft.payload)
+                    stored.payload = try SealedPayload.seal(
+                        draft.payload, cipher: cipher,
+                        context: SealedPayload.context(id: id, seq: head.seq + 1, type: draft.type))
+                }
+                var (event, line) = try LedgerLine.seal(
+                    stored, seq: head.seq + 1, prev: head.hash, id: id, at: at)
                 head = Head(seq: event.seq, hash: event.hash)
+                event.payload = draft.payload
+                sealed.append((event, line))
             }
             try writer.write(sealed.map(\.1))
             return sealed.map(\.0)

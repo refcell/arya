@@ -481,3 +481,16 @@ channel address, case-insensitive) or, for a person, that they wrote. The worksp
 as `Workspace.context(steward:)` with note texts, for the app's people and connections
 surfaces. It is a read model: nothing new is recorded. Why: a steward that owns an outcome
 should show who and what it works with, and what it has learned about each.
+
+### 0048 — 2026-11-09 — Encryption at rest seals payloads, not envelopes
+
+An encrypted home seals, with one Keychain-held AES-256-GCM key, the payload of every event
+that is not `system.*`, every blob, and every projection cache and seed. Envelopes (seq, id,
+time, steward, run, actor, type, prev, hash) stay in the clear, so filtered reads, the index,
+the hash chain, `verify`, checkpoints, and compaction work as before and need no key.
+`Workspace.open(keys:)` registers where the key lives (the login Keychain by default); every
+reader and writer of that home then seals and opens on its own. Without the key, reads and
+appends throw `HomeEncryptionError.locked` instead of skipping sealed events, while `verify`
+still runs. Events written before encryption was enabled stay as written. Why: sealing whole
+lines would have discarded the raw-byte read speedups and keyless integrity checks, and disk
+encryption alone does not cover copies and backups of the home.

@@ -196,3 +196,40 @@ private func undoableCharterJSON(allowUnlabel: Bool = true) throws -> Data {
         try await workspace.setRetention(steward: "st_missing", days: 3)
     }
 }
+
+@Test func enablingEncryptionSealsNewHistoryAndNeedsTheKeyToReopen() async throws {
+    let keys = MemoryHomeKeyStore()
+    let opened = try await Opened([FakeScript.Run(result: liveResult)], keys: keys)
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let off = try await workspace.encryption()
+    #expect(!off.enabled)
+    #expect(off.key == nil)
+    #expect(off.clearEvents == 1)
+
+    let on = try await workspace.enableEncryption()
+    #expect(on.enabled)
+    #expect(on.keyAvailable)
+    #expect(on.algorithm == "AES-256-GCM")
+    #expect(on.since == 2)
+    #expect(on.clearEvents == 1)
+    let key = try #require(on.key)
+    #expect(try keys.key(key) != nil)
+    #expect(try await opened.types().last == "system.encryption.enabled")
+    #expect(try await workspace.ledger().last?.actorID == "local")
+
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    #expect(try await workspace.approvals().count == 1)
+    let raw = try String(
+        contentsOf: opened.home.url.appendingPathComponent("ledger/000001.jsonl"), encoding: .utf8)
+    #expect(!raw.contains("MSG-9"))
+    #expect(try await workspace.encryption().clearEvents == 1)
+
+    await #expect(throws: HomeEncryptionError.locked(key: key)) {
+        _ = try await Workspace.open(
+            home: opened.home.url, ambient: .fixed(stepMillis: 1), keys: MemoryHomeKeyStore())
+    }
+    let reopened = try await Workspace.open(
+        home: opened.home.url, ambient: .fixed(stepMillis: 1), keys: keys)
+    #expect(try await reopened.approvals().count == 1)
+}

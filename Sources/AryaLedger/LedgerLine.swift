@@ -14,15 +14,20 @@ public enum LedgerLine {
 
     private static let suffixHead = Array(#","hash":""#.utf8)
 
+    /// Throws unless `payload` is an object shallow enough to read back: it sits one level
+    /// inside the envelope.
+    static func checkPayload(_ payload: JSONValue) throws {
+        guard case .object = payload else { throw LedgerError.payloadNotObject }
+        guard JSONParser.nests(payload, within: JSONParser.maxDepth - 1) else {
+            throw LedgerError.payloadTooDeep
+        }
+    }
+
     /// Seals a draft into an event and its line bytes, without the trailing newline.
     public static func seal(
         _ draft: EventDraft, seq: Int64, prev: String, id: EventID, at: Timestamp
     ) throws -> (event: Event, line: [UInt8]) {
-        guard case .object = draft.payload else { throw LedgerError.payloadNotObject }
-        // The payload sits one level inside the envelope; deeper lines could not be read back.
-        guard JSONParser.nests(draft.payload, within: JSONParser.maxDepth - 1) else {
-            throw LedgerError.payloadTooDeep
-        }
+        try checkPayload(draft.payload)
         var fields: [String: JSONValue] = [
             "v": 1, "seq": .int(seq), "id": .string(id.rawValue), "at": .string(at.description),
             "actor": try CanonicalJSON.jsonValue(draft.actor),
