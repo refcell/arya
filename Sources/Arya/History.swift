@@ -155,6 +155,7 @@ extension Workspace {
         } catch EvalError.unknownCase {
             throw WorkspaceError.notFound(caseID)
         }
+        try await rebuildChecks(id, by: person)
         return try await queue.view(steward: id)
     }
 }

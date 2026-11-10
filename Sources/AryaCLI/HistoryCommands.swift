@@ -10,6 +10,7 @@ protocol HistoryBackend: Sendable {
     func reviewQueue(steward: String) async throws(CLIError) -> ReviewQueueSummary?
     func reviewCase(steward: String, case: String, verdict: String) async throws(CLIError)
         -> ReviewQueueSummary?
+    func learnedChecks(steward: String) async throws(CLIError) -> LearnedChecksSummary?
 }
 
 extension HistoryBackend {
@@ -27,6 +28,10 @@ extension HistoryBackend {
         -> ReviewQueueSummary?
     {
         throw .unavailable("reviewCase")
+    }
+
+    func learnedChecks(steward: String) async throws(CLIError) -> LearnedChecksSummary? {
+        throw .unavailable("learnedChecks")
     }
 }
 
@@ -63,6 +68,10 @@ extension CommandTable {
                     name: "verdict", kind: .value(placeholder: "agree|skip"),
                     help: "agree or skip (correct a case with `arya correct`)"),
             ]),
+        CommandSpec(
+            id: .checks,
+            summary: "Checks people taught the steward by correcting and agreeing, and its score",
+            positionals: [PositionalSpec(name: "steward", help: "steward id")]),
     ]
 }
 
@@ -103,6 +112,11 @@ extension CLI {
             }
             guard let queue else { throw .notFound("casebook for \(steward)") }
             try output.emit(queue, json: json, text: HistoryText.queue)
+        case .checks:
+            guard let checks = try await backend.learnedChecks(steward: steward) else {
+                throw .notFound("checks for \(steward) (review or correct a case first)")
+            }
+            try output.emit(checks, json: json, text: HistoryText.checks)
         default:
             throw .usage("unknown command: \(invocation.command.rawValue)")
         }
@@ -115,6 +129,16 @@ enum HistoryText {
         var lines = [summary.summary]
         lines += summary.invalid.map { "  invalid: \($0)" }
         return lines
+    }
+
+    /// The sentence, then one line per check: `FAIL  c2  Feature requests are features.`
+    static func checks(_ checks: LearnedChecksSummary) -> [String] {
+        [checks.sentence]
+            + checks.results.map { line in
+                let mark = line.passed.map { $0 ? "pass" : "FAIL" } ?? "-   "
+                let found = line.passed == false ? " (\(line.found))" : ""
+                return "  \(mark)  \(line.check.caseID.rawValue)  \(line.check.text)\(found)"
+            }
     }
 
     static func queue(_ queue: ReviewQueueSummary) -> [String] {

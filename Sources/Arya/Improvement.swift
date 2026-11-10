@@ -92,6 +92,7 @@ extension Workspace {
         let outcome = try await Corrector(sink: sink, blobs: blobs, ambient: ambient).correct(
             CaseCorrection(caseID: caseKey, text: text, expected: value), in: book,
             steward: id, person: person)
+        try await rebuildChecks(id, by: person)
         return CorrectionSummary(
             steward: steward, caseID: caseID, note: outcome.note.id.rawValue,
             casebook: outcome.casebook?.version ?? book.version)
@@ -138,6 +139,7 @@ extension Workspace {
         }
         let body = try CanonicalJSON.decode(
             CaseCorrectedPayload.self, from: try CanonicalJSON.encode(outcome.event.payload))
+        try await rebuildChecks(record.steward, by: person)
         return CorrectionSummary(
             steward: record.steward.rawValue, caseID: body.caseID.rawValue,
             note: outcome.note.id.rawValue, casebook: outcome.casebook?.version ?? body.casebook)

@@ -467,6 +467,13 @@ extension WorkspaceBackend {
         }
     }
 
+    func learnedChecks(steward: String) async throws(CLIError) -> LearnedChecksSummary? {
+        let workspace = try await open()
+        return try await call("learnedChecks") {
+            try await workspace.learnedChecks(steward: steward)
+        }
+    }
+
     func reviewQueue(steward: String) async throws(CLIError) -> ReviewQueueSummary? {
         let workspace = try await open()
         return try await call("reviewQueue") { try await workspace.reviewQueue(steward: steward) }

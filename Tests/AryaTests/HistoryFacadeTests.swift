@@ -46,6 +46,11 @@ import Testing
         try await workspace.reviewCase(steward: "st_inbox", case: "case-1", verdict: "agree"))
     #expect(after.agreed == 1)
     #expect(after.progressText.hasPrefix("1 of 4 reviewed"))
+    // The agreement became a learned check, version 1, scored on the live rehearsal.
+    let checks = try #require(try await workspace.learnedChecks(steward: "st_inbox"))
+    #expect(checks.version == 1 && checks.total == 1)
+    #expect(checks.results.first?.check.origin == .agreed)
+    #expect(checks.sentence.hasPrefix("Checks v1: "))
     await #expect(throws: WorkspaceError.self) {
         try await workspace.reviewCase(steward: "st_inbox", case: "case-1", verdict: "maybe")
     }
