@@ -210,6 +210,7 @@ Later:
   scored on its join's result and the join replays alone, so one crew run makes any proposal
   "Not ready: 2 of last N runs would fail". Repro: `just demo`, propose any charter, readiness.
 
+- (from adapters) History import: binding tool `history` is defined (PROTOCOL.md, Binding conventions; types `HistoryListParams`/`HistoryListResult`/`HistoryItem` in AryaAdapters). Page with `next` until absent; each item has `input`, `record` (what `get` returns), the person's `actions`, `choice`, and `outcome` (`reopened` marks a correction). Test target: `arya-fake-adapter --binding etc/examples/triage/inbox-history.json` (40 items, 5 reopened). You can reach a binding with `ProcessToolUpstream(command:args:)`.
 
 ## Log
 

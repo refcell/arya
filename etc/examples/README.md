@@ -60,3 +60,9 @@ else.
 over the past month (`ARYA_CLOCK` stamps each command with its past time), so the demo
 home shows a steward with weeks of decisions, a memory, and a routine proposal. Every scripted
 run returns its `plan`, a `why` for each decision and action, and each action's `risk`. [adapters/](adapters) holds exec profiles for public command-line agents.
+
+
+`triage/inbox-history.json` is the inbox binding's past: 40 invented messages, each with the label
+and queue a person chose and how it turned out, served by `arya-fake-adapter --binding` through the
+`history` tool ([PROTOCOL.md](../../docs/PROTOCOL.md#binding-conventions)). eval's casebook importer
+reads it.

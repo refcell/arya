@@ -59,6 +59,9 @@ M4:
   `.delegate` update and `answerDelegation`, the fake `delegate` step, and the triage example
   handing "Draft the refund reply" for MSG-203 to a child run. The runtime wires real fan-out
   (pointer in runtime's Questions); until then `RunDriver` and `Judge` answer `refused`.
+- [x] History import convention: binding tool `history` (past records with what a person did,
+  paged oldest first), `BindingHistory.page`, the fake MCP binding
+  (`arya-fake-adapter --binding`), and `etc/examples/triage/inbox-history.json` (40 messages).
 
 ## Decisions
 
@@ -129,6 +132,10 @@ M4:
   kind, depth 1, child actions proposed only) and answers when the child ends. No capability
   flag: a host without it answers `-32601`, and `refused` covers depth and rehearsal limits, so
   an adapter always has the result-delegation fallback. The idle timer pauses while one is open.
+- `history` is a binding tool, not an adapter method: past records live in the systems
+  bindings reach, and the importer reaches them the same way runs do. Items carry the person's
+  actions in proposed-action terms plus `choice` and `outcome`, so a case's expectation and a
+  correction (`reopened`) need no binding-specific parsing.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -163,3 +170,4 @@ M4:
   runs on a manual clock (a mutation that drops the pause fails it in 10 s instead of hanging).
 - 2026-11-09: idle-timer test on a manual clock (41dc71a); `host/delegate` for in-run crews,
   the fake `delegate` step, and the triage refund-reply delegation.
+- 2026-11-09: binding `history` convention, fake MCP binding, triage inbox history (40 items).

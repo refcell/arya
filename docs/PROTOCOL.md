@@ -239,6 +239,53 @@ the child.
 arya sends `low`, `medium`, or `high`. Each adapter maps effort to a model and reasoning budget
 in its profile (`adapters.json`), so charters never name models.
 
+## Binding conventions
+
+Bindings are MCP servers that arya reaches through its binding proxy (see
+[ARCHITECTURE.md](ARCHITECTURE.md)). Most of their tools are their own; the tools below follow a
+shared shape so arya can use any binding that serves them.
+
+### `history`
+
+A read tool that lists past records together with what a person did with each, so arya can learn
+from decisions made before it arrived (eval imports them into a casebook). A binding that serves it
+lists `history` among its tools; a charter exposes it to runs only if `bindings[].read` names it.
+
+```json
+{"since":"2026-09-01T00:00:00Z","until":"2026-10-01T00:00:00Z","cursor":"50","limit":50}
+```
+
+Every argument is optional. Times are RFC 3339 in UTC (`Z`), so they compare as text: `since` is
+inclusive and `until` exclusive. `limit` is 1 to 500 (default 50). `cursor` is the `next` of the
+previous page; it is opaque to the caller. The result, as the call's `structuredContent` (and as
+JSON text in `content`), is one page, oldest first:
+
+```json
+{"items":[{"id":"MSG-004","at":"2026-09-03T11:00:00Z",
+  "input":"New message MSG-004: Order has not shipped",
+  "record":{"id":"MSG-004","subject":"Order has not shipped","body":"…"},
+  "actions":[{"kind":"route","target":"inbox:MSG-004","params":{"queue":"help"},
+              "by":"person:sam","at":"2026-09-03T11:42:00Z"},
+             {"kind":"route","target":"inbox:MSG-004","params":{"queue":"shipping"},
+              "by":"person:alex","at":"2026-09-03T14:00:00Z"}],
+  "choice":"shipping",
+  "outcome":{"status":"reopened","at":"2026-09-03T14:00:00Z","note":"Rerouted."}}],
+ "next":"50"}
+```
+
+- `id` is the record's id, the one the binding's `get` tool takes; `at` is when it arrived.
+- `input` is the run input arya would have received for the record.
+- `record` (optional) is the record as `get` returns it, so an importer needs no extra calls.
+- `actions` lists what people did, in order, in the terms of proposed actions (`kind`, `target`,
+  `params`) plus `by` (a contact id) and `at`. It is empty when nobody acted.
+- `choice` (optional) is the person's decision in one word, such as a category or queue.
+- `outcome` (optional) says how it turned out: `status` is `resolved`, `reopened` (the first
+  handling was not enough), or `open`; other words are kept as text. `note` explains.
+- `next` is absent on the last page.
+
+The types are `HistoryListParams`, `HistoryListResult`, and `HistoryItem` in `AryaAdapters`;
+`BindingHistory.page` implements the paging for a list held in memory.
+
 ## Reference adapters
 
 - `arya-fake-adapter --script <file>`: replays a JSON script of events and results keyed by
@@ -361,6 +408,11 @@ The list form `"runs":[{"input":"…", …response fields…}, …]` is equivale
 its `input`, and the run without `input` is the default. When both forms name an input,
 `responses` wins. `etc/examples/triage/fake-script.json` is a complete example in the list
 form.
+
+`arya-fake-adapter --binding <file>` serves a fake MCP binding instead: `history`, `get` (`{id}`,
+the record), and `search` (`{query}`, `{items}` of records containing it) from
+`{"v":1,"history":[…items…]}`. `etc/examples/triage/inbox-history.json` holds 40 past triage
+messages with the routing a person chose; five were rerouted and are marked `reopened`.
 
 ## Host behavior
 

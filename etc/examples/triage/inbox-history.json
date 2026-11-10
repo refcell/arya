@@ -1,0 +1,1567 @@
+{
+  "v": 1,
+  "history": [
+    {
+      "id": "MSG-001",
+      "at": "2026-09-01T08:00:00Z",
+      "input": "New message MSG-001: Charged twice this month",
+      "record": {
+        "id": "MSG-001",
+        "from": "customer:c-001",
+        "subject": "Charged twice this month",
+        "body": "My card shows two charges for the same plan this month."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-001",
+          "params": {
+            "label": "billing"
+          },
+          "by": "person:sam",
+          "at": "2026-09-01T08:25:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-001",
+          "params": {
+            "queue": "billing"
+          },
+          "by": "person:sam",
+          "at": "2026-09-01T08:25:00Z"
+        },
+        {
+          "kind": "reply",
+          "target": "inbox:MSG-001",
+          "params": {
+            "text": "Thanks for reaching out. The team that handles this has your message and will reply today."
+          },
+          "by": "person:sam",
+          "at": "2026-09-01T08:25:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-01T14:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-002",
+      "at": "2026-09-02T03:00:00Z",
+      "input": "New message MSG-002: How do I rename a project?",
+      "record": {
+        "id": "MSG-002",
+        "from": "customer:c-002",
+        "subject": "How do I rename a project?",
+        "body": "I cannot find where to change a project's name."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-002",
+          "params": {
+            "label": "how-to"
+          },
+          "by": "person:alex",
+          "at": "2026-09-02T03:32:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-002",
+          "params": {
+            "queue": "help"
+          },
+          "by": "person:alex",
+          "at": "2026-09-02T03:32:00Z"
+        }
+      ],
+      "choice": "how-to",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-02T10:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-003",
+      "at": "2026-09-02T22:00:00Z",
+      "input": "New message MSG-003: Upload button does nothing",
+      "record": {
+        "id": "MSG-003",
+        "from": "customer:c-003",
+        "subject": "Upload button does nothing",
+        "body": "Clicking upload does nothing in the latest version."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-003",
+          "params": {
+            "label": "bug"
+          },
+          "by": "person:sam",
+          "at": "2026-09-02T22:39:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-003",
+          "params": {
+            "queue": "engineering"
+          },
+          "by": "person:sam",
+          "at": "2026-09-02T22:39:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-03T06:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-004",
+      "at": "2026-09-03T11:00:00Z",
+      "input": "New message MSG-004: Order has not shipped",
+      "record": {
+        "id": "MSG-004",
+        "from": "customer:c-004",
+        "subject": "Order has not shipped",
+        "body": "I ordered a week ago and the order still says processing."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-004",
+          "params": {
+            "label": "how-to"
+          },
+          "by": "person:alex",
+          "at": "2026-09-03T11:46:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-004",
+          "params": {
+            "queue": "help"
+          },
+          "by": "person:alex",
+          "at": "2026-09-03T11:46:00Z"
+        },
+        {
+          "kind": "label",
+          "target": "inbox:MSG-004",
+          "params": {
+            "label": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-03T14:00:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-004",
+          "params": {
+            "queue": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-03T14:00:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "reopened",
+        "at": "2026-09-03T14:00:00Z",
+        "note": "Rerouted from help to shipping."
+      }
+    },
+    {
+      "id": "MSG-005",
+      "at": "2026-09-04T06:00:00Z",
+      "input": "New message MSG-005: Cannot change my password",
+      "record": {
+        "id": "MSG-005",
+        "from": "customer:c-005",
+        "subject": "Cannot change my password",
+        "body": "The change password form says my current password is wrong."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-005",
+          "params": {
+            "label": "account"
+          },
+          "by": "person:sam",
+          "at": "2026-09-04T06:53:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-005",
+          "params": {
+            "queue": "accounts"
+          },
+          "by": "person:sam",
+          "at": "2026-09-04T06:53:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-04T16:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-006",
+      "at": "2026-09-05T01:00:00Z",
+      "input": "New message MSG-006: You have won a prize",
+      "record": {
+        "id": "MSG-006",
+        "from": "customer:c-006",
+        "subject": "You have won a prize",
+        "body": "Click here to claim your free gift card today."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-006",
+          "params": {
+            "label": "spam"
+          },
+          "by": "person:alex",
+          "at": "2026-09-05T02:00:00Z"
+        }
+      ],
+      "choice": "spam",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-05T07:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-007",
+      "at": "2026-09-05T14:00:00Z",
+      "input": "New message MSG-007: Password reset I did not ask for",
+      "record": {
+        "id": "MSG-007",
+        "from": "customer:c-007",
+        "subject": "Password reset I did not ask for",
+        "body": "I got a password reset email I never requested."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-007",
+          "params": {
+            "label": "security"
+          },
+          "by": "person:sam",
+          "at": "2026-09-05T14:27:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-007",
+          "params": {
+            "queue": "security"
+          },
+          "by": "person:sam",
+          "at": "2026-09-05T14:27:00Z"
+        }
+      ],
+      "choice": "security",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-05T21:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-008",
+      "at": "2026-09-06T09:00:00Z",
+      "input": "New message MSG-008: Refund for an accidental upgrade",
+      "record": {
+        "id": "MSG-008",
+        "from": "customer:c-008",
+        "subject": "Refund for an accidental upgrade",
+        "body": "I upgraded by mistake yesterday. Can I get the difference back?"
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-008",
+          "params": {
+            "label": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-06T09:34:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-008",
+          "params": {
+            "queue": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-06T09:34:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-06T17:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-009",
+      "at": "2026-09-07T04:00:00Z",
+      "input": "New message MSG-009: Calendar shows the wrong day",
+      "record": {
+        "id": "MSG-009",
+        "from": "customer:c-009",
+        "subject": "Calendar shows the wrong day",
+        "body": "Events created on Mondays appear on Sundays."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-009",
+          "params": {
+            "label": "bug"
+          },
+          "by": "person:sam",
+          "at": "2026-09-07T04:41:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-009",
+          "params": {
+            "queue": "engineering"
+          },
+          "by": "person:sam",
+          "at": "2026-09-07T04:41:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-07T13:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-010",
+      "at": "2026-09-07T17:00:00Z",
+      "input": "New message MSG-010: Where are keyboard shortcuts listed?",
+      "record": {
+        "id": "MSG-010",
+        "from": "customer:c-010",
+        "subject": "Where are keyboard shortcuts listed?",
+        "body": "Is there a list of keyboard shortcuts somewhere?"
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-010",
+          "params": {
+            "label": "how-to"
+          },
+          "by": "person:alex",
+          "at": "2026-09-07T17:48:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-010",
+          "params": {
+            "queue": "help"
+          },
+          "by": "person:alex",
+          "at": "2026-09-07T17:48:00Z"
+        }
+      ],
+      "choice": "how-to",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-08T03:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-011",
+      "at": "2026-09-08T12:00:00Z",
+      "input": "New message MSG-011: Wrong size delivered",
+      "record": {
+        "id": "MSG-011",
+        "from": "customer:c-011",
+        "subject": "Wrong size delivered",
+        "body": "I ordered a medium and received a large."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-011",
+          "params": {
+            "label": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-08T12:55:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-011",
+          "params": {
+            "queue": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-08T12:55:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-08T18:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-012",
+      "at": "2026-09-09T07:00:00Z",
+      "input": "New message MSG-012: Merge two accounts",
+      "record": {
+        "id": "MSG-012",
+        "from": "customer:c-012",
+        "subject": "Merge two accounts",
+        "body": "I accidentally made a second account with my work email."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-012",
+          "params": {
+            "label": "account"
+          },
+          "by": "person:alex",
+          "at": "2026-09-09T08:02:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-012",
+          "params": {
+            "queue": "accounts"
+          },
+          "by": "person:alex",
+          "at": "2026-09-09T08:02:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-09T14:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-013",
+      "at": "2026-09-09T20:00:00Z",
+      "input": "New message MSG-013: Invoice missing tax number",
+      "record": {
+        "id": "MSG-013",
+        "from": "customer:c-013",
+        "subject": "Invoice missing tax number",
+        "body": "My invoice does not show our tax number."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-013",
+          "params": {
+            "label": "how-to"
+          },
+          "by": "person:sam",
+          "at": "2026-09-09T20:29:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-013",
+          "params": {
+            "queue": "help"
+          },
+          "by": "person:sam",
+          "at": "2026-09-09T20:29:00Z"
+        },
+        {
+          "kind": "label",
+          "target": "inbox:MSG-013",
+          "params": {
+            "label": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-09T23:00:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-013",
+          "params": {
+            "queue": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-09T23:00:00Z"
+        },
+        {
+          "kind": "reply",
+          "target": "inbox:MSG-013",
+          "params": {
+            "text": "Thanks for reaching out. The team that handles this has your message and will reply today."
+          },
+          "by": "person:sam",
+          "at": "2026-09-09T20:29:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "reopened",
+        "at": "2026-09-09T23:00:00Z",
+        "note": "Rerouted from help to billing."
+      }
+    },
+    {
+      "id": "MSG-014",
+      "at": "2026-09-10T15:00:00Z",
+      "input": "New message MSG-014: Search freezes the app",
+      "record": {
+        "id": "MSG-014",
+        "from": "customer:c-014",
+        "subject": "Search freezes the app",
+        "body": "Typing in search freezes the app for several seconds."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-014",
+          "params": {
+            "label": "bug"
+          },
+          "by": "person:alex",
+          "at": "2026-09-10T15:36:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-014",
+          "params": {
+            "queue": "engineering"
+          },
+          "by": "person:alex",
+          "at": "2026-09-10T15:36:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-11T00:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-015",
+      "at": "2026-09-11T10:00:00Z",
+      "input": "New message MSG-015: Login from another country",
+      "record": {
+        "id": "MSG-015",
+        "from": "customer:c-015",
+        "subject": "Login from another country",
+        "body": "I see a login from a country I have never visited."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-015",
+          "params": {
+            "label": "security"
+          },
+          "by": "person:sam",
+          "at": "2026-09-11T10:43:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-015",
+          "params": {
+            "queue": "security"
+          },
+          "by": "person:sam",
+          "at": "2026-09-11T10:43:00Z"
+        }
+      ],
+      "choice": "security",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-11T20:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-016",
+      "at": "2026-09-11T23:00:00Z",
+      "input": "New message MSG-016: Grow your audience fast",
+      "record": {
+        "id": "MSG-016",
+        "from": "customer:c-016",
+        "subject": "Grow your audience fast",
+        "body": "We sell followers and likes at low prices."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-016",
+          "params": {
+            "label": "spam"
+          },
+          "by": "person:alex",
+          "at": "2026-09-11T23:50:00Z"
+        }
+      ],
+      "choice": "spam",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-12T05:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-017",
+      "at": "2026-09-12T18:00:00Z",
+      "input": "New message MSG-017: Can I export a report as PDF?",
+      "record": {
+        "id": "MSG-017",
+        "from": "customer:c-017",
+        "subject": "Can I export a report as PDF?",
+        "body": "Is there a way to save a report as a PDF?"
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-017",
+          "params": {
+            "label": "how-to"
+          },
+          "by": "person:sam",
+          "at": "2026-09-12T18:57:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-017",
+          "params": {
+            "queue": "help"
+          },
+          "by": "person:sam",
+          "at": "2026-09-12T18:57:00Z"
+        }
+      ],
+      "choice": "how-to",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-13T01:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-018",
+      "at": "2026-09-13T13:00:00Z",
+      "input": "New message MSG-018: Package returned to sender",
+      "record": {
+        "id": "MSG-018",
+        "from": "customer:c-018",
+        "subject": "Package returned to sender",
+        "body": "Tracking says my package went back to the sender."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-018",
+          "params": {
+            "label": "shipping"
+          },
+          "by": "person:alex",
+          "at": "2026-09-13T14:04:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-018",
+          "params": {
+            "queue": "shipping"
+          },
+          "by": "person:alex",
+          "at": "2026-09-13T14:04:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-13T21:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-019",
+      "at": "2026-09-14T02:00:00Z",
+      "input": "New message MSG-019: Charged after the trial ended",
+      "record": {
+        "id": "MSG-019",
+        "from": "customer:c-019",
+        "subject": "Charged after the trial ended",
+        "body": "I cancelled during the trial but was still charged."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-019",
+          "params": {
+            "label": "billing"
+          },
+          "by": "person:sam",
+          "at": "2026-09-14T02:31:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-019",
+          "params": {
+            "queue": "billing"
+          },
+          "by": "person:sam",
+          "at": "2026-09-14T02:31:00Z"
+        },
+        {
+          "kind": "label",
+          "target": "inbox:MSG-019",
+          "params": {
+            "label": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-14T05:00:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-019",
+          "params": {
+            "queue": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-14T05:00:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "reopened",
+        "at": "2026-09-14T05:00:00Z",
+        "note": "Rerouted from billing to billing."
+      }
+    },
+    {
+      "id": "MSG-020",
+      "at": "2026-09-14T21:00:00Z",
+      "input": "New message MSG-020: Close my account",
+      "record": {
+        "id": "MSG-020",
+        "from": "customer:c-020",
+        "subject": "Close my account",
+        "body": "Please close my account and delete my data."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-020",
+          "params": {
+            "label": "account"
+          },
+          "by": "person:alex",
+          "at": "2026-09-14T21:38:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-020",
+          "params": {
+            "queue": "accounts"
+          },
+          "by": "person:alex",
+          "at": "2026-09-14T21:38:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-15T07:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-021",
+      "at": "2026-09-15T16:00:00Z",
+      "input": "New message MSG-021: Notifications arrive late",
+      "record": {
+        "id": "MSG-021",
+        "from": "customer:c-021",
+        "subject": "Notifications arrive late",
+        "body": "Notifications arrive hours after the event."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-021",
+          "params": {
+            "label": "bug"
+          },
+          "by": "person:sam",
+          "at": "2026-09-15T16:45:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-021",
+          "params": {
+            "queue": "engineering"
+          },
+          "by": "person:sam",
+          "at": "2026-09-15T16:45:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-15T22:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-022",
+      "at": "2026-09-16T05:00:00Z",
+      "input": "New message MSG-022: How do I invite a guest?",
+      "record": {
+        "id": "MSG-022",
+        "from": "customer:c-022",
+        "subject": "How do I invite a guest?",
+        "body": "I want to give a contractor read-only access."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-022",
+          "params": {
+            "label": "how-to"
+          },
+          "by": "person:alex",
+          "at": "2026-09-16T05:52:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-022",
+          "params": {
+            "queue": "help"
+          },
+          "by": "person:alex",
+          "at": "2026-09-16T05:52:00Z"
+        }
+      ],
+      "choice": "how-to",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-16T12:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-023",
+      "at": "2026-09-17T00:00:00Z",
+      "input": "New message MSG-023: Discount code did not apply",
+      "record": {
+        "id": "MSG-023",
+        "from": "customer:c-023",
+        "subject": "Discount code did not apply",
+        "body": "The checkout ignored my discount code."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-023",
+          "params": {
+            "label": "billing"
+          },
+          "by": "person:sam",
+          "at": "2026-09-17T00:59:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-023",
+          "params": {
+            "queue": "billing"
+          },
+          "by": "person:sam",
+          "at": "2026-09-17T00:59:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-17T08:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-024",
+      "at": "2026-09-17T19:00:00Z",
+      "input": "New message MSG-024: Suspicious email asking for my code",
+      "record": {
+        "id": "MSG-024",
+        "from": "customer:c-024",
+        "subject": "Suspicious email asking for my code",
+        "body": "Someone emailed asking for my verification code."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-024",
+          "params": {
+            "label": "security"
+          },
+          "by": "person:alex",
+          "at": "2026-09-17T19:26:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-024",
+          "params": {
+            "queue": "security"
+          },
+          "by": "person:alex",
+          "at": "2026-09-17T19:26:00Z"
+        }
+      ],
+      "choice": "security",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-18T04:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-025",
+      "at": "2026-09-18T08:00:00Z",
+      "input": "New message MSG-025: Missing item in my box",
+      "record": {
+        "id": "MSG-025",
+        "from": "customer:c-025",
+        "subject": "Missing item in my box",
+        "body": "My box arrived without the charger I ordered."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-025",
+          "params": {
+            "label": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-18T08:33:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-025",
+          "params": {
+            "queue": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-18T08:33:00Z"
+        },
+        {
+          "kind": "reply",
+          "target": "inbox:MSG-025",
+          "params": {
+            "text": "Thanks for reaching out. The team that handles this has your message and will reply today."
+          },
+          "by": "person:sam",
+          "at": "2026-09-18T08:33:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-18T18:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-026",
+      "at": "2026-09-19T03:00:00Z",
+      "input": "New message MSG-026: Dark theme text is unreadable",
+      "record": {
+        "id": "MSG-026",
+        "from": "customer:c-026",
+        "subject": "Dark theme text is unreadable",
+        "body": "Some labels are black on dark gray in the dark theme."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-026",
+          "params": {
+            "label": "bug"
+          },
+          "by": "person:alex",
+          "at": "2026-09-19T03:40:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-026",
+          "params": {
+            "queue": "engineering"
+          },
+          "by": "person:alex",
+          "at": "2026-09-19T03:40:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-19T09:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-027",
+      "at": "2026-09-19T22:00:00Z",
+      "input": "New message MSG-027: Two-factor phone changed",
+      "record": {
+        "id": "MSG-027",
+        "from": "customer:c-027",
+        "subject": "Two-factor phone changed",
+        "body": "I have a new phone number and cannot get codes."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-027",
+          "params": {
+            "label": "account"
+          },
+          "by": "person:sam",
+          "at": "2026-09-19T22:47:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-027",
+          "params": {
+            "queue": "accounts"
+          },
+          "by": "person:sam",
+          "at": "2026-09-19T22:47:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-20T05:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-028",
+      "at": "2026-09-20T11:00:00Z",
+      "input": "New message MSG-028: Investment opportunity",
+      "record": {
+        "id": "MSG-028",
+        "from": "customer:c-028",
+        "subject": "Investment opportunity",
+        "body": "Double your money in a week, reply for details."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-028",
+          "params": {
+            "label": "spam"
+          },
+          "by": "person:alex",
+          "at": "2026-09-20T11:54:00Z"
+        }
+      ],
+      "choice": "spam",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-20T19:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-029",
+      "at": "2026-09-21T06:00:00Z",
+      "input": "New message MSG-029: Need a receipt for last year",
+      "record": {
+        "id": "MSG-029",
+        "from": "customer:c-029",
+        "subject": "Need a receipt for last year",
+        "body": "Can you send receipts for every payment last year?"
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-029",
+          "params": {
+            "label": "billing"
+          },
+          "by": "person:sam",
+          "at": "2026-09-21T07:01:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-029",
+          "params": {
+            "queue": "billing"
+          },
+          "by": "person:sam",
+          "at": "2026-09-21T07:01:00Z"
+        },
+        {
+          "kind": "reply",
+          "target": "inbox:MSG-029",
+          "params": {
+            "text": "Thanks for reaching out. The team that handles this has your message and will reply today."
+          },
+          "by": "person:sam",
+          "at": "2026-09-21T07:01:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-21T15:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-030",
+      "at": "2026-09-22T01:00:00Z",
+      "input": "New message MSG-030: Change the default currency",
+      "record": {
+        "id": "MSG-030",
+        "from": "customer:c-030",
+        "subject": "Change the default currency",
+        "body": "How do I show prices in euros?"
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-030",
+          "params": {
+            "label": "how-to"
+          },
+          "by": "person:alex",
+          "at": "2026-09-22T01:28:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-030",
+          "params": {
+            "queue": "help"
+          },
+          "by": "person:alex",
+          "at": "2026-09-22T01:28:00Z"
+        }
+      ],
+      "choice": "how-to",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-22T11:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-031",
+      "at": "2026-09-22T14:00:00Z",
+      "input": "New message MSG-031: Delivery address typo",
+      "record": {
+        "id": "MSG-031",
+        "from": "customer:c-031",
+        "subject": "Delivery address typo",
+        "body": "I made a typo in my street name. Can it be fixed?"
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-031",
+          "params": {
+            "label": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-22T14:35:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-031",
+          "params": {
+            "queue": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-22T14:35:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-22T20:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-032",
+      "at": "2026-09-23T09:00:00Z",
+      "input": "New message MSG-032: Export file is empty",
+      "record": {
+        "id": "MSG-032",
+        "from": "customer:c-032",
+        "subject": "Export file is empty",
+        "body": "The exported spreadsheet has headers but no rows."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-032",
+          "params": {
+            "label": "bug"
+          },
+          "by": "person:alex",
+          "at": "2026-09-23T09:42:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-032",
+          "params": {
+            "queue": "engineering"
+          },
+          "by": "person:alex",
+          "at": "2026-09-23T09:42:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-23T16:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-033",
+      "at": "2026-09-24T04:00:00Z",
+      "input": "New message MSG-033: Paid but plan still free",
+      "record": {
+        "id": "MSG-033",
+        "from": "customer:c-033",
+        "subject": "Paid but plan still free",
+        "body": "I paid for the upgrade but my plan still shows free."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-033",
+          "params": {
+            "label": "bug"
+          },
+          "by": "person:sam",
+          "at": "2026-09-24T04:49:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-033",
+          "params": {
+            "queue": "engineering"
+          },
+          "by": "person:sam",
+          "at": "2026-09-24T04:49:00Z"
+        },
+        {
+          "kind": "label",
+          "target": "inbox:MSG-033",
+          "params": {
+            "label": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-24T07:00:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-033",
+          "params": {
+            "queue": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-24T07:00:00Z"
+        },
+        {
+          "kind": "reply",
+          "target": "inbox:MSG-033",
+          "params": {
+            "text": "Thanks for reaching out. The team that handles this has your message and will reply today."
+          },
+          "by": "person:sam",
+          "at": "2026-09-24T04:49:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "reopened",
+        "at": "2026-09-24T07:00:00Z",
+        "note": "Rerouted from engineering to billing."
+      }
+    },
+    {
+      "id": "MSG-034",
+      "at": "2026-09-24T17:00:00Z",
+      "input": "New message MSG-034: Username already taken",
+      "record": {
+        "id": "MSG-034",
+        "from": "customer:c-034",
+        "subject": "Username already taken",
+        "body": "It says my username is taken but I never registered."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-034",
+          "params": {
+            "label": "account"
+          },
+          "by": "person:alex",
+          "at": "2026-09-24T17:56:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-034",
+          "params": {
+            "queue": "accounts"
+          },
+          "by": "person:alex",
+          "at": "2026-09-24T17:56:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-25T02:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-035",
+      "at": "2026-09-25T12:00:00Z",
+      "input": "New message MSG-035: Shared my password by mistake",
+      "record": {
+        "id": "MSG-035",
+        "from": "customer:c-035",
+        "subject": "Shared my password by mistake",
+        "body": "I pasted my password in a public chat. What should I do?"
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-035",
+          "params": {
+            "label": "security"
+          },
+          "by": "person:sam",
+          "at": "2026-09-25T13:03:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-035",
+          "params": {
+            "queue": "security"
+          },
+          "by": "person:sam",
+          "at": "2026-09-25T13:03:00Z"
+        }
+      ],
+      "choice": "security",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-25T22:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-036",
+      "at": "2026-09-26T07:00:00Z",
+      "input": "New message MSG-036: Archive old projects",
+      "record": {
+        "id": "MSG-036",
+        "from": "customer:c-036",
+        "subject": "Archive old projects",
+        "body": "Can I archive projects instead of deleting them?"
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-036",
+          "params": {
+            "label": "how-to"
+          },
+          "by": "person:alex",
+          "at": "2026-09-26T07:30:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-036",
+          "params": {
+            "queue": "help"
+          },
+          "by": "person:alex",
+          "at": "2026-09-26T07:30:00Z"
+        }
+      ],
+      "choice": "how-to",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-26T13:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-037",
+      "at": "2026-09-26T20:00:00Z",
+      "input": "New message MSG-037: Damaged packaging",
+      "record": {
+        "id": "MSG-037",
+        "from": "customer:c-037",
+        "subject": "Damaged packaging",
+        "body": "The box was crushed but the item seems fine."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-037",
+          "params": {
+            "label": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-26T20:37:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-037",
+          "params": {
+            "queue": "shipping"
+          },
+          "by": "person:sam",
+          "at": "2026-09-26T20:37:00Z"
+        },
+        {
+          "kind": "reply",
+          "target": "inbox:MSG-037",
+          "params": {
+            "text": "Thanks for reaching out. The team that handles this has your message and will reply today."
+          },
+          "by": "person:sam",
+          "at": "2026-09-26T20:37:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-27T03:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-038",
+      "at": "2026-09-27T15:00:00Z",
+      "input": "New message MSG-038: Sync stops overnight",
+      "record": {
+        "id": "MSG-038",
+        "from": "customer:c-038",
+        "subject": "Sync stops overnight",
+        "body": "Sync stops every night and only resumes when I restart."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-038",
+          "params": {
+            "label": "bug"
+          },
+          "by": "person:alex",
+          "at": "2026-09-27T15:44:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-038",
+          "params": {
+            "queue": "engineering"
+          },
+          "by": "person:alex",
+          "at": "2026-09-27T15:44:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-27T23:00:00Z"
+      }
+    },
+    {
+      "id": "MSG-039",
+      "at": "2026-09-28T10:00:00Z",
+      "input": "New message MSG-039: Price changed without notice",
+      "record": {
+        "id": "MSG-039",
+        "from": "customer:c-039",
+        "subject": "Price changed without notice",
+        "body": "My renewal price went up without any notice."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-039",
+          "params": {
+            "label": "account"
+          },
+          "by": "person:sam",
+          "at": "2026-09-28T10:51:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-039",
+          "params": {
+            "queue": "accounts"
+          },
+          "by": "person:sam",
+          "at": "2026-09-28T10:51:00Z"
+        },
+        {
+          "kind": "label",
+          "target": "inbox:MSG-039",
+          "params": {
+            "label": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-28T13:00:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-039",
+          "params": {
+            "queue": "billing"
+          },
+          "by": "person:alex",
+          "at": "2026-09-28T13:00:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "reopened",
+        "at": "2026-09-28T13:00:00Z",
+        "note": "Rerouted from accounts to billing."
+      }
+    },
+    {
+      "id": "MSG-040",
+      "at": "2026-09-28T23:00:00Z",
+      "input": "New message MSG-040: Locked after too many tries",
+      "record": {
+        "id": "MSG-040",
+        "from": "customer:c-040",
+        "subject": "Locked after too many tries",
+        "body": "I am locked out after entering a wrong code several times."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-040",
+          "params": {
+            "label": "account"
+          },
+          "by": "person:alex",
+          "at": "2026-09-28T23:58:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-040",
+          "params": {
+            "queue": "accounts"
+          },
+          "by": "person:alex",
+          "at": "2026-09-28T23:58:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved",
+        "at": "2026-09-29T09:00:00Z"
+      }
+    }
+  ]
+}
