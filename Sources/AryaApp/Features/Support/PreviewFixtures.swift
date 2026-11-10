@@ -517,4 +517,57 @@ extension PreviewFixtures {
                 ]))
         return log.events
     }
+
+    /// A run streaming right now (app-views): a finished shell call folded to its line, a
+    /// second one still printing, and the reply being written token by token.
+    static let streamingRun = "run_stream"
+
+    static func streaming(now: Date) -> [FeatureEvent] {
+        var log = FeatureEventBuilder(start: now.addingTimeInterval(-12))
+        let run = streamingRun
+        log.add(
+            "run.started", run: run, after: 0,
+            [
+                "trigger": "message", "adapter": "shell-agent", "effort": "medium",
+                "input": ["kind": "message", "text": "New message MSG-418: Lamp arrived broken"],
+            ])
+        log.add(
+            "run.step.started", run: run, after: 0.4,
+            ["step": "s1", "tool": "shell", "input": #"{"cmd":"grep -ril ORDER-2210 orders/"}"#])
+        for (seq, text) in ["orders/2026-11/ORDER-2210.json\n", "orders/returns.csv\n"]
+            .enumerated()
+        {
+            log.add(
+                "run.step.output", run: run, after: 0.3,
+                ["step": "s1", "seq": .number(Double(seq + 1)), "text": .string(text)])
+        }
+        log.add(
+            "run.step.finished", run: run, after: 0.2,
+            ["step": "s1", "ok": true, "bytes": 48, "chunks": 2, "millis": 900])
+        log.add(
+            "run.step.started", run: run, after: 0.5,
+            ["step": "s2", "tool": "shell", "input": #"{"cmd":"refunds check ORDER-2210"}"#])
+        let checks = [
+            "checking order ORDER-2210 ... found\n", "checking payment ... captured $48.00\n",
+            "checking prior refunds ... none\n",
+        ]
+        for (seq, text) in checks.enumerated() {
+            log.add(
+                "run.step.output", run: run, after: 0.6,
+                ["step": "s2", "seq": .number(Double(seq + 1)), "text": .string(text)])
+        }
+        log.add(
+            "run.step.started", run: run, after: 0.4,
+            ["step": "msg_1:0", "tool": "compose", "input": "{}"])
+        let tokens = [
+            "Sorry the lamp ", "arrived broken. ", "I checked ORDER-2210: ",
+            "the payment of $48.00 went through and ", "there is no earlier refund, so ",
+        ]
+        for (seq, text) in tokens.enumerated() {
+            log.add(
+                "run.step.output", run: run, after: 0.2,
+                ["step": "msg_1:0", "seq": .number(Double(seq + 1)), "text": .string(text)])
+        }
+        return log.events
+    }
 }

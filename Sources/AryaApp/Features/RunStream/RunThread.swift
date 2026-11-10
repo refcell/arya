@@ -117,7 +117,8 @@ private struct ThreadLine: View {
     private var open: Bool {
         if select != nil { return false }
         switch step.kind {
-        case .toolCall(let call) where call.output != nil: return !toggled
+        // A running call shows its output as it streams; a finished one folds to its line.
+        case .toolCall(let call) where !call.finished: return !toggled
         case .delegated where crewOpen: return !toggled
         default: return toggled
         }
@@ -170,7 +171,8 @@ private struct ThreadLine: View {
             if let output = call.output, let result = RunThreadText.arrow(output) {
                 Text("→ \(result)").aryaText(AryaFont.mono, AryaColor.inkMuted).lineLimit(1)
             }
-            Text(RunThreadText.toolMeta(call)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            Text(RunThreadText.toolMeta(call, elapsed: now.timeIntervalSince(step.at)))
+                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
         case .action(let action):
             MarkGlyph(mark: StreamStepText.mark(step.kind))
             Text("\(action.kind) \(action.target)").aryaText(AryaFont.mono, AryaColor.ink)
@@ -198,9 +200,10 @@ private struct ThreadLine: View {
             Text(StreamStepText.title(step.kind)).aryaText(AryaFont.body, AryaColor.ink)
         case .thinking, .status, .started:
             Text(StreamStepText.title(step.kind)).aryaText(AryaFont.body, AryaColor.inkFaint)
-        case .message:
+        case .message(let role, _):
             Text(StreamStepText.title(step.kind)).aryaText(AryaFont.body, AryaColor.ink)
                 .textSelection(.enabled)
+            if role == "streaming" { BlinkingCaret() }
         case .delegated(let delegation):
             Text("↳").aryaText(AryaFont.mono, AryaColor.inkFaint).accessibilityHidden(true)
             MarkGlyph(mark: StreamStepText.mark(step.kind))
@@ -433,10 +436,13 @@ enum RunThreadText {
         }
     }
 
-    /// "via tracker · live · 1.2 s".
-    static func toolMeta(_ call: ToolCallStep) -> String {
+    /// "via tracker · live · 1.2 s", or "via shell · running… 3 s" with the time so far.
+    static func toolMeta(_ call: ToolCallStep, elapsed: Double? = nil) -> String {
         var parts = [call.binding.map { "via \($0)" }, call.source.map(StreamStepText.sourceWord)]
-        if call.output == nil { parts.append("running") }
+        if !call.finished {
+            let counter = elapsed.map { FeatureRunFacts.elapsedText(max(0, $0), running: true) }
+            parts.append(counter.map { "running… \($0)" } ?? "running")
+        }
         if let seconds = call.durationSeconds { parts.append(FeatureTime.duration(seconds)) }
         return parts.compactMap { $0 }.joined(separator: " · ")
     }

@@ -405,10 +405,39 @@ import Testing
         .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
         .background(AryaColor.canvas)
         try write("run-live-diff", scheme: scheme, render(liveDiff, dark: dark))
+        // A run streaming now (app-views): the reply arriving token by token, a shell call
+        // still printing with its elapsed time, the finished one folded to a line.
+        let streamStore = FeatureStore(
+            workspace: PreviewWorkspace(events: PreviewFixtures.streaming(now: now), now: now),
+            now: now)
+        await streamStore.reload()
+        let streaming = RunStreamView(
+            store: streamStore, run: PreviewFixtures.streamingRun, initialTab: .output
+        )
+        .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+        .background(AryaColor.canvas)
+        try write("run-streaming", scheme: scheme, render(streaming, dark: dark))
         // A run's Diff tab (app-views): what each action writes and a routine's new version.
         let diffStore = FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now)
         await diffStore.reload()
         let diffStream = RunStream.build(events: diffStore.events, run: PreviewFixtures.finishedRun)
+        // The run pane driven by keys (app-views): j moved to the label action, ↵ opened its
+        // diff; the hint chips name the keys.
+        if let labeled = diffStream.steps.first(where: {
+            if case .action = $0.kind { return true }
+            return false
+        }) {
+            for diff in RunWork.build(stream: diffStream, events: diffStore.events).diffs {
+                await diffStore.loadRoutineDiff(diff)
+            }
+            let keys = RunStreamView(
+                store: diffStore, run: PreviewFixtures.finishedRun, initialTab: .diff,
+                initialSelection: labeled.id
+            )
+            .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+            .background(AryaColor.canvas)
+            try write("run-keys", scheme: scheme, render(keys, dark: dark))
+        }
         for diff in RunWork.build(stream: diffStream, events: diffStore.events).diffs {
             await diffStore.loadRoutineDiff(diff)
         }

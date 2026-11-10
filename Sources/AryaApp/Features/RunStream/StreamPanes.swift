@@ -33,7 +33,7 @@ extension StreamStepText {
     static func mark(_ kind: StreamStep.Kind) -> WorkMark {
         switch kind {
         case .toolCall(let call):
-            guard call.output != nil else { return .running }
+            guard call.finished else { return .running }
             return call.isError ? .failed : .ok
         case .action(let action):
             switch action.outcome {

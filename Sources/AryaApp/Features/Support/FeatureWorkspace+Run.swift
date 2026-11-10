@@ -69,6 +69,25 @@ struct FeatureRunFacts: Hashable, Sendable {
     var dryRun: Bool
 }
 
+extension FeatureRunFacts {
+    /// Seconds from start to now while running (the caller's ticking clock), else the
+    /// workspace's elapsed time.
+    func elapsed(now: Date) -> Double {
+        running ? max(0, now.timeIntervalSince(started)) : elapsedSeconds
+    }
+
+    /// The one elapsed format for every surface: "850 ms", "8.5 s", "2m 4s"; whole seconds
+    /// while running, so a ticking counter does not jitter.
+    func elapsedText(now: Date) -> String {
+        FeatureRunFacts.elapsedText(elapsed(now: now), running: running)
+    }
+
+    static func elapsedText(_ seconds: Double, running: Bool) -> String {
+        if running, seconds < 60 { return "\(Int(seconds.rounded(.down))) s" }
+        return FeatureTime.duration(seconds)
+    }
+}
+
 /// The app-views lane's reads; `FeatureWorkspace` inherits them.
 protocol FeatureRunReads: Sendable {
     /// Replays a finished run and reports the first difference from the recording.

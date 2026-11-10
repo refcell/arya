@@ -16,6 +16,9 @@ struct RunStreamView: View {
     @AryaState private var pickedTab: WorkTab?
     @AryaState private var selection: String?
     @AryaState private var composerFocus = 0
+    @AryaState private var following = true
+    /// The step to open on (snapshots); nil selects nothing.
+    var initialSelection: String? = nil
     @FocusState private var paneFocused: Bool
 
     var body: some View {
@@ -28,12 +31,21 @@ struct RunStreamView: View {
                 action: { Task { await store.reload() } })
         case .loaded(let events):
             let stream = RunStream.build(events: events, run: run)
-            content(stream, work: RunWork.build(stream: stream, events: events))
+            let work = RunWork.build(stream: stream, events: events)
+            // A live run's clock ticks each second (elapsed, running… counters); snapshots and
+            // finished runs use the store's time.
+            if stream.status == .running, !AryaMotion.frozenByProcess {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    content(stream, work: work, now: context.date)
+                }
+            } else {
+                content(stream, work: work, now: store.now)
+            }
         }
     }
 
     @ViewBuilder
-    private func content(_ stream: RunStream, work: RunWork) -> some View {
+    private func content(_ stream: RunStream, work: RunWork, now: Date) -> some View {
         if stream.steps.isEmpty {
             EmptyState(
                 "No steps yet.",
@@ -41,7 +53,7 @@ struct RunStreamView: View {
         } else {
             VStack(spacing: 0) {
                 RunHeader(
-                    stream: stream, accessory: accessory, now: store.now,
+                    stream: stream, accessory: accessory, now: now,
                     facts: store.runFacts[run]
                 )
                 .padding(.horizontal, AryaSpace.s4)
@@ -51,7 +63,7 @@ struct RunStreamView: View {
                     VStack(spacing: 0) {
                         ScrollView {
                             RunThread(
-                                stream: stream, now: store.now, context: context(stream),
+                                stream: stream, now: now, context: context(stream),
                                 showsHeader: false, selection: selectionBinding
                             )
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -67,7 +79,8 @@ struct RunStreamView: View {
                     AryaHairline(.vertical)
                     WorkPane(
                         store: store, work: work, running: stream.status == .running,
-                        tab: tabBinding(work), selection: selectionBinding
+                        tab: tabBinding(work), selection: selectionBinding,
+                        following: $following
                     )
                     .frame(maxWidth: .infinity)
                 }
@@ -84,17 +97,27 @@ struct RunStreamView: View {
                 case .previous?:
                     selectionBinding.wrappedValue = RunKeys.step(stream, from: selection, by: -1)
                 case .compose?: composerFocus += 1
+                case .tab(let tab)?: pickedTab = tab
+                case .follow?: following.toggle()
                 case nil: return .ignored
                 }
                 return .handled
             }
             .onKeyPress(.return) {
                 guard let selection else { return .ignored }
-                pickedTab = .tools
+                // ↵ opens the step's diff when it changed something, else its block.
+                pickedTab = work.diffs.contains { $0.id == selection } ? .diff : .tools
                 selectionBinding.wrappedValue = nil
                 selectionBinding.wrappedValue = selection
                 return .handled
             }
+            .onKeyPress(.escape) {
+                guard selection != nil || pickedTab != nil else { return .ignored }
+                selection = nil
+                pickedTab = nil
+                return .handled
+            }
+            .onAppear { if selection == nil { selection = initialSelection } }
             .task(id: run) { await store.loadRunFacts(run) }
             .task(id: stream.status == .running ? run : nil) {
                 guard stream.status == .running else { return }
@@ -227,7 +250,7 @@ enum StreamStepText {
 
     /// Whether the step is still in progress: a tool call without its result.
     static func isRunning(_ kind: StreamStep.Kind) -> Bool {
-        if case .toolCall(let call) = kind { return call.output == nil }
+        if case .toolCall(let call) = kind { return !call.finished }
         return false
     }
 
@@ -235,7 +258,7 @@ enum StreamStepText {
     /// source when the binding proxy recorded them: "tracker · live · ok · 1.2 s".
     static func toolCaption(_ call: ToolCallStep) -> String {
         var parts = [call.binding, call.source.map(sourceWord)].compactMap { $0 }
-        guard call.output != nil else { return (parts + ["running"]).joined(separator: " · ") }
+        guard call.finished else { return (parts + ["running"]).joined(separator: " · ") }
         parts.append(call.isError ? "failed" : "ok")
         if let seconds = call.durationSeconds { parts.append(FeatureTime.duration(seconds)) }
         return parts.joined(separator: " · ")
@@ -317,16 +340,20 @@ struct RoutineRunBody: View {
 
 /// Keyboard rules for the run screen: j/k move between work steps, c focuses the composer.
 enum RunKeys {
-    enum Action: Equatable { case next, previous, compose }
+    enum Action: Equatable {
+        case next, previous, compose, follow
+        case tab(WorkTab)
+    }
 
-    static let handled = CharacterSet(charactersIn: "jkc")
+    static let handled = CharacterSet(charactersIn: "jkcf1234")
 
     static func action(for characters: String) -> Action? {
         switch characters {
         case "j": .next
         case "k": .previous
         case "c": .compose
-        default: nil
+        case "f": .follow
+        default: Int(characters).flatMap(WorkTab.init(rawValue:)).map(Action.tab)
         }
     }
 

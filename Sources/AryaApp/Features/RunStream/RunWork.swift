@@ -76,6 +76,8 @@ struct WorkLine: Identifiable, Hashable, Sendable {
     var tag: String
     var text: String
     var tone: Tone = .plain
+    /// Streamed output: when long, its last lines show, as in a terminal.
+    var tails = false
 }
 
 /// What the work pane shows for one run, projected from its stream and ledger events.
@@ -121,9 +123,7 @@ struct RunWork: Hashable, Sendable {
         let log = mine.filter { $0.type != "run.adapter.event" }.map {
             logLine($0, timeZone: timeZone)
         }
-        let output = mine.filter { $0.type == "run.adapter.event" }.map {
-            outputLine($0, timeZone: timeZone)
-        }
+        let output = outputLines(mine, timeZone: timeZone)
         return RunWork(
             blocks: stream.steps.compactMap(block), diffs: diffs, log: log, output: output)
     }
@@ -278,6 +278,46 @@ struct RunWork: Hashable, Sendable {
     }
 
     /// One JSON-RPC line: "→ initialize {"client":…}" or "← tool_call {…}".
+    /// The adapter's wire lines, and each live step's output as one growing line per stretch
+    /// of chunks (`run.step.output`). With step records, the adapter's own `tool_output`
+    /// notifications are left out, since the same text arrives as chunks.
+    static func outputLines(_ mine: [FeatureEvent], timeZone: TimeZone) -> [WorkLine] {
+        let stepped = mine.contains { $0.type == "run.step.started" }
+        var tools: [String: String] = [:]
+        var lines: [WorkLine] = []
+        var open: String?
+        for event in mine {
+            let p = event.payload
+            switch event.type {
+            case "run.adapter.event":
+                let kind = p["message"]?["params"]?["event"]?["kind"]?.string
+                if stepped, kind == "tool_output" { continue }
+                lines.append(outputLine(event, timeZone: timeZone))
+                open = nil
+            case "run.step.started":
+                if let step = p["step"]?.string { tools[step] = p["tool"]?.string }
+            case "run.step.output":
+                let step = p["step"]?.string ?? ""
+                let text = p["text"]?.string ?? ""
+                let stderr = p["stream"]?.string == "stderr"
+                let key = step + (stderr ? ":err" : "")
+                if key == open, var last = lines.popLast() {
+                    last.text += text
+                    lines.append(last)
+                } else {
+                    lines.append(
+                        WorkLine(
+                            id: event.id, time: StreamStepText.clock(event.at, timeZone: timeZone),
+                            tag: "▸ " + (tools[step] ?? "output") + (stderr ? " stderr" : ""),
+                            text: text, tone: stderr ? .failed : .plain, tails: true))
+                    open = key
+                }
+            default: break
+            }
+        }
+        return lines
+    }
+
     static func outputLine(_ event: FeatureEvent, timeZone: TimeZone) -> WorkLine {
         let sent = ["sent", "out"].contains(event.payload["direction"]?.string ?? "")
         let message = event.payload["message"] ?? .null

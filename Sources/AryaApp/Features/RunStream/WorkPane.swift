@@ -10,6 +10,8 @@ struct WorkPane: View {
     var running: Bool
     @Binding var tab: WorkTab
     @Binding var selection: String?
+    /// Log and Output follow new lines; scrolling up pauses, scrolling back down resumes.
+    @Binding var following: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -33,13 +35,50 @@ struct WorkPane: View {
                 .onChange(of: tab) { _, tab in
                     if tab == .log || tab == .output { proxy.scrollTo(WorkPane.bottom) }
                 }
-                .onChange(of: work.output.count) { _, _ in
-                    if tab == .output || tab == .log { proxy.scrollTo(WorkPane.bottom) }
+                .onChange(of: work.output) { _, _ in
+                    if following, tab == .output || tab == .log {
+                        proxy.scrollTo(WorkPane.bottom)
+                    }
                 }
+                .onChange(of: following) { _, now in
+                    if now, tab == .output || tab == .log { proxy.scrollTo(WorkPane.bottom) }
+                }
+                .modifier(
+                    FollowOnScroll(following: $following, active: tab == .output || tab == .log))
             }
+            AryaHairline()
+            hints
         }
         .background(AryaColor.canvas)
     }
+
+    /// The pane's keys, always in view.
+    private var hints: some View {
+        HStack(spacing: AryaSpace.s3) {
+            ForEach(WorkPane.hintItems, id: \.0) { key, words in
+                HStack(spacing: AryaSpace.s1) {
+                    Keycap(key)
+                    Text(words).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
+            }
+            Spacer(minLength: 0)
+            if tab == .output || tab == .log {
+                Text(following ? "following" : "paused")
+                    .aryaText(
+                        AryaFont.monoSmall, following ? AryaColor.positive : AryaColor.inkFaint
+                    )
+                    .accessibilityLabel(
+                        following ? "Following new lines" : "Paused; press F to follow")
+            }
+        }
+        .padding(.horizontal, AryaSpace.s3)
+        .padding(.vertical, AryaSpace.s1)
+    }
+
+    static let hintItems: [(String, String)] = [
+        ("j k", "step"), ("↵", "diff"), ("⎋", "back"), ("1-4", "tab"), ("f", "follow"),
+        ("c", "reply"),
+    ]
 
     static let bottom = "work-bottom"
     /// Log lines shown under the Tools blocks.
@@ -67,11 +106,10 @@ struct WorkPane: View {
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(KeyEquivalent(Character("\(item.rawValue)")), modifiers: .option)
-                .help("\(item.title) (⌥\(item.rawValue))")
+                .help("\(item.title) (\(item.rawValue) or ⌥\(item.rawValue))")
                 .accessibilityAddTraits(item == tab ? [.isSelected, .isButton] : .isButton)
             }
             Spacer(minLength: 0)
-            Keycap("⌥1-4")
         }
         .padding(.horizontal, AryaSpace.s3)
     }
@@ -223,8 +261,9 @@ private struct WorkLineView: View {
             Text(line.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             Text(line.tag).aryaText(AryaFont.monoSmall, tagColor).lineLimit(1)
             if !line.text.isEmpty {
-                Text(line.text).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                    .lineLimit(6).truncationMode(.tail)
+                Text(line.text.trimmingCharacters(in: .newlines))
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                    .lineLimit(line.tails ? 12 : 6).truncationMode(line.tails ? .head : .tail)
                     .textSelection(.enabled)
             }
         }
@@ -241,12 +280,31 @@ private struct WorkLineView: View {
     }
 }
 
+/// Pauses following when the person scrolls up from the bottom, and resumes at the bottom.
+private struct FollowOnScroll: ViewModifier {
+    @Binding var following: Bool
+    var active: Bool
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15, *) {
+            content.onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.containerSize.height
+                    >= geometry.contentSize.height - AryaSpace.s5
+            } action: { _, atBottom in
+                if active, atBottom != following { following = atBottom }
+            }
+        } else {
+            content
+        }
+    }
+}
+
 /// A block caret that blinks while output may still arrive.
 struct BlinkingCaret: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
             let on = Int(context.date.timeIntervalSinceReferenceDate * 2) % 2 == 0
-            Text("▍").aryaText(AryaFont.mono, on ? AryaColor.accent : AryaColor.inkFaint)
+            Text("▍").aryaText(AryaFont.mono, on ? AryaColor.ink : AryaColor.inkFaint)
                 .accessibilityLabel("Waiting for output")
         }
     }

@@ -28,6 +28,10 @@ struct ToolCallStep: Hashable, Sendable {
     var binding: String? = nil
     /// Who answered: `live`, `recorded` (rehearsal or replay), or `unanswered` (a leak).
     var source: String? = nil
+    /// Set by the projector: false from the call until its result (or the step's finish),
+    /// while output may already stream. Unset, a call with output counts as finished.
+    var done: Bool? = nil
+    var finished: Bool { done ?? (output != nil) }
 }
 
 /// What became of a proposed action.
@@ -277,6 +281,10 @@ private struct RunStreamProjector {
     private var actionIndex: [String: Int] = [:]
     private var approvalAction: [String: String] = [:]
     private var toolStart: [String: Date] = [:]
+    /// Open `compose` calls (a reply streaming in) by call id, to their message step.
+    private var composeIndex: [String: Int] = [:]
+    /// Replies already shown as they streamed, so the complete message is not shown twice.
+    private var composed: Set<String> = []
     var steppedTools = false
     /// The adapter's own count (`progress` event): done of total.
     var reported: (done: Int, total: Int)?
@@ -354,6 +362,10 @@ private struct RunStreamProjector {
         switch inner["kind"]?.string {
         case "tool_call" where !proxiedTools: applyToolCall(event, inner)
         case "tool_result" where !proxiedTools: applyToolResult(event, inner)
+        case "message"
+        where composed.contains(
+            (inner["text"]?.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)):
+            break
         case "message":
             add(
                 event,
@@ -374,8 +386,23 @@ private struct RunStreamProjector {
         }
     }
 
+    /// The reply finished streaming: it stays as the assistant's message.
+    private mutating func closeCompose(_ call: String) {
+        guard let index = composeIndex.removeValue(forKey: call),
+            case .message(_, let text) = steps[index].kind
+        else { return }
+        steps[index].kind = .message(role: "assistant", text: text)
+        composed.insert(text.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
     /// A chunk of a live step's output, appended in order.
     private mutating func applyStepOutput(_ p: FeatureJSON) {
+        if let call = p["step"]?.string, let index = composeIndex[call],
+            case .message(let role, let text) = steps[index].kind
+        {
+            steps[index].kind = .message(role: role, text: text + (p["text"]?.string ?? ""))
+            return
+        }
         guard let call = p["step"]?.string, let index = toolIndex[call],
             case .toolCall(var step) = steps[index].kind
         else { return }
@@ -385,31 +412,41 @@ private struct RunStreamProjector {
     }
 
     private mutating func applyStepFinished(_ p: FeatureJSON) {
+        if let call = p["step"]?.string, composeIndex[call] != nil { return closeCompose(call) }
         guard let call = p["step"]?.string, let index = toolIndex[call],
             case .toolCall(var step) = steps[index].kind
         else { return }
         step.output = step.output ?? .string("")
         step.isError = p["ok"]?.bool == false
+        step.done = true
         step.durationSeconds = p["millis"]?.number.map { $0 / 1000 }
         steps[index].kind = .toolCall(step)
     }
 
     private mutating func applyToolCall(_ event: FeatureEvent, _ p: FeatureJSON) {
         let call = p["id"]?.string ?? event.id
+        // A reply being written (partial messages) reads as the reply itself, growing.
+        if p["tool"]?.string == "compose" {
+            composeIndex[call] = steps.count
+            add(event, .message(role: "streaming", text: ""))
+            return
+        }
         toolIndex[call] = steps.count
         toolStart[call] = event.at
         let step = ToolCallStep(
             callID: call, tool: p["tool"]?.string ?? "tool", input: p["input"] ?? .null,
-            binding: p["binding"]?.string)
+            binding: p["binding"]?.string, done: false)
         add(event, .toolCall(step))
     }
 
     private mutating func applyToolResult(_ event: FeatureEvent, _ p: FeatureJSON) {
+        if let call = p["id"]?.string, composeIndex[call] != nil { return closeCompose(call) }
         guard let call = p["id"]?.string, let index = toolIndex[call],
             case .toolCall(var step) = steps[index].kind
         else { return }
         step.output = p["output"] ?? .null
         step.isError = p["isError"]?.bool ?? false
+        step.done = true
         step.source = p["source"]?.string
         if let start = toolStart[call] {
             step.durationSeconds = p["durationSeconds"]?.number ?? event.at.timeIntervalSince(start)
@@ -795,7 +832,8 @@ struct RunProgress: Hashable, Sendable {
     /// reads "7 of ~6".
     func text(now: Date) -> String {
         let steps = expected.map { "\(done) of ~\($0) steps" } ?? RunMetrics.count(done, "step")
-        return "\(steps) · \(FeatureTime.duration(max(0, now.timeIntervalSince(started))))"
+        let elapsed = max(0, now.timeIntervalSince(started))
+        return "\(steps) · \(FeatureRunFacts.elapsedText(elapsed, running: true))"
     }
 
     /// Done against expected, held under 1 while the run is still going.
@@ -858,7 +896,7 @@ enum RunTitle {
         dryRun ? self.dryRun(summary: summary, steps: steps) : summary
     }
 
-    /// "Dry run: would mark LEAD-1095 disqualified and send email to lead:LEAD-1095."
+    /// "Dry run: would have labeled MSG-9 as spam and sent email lead:LEAD-1095."
     static func dryRun(summary: String, steps: [StreamStep]) -> String {
         if summary.hasPrefix("Dry run") { return summary }
         let phrases = steps.compactMap { step -> String? in
@@ -871,7 +909,7 @@ enum RunTitle {
         let joined =
             phrases.count == 1
             ? phrases[0] : phrases.dropLast().joined(separator: ", ") + " and " + phrases.last!
-        return "Dry run: would \(joined)."
+        return "Dry run: would have \(joined)."
     }
 
     /// The action as a base-verb phrase: "mark LEAD-1095 disqualified", "send email lead:X".
@@ -880,7 +918,25 @@ enum RunTitle {
             ActionSummary.sentence(action)
             ?? ([verb(action.kind), action.target].filter { !$0.isEmpty }.joined(separator: " "))
         let trimmed = sentence.hasSuffix(".") ? String(sentence.dropLast()) : sentence
-        return trimmed.prefix(1).lowercased() + trimmed.dropFirst()
+        let words = trimmed.split(separator: " ", maxSplits: 1).map(String.init)
+        guard let first = words.first else { return trimmed }
+        return ([participle(first.lowercased())] + words.dropFirst()).joined(separator: " ")
+    }
+
+    /// The past participle of a verb, for "would have …": label -> labeled, close -> closed,
+    /// reply -> replied, send -> sent.
+    static func participle(_ verb: String) -> String {
+        let irregular = [
+            "send": "sent", "pay": "paid", "make": "made", "get": "gotten", "set": "set",
+            "put": "put", "run": "run", "write": "written", "hold": "held", "tell": "told",
+            "forward": "forwarded", "open": "opened",
+        ]
+        if let word = irregular[verb] { return word }
+        if verb.hasSuffix("e") { return verb + "d" }
+        if verb.hasSuffix("y"), let before = verb.dropLast().last, !"aeiou".contains(before) {
+            return verb.dropLast() + "ied"
+        }
+        return verb + "ed"
     }
 
     /// A kind as words: "send_email" -> "send email", "follow-up" -> "follow up".

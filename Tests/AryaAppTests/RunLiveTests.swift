@@ -11,7 +11,7 @@ import Testing
     let progress = try #require(stream.progress)
     #expect(progress.expected == 5)
     #expect(progress.done == RunThreadText.visible(stream.steps).count)
-    #expect(progress.text(now: now) == "4 of ~5 steps · 4.2 s")
+    #expect(progress.text(now: now) == "4 of ~5 steps · 4 s")
     #expect(progress.fraction > 0 && progress.fraction < 1)
 }
 
@@ -31,7 +31,7 @@ import Testing
         events: PreviewFixtures.triage(now: now), run: PreviewFixtures.finishedRun)
     #expect(finished.progress == nil)
     let lone = RunProgress(done: 3, expected: nil, started: now.addingTimeInterval(-2))
-    #expect(lone.text(now: now) == "3 steps · 2.0 s")
+    #expect(lone.text(now: now) == "3 steps · 2 s")
 }
 
 @Test func runKeysMoveBetweenWorkSteps() {
@@ -139,19 +139,19 @@ import Testing
         return StreamStep(id: kind, number: 1, at: FeatureTestClock.now, kind: .action(action))
     }
     let cases: [(StreamStep, String)] = [
-        (step("label", "inbox:MSG-1", ["label": "spam"]), "label inbox:MSG-1 as spam"),
+        (step("label", "inbox:MSG-1", ["label": "spam"]), "labeled inbox:MSG-1 as spam"),
         (
             step("assign", "tracker:ISSUE-7", ["to": "person:alex"]),
-            "assign tracker:ISSUE-7 to person:alex"
+            "assigned tracker:ISSUE-7 to person:alex"
         ),
         (
             step("mark", "crm:LEAD-1095", ["mark": "disqualified"]),
-            "mark crm:LEAD-1095 as disqualified"
+            "marked crm:LEAD-1095 as disqualified"
         ),
-        (step("send_email", "lead:LEAD-1095", .null), "send email lead:LEAD-1095"),
+        (step("send_email", "lead:LEAD-1095", .null), "sent email lead:LEAD-1095"),
         (
             step("refund", "billing:ORDER-1", ["amount": 12, "currency": "USD"]),
-            "refund 12.00 USD on billing:ORDER-1"
+            "refunded 12.00 USD on billing:ORDER-1"
         ),
     ]
     for (step, phrase) in cases {
@@ -162,10 +162,55 @@ import Testing
         summary: "LEAD-1095 (demo request, wants pricing): disqualified.",
         steps: [cases[2].0, cases[3].0])
     #expect(
-        title == "Dry run: would mark crm:LEAD-1095 as disqualified and send email lead:LEAD-1095.")
+        title
+            == "Dry run: would have marked crm:LEAD-1095 as disqualified"
+            + " and sent email lead:LEAD-1095."
+    )
     #expect(RunTitle.text(summary: "Closed it.", dryRun: false) == "Closed it.")
     #expect(
         RunTitle.text(summary: "Closed it.", dryRun: true) == "Dry run, nothing applied: Closed it."
     )
     #expect(RunTitle.verb("send_email") == "send email")
+}
+
+@Test func oneElapsedFormatForEverySurface() {
+    let facts = FeatureRunFacts(
+        running: true, started: FeatureTestClock.now, elapsedSeconds: 2, decisions: 0,
+        toolCalls: 0, actionsProposed: 0, actionsApplied: 0, actionsDrafted: 0,
+        actionsWaiting: 0, stepIndex: 1, estimatedSteps: nil, dryRun: false)
+    #expect(facts.elapsedText(now: FeatureTestClock.now.addingTimeInterval(8.7)) == "8 s")
+    #expect(facts.elapsedText(now: FeatureTestClock.now.addingTimeInterval(124)) == "2m 4s")
+    var done = facts
+    done.running = false
+    #expect(done.elapsedText(now: FeatureTestClock.now.addingTimeInterval(500)) == "2.0 s")
+    #expect(RunTitle.participle("reply") == "replied")
+    #expect(RunTitle.participle("close") == "closed")
+}
+
+@Test func repliesStreamInAndToolsFoldWhenDone() throws {
+    let events = PreviewFixtures.streaming(now: FeatureTestClock.now)
+    let stream = RunStream.build(events: events, run: PreviewFixtures.streamingRun)
+    let calls = stream.steps.compactMap { step -> ToolCallStep? in
+        if case .toolCall(let call) = step.kind { return call }
+        return nil
+    }
+    #expect(calls.map(\.finished) == [true, false])
+    #expect(calls[1].output?.string?.hasSuffix("none\n") == true)
+    guard case .message(let role, let text) = stream.steps.last?.kind else {
+        Issue.record("no streaming reply")
+        return
+    }
+    #expect(role == "streaming")
+    #expect(text.hasPrefix("Sorry the lamp arrived broken. I checked ORDER-2210"))
+    let output = RunWork.build(stream: stream, events: events).output
+    #expect(output.map(\.tag) == ["▸ shell", "▸ shell", "▸ compose"])
+    #expect(output[1].text.contains("captured $48.00"))
+    #expect(RunThreadText.toolMeta(calls[1], elapsed: 3.4) == "running… 3 s")
+}
+
+@Test func runKeysCoverTabsFollowAndSteps() {
+    #expect(RunKeys.action(for: "3") == .tab(.log))
+    #expect(RunKeys.action(for: "f") == .follow)
+    #expect(RunKeys.action(for: "j") == .next)
+    #expect(RunKeys.action(for: "9") == nil)
 }
