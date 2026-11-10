@@ -296,3 +296,16 @@ M4:
   less dead space — header band 12 pt, inspector full on steward and fleet; (3) controls —
   boxed buttons with keycaps, segmented effort; (4) live — green live dots in the sidebar and
   status bar, running line and ticker. Portfolio no longer clips.
+- 2026-11-10 Snapshot settle fix (CEO, urgent): motion freezes in snapshot and test processes
+  (`AryaMotion.frozenByProcess`: any `ARYA_SNAPSHOT*` variable or an `.xctest` bundle). The
+  live dot, spinner, and progress bar draw one still frame, the status bar skips its 1 s
+  timeline, arrival washes hold, and the snapshot render disables animations. MotionTests
+  bounds a live root render. Live runs: workspace `liveRuns()` feeds "<steward> running · step
+  N · 4.0 s" (seconds tick live) and "step N" on the sidebar row. Needs you is two panes
+  (reassigned to app-shell): queue (risk dot, sentence, steward, kind and target, age) and the
+  full approval (app-views' InlineApproval with A/D/C keycaps and Correct, ApprovalInspector's
+  facts without the repeated policy, approvers, the run's last six steps); the shell inspector
+  shows the approval's steward pulse. j/k selection animates.
+- Visual check (`just snapshot`, settled in 177 s under load 32: needs-you, overview-live):
+  moves (2) — Needs you fills both panes; (3) Approve/Deny/Correct carry keycaps; (4) the
+  status bar reads "running · step 1 · 11.0 s", sidebar rows "step 1" with live dots.

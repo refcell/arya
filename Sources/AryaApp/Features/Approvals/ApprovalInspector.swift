@@ -8,6 +8,8 @@ struct ApprovalInspector: View {
     @ObservedObject var store: FeatureStore
     var approval: String
     var openRun: ((String, String) -> Void)?
+    /// Off where the approval block above already states the policy (Needs you detail).
+    var showsPolicy = true
 
     var body: some View {
         if case .loaded(let events) = store.state,
@@ -21,15 +23,15 @@ struct ApprovalInspector: View {
                         Text("Run").aryaText(AryaFont.label, AryaColor.inkFaint)
                         if let openRun, let steward = facts.stewardID {
                             Button(facts.runTitle) { openRun(run, steward) }
-                                .buttonStyle(.plain)
-                                .aryaText(AryaFont.body, AryaColor.ink)
+                                .buttonStyle(.aryaTertiary)
                                 .help("Open this run's thread")
                         } else {
                             Text(facts.runTitle).aryaText(AryaFont.body, AryaColor.ink)
                         }
                     }
                 }
-                if let policy = store.approvalTexts[approval]?.policy, !policy.isEmpty {
+                if showsPolicy, let policy = store.approvalTexts[approval]?.policy, !policy.isEmpty
+                {
                     field("Why it waits", policy)
                 }
                 field("Risk", facts.risk)

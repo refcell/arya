@@ -379,7 +379,10 @@ import Testing
 
     /// PNG bytes of a view at `size`, drawn through AppKit so scroll views render too.
     private func render(_ view: some View, dark: Bool, size: CGSize = Self.size) -> Data? {
-        let host = NSHostingView(rootView: view.environment(\.colorScheme, dark ? .dark : .light))
+        // Still frames only: no implicit animations in a snapshot (motion is frozen too).
+        let still = view.environment(\.colorScheme, dark ? .dark : .light)
+            .transaction { $0.disablesAnimations = true }
+        let host = NSHostingView(rootView: still)
         host.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         host.frame = NSRect(origin: .zero, size: size)
         host.layoutSubtreeIfNeeded()

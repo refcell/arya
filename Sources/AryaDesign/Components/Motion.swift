@@ -1,10 +1,25 @@
 import SwiftUI
 
+extension AryaMotion {
+    /// True in snapshot and test processes (any `ARYA_SNAPSHOT*` variable, or an `.xctest`
+    /// bundle): motion renders one still frame there so offscreen renders settle.
+    public static let frozenByProcess: Bool = {
+        let info = ProcessInfo.processInfo
+        if info.environment.keys.contains(where: { $0.hasPrefix("ARYA_SNAPSHOT") }) { return true }
+        if info.environment["XCTestConfigurationFilePath"] != nil { return true }
+        return info.arguments.contains { $0.contains(".xctest") }
+    }()
+
+    /// Whether motion is still: frozen by the process, or Reduce Motion is on.
+    public static func isStill(reduceMotion: Bool) -> Bool { frozenByProcess || reduceMotion }
+}
+
 /// A thin determinate progress bar: a `rule` track with an `ink` fill, or the accent while
 /// it is the live, primary work. 3 pt tall, fluid width.
 public struct AryaProgressBar: View {
     let fraction: Double
     let isLive: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// `fraction` is clamped to 0...1.
     public init(_ fraction: Double, isLive: Bool = false) {
@@ -21,7 +36,9 @@ public struct AryaProgressBar: View {
             }
         }
         .frame(height: AryaSize.progressHeight)
-        .animation(AryaMotion.panel, value: fraction)
+        .animation(
+            AryaMotion.isStill(reduceMotion: reduceMotion) ? nil : AryaMotion.panel, value: fraction
+        )
         .accessibilityElement()
         .accessibilityValue("\(Int((fraction * 100).rounded())) percent")
     }
@@ -36,16 +53,25 @@ public struct AryaSpinner: View {
     public init(size: CGFloat = 10) { self.size = size }
 
     public var body: some View {
-        TimelineView(.animation(paused: reduceMotion)) { context in
-            let turns = context.date.timeIntervalSinceReferenceDate / AryaMotion.spinSeconds
-            Circle()
-                .trim(from: 0, to: 0.75)
-                .stroke(AryaColor.inkMuted, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
-                .rotationEffect(
-                    .degrees(reduceMotion ? 0 : turns.truncatingRemainder(dividingBy: 1) * 360))
+        Group {
+            if AryaMotion.isStill(reduceMotion: reduceMotion) {
+                arc(degrees: 0)
+            } else {
+                TimelineView(.animation) { context in
+                    let turns = context.date.timeIntervalSinceReferenceDate / AryaMotion.spinSeconds
+                    arc(degrees: turns.truncatingRemainder(dividingBy: 1) * 360)
+                }
+            }
         }
         .frame(width: size, height: size)
         .accessibilityLabel("Working")
+    }
+
+    private func arc(degrees: Double) -> some View {
+        Circle()
+            .trim(from: 0, to: 0.75)
+            .stroke(AryaColor.inkMuted, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+            .rotationEffect(.degrees(degrees))
     }
 }
 
@@ -57,22 +83,30 @@ public struct AryaLiveDot: View {
     public init() {}
 
     public var body: some View {
-        TimelineView(.animation(paused: reduceMotion)) { context in
-            let phase =
-                reduceMotion
-                ? 0.35
-                : context.date.timeIntervalSinceReferenceDate
-                    .truncatingRemainder(dividingBy: AryaMotion.pulseSeconds)
-                    / AryaMotion.pulseSeconds
-            ZStack {
-                Circle().stroke(AryaColor.positive, lineWidth: 1)
-                    .scaleEffect(1 + phase * 1.2)
-                    .opacity(1 - phase)
-                Circle().fill(AryaColor.positive)
+        Group {
+            if AryaMotion.isStill(reduceMotion: reduceMotion) {
+                dot(phase: 0.35)
+            } else {
+                TimelineView(.animation) { context in
+                    dot(
+                        phase: context.date.timeIntervalSinceReferenceDate
+                            .truncatingRemainder(dividingBy: AryaMotion.pulseSeconds)
+                            / AryaMotion.pulseSeconds)
+                }
             }
         }
         .frame(width: AryaSize.statusDot, height: AryaSize.statusDot)
         .accessibilityLabel("Running")
+    }
+
+    /// One frame of the pulse; `phase` runs 0...1 per cycle.
+    private func dot(phase: Double) -> some View {
+        ZStack {
+            Circle().stroke(AryaColor.positive, lineWidth: 1)
+                .scaleEffect(1 + phase * 1.2)
+                .opacity(1 - phase)
+            Circle().fill(AryaColor.positive)
+        }
     }
 }
 
@@ -94,8 +128,9 @@ struct ArrivalHighlight: ViewModifier {
             .background(isNew && lit ? AryaColor.selection : .clear)
             .onAppear {
                 guard isNew else { return }
-                if reduceMotion {
-                    lit = false
+                if AryaMotion.isStill(reduceMotion: reduceMotion) {
+                    // Snapshots show the wash at its start; Reduce Motion drops it.
+                    if reduceMotion { lit = false }
                     return
                 }
                 withAnimation(.easeOut(duration: AryaMotion.arrivalSeconds)) { lit = false }

@@ -244,6 +244,10 @@ struct InlineApproval: View {
     /// The first waiting approval takes Return and Escape.
     var primary: Bool
     var decide: (FeatureWrite) -> Void
+    /// Needs you shows the keys on the buttons (A approve, D deny, C correct).
+    var showsKeys = false
+    /// Opens the run to correct it; Needs you passes it.
+    var correct: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: AryaSpace.s3) {
@@ -290,8 +294,13 @@ struct InlineApproval: View {
                 }
                 Text(RunThreadText.approvalMeta(action)).aryaText(
                     AryaFont.monoSmall, AryaColor.inkFaint)
-                HStack(spacing: AryaSpace.s3) {
+                HStack(spacing: AryaSpace.s2) {
                     Spacer()
+                    if let correct {
+                        Button("Correct", action: correct)
+                            .buttonStyle(AryaSecondaryButtonStyle(keys: showsKeys ? "C" : nil))
+                            .help("Open the run to correct its decision")
+                    }
                     deny
                     approve
                 }
@@ -305,14 +314,14 @@ struct InlineApproval: View {
     @ViewBuilder private var deny: some View {
         // Esc closes things; it never denies. Needs you denies on D.
         Button("Deny") { decide(.deny(approval: approval, reason: "")) }
-            .buttonStyle(.aryaTertiary)
+            .buttonStyle(AryaSecondaryButtonStyle(keys: showsKeys ? "D" : nil))
     }
 
     @ViewBuilder private var approve: some View {
         let button = Button(RunThreadText.approveLabel(action)) {
             decide(.approve(approval: approval))
         }
-        .buttonStyle(.aryaPrimary)
+        .buttonStyle(AryaPrimaryButtonStyle(keys: showsKeys ? "A" : nil))
         if primary { button.keyboardShortcut(.defaultAction) } else { button }
     }
 }

@@ -1,14 +1,19 @@
 import AryaDesign
 import SwiftUI
 
-/// The approval queue: pending cards oldest first, then a short record of recent decisions.
+/// Needs you in two panes (app-shell layout over app-views' parts): a dense queue on the left,
+/// oldest first, with risk tone, the action in one sentence, the steward, and its age; the
+/// selected approval in full on the right (the change, why, earlier decisions on its target,
+/// the run's last steps, and Approve, Deny, Correct with their keys). j/k move, A approves,
+/// D denies, C opens the run to correct it.
 struct ApprovalQueueView: View {
     @ObservedObject var store: FeatureStore
     /// Limits the queue to one steward; nil shows every steward's approvals.
     var steward: String?
     /// The selected approval, shared with the inspector when the shell passes one.
     var selection: Binding<String?>? = nil
-    /// Opens an approval's run thread (↩); nil where navigation is not available.
+    /// Opens an approval's run thread (↩, Correct, the run link); nil where navigation is
+    /// not available.
     var openRun: ((String, String) -> Void)? = nil
 
     var body: some View {
@@ -40,24 +45,47 @@ struct ApprovalQueueView: View {
     @AryaState private var confirming: ApprovalItem?
     @FocusState private var focused: Bool
 
+    /// The queue column's width.
+    static let queueWidth: CGFloat = 320
+
     @ViewBuilder
     private func content(_ queue: ApprovalQueue, events: [FeatureEvent]) -> some View {
         let keys = NeedsYouKeys(pending: queue.pending, selected: selected)
-        ScrollView {
-            VStack(alignment: .leading, spacing: AryaSpace.s4) {
-                FeatureWriteErrorLine(store: store)
-                if queue.pending.isEmpty {
-                    Text("Nothing needs you right now.").aryaText(AryaFont.body, AryaColor.inkMuted)
-                } else {
-                    pending(queue.pending, events: events)
+        HStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AryaSpace.s3) {
+                    queueHeader(queue)
+                    if queue.pending.isEmpty {
+                        Text("Nothing needs you right now.")
+                            .aryaText(AryaFont.body, AryaColor.inkMuted)
+                    } else {
+                        rows(queue.pending, events: events, current: keys.current?.id)
+                        NeedsYouHints()
+                    }
+                    if !queue.decided.isEmpty { decided(queue.decided) }
                 }
-                if !queue.pending.isEmpty { NeedsYouHints() }
-                if !queue.decided.isEmpty { decided(queue.decided) }
+                .padding(.horizontal, AryaSpace.s3)
+                .padding(.vertical, AryaSpace.s3)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, AryaSpace.s4)
-            .padding(.vertical, AryaSpace.s4)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(width: Self.queueWidth)
+            AryaHairline(.vertical)
+            ScrollView {
+                VStack(alignment: .leading, spacing: AryaSpace.s4) {
+                    FeatureWriteErrorLine(store: store)
+                    if let current = keys.current {
+                        detail(current, events: events)
+                            .id(current.id)
+                            .transition(.opacity)
+                    } else {
+                        Text("When a steward holds an action for a person, it waits here.")
+                            .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    }
+                }
+                .padding(AryaSpace.s4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .animation(AryaMotion.panel, value: keys.current?.id)
+            }
         }
         .background(AryaColor.canvas)
         .focusable()
@@ -66,10 +94,11 @@ struct ApprovalQueueView: View {
         .onAppear { focused = true }
         .onKeyPress(characters: NeedsYouKeys.handled) { press in
             switch NeedsYouKeys.action(for: press.characters) {
-            case .next?: selected = keys.step(1)
-            case .previous?: selected = keys.step(-1)
+            case .next?: move(keys.step(1))
+            case .previous?: move(keys.step(-1))
             case .approve?: if let item = keys.current { approve(item) }
             case .deny?: if let item = keys.current { decide(.deny(approval: item.id, reason: "")) }
+            case .correct?: if let item = keys.current { correct(item) }
             case nil: return .ignored
             }
             return .handled
@@ -82,10 +111,10 @@ struct ApprovalQueueView: View {
             return .handled
         }
         .onKeyPress(.downArrow) {
-            selected = keys.step(1); return .handled
+            move(keys.step(1)); return .handled
         }
         .onKeyPress(.upArrow) {
-            selected = keys.step(-1); return .handled
+            move(keys.step(-1)); return .handled
         }
         .confirmationDialog(
             confirming.map(NeedsYouKeys.confirmTitle) ?? "", isPresented: confirmBinding
@@ -100,6 +129,67 @@ struct ApprovalQueueView: View {
         }
     }
 
+    /// The selection glides to the next row.
+    private func move(_ id: String?) {
+        withAnimation(AryaMotion.quick) { selected = id }
+    }
+
+    private func correct(_ item: ApprovalItem) {
+        guard let run = item.run, let steward = item.steward else { return }
+        openRun?(run, steward)
+    }
+
+    private func queueHeader(_ queue: ApprovalQueue) -> some View {
+        // The page title above names the screen; the column carries the count.
+        HStack(alignment: .firstTextBaseline) {
+            Text("Queue").aryaText(AryaFont.label, AryaColor.inkFaint)
+            Spacer()
+            Text("\(queue.pending.count) waiting · oldest first")
+                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+        }
+    }
+
+    private func rows(_ items: [ApprovalItem], events: [FeatureEvent], current: String?)
+        -> some View
+    {
+        let names = StewardNames.build(events: events)
+        return VStack(alignment: .leading, spacing: 0) {
+            ForEach(items) { item in
+                NeedsYouRow(
+                    item: item, stewardName: item.steward.map { names[$0] ?? $0 },
+                    now: store.now, isSelected: item.id == current
+                ) {
+                    move(item.id)
+                }
+                .aryaArrival(store.now.timeIntervalSince(item.requestedAt) < 30)
+            }
+        }
+    }
+
+    /// The selected approval in full.
+    @ViewBuilder
+    private func detail(_ current: ApprovalItem, events: [FeatureEvent]) -> some View {
+        let detail = NeedsYouDetail.build(item: current, events: events)
+        InlineApproval(
+            action: detail.action, approval: current.id, source: detail.source,
+            texts: store.approvalTexts[current.id], primary: false,
+            decide: decide, showsKeys: true,
+            correct: current.run == nil || openRun == nil ? nil : { correct(current) })
+        AryaHairline()
+        ApprovalInspector(store: store, approval: current.id, openRun: openRun, showsPolicy: false)
+        if current.kind != "question" {
+            ApproversLine(events: events, steward: current.steward, kind: current.kind)
+        }
+        if let run = current.run {
+            NeedsYouRunSteps(steps: NeedsYouRunSteps.lines(events: events, run: run))
+        }
+        if current.kind == "routine",
+            let subject = RoutineApprovalSubject.find(events: events, approval: current.id)
+        {
+            RoutineApprovalDetail(store: store, subject: subject)
+        }
+    }
+
     private var confirmBinding: Binding<Bool> {
         Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } })
     }
@@ -110,38 +200,6 @@ struct ApprovalQueueView: View {
             confirming = item
         } else {
             decide(.approve(approval: item.id))
-        }
-    }
-
-    @ViewBuilder
-    private func pending(_ items: [ApprovalItem], events: [FeatureEvent]) -> some View {
-        let current = items.first { $0.id == selected } ?? items[0]
-        if items.count > 1 {
-            VStack(alignment: .leading, spacing: 0) {
-                let names = StewardNames.build(events: events)
-                ForEach(items) { item in
-                    NeedsYouRow(
-                        item: item, stewardName: item.steward.map { names[$0] ?? $0 },
-                        now: store.now, isSelected: item.id == current.id
-                    ) {
-                        selected = item.id
-                    }
-                }
-            }
-            AryaHairline()
-        }
-        let detail = NeedsYouDetail.build(item: current, events: events)
-        InlineApproval(
-            action: detail.action, approval: current.id, source: detail.source,
-            texts: store.approvalTexts[current.id], primary: false,
-            decide: decide)
-        if current.kind != "question" {
-            ApproversLine(events: events, steward: current.steward, kind: current.kind)
-        }
-        if current.kind == "routine",
-            let subject = RoutineApprovalSubject.find(events: events, approval: current.id)
-        {
-            RoutineApprovalDetail(store: store, subject: subject)
         }
     }
 
@@ -173,7 +231,8 @@ struct ApprovalQueueView: View {
     }
 }
 
-/// One pending item: what and where in mono, the steward, and how long it has waited.
+/// One pending item, two lines: a risk dot and the action in one sentence, then the steward,
+/// the kind and target in mono, and how long it has waited.
 private struct NeedsYouRow: View {
     var item: ApprovalItem
     var stewardName: String?
@@ -184,14 +243,25 @@ private struct NeedsYouRow: View {
     var body: some View {
         Button(action: select) {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                Text(item.kind == "question" ? item.summary : "\(item.kind) \(item.target)")
-                    .aryaText(AryaFont.mono, isSelected ? AryaColor.ink : AryaColor.inkMuted)
-                    .lineLimit(1).truncationMode(.middle)
-                Spacer(minLength: AryaSpace.s2)
-                if let stewardName {
-                    Text(stewardName).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                Circle().fill(tone).frame(width: AryaSize.statusDot, height: AryaSize.statusDot)
+                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] }
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(item.summary.isEmpty ? "\(item.kind) \(item.target)" : item.summary)
+                        .aryaText(AryaFont.body, isSelected ? AryaColor.ink : AryaColor.inkMuted)
                         .lineLimit(1)
+                    HStack(spacing: AryaSpace.s1) {
+                        if let stewardName {
+                            Text(stewardName).aryaText(AryaFont.caption, AryaColor.inkFaint)
+                                .lineLimit(1)
+                        }
+                        if item.kind != "question" {
+                            Text("\(item.kind) \(item.target)")
+                                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                                .lineLimit(1).truncationMode(.middle)
+                        }
+                    }
                 }
+                Spacer(minLength: AryaSpace.s2)
                 Text(AryaTime.label(item.requestedAt, now: now, style: .short))
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             }
@@ -204,7 +274,52 @@ private struct NeedsYouRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(
+            [item.summary, stewardName, "\(risk.rawValue) risk"].compactMap { $0 }
+                .joined(separator: ", ")
+        )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var risk: ActionRisk { ActionRisk(kind: item.kind) }
+
+    /// High risk reads negative, medium warning, low faint; questions faint.
+    private var tone: Color {
+        guard item.kind != "question" else { return AryaColor.inkFaint }
+        switch risk {
+        case .high: return AryaColor.negative
+        case .medium: return AryaColor.warning
+        case .low: return AryaColor.inkFaint
+        }
+    }
+}
+
+/// The run's newest steps under an approval: clock in the gutter, one line each.
+struct NeedsYouRunSteps: View {
+    var steps: [(time: String, text: String)]
+
+    static let limit = 6
+
+    static func lines(events: [FeatureEvent], run: String) -> [(time: String, text: String)] {
+        let stream = RunStream.build(events: events, run: run)
+        return RunThreadText.visible(stream.steps).suffix(limit).map {
+            (StreamStepText.clock($0.at), StreamStepText.title($0.kind))
+        }
+    }
+
+    var body: some View {
+        if !steps.isEmpty {
+            VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                Text("Run so far").aryaText(AryaFont.label, AryaColor.inkFaint)
+                ForEach(Array(steps.enumerated()), id: \.offset) { _, step in
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                        Text(step.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        Text(step.text).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                            .lineLimit(2)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -267,12 +382,12 @@ enum StewardNames {
 
 /// Keyboard rules for Needs you: j/k (or the arrows) move, A approves, D denies.
 struct NeedsYouKeys {
-    enum Action: Equatable { case next, previous, approve, deny }
+    enum Action: Equatable { case next, previous, approve, deny, correct }
 
     var pending: [ApprovalItem]
     var selected: String?
 
-    static let handled = CharacterSet(charactersIn: "jkadJKAD")
+    static let handled = CharacterSet(charactersIn: "jkadcJKADC")
 
     static func action(for characters: String) -> Action? {
         switch characters.lowercased() {
@@ -280,6 +395,7 @@ struct NeedsYouKeys {
         case "k": .previous
         case "a": .approve
         case "d": .deny
+        case "c": .correct
         default: nil
         }
     }
@@ -308,10 +424,11 @@ struct NeedsYouKeys {
 private struct NeedsYouHints: View {
     var body: some View {
         HStack(spacing: AryaSpace.s2) {
+            hint("j/k", "move")
             hint("A", "approve")
             hint("D", "deny")
-            hint("↩", "open run")
-            hint("j/k", "move")
+            hint("C", "correct")
+            hint("↩", "run")
         }
     }
 
@@ -319,6 +436,7 @@ private struct NeedsYouHints: View {
         HStack(spacing: AryaSpace.s1) {
             Keycap(keys)
             Text(label).aryaText(AryaFont.caption, AryaColor.inkFaint)
+                .lineLimit(1).fixedSize()
         }
     }
 }

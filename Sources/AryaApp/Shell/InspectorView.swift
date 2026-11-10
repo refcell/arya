@@ -156,7 +156,7 @@ struct InspectorView: View {
 
     private var heading: String {
         switch focus {
-        case .approval: "Approval"
+        case .approval: "Steward"
         case .event: "Event"
         case .connection: "Connection"
         case .person: "Person"
@@ -175,7 +175,18 @@ struct InspectorView: View {
     @ViewBuilder private var focusContent: some View {
         switch focus {
         case .approval(let id):
-            if let id = id ?? model.approvals.first?.id {
+            // The approval itself fills the stream's detail pane; here, its steward's pulse.
+            if let id = id ?? model.approvals.first?.id,
+                let approval = model.approvals.first(where: { $0.id == id }),
+                let steward = model.stewards.first(where: { $0.id == approval.steward })
+            {
+                Text(steward.name).aryaText(AryaFont.bodyStrong, AryaColor.ink)
+                StewardPulseView(
+                    pulse: StewardPulse.build(
+                        steward: steward, runs: model.runs[steward.id] ?? [],
+                        approvals: model.approvals, events: events, now: now)
+                ) { model.navigation.approval = $0 }
+            } else if let id = id ?? model.approvals.first?.id {
                 FeatureRegistry.approvalInspector(model.featureContext(), approval: id)
             } else {
                 Text("Nothing needs you.").aryaText(AryaFont.caption, AryaColor.inkFaint)

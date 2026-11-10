@@ -124,13 +124,12 @@ struct StatusBar: View {
             item(StatusBarLine.scheduler(model.serving))
             if !line.live.isEmpty {
                 // Elapsed seconds tick once a second while a run goes.
-                TimelineView(.periodic(from: now, by: 1)) { context in
-                    HStack(spacing: AryaSpace.s1) {
-                        AryaLiveDot()
-                        Text(StatusBarLine.live(line.live, now: max(context.date, now)) ?? "")
-                            .aryaText(AryaFont.monoSmall, AryaColor.positive).lineLimit(1)
-                        if let progress = line.live.last?.progress {
-                            AryaProgressBar(progress, isLive: true).frame(width: 40)
+                Group {
+                    if AryaMotion.frozenByProcess {
+                        liveCell(line.live, now: now)
+                    } else {
+                        TimelineView(.periodic(from: now, by: 1)) { context in
+                            liveCell(line.live, now: max(context.date, now))
                         }
                     }
                 }
@@ -185,6 +184,17 @@ struct StatusBar: View {
     private var events: [FeatureEvent] {
         guard case .loaded(let events) = model.featureStore?.state else { return [] }
         return events
+    }
+
+    private func liveCell(_ live: [LiveLine], now: Date) -> some View {
+        HStack(spacing: AryaSpace.s1) {
+            AryaLiveDot()
+            Text(StatusBarLine.live(live, now: now) ?? "")
+                .aryaText(AryaFont.monoSmall, AryaColor.positive).lineLimit(1)
+            if let progress = live.last?.progress {
+                AryaProgressBar(progress, isLive: true).frame(width: 40)
+            }
+        }
     }
 
     private func item(_ text: String) -> some View {
