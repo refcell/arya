@@ -113,6 +113,10 @@ public enum OutputParser: String, Sendable, Hashable, Codable {
     /// Codex CLI's `exec --json`: completed items become run events, the last agent message
     /// gives the result (its last fenced `json` block), and turn usage gives token counts.
     case codexJSON = "codex-json"
+    /// The input is a shell command, not a prompt: its stdout and stderr stream as
+    /// `tool_output` of one `shell` call, its exit status ends the call, and a
+    /// `{"result": {...}}` line, if printed, is the result (else a summary of the exit).
+    case command
 }
 
 /// How `arya-exec-adapter` hands `run/start.tools` to the agent.

@@ -28,6 +28,12 @@ public actor ExecAdapterServer {
     private var finalText: String?
     private var agentReportedError = false
     private var lastReply: String?
+    /// Partial `stream-json` messages being streamed as `compose` steps.
+    private var partials = ExecOutput.StreamJSONPartials()
+    /// The `command` profile's stderr lines, emitted as `tool_output` in order.
+    private var commandStderr: CommandStderr?
+    /// The one tool call a `command` run is.
+    static let commandCall = "command"
     /// Codex calls shown at `item.started` whose completion has not arrived.
     private var openCalls: Set<String> = []
     private var stopRequested = false
@@ -60,7 +66,8 @@ public actor ExecAdapterServer {
     /// The capabilities this profile reports.
     public nonisolated var capabilities: Capabilities {
         Capabilities(
-            effort: profile.supportedEfforts, send: false, cost: profile.parse != .text,
+            effort: profile.supportedEfforts, send: false,
+            cost: ![.text, .command].contains(profile.parse),
             transcript: true,
             tools: profile.mcpConfig == .file ? .mcp : .none,
             sandbox: sandboxExec == nil ? profile.sandbox : .os)
@@ -170,14 +177,28 @@ public actor ExecAdapterServer {
                 command = OSSandbox.wrap(command, in: sandbox, sandboxExec: sandboxExec)
             }
             var stderr = agentStderr
+            if profile.parse == .command {
+                let lines = CommandStderr(forwardingTo: agentStderr) { [weak self] in
+                    Task { await self?.flushStderr() }
+                }
+                commandStderr = lines
+                stderr = lines
+            }
             if request.sandbox != nil {
-                let watcher = SandboxDenialWatcher(forwardingTo: agentStderr)
+                let watcher = SandboxDenialWatcher(forwardingTo: stderr)
                 denials = watcher
                 stderr = watcher
             }
             let agent = try ProcessTransport.launch(command, stderr: stderr)
             self.agent = agent
             await emit(RunEvent(.status(state: "working", detail: "agent started")))
+            if profile.parse == .command {
+                await emit(
+                    RunEvent(
+                        .toolCall(
+                            id: Self.commandCall, tool: "shell",
+                            input: ["command": .string(request.input.text)])))
+            }
             Task { await self.read(agent) }
             // The write is queued, so an agent that does not read stdin cannot block `run/stop`.
             if profile.promptVia == .stdin { try? await agent.write(Data(prompt.utf8)) }
@@ -226,6 +247,10 @@ public actor ExecAdapterServer {
         switch profile.parse {
         case .text:
             break
+        case .command:
+            await flushStderr()
+            await emit(.output(.init(id: Self.commandCall, text: line + "\n")))
+            if case .result(let value) = ExecOutput.parse(jsonLine: line) { lastResult = value }
         case .jsonl:
             switch ExecOutput.parse(jsonLine: line) {
             case .result(let value): lastResult = value
@@ -237,6 +262,8 @@ public actor ExecAdapterServer {
             switch ExecOutput.parse(streamJSONLine: line) {
             case .events(let events):
                 for event in events { await emit(event) }
+            case .partial(let event):
+                for event in partials.events(for: event) { await emit(event) }
             case .final(let text, let isError, let totals):
                 finalText = text
                 agentReportedError = isError
@@ -273,6 +300,14 @@ public actor ExecAdapterServer {
         }
     }
 
+    /// Emits the stderr lines a `command` run printed since the last flush.
+    private func flushStderr(atEnd: Bool = false) async {
+        guard let lines = commandStderr?.drain(includingTail: atEnd), !lines.isEmpty else {
+            return
+        }
+        await emit(.output(.init(id: Self.commandCall, stream: "stderr", text: lines)))
+    }
+
     private func agentEnded(_ exit: AdapterExit) async {
         // The agent's stderr is drained before its end is reported, so a denial is known now.
         if let report = denials?.report { await emit(RunEvent(.error(message: report))) }
@@ -292,6 +327,23 @@ public actor ExecAdapterServer {
             result = lastReply.flatMap(ExecOutput.lastJSONBlock(in:))
         case .jsonl:
             break
+        case .command:
+            await flushStderr(atEnd: true)
+            let code: JSONValue =
+                switch exit {
+                case .exited(let status): .int(Int64(status))
+                case .signaled, .closed: .null
+                }
+            await emit(
+                RunEvent(
+                    .toolResult(
+                        id: Self.commandCall, output: ["exitCode": code],
+                        isError: !exit.isClean)))
+            if result == nil {
+                result = [
+                    "summary": .string("The command \(exit)."), "decisions": [], "actions": [],
+                ]
+            }
         }
         guard let result else {
             await emit(RunEvent(.error(message: "the agent \(exit) without a result")))
@@ -364,6 +416,8 @@ public actor ExecAdapterServer {
 public enum ExecPrompt {
     /// Instructions, the input, any attachments, and how to report the result.
     public static func compose(_ request: RunStartParams, parse: OutputParser) -> String {
+        // A command profile runs the input itself; instructions would not be shell.
+        if parse == .command { return request.input.text }
         var parts = [
             request.instructions, "Input (\(request.input.kind.rawValue)):\n\(request.input.text)",
         ]
@@ -378,6 +432,8 @@ public enum ExecPrompt {
                     + String(decoding: LineCodec.encodeJSON($0), as: UTF8.self)
             } ?? ""
         switch parse {
+        case .command:
+            break
         case .text, .streamJSON, .codexJSON:
             parts.append(
                 "When you are done, reply with the result as one JSON object in a fenced json"
@@ -388,5 +444,43 @@ public enum ExecPrompt {
                     + " {\"result\": {...}}. The last such line is read as the result." + schema)
         }
         return parts.joined(separator: "\n\n")
+    }
+}
+
+/// Collects a `command` run's stderr by whole lines for `tool_output`, and forwards it all.
+final class CommandStderr: StderrSink {
+    private let forward: any StderrSink
+    private let wake: @Sendable () -> Void
+    private let state = Locked((partial: Data(), ready: ""))
+
+    init(forwardingTo forward: any StderrSink, wake: @escaping @Sendable () -> Void) {
+        self.forward = forward
+        self.wake = wake
+    }
+
+    func append(_ data: Data) {
+        forward.append(data)
+        let woke = state.withLock { state -> Bool in
+            state.partial.append(data)
+            guard let last = state.partial.lastIndex(of: 0x0A) else { return false }
+            let end = state.partial.index(after: last)
+            state.ready += String(decoding: state.partial[..<end], as: UTF8.self)
+            state.partial = Data(state.partial[end...])
+            return true
+        }
+        if woke { wake() }
+    }
+
+    /// The complete lines since the last call; at the end, any unterminated tail too.
+    func drain(includingTail: Bool) -> String {
+        state.withLock { state in
+            var text = state.ready
+            state.ready = ""
+            if includingTail, !state.partial.isEmpty {
+                text += String(decoding: state.partial, as: UTF8.self) + "\n"
+                state.partial = Data()
+            }
+            return text
+        }
     }
 }

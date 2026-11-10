@@ -77,10 +77,14 @@ M4:
   diff, the refunds check's confirmation spot-check, and each weekly digest's per-queue table
   streamed as command output; a test ties every output and diff to an answered call.
 - [x] codex-json: commands and tool calls show as running from `item.started`.
-- [ ] Next: live `output` deltas from a harness that streams command output (none of the two
-  parsed formats does today; results arrive whole).
-- [ ] Next: confirm eval's casebook importer reads binding `history` (it harvests the ledger
-  today).
+- [x] Live output from real harnesses: `stream-json` partial messages stream the reply as a
+  `compose` step; `parse: "command"` and the `shell` example profile run a routine or check
+  as one `shell` call whose stdout and stderr stream live; an opt-in live test
+  (`ARYA_LIVE_HARNESS=<profile>`, never in CI) and a transcript fixture in the documented
+  format.
+- [ ] Next: replace `stream-json-partial.jsonl` with a recorded transcript the first time
+  someone runs the live test with a signed-in agent CLI.
+- [x] Eval's history import reads binding `history` as `HistoryItem` (`HistoryImport`).
 
 ## Decisions
 
@@ -162,6 +166,15 @@ M4:
   cases: every host and exhaustive switch keeps compiling, and older hosts keep them as
   unknown kinds. Scripted pauses follow runtime's demo pace (0051), so tests,
   seeding, and replay never wait.
+- Example profile ids are the names of the public command-line tools they drive
+  (`claude-code`, `codex-cli`, `shell`), because a person picks a harness by the tool they
+  have. Docs describe them in neutral, factual terms: what command runs and with which
+  flags, no comparisons (CEO decision, 2026-11-10; closes the profile-name question).
+- Partial reply text streams as a `compose` step: runtime records output only under an open
+  tool call, so the reply as it is written gets a call of its own, and the complete
+  `message` still follows for the conversation.
+- `parse: "command"` treats the input as the command and adds no instructions; it reports no
+  cost, and a nonzero exit fails the run.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -221,3 +234,6 @@ M4:
   Diff, Log, and Output counts; run-approval (now the MSG-140 hand-off) fills both panes. The
   Diff tab draws actions and routine versions, not adapter `diff` events yet (asked in
   app-views' Questions). Moves points 1 and 4 through `tool_output` steps in paced runs.
+- 2026-11-10: profile-name question closed (CEO: keep tool-named ids, neutral docs).
+  Partial-message `compose` steps, `command` parse mode and `shell` profile with live stdout
+  and stderr, opt-in live harness test; eval's `HistoryItem` adoption confirmed.

@@ -66,8 +66,48 @@ extension ExecOutput {
         /// The final `result` line: the reply text, whether the agent reported an error, and
         /// the run's cost (input counts include cache reads and writes).
         case final(text: String, isError: Bool, cost: CostResult)
+        /// A partial-message `stream_event` (with `--include-partial-messages`): its `event`.
+        case partial(JSONValue)
         /// Anything else (`system` lines, unknown types, non-JSON).
         case other
+    }
+
+    /// Turns partial-message stream events into a `compose` step per text block: a
+    /// `tool_call` when the block starts, `tool_output` per text delta, and a `tool_result`
+    /// when it stops. The complete message still arrives as its own `message` event.
+    public struct StreamJSONPartials: Sendable {
+        private var message = ""
+        private var count = 0
+        private var open: [Int64: (id: String, characters: Int)] = [:]
+
+        public init() {}
+
+        public mutating func events(for event: JSONValue) -> [RunEvent] {
+            let index = event["index"]?.intValue ?? 0
+            switch event["type"]?.stringValue {
+            case "message_start":
+                count += 1
+                message = event["message"]?["id"]?.stringValue ?? "message-\(count)"
+                return []
+            case "content_block_start":
+                guard event["content_block"]?["type"] == "text" else { return [] }
+                let id = "\(message.isEmpty ? "message" : message):\(index)"
+                open[index] = (id, 0)
+                return [RunEvent(.toolCall(id: id, tool: "compose", input: [:]))]
+            case "content_block_delta":
+                guard let block = open[index], event["delta"]?["type"] == "text_delta",
+                    let text = event["delta"]?["text"]?.stringValue, !text.isEmpty
+                else { return [] }
+                open[index]?.characters += text.count
+                return [.output(.init(id: block.id, text: text))]
+            case "content_block_stop":
+                guard let block = open.removeValue(forKey: index) else { return [] }
+                let output: JSONValue = ["characters": .int(Int64(block.characters))]
+                return [RunEvent(.toolResult(id: block.id, output: output, isError: false))]
+            default:
+                return []
+            }
+        }
     }
 
     /// `stream-json` parsing of one line.
@@ -76,6 +116,9 @@ extension ExecOutput {
             let type = value["type"]?.stringValue
         else { return .other }
         switch type {
+        case "stream_event":
+            guard let event = value["event"] else { return .other }
+            return .partial(event)
         case "assistant", "user":
             let blocks = value["message"]?["content"]?.arrayValue ?? []
             let role = value["message"]?["role"]?.stringValue ?? type
