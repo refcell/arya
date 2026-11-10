@@ -354,6 +354,8 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) New eval event `case.reviewed` {casebook, case, verdict agreed|skipped}; PROTOCOL?
 - (from runtime) Integration edit (decision 0056): `ActionExecuted.dryRun` (true or absent) so a dry run reads as drafted, not done; `Governance` undo treats a drafted undo as not executed.
 - (from runtime) Integration edit (decision 0057): `LedgerReader.scanLines` resumes tail reads from `LineMarks` (a line start per 1 MiB chunk, process-wide); trusted only after a newline and still checked by `expectFirst`, forgotten on `RescanSegment`. Test `tailReadsSurviveARewrittenSegment`. Warm tail read on 50k events: 29 ms → 2 ms.
+- (from eval) New event `checks.built` (steward, payload: version, checks, added, removed).
+
 
 ## Log
 - 2026-11-10: HANDOFF (this session retires). State: the governance backlog is complete and

@@ -94,12 +94,26 @@ Parity (CEO gap map):
   first); from an export file or a binding read tool (`arya history import`, demo, e2e).
 - [x] #3 Review queue: `ReviewQueue` read (would have vs person did, pending disagreements
   first, progress line), `case.reviewed` agree/skip, corrections count; `arya review`, Improve.
-- [ ] #9 Auto-built evaluations: rubric checks from corrections and labels, versioned, scored
-  with a one-sentence result.
+- [x] #9 Auto-built evaluations: `LearnedChecks` turns each case's latest correction (the
+  person's note) or agreement into rubric checks, records `checks.built` versions when they
+  change (each review and correction rebuilds), and scores them on the newest live rehearsal
+  with a one-sentence result; facade `learnedChecks`, `arya checks`, Improve's CHECKS panel.
+- [x] Busy demo (M3.5 point 5): refunds 43 and digest 32 cases, refund history import with
+  reviews, 26 triage history cases, a part-worked queue, titled proposals checked against diffs.
+- [ ] Checks as a gate: fail a proposal that breaks a learned check (after ledger confirms).
 - [x] Live readiness counts a crew once (parent, children by delegation id, join) and compares
   the whole tree; live cases carry adapter-reported tool reads so what-ifs do not leak.
 
 ## Decisions
+
+- 2026-11-10: Learned checks: a correction teaches its expectation in the person's words; an
+  agreement keeps the case's expected choice (or its action targets when it has none); a skip
+  teaches nothing. The latest review of a case wins. One check per expected choice, id
+  `<case>/<path>=<value>`. A version is recorded only when the derived set changes.
+- 2026-11-10: Proposal titles must describe the diff: a "relax" title only lengthens the
+  outcome window and lowers the target; other titles share a word with what the diff adds.
+- 2026-11-10: History records go to the binding's `get` read, else its first other read
+  (refunds' `billing.order`), so an imported case is answered instead of leaking.
 
 - Eval uses core types directly: `JSONValue`, `CanonicalJSON`, typed ids, `Case`, `ScorerSpec`
   (built into a scorer by `makeScorer()`; an unknown rubric check kind throws), and
@@ -295,3 +309,9 @@ Parity (CEO gap map):
   convention, review queue (CLI, app, e2e), crew-aware live readiness. Next: fix the demo
   proposal whose title ("Relax the routing window") contradicts its diff, with a test that the
   title's change kind matches the diff; then #9 auto-built evaluations.
+- 2026-11-10: Resumed. Fixed the relax-the-window fixture (only window and target change) with
+  title-vs-diff tests over fixtures and etc/examples/proposals.json; `arya propose --title
+  --reason` (the overload was a protocol-extension default, so titles were dropped). Busy demo:
+  triage 9 of 34 reviewed, refunds 61 of 63 match, digest 32 cases. #9 learned checks.
+  Visual check (point 5): Improve lists 34 triage cases (30 passed, 4 marked failing); the
+  proposals show "Relax the routing window" with only the window and target in its diff.
