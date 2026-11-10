@@ -477,8 +477,9 @@ extension PreviewFixtures {
                 "output": [
                     "id": "MSG-412", "from": "customer:c-412",
                     "body":
-                        "The lamp arrived broken.\nOrder ORDER-2210.\nPhoto attached.\n"
-                        + "I would like a refund.\nThanks.",
+                        .string(
+                            "The lamp arrived broken.\nOrder ORDER-2210.\nPhoto attached.\n"
+                                + "I would like a refund.\nThanks."),
                 ],
             ])
         log.add(

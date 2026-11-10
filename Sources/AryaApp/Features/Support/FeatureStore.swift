@@ -29,6 +29,9 @@ final class FeatureStore: ObservableObject {
     @Published var knowledge: [String: FeatureKnowledge] = [:]
     /// The review queue by steward, once read (Improve loads it; snapshots preload it).
     @Published var reviewQueues: [String: FeatureReviewQueue] = [:]
+    /// Unified diffs of routines a run proposed, by work-diff id (the run pane loads them;
+    /// snapshots preload them).
+    @Published var routineDiffs: [String: String] = [:]
 
     init(workspace: any FeatureWorkspace, now: Date = Date()) {
         self.workspace = workspace
@@ -68,6 +71,27 @@ final class FeatureStore: ObservableObject {
             let detail = try? await workspace.eventDetail(seq: seq)
         else { return }
         eventDetails[seq] = detail
+    }
+
+    /// Loads a proposed routine against its previous version as unified diff text.
+    func loadRoutineDiff(_ diff: WorkDiff) async {
+        guard let routine = diff.routine, routineDiffs[diff.id] == nil else { return }
+        let after = try? await workspace.routineContent(
+            steward: routine.steward, name: routine.name, version: routine.version)
+        var before: String? = nil
+        if let previous = routine.previous {
+            before =
+                (try? await workspace.routineContent(
+                    steward: routine.steward, name: routine.name, version: previous)) ?? nil
+        }
+        guard let after = after ?? nil else {
+            routineDiffs[diff.id] = "--- \(routine.name)\n+++ \(routine.name)\n (text unavailable)"
+            return
+        }
+        let old = routine.previous.map(RoutinesText.shortVersion) ?? "new"
+        routineDiffs[diff.id] = LineDiff.unified(
+            old: before ?? "", new: after, oldLabel: "\(routine.name) \(old)",
+            newLabel: "\(routine.name) \(RoutinesText.shortVersion(routine.version))")
     }
 
     func perform(_ write: FeatureWrite) async -> Bool {

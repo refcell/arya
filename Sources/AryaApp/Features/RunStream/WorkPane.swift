@@ -145,10 +145,9 @@ private struct WorkDiffView: View {
     @ObservedObject var store: FeatureStore
     var diff: WorkDiff
     var selected: Bool
-    @AryaState private var loaded: String?
 
     var body: some View {
-        let text = loaded ?? diff.text
+        let text = store.routineDiffs[diff.id] ?? diff.text
         let shown = WorkDiff(id: diff.id, title: diff.title, text: text)
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
             HStack(spacing: AryaSpace.s2) {
@@ -167,27 +166,7 @@ private struct WorkDiffView: View {
         .padding(.vertical, AryaSpace.s2)
         .padding(.horizontal, AryaSpace.s2)
         .background(selected ? AryaColor.selection : .clear)
-        .task(id: diff.id) { await load() }
-    }
-
-    private func load() async {
-        guard let routine = diff.routine, loaded == nil else { return }
-        let workspace = store.workspace
-        let after = try? await workspace.routineContent(
-            steward: routine.steward, name: routine.name, version: routine.version)
-        var before: String? = nil
-        if let previous = routine.previous {
-            before = try? await workspace.routineContent(
-                steward: routine.steward, name: routine.name, version: previous)
-        }
-        guard let after = after ?? nil else {
-            loaded = "--- \(routine.name)\n+++ \(routine.name)\n (text unavailable)"
-            return
-        }
-        loaded = LineDiff.unified(
-            old: (before ?? nil) ?? "", new: after,
-            oldLabel: "\(routine.name) \(routine.previous.map(RoutinesText.shortVersion) ?? "new")",
-            newLabel: "\(routine.name) \(RoutinesText.shortVersion(routine.version))")
+        .task(id: diff.id) { await store.loadRoutineDiff(diff) }
     }
 }
 

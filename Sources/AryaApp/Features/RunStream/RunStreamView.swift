@@ -9,9 +9,13 @@ struct RunStreamView: View {
     /// Opens another run's thread (a crew child, a join's parent); nil where navigation is
     /// not available.
     var openRun: ((String) -> Void)? = nil
-    /// The tab picked by the person; nil opens the first tab with something in it.
+    /// The work tab to open on (snapshots); nil opens the first tab with something in it.
+    var initialTab: WorkTab? = nil
+    /// The tab picked by the person.
     @AryaState private var pickedTab: WorkTab?
     @AryaState private var selection: String?
+    @AryaState private var composerFocus = 0
+    @FocusState private var paneFocused: Bool
 
     var body: some View {
         switch store.state {
@@ -51,7 +55,8 @@ struct RunStreamView: View {
                             .padding(.vertical, AryaSpace.s3)
                         }
                         if let steward = stream.steward {
-                            Composer(store: store, steward: steward)
+                            Composer(
+                                store: store, steward: steward, focusRequest: composerFocus)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -64,6 +69,28 @@ struct RunStreamView: View {
                 }
             }
             .background(AryaColor.canvas)
+            .focusable()
+            .focusEffectDisabled()
+            .focused($paneFocused)
+            .onAppear { paneFocused = true }
+            .onKeyPress(characters: RunKeys.handled) { press in
+                switch RunKeys.action(for: press.characters) {
+                case .next?:
+                    selectionBinding.wrappedValue = RunKeys.step(stream, from: selection, by: 1)
+                case .previous?:
+                    selectionBinding.wrappedValue = RunKeys.step(stream, from: selection, by: -1)
+                case .compose?: composerFocus += 1
+                case nil: return .ignored
+                }
+                return .handled
+            }
+            .onKeyPress(.return) {
+                guard let selection else { return .ignored }
+                pickedTab = .tools
+                selectionBinding.wrappedValue = nil
+                selectionBinding.wrappedValue = selection
+                return .handled
+            }
             .task(id: stream.status == .running ? run : nil) {
                 guard stream.status == .running else { return }
                 // Steps appear and output appends as the ledger grows; ends with the run.
@@ -75,7 +102,8 @@ struct RunStreamView: View {
     private func tabBinding(_ work: RunWork) -> Binding<WorkTab> {
         Binding(
             get: {
-                pickedTab ?? WorkTab.allCases.first { work.count($0) > 0 } ?? .tools
+                pickedTab ?? initialTab ?? WorkTab.allCases.first { work.count($0) > 0 }
+                    ?? .tools
             },
             set: { pickedTab = $0 })
     }
@@ -273,5 +301,31 @@ struct RoutineRunBody: View {
         } label: {
             Text(StreamStepText.routineCaption(run)).aryaText(AryaFont.caption, AryaColor.inkFaint)
         }
+    }
+}
+
+/// Keyboard rules for the run screen: j/k move between work steps, c focuses the composer.
+enum RunKeys {
+    enum Action: Equatable { case next, previous, compose }
+
+    static let handled = CharacterSet(charactersIn: "jkc")
+
+    static func action(for characters: String) -> Action? {
+        switch characters {
+        case "j": .next
+        case "k": .previous
+        case "c": .compose
+        default: nil
+        }
+    }
+
+    /// The work step `delta` away from `current`, clamped; the first step when none is selected.
+    static func step(_ stream: RunStream, from current: String?, by delta: Int) -> String? {
+        let ids = stream.steps.filter { RunWork.isWork($0.kind) }.map(\.id)
+        guard !ids.isEmpty else { return nil }
+        guard let current, let index = ids.firstIndex(of: current) else {
+            return delta >= 0 ? ids.first : ids.last
+        }
+        return ids[min(max(index + delta, 0), ids.count - 1)]
     }
 }

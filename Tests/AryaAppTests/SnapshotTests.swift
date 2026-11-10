@@ -268,6 +268,19 @@ import Testing
             .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
             .background(AryaColor.canvas)
         try write("run-live", scheme: scheme, render(live, dark: dark))
+        // A run's Diff tab (app-views): what each action writes and a routine's new version.
+        let diffStore = FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now)
+        await diffStore.reload()
+        let diffStream = RunStream.build(events: diffStore.events, run: PreviewFixtures.finishedRun)
+        for diff in RunWork.build(stream: diffStream, events: diffStore.events).diffs {
+            await diffStore.loadRoutineDiff(diff)
+        }
+        let diffPage = RunStreamView(
+            store: diffStore, run: PreviewFixtures.finishedRun, initialTab: .diff
+        )
+        .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+        .background(AryaColor.canvas)
+        try write("run-diff", scheme: scheme, render(diffPage, dark: dark))
 
         let empty = try await emptyModel()
         defer { try? FileManager.default.removeItem(at: empty.home) }

@@ -32,3 +32,15 @@ import Testing
     let lone = RunProgress(done: 3, expected: nil, started: now.addingTimeInterval(-2))
     #expect(lone.text(now: now) == "3 steps · 2.0 s")
 }
+
+@Test func runKeysMoveBetweenWorkSteps() {
+    let now = FeatureTestClock.now
+    let stream = RunStream.build(
+        events: PreviewFixtures.live(now: now), run: PreviewFixtures.inProgressRun)
+    let ids = stream.steps.filter { RunWork.isWork($0.kind) }.map(\.id)
+    #expect(RunKeys.step(stream, from: nil, by: 1) == ids.first)
+    #expect(RunKeys.step(stream, from: ids.first, by: 1) == ids.last)
+    #expect(RunKeys.step(stream, from: ids.last, by: 1) == ids.last)
+    #expect(RunKeys.action(for: "c") == .compose)
+    #expect(RunKeys.action(for: "x") == nil)
+}

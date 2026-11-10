@@ -22,6 +22,8 @@ enum MessageIntent: String, CaseIterable, Hashable, Sendable {
 struct Composer: View {
     @ObservedObject var store: FeatureStore
     var steward: String
+    /// Bumped by the run screen's c key to put the cursor here.
+    var focusRequest = 0
     @AryaState private var text = ""
     @AryaState private var intent = MessageIntent.ask
     @FocusState private var focused: Bool
@@ -44,12 +46,14 @@ struct Composer: View {
                     .aryaText(AryaFont.body, AryaColor.ink)
                     .focused($focused)
                     .onSubmit { send() }
+                    .onChange(of: focusRequest) { _, _ in focused = true }
                 // Holds ⌘↩ only; the keycap hint beside it is the visible label.
                 Button(action: runNow) { EmptyView() }
                     .keyboardShortcut(.return, modifiers: .command)
                     .buttonStyle(.plain)
                     .disabled(empty)
                     .accessibilityLabel("Run now with this text")
+                Keycap("c").help("Focus the composer")
                 Text(ComposerText.hints).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     .accessibilityHidden(true)
             }
