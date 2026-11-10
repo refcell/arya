@@ -198,6 +198,14 @@ is. Fix these five first; this lane owns its share:
   GUARDRAILS (value against its bound, target line on the sparkline, red when off track, the
   workspace's line on hover); the ledger's other-metric rows give way to the read. Next: the
   wizard and charter editor take guardrail metrics and an owner.
+- M3.6 #1 part 2: the wizard asks for an owner on step 1 (`StewardDraft.owner`); the charter
+  editor (the wizard on the live charter) reads and proposes `owner` and `guardrailMetrics`
+  (name, at most or at least, bound) and names them in its change line. A new steward's
+  guardrail metrics wait for `StewardDraft.guardrailMetrics` (asked of workspace). Snapshot
+  `charter-editor-2`.
+- Visual check: charter-editor-2: metric step with "Must also hold (guardrail metrics)":
+  reopen_rate, at most, 0.05, Remove, Add guardrail metric; rail says "Changes owner, metric,
+  sign-off". charter-editor: Owner field under Outcome.
 - Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
   next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
   (live feel) and 2 (no dead space).

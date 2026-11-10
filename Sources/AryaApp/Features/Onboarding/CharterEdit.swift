@@ -21,6 +21,15 @@ extension NewStewardDraft {
             steward: live.steward, baseVersion: live.version, live: charter)
         draft.name = charter["name"]?.string ?? ""
         draft.outcome = charter["outcome"]?.string ?? ""
+        draft.owner = charter["owner"]?.string ?? ""
+        draft.guardrailMetrics = (charter["guardrailMetrics"]?.array ?? []).enumerated().map {
+            index, metric in
+            GuardrailMetric(
+                id: index + 1, name: metric["name"]?.string ?? "",
+                direction: metric["direction"]?.string ?? "down",
+                target: metric["target"]?.number.map { Self.number($0) } ?? "",
+                unit: metric["unit"]?.string ?? "")
+        }
         draft.metric = charter["metric"]?["name"]?.string ?? ""
         draft.unit = charter["metric"]?["unit"]?.string ?? ""
         draft.direction = charter["metric"]?["direction"]?.string ?? "up"
@@ -83,6 +92,9 @@ extension NewStewardDraft {
         metric["direction"] = .string(draft.direction)
         metric["target"] = draft.target.map(FeatureJSON.number)
         out["metric"] = .object(metric)
+        out["owner"] = draft.owner.map(FeatureJSON.string)
+        out["guardrailMetrics"] =
+            guardrailMetrics.isEmpty ? nil : .array(guardrailMetrics.map(\.json))
         out["guardrails"] = .array(draft.guardrails.map(FeatureJSON.string))
         var policy = Self.members(editing.live["policy"])
         policy["default"] = .string(draft.autonomy)
@@ -114,7 +126,8 @@ extension NewStewardDraft {
         guard let editing else { return [] }
         let proposed = proposedCharter()
         let fields: [(String, [String])] = [
-            ("name", ["name"]), ("outcome", ["outcome"]), ("metric", ["metric"]),
+            ("name", ["name"]), ("outcome", ["outcome"]), ("owner", ["owner"]),
+            ("metric", ["metric", "guardrailMetrics"]),
             ("connections", ["bindings"]), ("guardrails", ["guardrails"]),
             ("sign-off", ["policy"]), ("schedule", ["triggers", "effort", "adapter"]),
         ]

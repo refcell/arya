@@ -106,3 +106,42 @@ private let live = LiveCharter(steward: "st_triage", version: 3, charter: liveCh
     #expect(proposals.first?.baseVersion == current.version)
     #expect(proposals.first?.reason?.hasPrefix("Change outcome") == true)
 }
+
+/// The editor carries the owner and guardrail metrics into the proposal, names them in the
+/// change line, and checks each bound is a number.
+@Test func theEditorProposesGuardrailMetricsAndAnOwner() {
+    var draft = NewStewardDraft.editing(live)
+    #expect(draft.owner.isEmpty)
+    #expect(draft.guardrailMetrics.isEmpty)
+    draft.owner = "person:sam"
+    draft.addGuardrailMetric()
+    draft.guardrailMetrics[0].name = "reopen_rate"
+    draft.guardrailMetrics[0].target = "0.05"
+    #expect(draft.problems(.metric).isEmpty)
+    let proposed = draft.proposedCharter()
+    #expect(proposed["owner"]?.string == "person:sam")
+    #expect(proposed["guardrailMetrics"]?.array?.first?["name"]?.string == "reopen_rate")
+    #expect(proposed["guardrailMetrics"]?.array?.first?["direction"]?.string == "down")
+    #expect(proposed["guardrailMetrics"]?.array?.first?["target"]?.number == 0.05)
+    #expect(draft.changedFields() == ["owner", "metric"])
+    // Read back from a charter that has them.
+    let reread = NewStewardDraft.editing(
+        LiveCharter(steward: "st_triage", version: 4, charter: proposed))
+    #expect(reread.owner == "person:sam")
+    #expect(reread.guardrailMetrics.map(\.target) == ["0.05"])
+    #expect(reread.changedFields().isEmpty)
+    draft.guardrailMetrics[0].target = "five"
+    #expect(draft.problems(.metric) == ["The bound for reopen_rate must be a number."])
+    draft.guardrailMetrics[0].name = "routed_within_1h"
+    draft.guardrailMetrics[0].target = ""
+    #expect(draft.problems(.metric) == ["routed_within_1h is already the main metric."])
+}
+
+/// A new steward's owner reaches the draft the workspace creates it from.
+@Test func theWizardCarriesTheOwner() {
+    var answers = NewStewardDraft.example
+    answers.owner = "  person:ana "
+    #expect(answers.stewardDraft().owner == "person:ana")
+    answers.owner = ""
+    #expect(answers.stewardDraft().owner == nil)
+}

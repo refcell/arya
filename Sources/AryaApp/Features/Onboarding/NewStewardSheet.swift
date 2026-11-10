@@ -253,6 +253,9 @@ struct NewStewardFields: View {
                 placeholder: "Every new message is labeled and routed within one hour.",
                 text: $draft.outcome)
         }
+        labeled("Owner (who answers for it)") {
+            CharterTextField(placeholder: "person:alex", text: $draft.owner)
+        }
         disclosure {
             labeled("Steward id") {
                 Text(draft.stewardID).aryaText(AryaFont.mono, AryaColor.inkMuted)
@@ -276,6 +279,30 @@ struct NewStewardFields: View {
         disclosure {
             labeled("Unit") {
                 CharterTextField(placeholder: "ratio", text: $draft.unit, mono: true)
+            }
+        }
+        // Guardrail metrics reach the charter through an edit until a new steward's draft
+        // carries them (asked of workspace).
+        if draft.editing != nil {
+            labeled("Must also hold (guardrail metrics)") {
+                VStack(alignment: .leading, spacing: AryaSpace.s2) {
+                    ForEach($draft.guardrailMetrics) { $row in
+                        HStack(alignment: .bottom, spacing: AryaSpace.s2) {
+                            CharterTextField(
+                                placeholder: "reopen_rate", text: $row.name, mono: true)
+                            NewStewardChoice(
+                                selection: $row.direction,
+                                options: [("down", "at most"), ("up", "at least")])
+                            CharterTextField(placeholder: "0.05", text: $row.target, mono: true)
+                            Button("Remove") {
+                                draft.guardrailMetrics.removeAll { $0.id == row.id }
+                            }
+                            .buttonStyle(.aryaTertiary)
+                        }
+                    }
+                    Button("Add guardrail metric") { draft.addGuardrailMetric() }
+                        .buttonStyle(.aryaTertiary)
+                }
             }
         }
     }

@@ -103,6 +103,9 @@ M3:
   CLI's `--choice` needs no JSON. Metrics are `OutcomeMetrics.series` in UTC-day windows.
 
 ## Questions
+- (from app-outcome) `StewardDraft` needs `guardrailMetrics: [Metric]` (name, unit, direction,
+  target) carried into the created charter, so the New steward wizard can set them; the
+  editor already proposes them through the charter JSON.
 - (from app-outcome) overviewFindings: (1) the missed-target line counts over the whole trend ("11 of the last 12") while the header status uses the last 5 measured days; please expose `missed`/`window` on stewardLive or outcome (or use 5) so status and FINDINGS share one window; (2) give regressed proposals kind `negative` (the app maps link proposal to red meanwhile) and say "N of M cases" rather than listing every case id.
 
 - (from app-outcome) Could proposal summaries carry `impact: outcome | metric | guardrails |

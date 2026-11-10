@@ -78,6 +78,10 @@ struct NewStewardDraft: Hashable, Sendable {
 
     var name = ""
     var outcome = ""
+    /// Who answers for the outcome: a person's name or person binding id; empty for none.
+    var owner = ""
+    /// Metrics that must hold while the primary moves (a quality or cost bound).
+    var guardrailMetrics: [GuardrailMetric] = []
     var metric = ""
     var unit = "ratio"
     var target = ""
@@ -108,6 +112,28 @@ struct NewStewardDraft: Hashable, Sendable {
     /// Carried from a template: the department it serves and its autonomy level.
     var department = ""
     var level: String?
+
+    /// One guardrail metric row: its name, which way is better, its bound, and its unit.
+    struct GuardrailMetric: Hashable, Sendable, Identifiable {
+        var id: Int
+        var name = ""
+        var direction = "down"
+        var target = ""
+        var unit = "ratio"
+
+        var json: FeatureJSON {
+            var out: [String: FeatureJSON] = [
+                "name": .string(name.trimmed), "unit": .string(unit.trimmed),
+                "direction": .string(direction),
+            ]
+            out["target"] = Double(target.trimmed).map(FeatureJSON.number)
+            return .object(out)
+        }
+    }
+
+    mutating func addGuardrailMetric() {
+        guardrailMetrics.append(GuardrailMetric(id: (guardrailMetrics.map(\.id).max() ?? 0) + 1))
+    }
     /// Set when the flow edits a live charter (`CharterEdit.swift`); it then ends in a
     /// proposal, never a direct save.
     var editing: CharterEditing?
@@ -131,6 +157,17 @@ struct NewStewardDraft: Hashable, Sendable {
             if !target.trimmed.isEmpty, Double(target.trimmed) == nil {
                 out.append("The target must be a number, like 0.95.")
             }
+            let names = guardrailMetrics.map(\.name.trimmed)
+            if names.contains("") { out.append("Name each guardrail metric, or remove it.") }
+            for row in guardrailMetrics where !row.name.trimmed.isEmpty {
+                if !row.target.trimmed.isEmpty, Double(row.target.trimmed) == nil {
+                    out.append("The bound for \(row.name.trimmed) must be a number.")
+                }
+                if row.name.trimmed == metric.trimmed {
+                    out.append("\(row.name.trimmed) is already the main metric.")
+                }
+            }
+            if Set(names).count < names.count { out.append("A guardrail metric is listed twice.") }
             return out
         case .guardrails:
             return []
@@ -257,7 +294,8 @@ struct NewStewardDraft: Hashable, Sendable {
             unit: unit.trimmed, direction: direction, target: Double(target.trimmed),
             guardrails: Self.lines(guardrails), autonomy: autonomy.rawValue, rules: rules,
             bindings: bindings, effort: effort, triggers: triggers, adapter: adapter.trimmed,
-            level: level, department: department.trimmed.isEmpty ? nil : department.trimmed)
+            level: level, owner: owner.trimmed.isEmpty ? nil : owner.trimmed,
+            department: department.trimmed.isEmpty ? nil : department.trimmed)
     }
 
     /// A filled-in example: the generic support-inbox steward the demo home uses.
@@ -377,13 +415,15 @@ enum NewStewardPreview {
             if let every = trigger.everySeconds { out["everySeconds"] = .number(Double(every)) }
             return .object(out)
         }
-        return .object([
+        var charter: [String: FeatureJSON] = [
             "v": 1, "id": .string(draft.id ?? ""), "name": .string(draft.name),
             "outcome": .string(draft.outcome), "metric": .object(metric),
             "guardrails": .array(draft.guardrails.map(FeatureJSON.string)),
             "policy": ["default": .string(draft.autonomy), "rules": .array(rules)],
             "triggers": .array(triggers), "adapter": .string(draft.adapter),
             "effort": .string(draft.effort),
-        ])
+        ]
+        charter["owner"] = draft.owner.map(FeatureJSON.string)
+        return .object(charter)
     }
 }

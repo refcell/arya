@@ -371,8 +371,14 @@ import Testing
             var edit = NewStewardDraft.editing(live)
             edit.outcome += " Security reports reach the security queue within 15 minutes."
             edit.whyChange = "Security reports were waiting behind billing questions."
+            var metrics = NewStewardDraft.editing(live)
+            metrics.owner = "person:maya"
+            metrics.addGuardrailMetric()
+            metrics.guardrailMetrics[0].name = "reopen_rate"
+            metrics.guardrailMetrics[0].target = "0.05"
             let pages: [(String, NewStewardDraft, NewStewardDraft.Step)] = [
                 ("charter-editor", NewStewardDraft.editing(live), .outcome),
+                ("charter-editor-2", metrics, .metric),
                 ("charter-editor-5", edit, .schedule),
             ]
             for (name, draft, step) in pages {
