@@ -74,7 +74,7 @@ private func reviews() throws -> (
     #expect(owns.impact.needsConfirm)
     let warning = try #require(owns.impact.ownsSentence)
     #expect(warning.hasPrefix("This changes what the steward owns: “Every new issue"))
-    #expect(warning.hasSuffix("→ “Feature requests are labeled and routed within a day.”"))
+    #expect(warning.contains("routed within four hours.”"))
     #expect(ProposalText.confirm(owns).contains("This changes what the steward owns"))
     #expect(regressed.impact.changesOwnership)
     // Adding a guardrail is not a loosening; that proposal keeps the orange Accept.
@@ -220,4 +220,74 @@ private func reviews() throws -> (
     #expect(context.notes.count <= OutcomeContext.limit)
     #expect(context.decisions.count <= OutcomeContext.limit)
     #expect(OutcomeContext.build(events: [], steward: steward).isEmpty)
+}
+
+/// Approvers trust a proposal's title, so every fixture proposal's title must describe its real
+/// diff. A "relax" title may only lengthen the outcome's time window and lower the metric
+/// target; any other title shares a word with what the diff adds (new outcome words or a new
+/// guardrail).
+@Test func fixtureProposalTitlesDescribeTheirDiffs() throws {
+    let base = PreviewFixtures.triage(now: now)
+    let live = try #require(LiveCharter.find(events: base, steward: steward)?.charter)
+    let events = ProposalFixtures.events(live: live, steward: steward, start: now)
+    let created = events.filter { $0.type == "proposal.created" }
+    #expect(created.count == 3)
+    func words(_ text: String) -> Set<String> {
+        Set(
+            text.lowercased().split { !$0.isLetter }.map(String.init).filter { $0.count >= 4 }
+                .map { $0.hasSuffix("s") ? String($0.dropLast()) : $0 })
+    }
+    /// The outcome without its `within <n> <unit>` phrase, and that window in minutes.
+    func window(_ outcome: String) -> (String, Int) {
+        let numbers = ["one": 1, "two": 2, "three": 3, "four": 4, "six": 6, "eight": 8, "a": 1]
+        let units = ["minute": 1, "hour": 60, "day": 1440]
+        let tokens = outcome.lowercased().split(separator: " ").map(String.init)
+        guard let at = tokens.firstIndex(of: "within"), at + 2 < tokens.count else {
+            return (outcome, 0)
+        }
+        let unit = tokens[at + 2].trimmingCharacters(in: .punctuationCharacters)
+        let singular = unit.hasSuffix("s") ? String(unit.dropLast()) : unit
+        let count = numbers[tokens[at + 1]] ?? Int(tokens[at + 1]) ?? 0
+        let rest = (tokens[..<at] + tokens[(at + 3)...]).joined(separator: " ")
+        return (rest, count * (units[singular] ?? 0))
+    }
+    for event in created {
+        let id = event.payload["proposal"]?.string ?? "?"
+        let title = String(
+            (event.payload["reason"]?.string ?? "").split(separator: "\n").first ?? "")
+        let proposed = try #require(event.payload["charter"])
+        let changed = Set(["outcome", "metric", "guardrails", "policy", "adapter"]).filter {
+            live[$0] != proposed[$0]
+        }
+        if title.lowercased().hasPrefix("relax") {
+            #expect(changed == ["outcome", "metric"], "\(id): \(title) changes \(changed)")
+            let old = live["outcome"]?.string ?? ""
+            let new = proposed["outcome"]?.string ?? ""
+            let (oldRest, oldMinutes) = window(old)
+            let (newRest, newMinutes) = window(new)
+            #expect(oldRest == newRest, "\(id): only the time window may change: \(new)")
+            #expect(newMinutes > oldMinutes, "\(id): a relaxed window is longer")
+            let oldTarget = try #require(live["metric"]?["target"]?.number)
+            let newTarget = try #require(proposed["metric"]?["target"]?.number)
+            #expect(newTarget < oldTarget, "\(id): a relaxed window lowers the target")
+            var keptMetric = proposed["metric"]
+            if case .object(var members)? = keptMetric {
+                members["target"] = live["metric"]?["target"]
+                keptMetric = .object(members)
+            }
+            #expect(keptMetric == live["metric"], "\(id): only the metric target changes")
+        } else {
+            let added =
+                words(proposed["outcome"]?.string ?? "")
+                .subtracting(words(live["outcome"]?.string ?? ""))
+                .union(
+                    words(
+                        (proposed["guardrails"]?.strings ?? [])
+                            .filter { !(live["guardrails"]?.strings ?? []).contains($0) }
+                            .joined(separator: " ")))
+            #expect(
+                !words(title).intersection(added).isEmpty,
+                "\(id): “\(title)” names nothing the diff adds: \(added.sorted())")
+        }
+    }
 }

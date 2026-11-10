@@ -51,7 +51,8 @@ enum OutcomeFixtures {
 
 /// Three open charter proposals against a live charter, for tests and snapshots: one whose
 /// rehearsal made case-0005 worse (billing → security), one that only adds a guardrail and
-/// made case-0003 better, and one that made case-0003 better but changes the outcome.
+/// made case-0003 better, and one that made case-0003 better by relaxing the routing window
+/// (a longer window in the outcome and a lower target), which changes what the steward owns.
 enum ProposalFixtures {
     static let regressed = "prop_regressed"
     static let passing = "prop_passing"
@@ -59,9 +60,15 @@ enum ProposalFixtures {
 
     static func events(live: FeatureJSON, steward: String, start: Date) -> [FeatureEvent] {
         var log = FeatureEventBuilder(start: start)
-        func charter(_ outcome: String? = nil, guardrail: String? = nil) -> FeatureJSON {
+        func charter(
+            _ outcome: String? = nil, guardrail: String? = nil, target: Double? = nil
+        ) -> FeatureJSON {
             guard case .object(var members) = live else { return live }
             if let outcome { members["outcome"] = .string(outcome) }
+            if let target, case .object(var metric)? = live["metric"] {
+                metric["target"] = .number(target)
+                members["metric"] = .object(metric)
+            }
             if let guardrail {
                 members["guardrails"] = .array(
                     (live["guardrails"]?.array ?? []) + [.string(guardrail)])
@@ -139,7 +146,11 @@ enum ProposalFixtures {
             [
                 "proposal": .string(owns), "kind": "charter", "baseVersion": 1,
                 "candidateVersion": 2,
-                "charter": charter("Feature requests are labeled and routed within a day."),
+                // Exactly what the title says: a longer window and a lower target, nothing else.
+                "charter": charter(
+                    (live["outcome"]?.string ?? "")
+                        .replacingOccurrences(of: "one hour", with: "four hours"),
+                    target: (live["metric"]?["target"]?.number).map { $0 - 0.05 }),
                 "reason": "Relax the routing window\nOvernight messages miss the hour.",
             ])
         rehearsal(
