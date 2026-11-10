@@ -107,20 +107,28 @@ enum RunFacts {
         ]
         // The run header's own figures (app-views' RunMetrics), "—" when unknown.
         let facts = RunStream.build(events: events, run: run.id).facts
-        let seconds = runFacts?.elapsedSeconds ?? facts.seconds
-        out.append(("Duration", seconds.map(FeatureTime.duration) ?? "—"))
+        // The run header's and status bar's own clock (`FeatureRunFacts.elapsedText`).
+        if let runFacts {
+            out.append(("Duration", runFacts.elapsedText(now: now)))
+        } else {
+            out.append(("Duration", facts.seconds.map(FeatureTime.duration) ?? "—"))
+        }
         let micros = facts.costMicros ?? 0
         out.append(("Cost", micros > 0 ? RunMetrics.dollars(micros) : "—"))
         if let tokens = facts.tokens, tokens > 0 {
             out.append(("Tokens", RunMetrics.grouped(tokens)))
         }
         if let runFacts {
+            // A finished run has a step count, never an estimate.
             let estimate = runFacts.estimatedSteps.map { " of ~\($0)" } ?? ""
+            let steps =
+                runFacts.running
+                ? "step \(runFacts.stepIndex)\(estimate)" : count(runFacts.stepIndex, "step")
             out.append(
                 (
                     "Steps",
                     [
-                        "step \(runFacts.stepIndex)\(estimate)",
+                        steps,
                         count(runFacts.decisions, "decision"), count(runFacts.toolCalls, "tool"),
                     ].joined(separator: " · ")
                 ))

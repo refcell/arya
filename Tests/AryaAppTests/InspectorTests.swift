@@ -81,7 +81,16 @@ import Testing
         uniquingKeysWith: { a, _ in a })
     #expect(facts["Steps"] == "step 9 of ~9 · 2 decisions · 3 tools")
     #expect(facts["Proposed"] == "4 actions · 1 applied · 2 waiting")
-    #expect(facts["Duration"] == "33.9 s")
+    // Running: the ticking clock from start, whole seconds, as in the header and status bar.
+    #expect(facts["Duration"] == "0 s")
+    var done = workspace
+    done.running = false
+    done.stepIndex = 34
+    let finished = Dictionary(
+        RunFacts.lines(run, events: [], now: start, facts: done),
+        uniquingKeysWith: { a, _ in a })
+    #expect(finished["Steps"] == "34 steps · 2 decisions · 3 tools")
+    #expect(finished["Duration"] == "33.9 s")
 }
 
 @Test func portfolioRowsSortByNeedAndReadTheFleet() {

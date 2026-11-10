@@ -70,7 +70,7 @@ import Testing
             StatusBarLine.lines(live: [reported]) == [reported])
         #expect(
             StatusBarLine.live([reported], now: now)
-                == "Support inbox triage running · step 3 · 4.0 s")
+                == "Support inbox triage running · step 3 · 4 s")
     }
 }
 
@@ -101,5 +101,5 @@ import Testing
     #expect(line.elapsed(at: read.addingTimeInterval(2)) == 10)
     #expect(
         StatusBarLine.live([line], now: read.addingTimeInterval(2))
-            == "Lead follow-up running · step 3 of ~7 · 10.0 s")
+            == "Lead follow-up running · step 3 of ~7 · 10 s")
 }

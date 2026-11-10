@@ -98,6 +98,26 @@ public struct Chip: View {
     }
 }
 
+/// A small uppercase tag in a hairline capsule that fits inside a 22 pt row ("DRY RUN").
+/// Never a button.
+public struct TagPill: View {
+    let text: String
+
+    public init(_ text: String) {
+        self.text = text
+    }
+
+    public var body: some View {
+        Text(text.uppercased())
+            .aryaText(AryaFont.label, AryaColor.inkMuted)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, AryaSpace.s1 + 1)
+            .padding(.vertical, 1)
+            .overlay { Capsule().strokeBorder(AryaColor.rule, lineWidth: 1) }
+    }
+}
+
 /// The policy chip on a proposed action: the word always shows, color is a second cue.
 public struct PolicyChip: View {
     let policy: AryaPolicy

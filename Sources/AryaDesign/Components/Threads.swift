@@ -8,9 +8,15 @@ public struct ThreadRow: View {
     let time: String
     let needsYou: Bool
     let isSelected: Bool
+    let badge: String?
 
-    public init(_ title: String, time: String, needsYou: Bool = false, isSelected: Bool = false) {
+    /// `badge` is a small pill before the title ("dry run"); the title stays plain.
+    public init(
+        _ title: String, time: String, needsYou: Bool = false, isSelected: Bool = false,
+        badge: String? = nil
+    ) {
         self.title = title
+        self.badge = badge
         self.time = time
         self.needsYou = needsYou
         self.isSelected = isSelected
@@ -22,6 +28,7 @@ public struct ThreadRow: View {
                 .fill(needsYou ? AryaColor.accentFill : .clear)
                 .frame(width: AryaSize.statusDot, height: AryaSize.statusDot)
                 .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
+            if let badge { TagPill(badge) }
             Text(title)
                 .aryaText(AryaFont.caption, isSelected ? AryaColor.ink : AryaColor.inkMuted)
                 .lineLimit(isSelected ? 2 : 1)
@@ -40,7 +47,9 @@ public struct ThreadRow: View {
         .contentShape(Rectangle())
         .help(title)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Run, \(title), \(time)\(needsYou ? ", needs you" : "")")
+        .accessibilityLabel(
+            "Run, \(badge.map { "\($0), " } ?? "")\(title), \(time)\(needsYou ? ", needs you" : "")"
+        )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 

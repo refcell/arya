@@ -166,11 +166,14 @@ struct RailView: View {
                 Button {
                     model.navigation.select(run: run.id, steward: steward.id)
                 } label: {
+                    // The plain title with a DRY RUN pill (the breadcrumb and inspector spell it).
                     ThreadRow(
-                        model.title(of: run),
+                        StatusMapping.threadTitle(of: run),
                         time: ThreadRow.shortTime(run.startedAt, now: now),
                         needsYou: model.approvals.contains { $0.run == run.id },
-                        isSelected: model.navigation.run == run.id)
+                        isSelected: model.navigation.run == run.id,
+                        badge: model.featureStore?.runFacts[run.id]?.dryRun == true
+                            ? "dry run" : nil)
                 }
                 .buttonStyle(.plain)
                 // A run that started in the last half minute lights up as it arrives.

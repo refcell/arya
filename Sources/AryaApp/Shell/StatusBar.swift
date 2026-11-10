@@ -41,7 +41,8 @@ struct StatusBarLine: Equatable {
         let seconds = line.elapsed(at: now)
         let estimate = line.estimatedSteps.map { " of ~\($0)" } ?? ""
         let steps = "step \(max(line.steps, 1))\(estimate)"
-        return "\(line.name) running · \(steps) · \(FeatureTime.duration(seconds))\(more)"
+        let elapsed = FeatureRunFacts.elapsedText(seconds, running: true)
+        return "\(line.name) running · \(steps) · \(elapsed)\(more)"
     }
 
     static func ticker(stewards: [StewardSummary], events: [FeatureEvent], now: Date) -> Ticker? {

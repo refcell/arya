@@ -384,3 +384,8 @@ M4:
   no longer freezes the review.
 - One elapsed format: the inspector's own `RunFacts.duration` is gone; the status bar, NOW, and
   the inspector all use `FeatureTime.duration`, which now reads "1h 12m" past an hour.
+- Review 16: the inspector's Duration and the status bar's clock use
+  `FeatureRunFacts.elapsedText` (whole seconds while running). Finished runs read "34 steps",
+  never "of ~". Rail run rows show a `TagPill` "DRY RUN" before the plain title (`ThreadRow`
+  `badge:`). The breadcrumb and inspector keep `RunTitle.text`.
+- Visual check (`just snapshot` run, run-live): moves (3) a real pill control, (4) one clock.
