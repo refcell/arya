@@ -52,14 +52,10 @@ app:
 run-app: app
     open .build/Arya.app
 
-# Render every key app state offscreen to .build/snapshots (no window; decision 0038).
-# Reuses .build/demo-home when present; `just demo --no-open` reseeds it.
+# Render every key app state offscreen to .build/snapshots (no window; decision 0038), with
+# one live run in progress. Reuses .build/demo-home while its seed is current.
 snapshot:
-    etc/scripts/demo-current.sh
-    rm -rf .build/snapshots
-    ARYA_SNAPSHOT_DIR="$PWD/.build/snapshots" ARYA_SNAPSHOT_HOME="$PWD/.build/demo-home" \
-      {{ slot }} swift test {{ swift_flags }} -j {{ jobs }} --filter SnapshotTests
-    @ls .build/snapshots
+    etc/scripts/snapshot.sh {{ swift_flags }} -j {{ jobs }}
 
 # Refresh docs/assets/app.png (the README screenshot) from the light run-with-approval snapshot
 readme-screenshot: snapshot

@@ -534,3 +534,14 @@ runtime records as live steps (decision 0049). `arya serve` now runs the serve l
 reporting it missing. Why: the app's live feel needs agents working in front of the person,
 and paced real runs exercise the same paths a real home does.
 
+### 0052 — 2026-11-10 — The demo home is seeded in one process
+
+`arya-demo` (Sources/AryaDemo) writes the busy demo home in one process through the facade:
+`Workspace.openForSeeding(home:ambient:scripts:)` serves every adapter in process from fake
+scripts held in memory, and `Ambient.advance(to:)` moves a fixed clock forward between
+timeline steps, so weeks of history read as weeks without a process per run. Generated
+stewards come from the templates with overrides; their scripts and metric curves are
+generated from a fixed seed, relative to the day it runs. `just snapshot` copies the seeded
+home and keeps one live run in progress in the copy (its process holds the run's lease).
+Why: a process per seeded run made a fleet of eleven stewards take many minutes, and a run in
+progress only exists while a process holds it.

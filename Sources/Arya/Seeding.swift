@@ -3,7 +3,7 @@ import AryaCore
 import AryaRuntime
 import Foundation
 
-// Seeding: one process writes a demo home's whole history (decision 0051). Every adapter is
+// Seeding: one process writes a demo home's whole history (decision 0052). Every adapter is
 // the fake adapter served in process from a script held in memory, so a run costs no process
 // launch, and the caller moves the clock between steps with `Ambient.advance(to:)`.
 
