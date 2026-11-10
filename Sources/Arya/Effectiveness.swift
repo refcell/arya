@@ -34,6 +34,9 @@ public struct CheckSummary: Sendable, Hashable, Codable {
     public var status: String
     public var note: String?
     public var at: Date
+    /// One line, shown verbatim: `route inbox:MSG-9: resolved (check 2): customer replied.`;
+    /// absent in summaries written before it.
+    public var line: String?
 }
 
 extension Workspace {
@@ -62,7 +65,10 @@ extension Workspace {
             else { return nil }
             return CheckSummary(
                 run: run.rawValue, action: body.action, kind: body.kind, target: body.target,
-                attempt: body.attempt, status: body.status, note: body.note, at: event.at.date)
+                attempt: body.attempt, status: body.status, note: body.note, at: event.at.date,
+                line: "\(body.kind) \(body.target): \(body.status)"
+                    + (body.attempt > 1 ? " (check \(body.attempt))" : "")
+                    + (body.note.map { ": \($0)" } ?? "") + ".")
         }
     }
 }

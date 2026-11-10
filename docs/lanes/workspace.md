@@ -260,3 +260,6 @@ M3:
   `metricStatuses(steward:)` (primary then guardrails: value, target, trend, status, movement,
   line); proposal impact counts guardrail metric changes as `metric`.
 - (from eval) `goLiveGate(steward:agreed:)` (Checks.swift): use it for the onboarding "ready" step
+- 2026-11-10: M3.6 #9: eval shipped `learnedChecks(steward:)` (fff15ee0); I dropped my
+  overlapping read and kept a verbatim `line` on follow-up `checks(steward:)` rows. #16
+  templates were done in 618b1ce.
