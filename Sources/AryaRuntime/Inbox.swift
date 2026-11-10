@@ -81,6 +81,8 @@ public struct InboxReceipt: Equatable, Sendable {
     public var note: NoteID?
     /// True when the message started a run.
     public var triggered: Bool
+    /// The recorded text, trimmed.
+    public var text: String = ""
 }
 
 /// The local inbox: records people's messages and turns them into runs and memory.
@@ -94,8 +96,26 @@ public struct Inbox: Sendable {
         self.scheduler = scheduler
     }
 
-    /// Posts `text` from the person binding `sender` to `steward`.
+    /// The sender for the person at this machine (the app's user): always allowed, on the
+    /// `app` channel, without a person binding.
+    public static let localSender = "local"
+
+    /// Posts `text` from the person binding `sender` to `steward`: records it (`record`), then
+    /// starts a message run when the charter takes messages from `sender`.
     public func post(
+        _ text: String, from sender: String, to steward: StewardID, intent: MessageIntent = .ask
+    ) async throws -> InboxReceipt {
+        var receipt = try await record(text, from: sender, to: steward, intent: intent)
+        receipt.triggered = try await scheduler.deliver(
+            Self.runText(receipt.text, from: sender, intent: intent), from: sender, to: steward,
+            attachments: [Self.attachment(receipt.message, from: sender, intent: intent)])
+        return receipt
+    }
+
+    /// Records `text` from `sender` (a person binding, or `localSender`) to `steward` as
+    /// `inbox.message`, and a correction as a memory note; starts no run. `runInput` gives the
+    /// input for a run the caller starts on it.
+    public func record(
         _ text: String, from sender: String, to steward: StewardID, intent: MessageIntent = .ask
     ) async throws -> InboxReceipt {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -103,7 +123,9 @@ public struct Inbox: Sendable {
         let record = try await StewardLifecycle(sink: engine.sink).book().records[steward]
         guard let record else { throw InboxError.unknownSteward(steward) }
         let binding = record.charter.bindings.first { $0.kind == .person && $0.id == sender }
-        guard let binding else { throw InboxError.unknownSender(sender) }
+        guard binding != nil || sender == Self.localSender else {
+            throw InboxError.unknownSender(sender)
+        }
 
         let noteID: NoteID? = intent == .correct ? engine.ambient.newID(NoteID.self) : nil
         var note: MemoryNote?
@@ -113,8 +135,8 @@ public struct Inbox: Sendable {
                 provenance: MemoryProvenance(author: MemoryAuthor(kind: .human, id: sender)))
         }
         let payload = InboxMessage(
-            from: sender, channel: binding.channel ?? "inbox", intent: intent, text: trimmed,
-            note: note?.id, via: binding.via)
+            from: sender, channel: binding?.channel ?? (binding == nil ? "app" : "inbox"),
+            intent: intent, text: trimmed, note: note?.id, via: binding?.via)
         let message = try await engine.sink.append(
             RuntimeEventDraft(
                 type: InboxEventType.message, steward: steward, actor: .person(sender),
@@ -124,14 +146,25 @@ public struct Inbox: Sendable {
             _ = try await engine.sink.append(
                 RuntimeEventDraft(try .memoryAdded(note, steward: steward)))
         }
-        let attachment: JSONValue = [
-            "kind": "inbox", "message": .string(message.id.rawValue), "from": .string(sender),
+        return InboxReceipt(message: message.id, note: note?.id, triggered: false, text: trimmed)
+    }
+
+    /// The input of a run on a recorded message.
+    public static func runInput(_ receipt: InboxReceipt, from sender: String, intent: MessageIntent)
+        -> RunInput
+    {
+        RunInput(
+            kind: .message, text: runText(receipt.text, from: sender, intent: intent),
+            attachments: [attachment(receipt.message, from: sender, intent: intent)])
+    }
+
+    static func attachment(_ message: EventID, from sender: String, intent: MessageIntent)
+        -> JSONValue
+    {
+        [
+            "kind": "inbox", "message": .string(message.rawValue), "from": .string(sender),
             "intent": .string(intent.rawValue),
         ]
-        let triggered = try await scheduler.deliver(
-            Self.runText(trimmed, from: sender, intent: intent), from: sender, to: steward,
-            attachments: [attachment])
-        return InboxReceipt(message: message.id, note: note?.id, triggered: triggered)
     }
 
     /// The relay read tool that returns new messages (decision 0042).

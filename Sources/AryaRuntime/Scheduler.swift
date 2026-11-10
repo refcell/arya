@@ -248,6 +248,18 @@ public final class SchedulerLock: @unchecked Sendable {
         return SchedulerLock(fd: fd)
     }
 
+    /// True when some process holds the lock in `home`. Probes with a non-blocking shared
+    /// lock that is dropped at once, so a serving process is never disturbed.
+    public static func isHeld(home: URL) -> Bool {
+        let path = home.appendingPathComponent("scheduler.lock").path
+        let fd = open(path, O_RDONLY | O_CLOEXEC)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        guard flock(fd, LOCK_SH | LOCK_NB) == 0 else { return true }
+        flock(fd, LOCK_UN)
+        return false
+    }
+
     /// Releases the lock; later calls do nothing.
     public func release() {
         lock.withLock {

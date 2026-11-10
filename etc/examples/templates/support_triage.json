@@ -1,0 +1,86 @@
+{
+  "adapter" : "default",
+  "bindings" : [
+    {
+      "actions" : [
+        "label",
+        "route",
+        "reply"
+      ],
+      "args" : [
+
+      ],
+      "command" : "inbox-mcp",
+      "id" : "inbox",
+      "kind" : "mcp",
+      "read" : [
+        "search",
+        "get"
+      ]
+    }
+  ],
+  "crew" : {
+    "maxParallel" : 1
+  },
+  "department" : "Support",
+  "effort" : "medium",
+  "gate" : {
+    "samples" : 1,
+    "tolerance" : 0
+  },
+  "guardrails" : [
+    "Never delete a message.",
+    "Ask before replying to a customer.",
+    "Route anything about security to the security queue."
+  ],
+  "id" : "st_support_triage",
+  "limits" : {
+    "maxCostMicros" : 2000000,
+    "maxTurns" : 40,
+    "timeoutSeconds" : 900
+  },
+  "metric" : {
+    "direction" : "up",
+    "name" : "routed_within_1h",
+    "target" : 0.95,
+    "unit" : "ratio"
+  },
+  "name" : "Support triage",
+  "outcome" : "Every new support message is labeled and routed to the right queue within one hour.",
+  "policy" : {
+    "default" : "ask",
+    "rules" : [
+      {
+        "action" : "label",
+        "decision" : "auto",
+        "note" : "Labels are safe to change, so the steward applies them."
+      },
+      {
+        "action" : "route",
+        "decision" : "auto",
+        "note" : "Routing only moves a message between queues."
+      },
+      {
+        "action" : "reply",
+        "decision" : "ask",
+        "note" : "Replies to customers need sign-off."
+      }
+    ]
+  },
+  "scorer" : {
+    "fields" : [
+      "decisions.choice"
+    ],
+    "kind" : "exact"
+  },
+  "triggers" : [
+    {
+      "everySeconds" : 900,
+      "kind" : "interval"
+    },
+    {
+      "kind" : "manual"
+    }
+  ],
+  "v" : 1
+}

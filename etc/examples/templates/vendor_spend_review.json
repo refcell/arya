@@ -1,0 +1,80 @@
+{
+  "adapter" : "default",
+  "autonomy" : "suggest",
+  "bindings" : [
+    {
+      "actions" : [
+        "flag",
+        "comment"
+      ],
+      "args" : [
+
+      ],
+      "command" : "spend-mcp",
+      "id" : "spend",
+      "kind" : "mcp",
+      "read" : [
+        "contracts",
+        "invoices"
+      ]
+    }
+  ],
+  "crew" : {
+    "maxParallel" : 1
+  },
+  "department" : "Finance",
+  "effort" : "medium",
+  "gate" : {
+    "samples" : 1,
+    "tolerance" : 0
+  },
+  "guardrails" : [
+    "Never cancel or sign a contract.",
+    "Flag a renewal instead of contacting the vendor."
+  ],
+  "id" : "st_vendor_spend_review",
+  "limits" : {
+    "maxCostMicros" : 2000000,
+    "maxTurns" : 40,
+    "timeoutSeconds" : 900
+  },
+  "metric" : {
+    "direction" : "up",
+    "name" : "renewals_reviewed_on_time",
+    "target" : 0.95,
+    "unit" : "ratio"
+  },
+  "name" : "Vendor spend review",
+  "outcome" : "Every vendor renewal above the review threshold is reviewed two weeks before it renews.",
+  "policy" : {
+    "default" : "ask",
+    "rules" : [
+      {
+        "action" : "flag",
+        "decision" : "auto",
+        "note" : "Flags only mark a renewal for review."
+      },
+      {
+        "action" : "comment",
+        "decision" : "ask",
+        "note" : "Comments are visible to the budget owner, so they need sign-off."
+      }
+    ]
+  },
+  "scorer" : {
+    "fields" : [
+      "decisions.choice"
+    ],
+    "kind" : "exact"
+  },
+  "triggers" : [
+    {
+      "everySeconds" : 86400,
+      "kind" : "interval"
+    },
+    {
+      "kind" : "manual"
+    }
+  ],
+  "v" : 1
+}

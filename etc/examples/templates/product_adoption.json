@@ -1,0 +1,94 @@
+{
+  "adapter" : "default",
+  "autonomy" : "act_low",
+  "bindings" : [
+    {
+      "actions" : [
+
+      ],
+      "args" : [
+
+      ],
+      "command" : "usage-mcp",
+      "id" : "usage",
+      "kind" : "mcp",
+      "read" : [
+        "accounts",
+        "usage"
+      ]
+    },
+    {
+      "actions" : [
+        "task",
+        "note"
+      ],
+      "args" : [
+
+      ],
+      "command" : "crm-mcp",
+      "id" : "crm",
+      "kind" : "mcp",
+      "read" : [
+        "get"
+      ]
+    }
+  ],
+  "crew" : {
+    "maxParallel" : 1
+  },
+  "department" : "Customer success",
+  "effort" : "medium",
+  "gate" : {
+    "samples" : 1,
+    "tolerance" : 0
+  },
+  "guardrails" : [
+    "Never contact a customer directly.",
+    "Create tasks for account owners instead."
+  ],
+  "id" : "st_product_adoption",
+  "limits" : {
+    "maxCostMicros" : 2000000,
+    "maxTurns" : 40,
+    "timeoutSeconds" : 900
+  },
+  "metric" : {
+    "direction" : "up",
+    "name" : "lapsed_accounts_followed_up",
+    "target" : 0.8,
+    "unit" : "ratio"
+  },
+  "name" : "Product adoption",
+  "outcome" : "Accounts that stop using a key feature get a follow-up within one week.",
+  "policy" : {
+    "default" : "ask",
+    "rules" : [
+      {
+        "action" : "task",
+        "decision" : "auto",
+        "note" : "Tasks go to the account owner, who decides what to do."
+      },
+      {
+        "action" : "note",
+        "decision" : "auto",
+        "note" : "Account notes are internal."
+      }
+    ]
+  },
+  "scorer" : {
+    "fields" : [
+      "decisions.choice"
+    ],
+    "kind" : "exact"
+  },
+  "triggers" : [
+    {
+      "everySeconds" : 86400,
+      "kind" : "interval"
+    },
+    {
+      "kind" : "manual"
+    }
+  ],
+  "v" : 1
+}

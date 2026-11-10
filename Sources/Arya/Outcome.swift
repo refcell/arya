@@ -199,15 +199,20 @@ public struct StewardDraft: Sendable, Hashable, Codable {
     /// How far the steward acts on its own: `observe`, `suggest`, `act_low`, or `act_medium`;
     /// nil for none (rules and `autonomy` alone decide).
     public var level: String?
+    /// Who answers for the outcome, and the department it serves.
+    public var owner: String?
+    public var department: String?
 
     public init(
         id: String? = nil, name: String, outcome: String, metric: String, unit: String,
         direction: String = "up", target: Double? = nil, guardrails: [String] = [],
         autonomy: String = "ask", rules: [Rule] = [], bindings: [Binding] = [],
         effort: String = "medium", triggers: [Trigger] = [Trigger(kind: "manual")],
-        adapter: String, level: String? = nil
+        adapter: String, level: String? = nil, owner: String? = nil, department: String? = nil
     ) {
         self.level = level
+        self.owner = owner
+        self.department = department
         self.id = id
         self.name = name
         self.outcome = outcome
@@ -432,6 +437,8 @@ extension StewardDraft {
             guardrails: guardrails, bindings: bindings, triggers: triggers, policy: policy,
             adapter: adapter, effort: effort)
         charter.autonomy = autonomy
+        charter.owner = owner.flatMap { $0.isEmpty ? nil : $0 }
+        charter.department = department.flatMap { $0.isEmpty ? nil : $0 }
         return charter
     }
 
@@ -461,7 +468,8 @@ extension StewardDraft {
                 case .message(let from): Trigger(kind: "message", from: from)
                 }
             },
-            adapter: charter.adapter, level: charter.autonomy?.rawValue)
+            adapter: charter.adapter, level: charter.autonomy?.rawValue, owner: charter.owner,
+            department: charter.department)
     }
 
     /// `base` with these fields applied; fields a draft does not hold are kept from `base`.
@@ -494,6 +502,8 @@ extension StewardDraft {
         out.adapter = edited.adapter
         out.effort = edited.effort
         out.autonomy = edited.autonomy
+        out.owner = edited.owner
+        out.department = edited.department
         return out
     }
 

@@ -4,6 +4,12 @@ Example stewards with everything needed to rehearse and run them offline. `just 
 `just demo` use them, and the CLI tests check that each example is internally consistent.
 Everything here is invented: no real people, customers, or systems.
 
+## templates: example stewards to start from
+
+`templates/<id>.json` are charters for five example stewards: support triage, lead follow-up,
+vendor spend review, product adoption, and customer commitments. The app and
+`createFromTemplate` start from them; a test keeps the files equal to the facade's catalog.
+
 ## triage: support inbox triage
 
 A steward that labels each new message in a fictional support inbox and routes it to the queue

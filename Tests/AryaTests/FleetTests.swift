@@ -97,3 +97,73 @@ private enum ProposalSummaryCharter {
         return nil
     }
 }
+
+@Test func serveStatusShowsWhoServesTheLastTickAndNextWakes() async throws {
+    let opened = try await Opened()
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(
+        charter: try charterJSON(id: "st_b", name: "Bravo", every: 900))
+    _ = try await workspace.createSteward(charter: try charterJSON(id: "st_a", name: "Alpha"))
+    _ = try await workspace.markReady(steward: "st_b")
+    let other = try await Workspace.open(home: opened.home.url)
+
+    let idle = try await other.serveStatus()
+    #expect(!idle.serving && !idle.servingHere && idle.lastTick == nil)
+    #expect(idle.stewards.map(\.steward) == ["st_a", "st_b"])
+    #expect(idle.stewards.map(\.state) == ["off", "due"])
+    #expect(idle.stewards[1].intervalSeconds == 900)
+    #expect(idle.stewards[1].nextWake != nil)
+
+    #expect(try await workspace.startServing(every: .milliseconds(10)))
+    for _ in 0..<200 where try await other.serveStatus().lastTick == nil {
+        try await Task.sleep(for: .milliseconds(10))
+    }
+    let busy = try await other.serveStatus()
+    #expect(busy.serving && !busy.servingHere)
+    #expect(busy.lastTick != nil)
+    #expect(try await workspace.serveStatus().servingHere)
+
+    await workspace.stopServing()
+    #expect(!(try await other.serveStatus().serving))
+}
+
+@Test func messagesAskCorrectAndHandOffThroughTheInbox() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+
+    let asked = try await workspace.message(steward: "st_inbox", text: "Is MSG-9 handled?")
+    let run = try #require(asked.run)
+    #expect(asked.note == nil)
+    #expect(run.trigger == "message")
+    #expect(try await workspace.run(run.id)?.input == "local asks: Is MSG-9 handled?")
+
+    let corrected = try await workspace.message(
+        steward: "st_inbox", text: "Card updates are billing.", intent: "correct")
+    #expect(corrected.run == nil)
+    let note = try #require(corrected.note)
+    #expect(try await workspace.memory(steward: "st_inbox").map(\.id) == [note])
+
+    let handed = try await workspace.message(
+        steward: "st_inbox", text: "Sort the backlog", intent: "handoff")
+    let handoff = try #require(handed.run)
+    #expect(
+        try await workspace.run(handoff.id)?.input == "local hands this to you: Sort the backlog")
+
+    let thread = try await workspace.conversation(steward: "st_inbox")
+    #expect(thread.map(\.intent) == ["ask", "correct", "handoff"])
+    #expect(thread.allSatisfy { $0.person == "local" && $0.channel == "app" })
+    #expect(try await workspace.ledger().contains { $0.id == asked.event })
+
+    let manual = try await workspace.runNow(steward: "st_inbox", note: "Check the queue")
+    #expect(manual.trigger == "manual")
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.message(steward: "st_inbox", text: "hi", by: "person:nobody")
+    }
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.message(steward: "st_inbox", text: "hi", intent: "shout")
+    }
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.message(steward: "st_inbox", text: "  ")
+    }
+}

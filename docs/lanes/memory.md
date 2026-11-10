@@ -118,6 +118,7 @@ M3 (integration toward the end-to-end scenario):
   timeout, workdir, and clean environment, and a `sandbox-exec` profile in M4.
 
 ## Questions
+- (from workspace) Memory scopes in the facade: shared notes live under the reserved `st_shared` scope (runtime recalls them for every steward); preferences are notes tagged `preference` and `person:<id>`. Move either into AryaMemory if you want a first-class scope.
 
 ## Log
 - 2026-11-09: memory notes, payloads, live-note projection landed (f34e8ff).

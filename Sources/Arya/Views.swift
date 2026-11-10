@@ -81,6 +81,8 @@ public struct KnowledgeView: Sendable, Hashable, Codable {
     public var steward: String
     /// Live notes, newest first.
     public var notes: [Note]
+    /// Live notes every steward recalls, newest first.
+    public var shared: [Note]
     public var routines: [Routine]
 }
 
@@ -126,13 +128,15 @@ extension Workspace {
                 times[seq] ?? Date(timeIntervalSince1970: 0), now: now, timeZone: timeZone)
         }
         let titles = try await runBook().records.mapValues { RunSummary($0).title }
-        let notes = try await memory(steward: steward).reversed().map { note in
+        func entry(_ note: MemorySummary) -> KnowledgeView.Note {
             KnowledgeView.Note(
                 note: note,
                 provenance: Self.provenance(
                     note, runTitle: note.run.flatMap { titles[RunID(unchecked: $0)] }),
                 time: time(note.seq))
         }
+        let notes = try await memory(steward: steward).reversed().map(entry)
+        let shared = try await sharedMemory().reversed().map(entry)
         var routines: [KnowledgeView.Routine] = []
         for routine in try await self.routines(steward: steward) {
             let proposed = try await routineHistory(steward: steward, name: routine.name)
@@ -150,7 +154,8 @@ extension Workspace {
             }
             routines.append(.init(routine: routine, versions: versions))
         }
-        return KnowledgeView(steward: id.rawValue, notes: Array(notes), routines: routines)
+        return KnowledgeView(
+            steward: id.rawValue, notes: Array(notes), shared: Array(shared), routines: routines)
     }
 
     static func review(_ item: CaseReport) -> ImproveView.CaseReview {
@@ -194,6 +199,17 @@ extension Workspace {
             case let author where author.hasPrefix("steward:"): "the steward"
             default: note.author
             }
+        if let about = note.about {
+            let name = String(about.dropFirst("person:".count))
+            let scope = note.shared ? "every steward" : "this steward"
+            return who == "you"
+                ? "\(name)'s preference, added by you for \(scope)."
+                : "\(name)'s preference, added by \(who) for \(scope)."
+        }
+        if note.shared {
+            return who == "you"
+                ? "Shared with every steward by you." : "Shared with every steward by \(who)."
+        }
         if let caseID = note.caseID {
             return who == "you"
                 ? "From your correction to case \(caseID)."

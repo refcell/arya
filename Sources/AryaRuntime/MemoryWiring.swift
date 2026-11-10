@@ -24,6 +24,14 @@ extension RuntimeEventDraft {
     }
 }
 
+/// Where memory notes live: under one steward, or shared by every steward.
+public enum MemoryScope {
+    /// The reserved scope whose notes every steward recalls. It is never a real steward.
+    public static let shared = StewardID(unchecked: "st_shared")
+    /// How many shared notes a run recalls at most, after its own.
+    public static let maxSharedNotes = 4
+}
+
 /// Memory and routine projections over runtime events.
 struct MemoryView {
     var memory: MemoryProjection
@@ -52,6 +60,17 @@ struct MemoryView {
             context.routines = (context.routines.filter { $0.name != candidate.name } + [found])
                 .sorted { $0.name < $1.name }
             context.routineVersions[candidate.name] = candidate.version
+        }
+        guard steward != MemoryScope.shared else { return context }
+        let query = MemoryQuery.forRun(
+            inputText: input, caseID: caseID, knownTags: memory.tags(steward: MemoryScope.shared),
+            maxNotes: MemoryScope.maxSharedNotes)
+        let own = Set(context.notes.map(\.note.id))
+        let shared = memory.retrieve(steward: MemoryScope.shared, query: query)
+            .filter { !own.contains($0.note.id) }
+        if !shared.isEmpty {
+            context.notes += shared
+            context.snapshot = MemorySnapshot(notes: context.notes.map(\.note.id))
         }
         return context
     }

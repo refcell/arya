@@ -131,6 +131,7 @@ M4:
 - (from connect) Added `Destination.connections(steward:)`, a Connections… button in Settings,
   and Go → Connections (Shift-Command-K); please add Connections to the command palette when it
   lands, and restyle freely.
+- (from workspace) live: `serveStatus() -> ServeStatus{serving, servingHere, lastTick, stewards[{steward, name, state, intervalSeconds, nextWake}]}` for the status bar.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

@@ -1,0 +1,86 @@
+{
+  "adapter" : "default",
+  "autonomy" : "suggest",
+  "bindings" : [
+    {
+      "actions" : [
+        "note",
+        "assign",
+        "send_email"
+      ],
+      "args" : [
+
+      ],
+      "command" : "crm-mcp",
+      "id" : "crm",
+      "kind" : "mcp",
+      "read" : [
+        "search",
+        "get"
+      ]
+    }
+  ],
+  "crew" : {
+    "maxParallel" : 1
+  },
+  "department" : "Sales",
+  "effort" : "medium",
+  "gate" : {
+    "samples" : 1,
+    "tolerance" : 0
+  },
+  "guardrails" : [
+    "Never promise pricing or discounts.",
+    "Ask before emailing a lead for the first time."
+  ],
+  "id" : "st_lead_follow_up",
+  "limits" : {
+    "maxCostMicros" : 2000000,
+    "maxTurns" : 40,
+    "timeoutSeconds" : 900
+  },
+  "metric" : {
+    "direction" : "up",
+    "name" : "first_reply_within_1d",
+    "target" : 0.9,
+    "unit" : "ratio"
+  },
+  "name" : "Lead follow-up",
+  "outcome" : "Every new inbound lead gets an owner and a first reply within one business day.",
+  "policy" : {
+    "default" : "ask",
+    "rules" : [
+      {
+        "action" : "note",
+        "decision" : "auto",
+        "note" : "Notes on a lead are internal, so they are added on their own."
+      },
+      {
+        "action" : "assign",
+        "decision" : "ask",
+        "note" : "A person confirms who owns each lead."
+      },
+      {
+        "action" : "send_email",
+        "decision" : "ask",
+        "note" : "Emails to prospects need sign-off."
+      }
+    ]
+  },
+  "scorer" : {
+    "fields" : [
+      "decisions.choice"
+    ],
+    "kind" : "exact"
+  },
+  "triggers" : [
+    {
+      "everySeconds" : 3600,
+      "kind" : "interval"
+    },
+    {
+      "kind" : "manual"
+    }
+  ],
+  "v" : 1
+}

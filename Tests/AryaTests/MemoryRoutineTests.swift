@@ -1,3 +1,4 @@
+import AryaAdapters
 import AryaCore
 import AryaLedger
 import AryaMemory
@@ -194,4 +195,40 @@ private func propose(_ opened: Opened, _ body: String, reason: String) async thr
     await #expect(throws: WorkspaceError.notFound("note_missing")) {
         try await workspace.retract(memory: "note_missing")
     }
+}
+
+@Test func sharedNotesAndPreferencesReachEveryStewardsRuns() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let own = try await workspace.remember("MSG-9 style mail is billing", steward: "st_inbox")
+    let shared = try await workspace.remember("Our business day ends at 17:00 UTC.")
+    let preference = try await workspace.remember(
+        "Keeps replies under five sentences.", about: "person:alex", by: "person:alex")
+    #expect(!own.shared && shared.shared && preference.shared)
+    #expect(preference.about == "person:alex")
+    #expect(preference.author == "human:person:alex")
+
+    #expect(try await workspace.memory(steward: "st_inbox").map(\.id) == [own.id])
+    #expect(try await workspace.sharedMemory().map(\.id) == [shared.id, preference.id])
+    #expect(try await workspace.preferences(person: "person:alex").map(\.id) == [preference.id])
+    let knowledge = try await workspace.knowledge(steward: "st_inbox")
+    #expect(knowledge.shared.map(\.note.id) == [preference.id, shared.id])
+    #expect(
+        knowledge.shared.map(\.provenance) == [
+            "alex's preference, added by person:alex for every steward.",
+            "Shared with every steward by you.",
+        ])
+
+    let run = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let started = try #require(
+        try await workspace.ledger().first { $0.type == "run.started" && $0.run == run.id })
+    for id in [own.id, shared.id, preference.id] { #expect(started.payload.contains(id)) }
+
+    try await workspace.retract(memory: shared.id)
+    #expect(try await workspace.sharedMemory().map(\.id) == [preference.id])
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.remember("x", about: "alex")
+    }
+    await #expect(throws: WorkspaceError.self) { try await workspace.remember("  ") }
 }

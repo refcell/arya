@@ -25,6 +25,14 @@ public struct MemorySummary: Sendable, Hashable, Codable {
     public var retracted: Bool
     /// Ledger `seq` of `memory.added`.
     public var seq: Int
+
+    /// True for a note every steward recalls (`steward` is the shared scope).
+    public var shared: Bool { steward == MemoryScope.shared.rawValue }
+    /// The person a preference is about (its `person:<id>` tag), for notes tagged `preference`.
+    public var about: String? {
+        guard tags.contains("preference") else { return nil }
+        return tags.first { $0.hasPrefix("person:") }
+    }
 }
 
 /// One routine of a steward.
@@ -95,6 +103,64 @@ extension Workspace {
         return projection.allNotes(steward: id)
             .filter { includeRetracted || !$0.retracted }
             .map { MemorySummary($0.note, retracted: $0.retracted) }
+    }
+
+    /// Records a memory note written by `person`: under `steward`, or shared by every steward
+    /// when `steward` is nil. With `about`, a person binding id such as `person:alex`, the note
+    /// is that person's preference (tags `preference` and the id).
+    @discardableResult
+    public func remember(
+        _ text: String, steward: String? = nil, about: String? = nil, tags: [String] = [],
+        by person: String = "local"
+    ) async throws -> MemorySummary {
+        var scope = MemoryScope.shared
+        if let steward { scope = try await existing(steward).id }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw WorkspaceError.rejected("a note needs text") }
+        var allTags: [String] = []
+        func add(_ tag: String) { if !allTags.contains(tag) { allTags.append(tag) } }
+        tags.forEach(add)
+        if let about {
+            guard about.hasPrefix("person:"), about.count > "person:".count else {
+                throw WorkspaceError.rejected("about must be a person binding id, not \(about)")
+            }
+            add("preference")
+            add(about)
+        }
+        let note: MemoryNote
+        do {
+            note = try MemoryNote(
+                id: ambient.newID(NoteID.self), text: trimmed,
+                tags: allTags,
+                provenance: MemoryProvenance(author: MemoryAuthor(kind: .human, id: person)))
+        } catch {
+            throw WorkspaceError.rejected(String(describing: error))
+        }
+        let event = try await sink.append(
+            RuntimeEventDraft(
+                type: MemoryEventType.added, steward: scope, actor: .person(person),
+                payload: try CanonicalJSON.decode(
+                    JSONValue.self,
+                    from: try CanonicalJSON.encode(MemoryAddedPayload(note: note)))))
+        return MemorySummary(
+            LiveNote(steward: scope, seq: event.seq, note: note), retracted: false)
+    }
+
+    /// Notes every steward recalls; live ones only unless `includeRetracted`.
+    public func sharedMemory(includeRetracted: Bool = false) async throws -> [MemorySummary] {
+        try MemoryProjection(ledger: try reader.events()).allNotes(steward: MemoryScope.shared)
+            .filter { includeRetracted || !$0.retracted }
+            .map { MemorySummary($0.note, retracted: $0.retracted) }
+    }
+
+    /// Live preferences about `person` (a binding id such as `person:alex`), shared and per
+    /// steward, in ledger order.
+    public func preferences(person: String) async throws -> [MemorySummary] {
+        let projection = try MemoryProjection(ledger: try reader.events())
+        return projection.stewards.flatMap { projection.liveNotes(steward: $0) }
+            .filter { $0.note.tags.contains("preference") && $0.note.tags.contains(person) }
+            .sorted { $0.seq < $1.seq }
+            .map { MemorySummary($0, retracted: false) }
     }
 
     /// Retracts a memory note (`memory.retracted`, with `person` as actor): it leaves

@@ -203,3 +203,9 @@ M3:
 - 2026-11-09: `fleet()` for the sidebar; `charterDraft(steward:)` and
   `proposeCharter(steward:draft:baseVersion:)` (draft applied to the live charter, gated
   proposal, never a direct write); `StewardDraft.level` for autonomy; 58 tests.
+- 2026-11-10: parity batch: `portfolio()` (by department; charters gain optional `owner` and
+  `department`), templates (`templates()`, `createFromTemplate`, five neutral examples in
+  `etc/examples/templates`), memory scopes (`remember` shared or per steward, `about:` person
+  preferences, `sharedMemory`, `preferences`; shared notes reach every steward's recall),
+  `serveStatus()`, `message(steward:text:intent:by:)` with `conversation(steward:)`, and
+  `runNow(steward:note:)`; 65 tests.

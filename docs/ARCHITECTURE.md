@@ -197,6 +197,8 @@ A charter is a versioned JSON document. Version numbers increase by one per acce
 ```
 
 - `policy.default` is `ask` when omitted: an unknown action kind is never executed silently.
+- `owner` and `department` (optional) say who answers for the outcome and which part of the
+  organization it serves; the portfolio groups stewards by department.
 - `policy.rules[].note` (optional) states the guardrail in a person's words, for example
   "Replies to customers need sign-off"; the approval view shows it where the rule holds an
   action.
