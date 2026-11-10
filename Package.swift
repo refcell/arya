@@ -70,6 +70,7 @@ let package = Package(
             name: "AryaTests",
             dependencies: [
                 "Arya", "AryaCore", "AryaLedger", "AryaAdapters", "AryaRuntime", "AryaEval",
+                "AryaBinding",
             ]),
         .testTarget(name: "AryaDesignTests", dependencies: ["AryaDesign"]),
         .testTarget(

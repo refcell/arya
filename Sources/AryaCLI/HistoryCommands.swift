@@ -56,6 +56,9 @@ extension CommandTable {
                     help: "binding to page through; with --file, the binding the records are from"
                 ),
                 OptionSpec(
+                    name: "from", kind: .value(placeholder: "binding"),
+                    help: "the same as --binding: a connector such as `arya-binding folder <dir>`"),
+                OptionSpec(
                     name: "tool", kind: .value(placeholder: "name"),
                     help: "the binding's history tool (default: history)"),
                 OptionSpec(
@@ -99,8 +102,12 @@ extension CLI {
         let steward = try invocation.positional("steward")
         switch invocation.command {
         case .historyImport:
-            guard values["file"] != nil || values["binding"] != nil else {
-                throw .usage("give --file or --binding", command: .historyImport)
+            if values["from"] != nil, values["binding"] != nil {
+                throw .usage("give --from or --binding, not both", command: .historyImport)
+            }
+            let binding = values["from"] ?? values["binding"]
+            guard values["file"] != nil || binding != nil else {
+                throw .usage("give --file or --from", command: .historyImport)
             }
             var limit = 200
             if let raw = values["limit"] {
@@ -110,8 +117,8 @@ extension CLI {
                 limit = parsed
             }
             let summary = try await backend.importHistory(
-                steward: steward, file: values["file"], binding: values["binding"],
-                tool: values["tool"], limit: limit)
+                steward: steward, file: values["file"], binding: binding, tool: values["tool"],
+                limit: limit)
             try output.emit(summary, json: json, text: HistoryText.imported)
         case .review:
             let queue: ReviewQueueSummary?

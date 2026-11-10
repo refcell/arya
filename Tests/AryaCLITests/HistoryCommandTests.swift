@@ -6,7 +6,11 @@ import Testing
 
 @Test func historyAndReviewUsageErrors() async {
     let cases: [([String], String)] = [
-        (["history", "import", "st_triage"], "arya: give --file or --binding"),
+        (["history", "import", "st_triage"], "arya: give --file or --from"),
+        (
+            ["history", "import", "st_triage", "--from", "a", "--binding", "b"],
+            "arya: give --from or --binding, not both"
+        ),
         (
             ["history", "import", "st_triage", "--file", "a", "--limit", "0"],
             "arya: --limit must be a positive number"

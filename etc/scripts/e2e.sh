@@ -146,6 +146,11 @@ check_binding_history() {
   expect added "$(get added)" 40 && expect casebook "$(get casebook)" history &&
     expect "first case" "$(get added.0)" hist-MSG-040
 }
+check_folder_steward() { expect id "$(get summary.id)" st_folder; }
+check_folder_history() {
+  expect added "$(get added)" 25 && expect invalid "$(get invalid)" 0 &&
+    expect "first case" "$(get added.0)" hist-MSG-136
+}
 check_reviewed() { expect reviewed "$(get reviewed)" 3 && expect agreed "$(get agreed)" 1; }
 # v1 from the live-run correction, v2 and v3 from the two reviews; each check is scored.
 check_checks() {
@@ -344,6 +349,15 @@ install_profile() {
   plutil -replace bindings.0.args -json "[\"--binding\", \"$PWD/$example/inbox-history.json\"]" \
     "$work/history.json"
   plutil -insert bindings.0.read.2 -string history "$work/history.json"
+  # The same steward on a real local connector: `arya-binding folder` serving the triage
+  # history export as the folder's history.json (docs/PROTOCOL.md, "Local connectors").
+  mkdir -p "$work/inbox-folder"
+  cp "$example/history-export.json" "$work/inbox-folder/history.json"
+  cp "$work/history.json" "$work/folder.json"
+  plutil -replace id -string st_folder "$work/folder.json"
+  plutil -replace bindings.0.command -string "$bin/arya-binding" "$work/folder.json"
+  plutil -replace bindings.0.args -json "[\"folder\", \"$work/inbox-folder\"]" \
+    "$work/folder.json"
 }
 
 echo "e2e: scenario (home: temporary)"
@@ -419,6 +433,10 @@ step "a steward reading the inbox binding" history setup check_history_steward \
   steward create --charter "$work/history.json"
 step "import 40 past messages from it" history setup check_binding_history \
   history import st_history --binding inbox
+step "a steward on a real folder connector" history setup check_folder_steward \
+  steward create --charter "$work/folder.json"
+step "import its history with --from" history setup check_folder_history \
+  history import st_folder --from inbox
 step "sam asks; a run answers" connect live check_asked \
   message st_triage "Which refunds are still waiting?" --as person:sam
 step "sam's correction is kept as memory" connect live check_message_kept \
