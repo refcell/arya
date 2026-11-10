@@ -257,7 +257,8 @@ public struct RunEngine: Sendable {
         let state = try await start.current(sink)
         let context = state.memory.context(
             steward: request.steward, input: request.input.text,
-            caseID: request.rehearsal?.caseID, candidate: request.routine)
+            caseID: request.rehearsal?.caseID, candidate: request.routine,
+            people: PersonMemory.people(in: request.input, charter: charter))
         // A rehearsal shows the plan its case recorded, never the steward's live plan, so the
         // same case gets the same instructions however the live plan has moved since.
         let plan: [PlanItem]

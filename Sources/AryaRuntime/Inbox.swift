@@ -131,7 +131,10 @@ public struct Inbox: Sendable {
         var note: MemoryNote?
         if let noteID, try await !Self.known(trimmed, steward: steward, engine) {
             note = try MemoryNote(
-                id: noteID, text: trimmed, tags: ["correction"],
+                id: noteID, text: trimmed,
+                // A person's corrections are recalled when acting for them again (0061).
+                tags: sender == Self.localSender
+                    ? ["correction"] : ["correction", PersonMemory.tag(sender)],
                 provenance: MemoryProvenance(author: MemoryAuthor(kind: .human, id: sender)))
         }
         let payload = InboxMessage(

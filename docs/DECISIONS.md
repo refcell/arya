@@ -660,3 +660,19 @@ by <person>") and runs the target's routine gate, so it goes live only when the 
 casebook still passes; a failing gate leaves it proposed for an override. Routines stay keyed by
 steward and name. Why: a routine that helps one steward can break another's cases, and a shared
 library outside the gate would let one steward change another's behavior unreviewed.
+
+### 0061 — 2026-11-10 — Memory about a person reaches the runs that act for them
+
+Context: preferences a person stated (`remember(about:)`) went to every steward's every run as
+shared notes, and a person's corrections were not tied to them at all. Decision: a note tagged
+`person:<id>`, the steward's own or shared, is memory about that person. A run recalls it only
+when it acts for that person: the sender of a message input, a person binding its input names,
+or any `person:<id>` its input names (up to 6 such notes, newest first, after the steward's own
+and shared notes); every other run leaves it out, wherever retrieval found it. Instructions show
+whom a note is about (`(person:alex) …`), and the run's memory snapshot records exactly what it
+recalled, so replay sees the same notes. A correction a person sends through the inbox is
+tagged `correction` and `person:<sender>`. Provenance is unchanged: the author is the person
+and the event is the message. `Workspace.personMemory(person:)` lists what arya remembers
+about a person for the People view. Why: what one person prefers should shape what a steward
+does for them, and should not leak into what it does for everyone else.
+

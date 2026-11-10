@@ -163,6 +163,18 @@ extension Workspace {
             .map { MemorySummary($0, retracted: false) }
     }
 
+    /// Everything arya remembers about `person` (`alex` or `person:alex`): live notes tagged
+    /// with them, preferences and their corrections, shared and per steward, newest first. Runs
+    /// acting for or messaging that person recall these (runtime decision 0061).
+    public func personMemory(person: String) async throws -> [MemorySummary] {
+        let tag = person.hasPrefix("person:") ? person : PersonMemory.tag(person)
+        let projection = try facadeState().memory
+        return projection.stewards.flatMap { projection.liveNotes(steward: $0) }
+            .filter { $0.note.tags.contains(tag) }
+            .sorted { $0.seq > $1.seq }
+            .map { MemorySummary($0, retracted: false) }
+    }
+
     /// Retracts a memory note (`memory.retracted`, with `person` as actor): it leaves
     /// `memory(steward:)`, `knowledge(steward:)`, and what later runs recall. Returns the note
     /// as retracted.

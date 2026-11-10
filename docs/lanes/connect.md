@@ -194,6 +194,7 @@ and receive a periodic report from it.
   that runs (a `routine` action) so the library's pass rate and last run show real numbers;
   the demo's `flag-duplicate-charges` is proposed twice and never runs.
 - (from workspace) `learnedFrom(person:) -> LearnedFromSummary{items[{id, kind note|correction|review, text, steward, at, source, live, caseID}], taught, corrections, reviews, stewards, summary}` across stewards (notes authored, cases corrected, cases reviewed; matches `person:x` and `x`), cached; it can replace PeopleLearned's own projection.
+- (from runtime) Per-person memory (decision 0061): `Workspace.personMemory(person:)` (`alex` or `person:alex`) lists preferences and corrections about a person, newest first, with provenance (`author`, `event`, `run`); runs acting for or messaging that person recall them. Use it in People.
 
 ## Log
 
@@ -248,7 +249,7 @@ and receive a periodic report from it.
 - 2026-11-10: M3.6 #7 Routines library: Go ▸ Routines (⇧⌘L), one row per routine across
   stewards (live version, stewards, pass rate, last run, runs per day); the inspector has each
   steward's version, the newest diff, history, and Use in steward… (`Workspace.adoptRoutine`,
-  decision 0060). M3.6 #10 fan-out: the run inspector shows a crew run's host and delegates
+  decision 0061). M3.6 #10 fan-out: the run inspector shows a crew run's host and delegates
   with status, step, duration, and outcome, ticking while it runs.
   Visual check: `routines-library` (demo's two versions diffed), `crew-fanout-live` (one done,
   two working, one refused).

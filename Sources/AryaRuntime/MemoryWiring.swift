@@ -60,7 +60,8 @@ struct MemoryView {
     /// The memory context of a run of `steward` on `input`, with `candidate` in place of the
     /// live version of its name when given (an unknown candidate version leaves the live set).
     func context(
-        steward: StewardID, input: String, caseID: CaseID?, candidate: CandidateRoutine? = nil
+        steward: StewardID, input: String, caseID: CaseID?, candidate: CandidateRoutine? = nil,
+        people: [String] = []
     ) -> RunMemoryContext {
         var context = RunPreparation.context(
             steward: steward, inputText: input, caseID: caseID, memory: memory,
@@ -84,7 +85,79 @@ struct MemoryView {
             context.notes += shared
             context.snapshot = MemorySnapshot(notes: context.notes.map(\.note.id))
         }
+        PersonMemory.recall(people, steward: steward, memory: memory, into: &context)
         return context
+    }
+}
+
+/// Memory about a person (decision 0061): live notes, the steward's own or shared, tagged
+/// `person:<binding id>`: preferences a person states and corrections a person sends. A run
+/// recalls them for each person it acts for: the sender of a message input and each person
+/// binding its input names.
+public enum PersonMemory {
+    /// Most person notes a run recalls, after its own and shared notes.
+    public static let maxNotes = 6
+
+    /// The memory tag of person binding `id`.
+    public static func tag(_ id: String) -> String { "person:" + id }
+
+    /// The person ids a run of `charter` on `input` acts for: the message sender, each person
+    /// binding named in the input text (in charter order), then each other `person:<id>` the
+    /// text names, without repeats.
+    public static func people(in input: RunInput, charter: Charter) -> [String] {
+        var out: [String] = []
+        for attachment in input.attachments {
+            if let from = attachment["from"]?.stringValue, charter.binding(from)?.kind == .person {
+                out.append(from)
+            }
+        }
+        let words = Set(
+            input.text.lowercased().split { !($0.isLetter || $0.isNumber || "_-:".contains($0)) }
+                .map(String.init))
+        for binding in charter.bindings where binding.kind == .person {
+            let id = binding.id.lowercased()
+            if words.contains(id) || words.contains(tag(id)), !out.contains(binding.id) {
+                out.append(binding.id)
+            }
+        }
+        // An explicit `person:<id>` counts even without a binding on this steward.
+        for word in words.sorted() where word.hasPrefix("person:") && word.count > 7 {
+            let id = String(word.dropFirst(7))
+            if !out.contains(where: { $0.lowercased() == id }) { out.append(id) }
+        }
+        return out
+    }
+
+    /// Drops notes about anyone not in `people`, then adds `people`'s notes not already in
+    /// `context`, newest first, up to `maxNotes`.
+    static func recall(
+        _ people: [String], steward: StewardID, memory: MemoryProjection,
+        into context: inout RunMemoryContext
+    ) {
+        let tags = Set(people.map { tag($0.lowercased()) })
+        // A note about someone else stays out of this run, wherever retrieval found it.
+        let before = context.notes.count
+        context.notes.removeAll { note in
+            let about = note.note.tags.filter { $0.hasPrefix("person:") }
+            return !about.isEmpty && tags.isDisjoint(with: about)
+        }
+        var changed = context.notes.count != before
+        defer {
+            if changed { context.snapshot = MemorySnapshot(notes: context.notes.map(\.note.id)) }
+        }
+        guard !people.isEmpty else { return }
+        var have = Set(context.notes.map(\.note.id))
+        let candidates =
+            (memory.liveNotes(steward: steward)
+            + memory.liveNotes(steward: MemoryScope.shared))
+            .filter { !tags.isDisjoint(with: $0.note.tags) }
+            .sorted { $0.seq > $1.seq }
+        var added = 0
+        for note in candidates where added < maxNotes && have.insert(note.note.id).inserted {
+            context.notes.append(note)
+            added += 1
+        }
+        if added > 0 { changed = true }
     }
 }
 
@@ -93,7 +166,14 @@ extension InstructionInputs {
     init(charter: Charter, context: RunMemoryContext, plan: [PlanItem] = []) {
         self.init(charter: charter)
         self.plan = plan
-        memory = context.notes.map { InstructionNote(id: $0.note.id.rawValue, text: $0.note.text) }
+        memory = context.notes.map { live in
+            // A note about a person says whom it is about (decision 0061).
+            let about = live.note.tags.filter { $0.hasPrefix("person:") }
+            let text =
+                about.isEmpty
+                ? live.note.text : "(\(about.joined(separator: ", "))) \(live.note.text)"
+            return InstructionNote(id: live.note.id.rawValue, text: text)
+        }
         routines = context.routines.map {
             InstructionRoutine(name: $0.name, version: $0.version, summary: $0.summary)
         }

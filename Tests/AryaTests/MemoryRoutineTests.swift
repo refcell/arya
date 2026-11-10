@@ -198,7 +198,9 @@ private func propose(_ opened: Opened, _ body: String, reason: String) async thr
 }
 
 @Test func sharedNotesAndPreferencesReachEveryStewardsRuns() async throws {
-    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let opened = try await Opened([
+        FakeScript.Run(result: liveResult), FakeScript.Run(result: liveResult),
+    ])
     let workspace = opened.workspace
     _ = try await workspace.createSteward(charter: try inboxCharterJSON())
     let own = try await workspace.remember("MSG-9 style mail is billing", steward: "st_inbox")
@@ -223,7 +225,15 @@ private func propose(_ opened: Opened, _ body: String, reason: String) async thr
     let run = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
     let started = try #require(
         try await workspace.ledger().first { $0.type == "run.started" && $0.run == run.id })
-    for id in [own.id, shared.id, preference.id] { #expect(started.payload.contains(id)) }
+    for id in [own.id, shared.id] { #expect(started.payload.contains(id)) }
+    // A preference reaches the runs that act for its person, not every run (runtime 0061).
+    #expect(!started.payload.contains(preference.id))
+    let forAlex = try await workspace.startRun(
+        steward: "st_inbox", input: "Reply to person:alex about MSG-9")
+    let alexStart = try #require(
+        try await workspace.ledger().first { $0.type == "run.started" && $0.run == forAlex.id })
+    #expect(alexStart.payload.contains(preference.id))
+    #expect(try await workspace.personMemory(person: "alex").map(\.id) == [preference.id])
 
     try await workspace.retract(memory: shared.id)
     #expect(try await workspace.sharedMemory().map(\.id) == [preference.id])
