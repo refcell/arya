@@ -201,7 +201,9 @@ public enum InstructionComposer {
         actions you propose. arya applies the approval policy and carries out approved \
         actions. To run a routine, propose an action of kind routine with params.name. Keep a \
         plan toward your outcome: when it changes, return the whole plan (each step with id, \
-        text, status pending, in_progress, done, skipped, or blocked, and a rationale).
+        text, status pending, in_progress, done, skipped, or blocked, and a rationale). When \
+        you notice a problem or an opportunity beyond this input, return it as a finding with \
+        evidence and, if useful, a suggested action; set needsPerson when a person must decide.
         """
     }
 

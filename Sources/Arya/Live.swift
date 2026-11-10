@@ -221,7 +221,8 @@ struct LiveTally: Sendable {
             let verb =
                 switch event.type.rawValue {
                 case ActionEventType.proposed: "Proposed"
-                case ActionEventType.executed: "Did"
+                case ActionEventType.executed:
+                    payload["dryRun"] == true ? "Drafted, not sent:" : "Did"
                 case ActionEventType.failed: "Failed"
                 default: "Held back"
                 }

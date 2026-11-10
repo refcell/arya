@@ -53,14 +53,15 @@ struct Opened {
 
     init(
         _ runs: [FakeScript.Run] = [], leases: any RunLeases = MemoryRunLeases(),
-        adapters: (any AdapterFactory)? = nil, keys: any HomeKeyStore = MemoryHomeKeyStore()
+        adapters: (any AdapterFactory)? = nil, keys: any HomeKeyStore = MemoryHomeKeyStore(),
+        drafting: Bool = false
     ) async throws {
         workspace = try await Workspace.open(
             home: home.url,
             wiring: Wiring(
                 ambient: .fixed(stepMillis: 1),
                 adapters: adapters ?? ScriptedFactory(script: FakeScript(runs: runs)),
-                executor: executor,
+                executor: drafting ? DryRunExecutor() : executor,
                 leases: leases, questionPoll: .milliseconds(1), keys: keys))
     }
 
@@ -571,7 +572,69 @@ private struct ResolvedOutcome: ToolUpstream {
     func close() async {}
 }
 
-@Test func effectivenessScoresCheckedActionsByKind() async throws {
+@Test func effectivenessCountsDraftsAndNeverFollowsThemUp() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)], drafting: true)
+    let workspace = opened.workspace
+    var charter = inboxCharter()
+    charter.id = StewardID(unchecked: "st_inbox")
+    charter.bindings = [
+        .mcp(
+            "inbox", command: "inbox-mcp", read: ["get", "outcome"],
+            actions: ["label", "route", "reply"])
+    ]
+    charter.policy = Policy(rules: [Policy.Rule(action: "label", decision: .auto)])
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let far = Timestamp(millis: Int64(Date().timeIntervalSince1970 * 1000) + 10 * 86_400_000)
+    let checked = try await OutcomeChecker(sink: workspace.sink) { _ in ResolvedOutcome() }
+        .check(now: far)
+    // The workspace drafts (dry run): nothing changed, so nothing is followed up.
+    #expect(checked.checked.isEmpty)
+    let effects = try await workspace.effectiveness(steward: "st_inbox")
+    let label = try #require(effects.first { $0.kind == "label" })
+    #expect(label.drafted == 1)
+    #expect(label.executed == 0)
+    #expect(label.line == "label: 1 drafted, not sent (0 executed)")
+    #expect(try await workspace.checks(steward: "st_inbox").isEmpty)
+    let run = try #require(try await workspace.ledger().last { $0.type == "action.executed" }?.run)
+    let detail = try #require(try await workspace.run(run))
+    #expect(detail.actions.first { $0.kind == "label" }?.drafted == true)
+    let context = try await workspace.context(steward: "st_inbox")
+    #expect(context.connections[0].actionsDrafted == 1)
+    #expect(context.connections[0].actionsExecuted == 0)
+}
+
+@Test func findingsListOpenOnesAndResolve() async throws {
+    var result = liveResult
+    if case .object(var members) = result {
+        members["findings"] = [
+            [
+                "id": "f1", "kind": "problem", "title": "Refund replies are slowing down",
+                "evidence": ["median 6 h, was 2 h"], "needsPerson": true,
+            ]
+        ]
+        result = .object(members)
+    }
+    let opened = try await Opened([FakeScript.Run(result: result)])
+    let workspace = opened.workspace
+    var charter = inboxCharter()
+    charter.id = StewardID(unchecked: "st_inbox")
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let findings = try await workspace.findings()
+    #expect(findings.map(\.title) == ["Refund replies are slowing down"])
+    let finding = try #require(findings.first)
+    #expect(finding.needsPerson)
+    #expect(finding.steward == "st_inbox")
+    try await workspace.resolveFinding(finding.id, resolution: "acted")
+    #expect(try await workspace.findings().isEmpty)
+    #expect(try await workspace.findings(all: true).first?.resolution == "acted")
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.resolveFinding(finding.id, resolution: "acted")
+    }
+}
+
+@Test func aRealExecutionIsFollowedUpAndScored() async throws {
     let opened = try await Opened([FakeScript.Run(result: liveResult)])
     let workspace = opened.workspace
     var charter = inboxCharter()
@@ -588,10 +651,9 @@ private struct ResolvedOutcome: ToolUpstream {
     let checked = try await OutcomeChecker(sink: workspace.sink) { _ in ResolvedOutcome() }
         .check(now: far)
     #expect(checked.checked.map(\.kind) == ["label"])
-    let effects = try await workspace.effectiveness(steward: "st_inbox")
-    let label = try #require(effects.first { $0.kind == "label" })
+    let label = try #require(
+        try await workspace.effectiveness(steward: "st_inbox").first { $0.kind == "label" })
     #expect(label.resolved == 1)
     #expect(label.successRate == 1)
-    let checks = try await workspace.checks(steward: "st_inbox")
-    #expect(checks.map(\.status) == ["resolved"])
+    #expect(try await workspace.checks(steward: "st_inbox").map(\.status) == ["resolved"])
 }

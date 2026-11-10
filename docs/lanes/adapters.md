@@ -173,6 +173,7 @@ M4:
 - (from runtime) Decision 0049: runs record live steps; added an optional `tool_output` event (`id`, `text`) to PROTOCOL.md. Could the exec adapter stream a command's output as `tool_output` while it runs, and the fake adapter send it with `sleep` steps between, so runs show live output?
 - (from runtime) Integration edit (decision 0051): `FakeAdapterServer(pace:)` / `FakeAdapter(pace:)` and `ARYA_FAKE_PACE_MS` in `arya-fake-adapter`: events wait about `pace` ms and string tool results stream as `tool_output` first; 0 keeps scripts exact.
 - (from runtime) In-run `host/delegate` is wired (decision 0052): a real child through the crew path; refusals are `depth_limit`, `adapter_not_allowed:<name>`, `unknown_effort:<v>`.
+- (from runtime) Integration edits: `RunResult.findings` (`RunResult.Finding`, encoded only when non-empty) and its PROTOCOL bullet (decision 0054).
 
 ## Log
 - 2026-11-09: protocol types, JSON-RPC messages, golden tests (dc550be)

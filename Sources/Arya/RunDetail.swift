@@ -50,6 +50,9 @@ public struct RunDetail: Sendable, Hashable, Codable {
         public var why: String? = nil
         /// Runtime's resolved risk when recorded (decision 0037), else the adapter's hint.
         public var risk: String? = nil
+        /// True when `executed` was only a draft: a dry run changed nothing ("Drafted, not
+        /// sent").
+        public var drafted: Bool? = nil
     }
 
     /// The run's summary fields.
@@ -112,6 +115,7 @@ enum RunDetailFolder {
             let body = try event.payload(as: ActionExecuted.self)
             update(&detail, body.action) {
                 $0.disposition = .executed
+                $0.drafted = body.dryRun == true ? true : nil
                 $0.detail = try? body.output.map { try CanonicalJSON.string($0) }
             }
         case .actionFailed:

@@ -180,12 +180,15 @@ public struct RunResult: Sendable, Hashable, Codable {
     public var memories: [Memory]
     public var routines: [Routine]
     public var measurements: [Measurement]
+    /// Problems and opportunities the run noticed beyond its input (runtime decision 0054).
+    public var findings: [Finding]
 
     public init(
         summary: String = "", plan: [PlanStep] = [], decisions: [Decision] = [],
         actions: [Action] = [], delegations: [Delegation] = [], memories: [Memory] = [],
-        routines: [Routine] = [], measurements: [Measurement] = []
+        routines: [Routine] = [], measurements: [Measurement] = [], findings: [Finding] = []
     ) {
+        self.findings = findings
         self.summary = summary
         self.plan = plan
         self.decisions = decisions
@@ -206,10 +209,12 @@ public struct RunResult: Sendable, Hashable, Codable {
         memories = try c.decodeIfPresent([Memory].self, forKey: .memories) ?? []
         routines = try c.decodeIfPresent([Routine].self, forKey: .routines) ?? []
         measurements = try c.decodeIfPresent([Measurement].self, forKey: .measurements) ?? []
+        findings = try c.decodeIfPresent([Finding].self, forKey: .findings) ?? []
     }
 
     enum CodingKeys: String, CodingKey {
         case summary, plan, decisions, actions, delegations, memories, routines, measurements
+        case findings
     }
 
     /// Absent lists are omitted, so a result without a plan encodes as it did before plans.
@@ -223,6 +228,45 @@ public struct RunResult: Sendable, Hashable, Codable {
         try c.encode(memories, forKey: .memories)
         try c.encode(routines, forKey: .routines)
         try c.encode(measurements, forKey: .measurements)
+        if !findings.isEmpty { try c.encode(findings, forKey: .findings) }
+    }
+
+    /// A problem or opportunity the run noticed, with evidence and, optionally, the action it
+    /// suggests and whether a person must decide.
+    public struct Finding: Sendable, Hashable, Codable {
+        public var id: String
+        /// `problem` or `opportunity`.
+        public var kind: String
+        public var title: String
+        public var evidence: [String]
+        public var suggestion: Action?
+        public var needsPerson: Bool?
+
+        public init(
+            id: String, kind: String, title: String, evidence: [String] = [],
+            suggestion: Action? = nil, needsPerson: Bool? = nil
+        ) {
+            self.id = id
+            self.kind = kind
+            self.title = title
+            self.evidence = evidence
+            self.suggestion = suggestion
+            self.needsPerson = needsPerson
+        }
+
+        public init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(String.self, forKey: .id)
+            kind = try c.decode(String.self, forKey: .kind)
+            title = try c.decode(String.self, forKey: .title)
+            evidence = try c.decodeIfPresent([String].self, forKey: .evidence) ?? []
+            suggestion = try c.decodeIfPresent(Action.self, forKey: .suggestion)
+            needsPerson = try c.decodeIfPresent(Bool.self, forKey: .needsPerson)
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case id, kind, title, evidence, suggestion, needsPerson
+        }
     }
 
     /// One step of the run's plan.

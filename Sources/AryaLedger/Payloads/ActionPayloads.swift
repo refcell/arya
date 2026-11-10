@@ -36,14 +36,21 @@ public struct ActionExecuted: EventPayload {
     /// Set when a granted approval released the action.
     public var approval: ApprovalID?
     public var output: JSONValue?
+    /// True when the executor only drafted the action and the system was not changed (a dry
+    /// run); absent for a real execution.
+    public var dryRun: Bool?
 
-    public init(action: String, approval: ApprovalID? = nil, output: JSONValue? = nil) {
+    public init(
+        action: String, approval: ApprovalID? = nil, output: JSONValue? = nil,
+        dryRun: Bool? = nil
+    ) {
         self.action = action
         self.approval = approval
         self.output = output
+        self.dryRun = dryRun == true ? true : nil
     }
 
-    enum CodingKeys: String, CodingKey { case action, approval, output }
+    enum CodingKeys: String, CodingKey { case action, approval, output, dryRun }
 }
 
 /// `action.failed`: the executor failed.

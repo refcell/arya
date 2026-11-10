@@ -28,6 +28,8 @@ public struct ContextSummary: Sendable, Hashable, Codable {
         public var toolCalls: Int
         public var actionsExecuted: Int
         public var actionsFailed: Int
+        /// Only drafted (dry runs): nothing was sent.
+        public var actionsDrafted: Int?
         public var lastUsed: Date?
         /// Texts of live memory notes that name it, oldest first.
         public var notes: [String]
@@ -63,7 +65,9 @@ extension Workspace {
                 ContextSummary.Connection(
                     id: $0.id, read: $0.read, actions: $0.actions, network: $0.network,
                     toolCalls: $0.toolCalls, actionsExecuted: $0.actionsExecuted,
-                    actionsFailed: $0.actionsFailed, lastUsed: $0.lastUsed?.date,
+                    actionsFailed: $0.actionsFailed,
+                    actionsDrafted: $0.actionsDrafted > 0 ? $0.actionsDrafted : nil,
+                    lastUsed: $0.lastUsed?.date,
                     notes: $0.notes.compactMap { texts[$0] })
             })
     }

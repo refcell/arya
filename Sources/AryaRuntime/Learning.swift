@@ -119,7 +119,10 @@ public enum FollowUps {
                     proposed[key(run, body.action.id)] = body.action
                 }
             case ActionEventType.executed:
-                if let id = event.payload["action"]?.stringValue { executed.append((event, id)) }
+                // A draft (dry run) changed nothing, so there is nothing to follow up.
+                if let id = event.payload["action"]?.stringValue, event.payload["dryRun"] != true {
+                    executed.append((event, id))
+                }
             case OutcomeEventType.checked.rawValue:
                 guard let body = try? Payload.decode(ActionChecked.self, event.payload) else {
                     continue
@@ -227,6 +230,8 @@ public struct KindEffect: Sendable, Hashable, Codable {
     public var credit: Double
     /// Executed actions that shared in some metric window.
     public var credited: Int
+    /// Actions only drafted (dry runs): never checked or credited.
+    public var drafted: Int = 0
 
     /// Resolved among settled checks, when any settled.
     public var successRate: Double? {
@@ -245,6 +250,7 @@ public struct KindEffect: Sendable, Hashable, Codable {
         }
         if let per = creditPerAction { parts.append("metric \(Self.signed(per)) per action") }
         if failed > 0 { parts.append("\(failed) failed") }
+        if drafted > 0 { parts.append("\(drafted) drafted, not sent") }
         let detail = parts.isEmpty ? "no results yet" : parts.joined(separator: ", ")
         return "\(kind): \(detail) (\(executed) executed)"
     }
@@ -283,7 +289,9 @@ public enum Effectiveness {
                     let kind = kinds[run + "/" + id]
                 else { continue }
                 var e = effect(kind)
-                if event.type == ActionEventType.executed {
+                if event.type == ActionEventType.executed, event.payload["dryRun"] == true {
+                    e.drafted += 1
+                } else if event.type == ActionEventType.executed {
                     e.executed += 1
                     window.append(kind)
                 } else {

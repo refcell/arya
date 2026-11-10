@@ -139,3 +139,30 @@ private func later(_ harness: RunHarness, _ millis: Int64) async throws -> Times
     let instructions = started.payload["instructions"]?.stringValue ?? ""
     #expect(instructions.contains("## What has worked\n- label: 1 of 1 resolved (1 executed)"))
 }
+
+private struct Drafting: ActionExecutor {
+    func execute(_ request: ExecutionRequest) async -> ExecutionOutcome {
+        .drafted(output: ["dryRun": true])
+    }
+}
+
+@Test func aDraftIsRecordedAsADryRunAndNeverFollowedUp() async throws {
+    let ambient = Ambient.fixed()
+    let sink = MemoryEventSink(ambient: ambient)
+    let approvals = ApprovalQueue(sink: sink, ambient: ambient)
+    let dispatcher = ActionDispatcher(sink: sink, approvals: approvals, executor: Drafting())
+    _ = try await StewardLifecycle(sink: sink).create(checkingCharter())
+    let action = ProposedAction(
+        id: "a1", kind: "label", binding: "tracker", target: "tracker:ISSUE-7")
+    let run = RunID(unchecked: "run_draft")
+    let disposals = try await dispatcher.dispose([action], charter: checkingCharter(), run: run)
+    #expect(disposals.first?.outcome == .drafted(output: ["dryRun": true]))
+    let events = try await sink.events(from: 1)
+    let executed = try #require(events.first { $0.type == "action.executed" })
+    #expect(executed.payload["dryRun"] == true)
+    let far = executed.at.adding(milliseconds: FollowUps.delay * 10)
+    #expect(try FollowUps.due(events, now: far).isEmpty)
+    let label = try #require(try Effectiveness.of(triage, in: events).first)
+    #expect(label.drafted == 1)
+    #expect(label.executed == 0)
+}

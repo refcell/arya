@@ -183,7 +183,9 @@ Sent exactly once per run:
    "delegations":[{"id":"c1","title":"…","input":"…"}],
    "memories":[{"text":"…","tags":["…"]}],
    "routines":[{"name":"…","language":"sh","content":"…","reason":"…"}],
-   "measurements":[{"metric":"…","value":1.0}]}}}
+   "measurements":[{"metric":"…","value":1.0}],
+   "findings":[{"id":"f1","kind":"problem","title":"…","evidence":["…"],
+                "suggestion":{"id":"s1","kind":"label","target":"…"},"needsPerson":true}]}}}
 ```
 
 - `status` is `completed`, `failed`, or `stopped`. Every list may be empty or absent.
@@ -205,6 +207,10 @@ Sent exactly once per run:
   the person reviewing the action; the charter's policy alone decides what executes or waits.
 - `why` (optional, on decisions and actions) is one short line the app shows next to the item.
   `rationale` stays the longer reasoning.
+- `findings` (optional) are problems or opportunities the run noticed beyond its input:
+  `kind` is `problem` or `opportunity`, `evidence` a few short lines, `suggestion` an action
+  arya shows but never executes, `needsPerson` whether a person must decide. arya records
+  each one once while it is open; a malformed one is skipped (runtime decision 0054).
 - arya's `resultSchema` lists these fields with their allowed values and a description, so an
   exec adapter's prompt carries them; a `status` or `risk` outside the allowed values fails the
   run with `invalid_result`.

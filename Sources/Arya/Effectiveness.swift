@@ -10,6 +10,8 @@ public struct EffectSummary: Sendable, Hashable, Codable {
     public var kind: String
     public var executed: Int
     public var failed: Int
+    /// Only drafted (dry runs): nothing was sent.
+    public var drafted: Int
     public var resolved: Int
     public var reopened: Int
     /// Checks not settled yet.
@@ -40,7 +42,8 @@ extension Workspace {
         let id = try await existing(steward).id
         return try Effectiveness.of(id, in: try await sink.events(from: 1)).map {
             EffectSummary(
-                kind: $0.kind, executed: $0.executed, failed: $0.failed, resolved: $0.resolved,
+                kind: $0.kind, executed: $0.executed, failed: $0.failed, drafted: $0.drafted,
+                resolved: $0.resolved,
                 reopened: $0.reopened, pending: $0.pending, successRate: $0.successRate,
                 creditPerAction: $0.creditPerAction, line: $0.line)
         }

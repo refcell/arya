@@ -53,6 +53,14 @@ public enum ExecutionOutcome: Sendable, Hashable {
     case succeeded(output: JSONValue)
     /// Not done; `error` says why, `output` holds anything the system answered.
     case failed(error: String, output: JSONValue?)
+    /// Drafted only: the system was not changed (a dry run). Recorded as `action.executed` with
+    /// `dryRun: true`, so the ledger never shows a draft as done.
+    case drafted(output: JSONValue)
+
+    /// True for `succeeded` and `drafted`.
+    public var went: Bool {
+        if case .failed = self { false } else { true }
+    }
 }
 
 /// Carries out actions against bindings and routines. Implementations never throw: every
@@ -204,6 +212,12 @@ public struct ActionDispatcher: Sendable {
                 ActionEventType.executed, request.steward, request.run, .system,
                 ActionExecuted(
                     action: request.action.id, approval: request.approval, output: output))
+        case .drafted(let output):
+            try await append(
+                ActionEventType.executed, request.steward, request.run, .system,
+                ActionExecuted(
+                    action: request.action.id, approval: request.approval, output: output,
+                    dryRun: true))
         case .failed(let error, let output):
             try await append(
                 ActionEventType.failed, request.steward, request.run, .system,

@@ -37,6 +37,8 @@ public struct ContextConnection: Sendable, Hashable {
     public var toolCalls: Int
     public var actionsExecuted: Int
     public var actionsFailed: Int
+    /// Actions only drafted through it (dry runs): nothing was sent.
+    public var actionsDrafted: Int = 0
     public var lastUsed: Timestamp?
     /// Live notes that name it, oldest first.
     public var notes: [NoteID]
@@ -108,7 +110,11 @@ public struct StewardContext: Sendable, Hashable {
                     "\(event.draft.run?.rawValue ?? ""):"
                     + (event.draft.payload["action"]?.stringValue ?? "")
                 if let id = actionBindings[key], connections[id] != nil {
-                    if event.type == ActionEventType.executed {
+                    if event.type == ActionEventType.executed,
+                        event.draft.payload["dryRun"] == true
+                    {
+                        connections[id]?.actionsDrafted += 1
+                    } else if event.type == ActionEventType.executed {
                         connections[id]?.actionsExecuted += 1
                     } else {
                         connections[id]?.actionsFailed += 1

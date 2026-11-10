@@ -271,6 +271,20 @@ final class RunDriver: @unchecked Sendable {
         }
     }
 
+    /// Records `finding.raised` for each well-formed finding not already open (decision 0054).
+    private func recordFindings(_ findings: [RunResult.Finding]) async throws {
+        guard !findings.isEmpty else { return }
+        let open = try FindingBook(try await loop.sink.events(from: 1)).open(charter.id)
+        var titles = Set(open.map { Findings.key($0.title) })
+        for finding in findings {
+            guard let raised = FindingRaised(finding),
+                titles.insert(Findings.key(raised.title)).inserted
+            else { continue }
+            try await append(
+                FindingEventType.raised.rawValue, .steward(charter.id), try Payload.encode(raised))
+        }
+    }
+
     /// Records `plan.updated` when the result carries a plan that differs from the current one.
     private func recordPlan(_ result: RunResult) async throws {
         guard let plan = PlanBook.plan(in: result) else { return }
@@ -392,7 +406,10 @@ final class RunDriver: @unchecked Sendable {
                 try Payload.encode(RunDecision(decision: recorded)))
         }
         if case .live = request.mode {
-            if !request.isCrewChild { try await recordPlan(result) }
+            if !request.isCrewChild {
+                try await recordPlan(result)
+                try await recordFindings(result.findings)
+            }
             try await recordMemories(result.memories)
             for measurement in result.measurements {
                 try await append(
@@ -526,6 +543,16 @@ public enum RunResultSchema {
             "memories": list(["text"]),
             "routines": list(["name", "language", "content"]),
             "measurements": list(["metric", "value"]),
+            "findings": list(
+                ["id", "kind", "title", "evidence"],
+                properties: [
+                    "kind": ["type": "string", "enum": ["problem", "opportunity"]],
+                    "evidence": ["type": "array", "items": ["type": "string"]],
+                    "suggestion": ["type": "object", "required": ["id", "kind"]],
+                    "needsPerson": ["type": "boolean"],
+                ],
+                description:
+                    "Problems or opportunities noticed beyond this input, with evidence."),
         ],
     ]
 

@@ -570,7 +570,9 @@ struct ActivityFeed {
             let body = try event.payload(as: ActionExecuted.self)
             let action = proposed[key(event, body.action)]
             add(
-                event, "action", "\(describe(action, id: body.action)) (executed)",
+                event, "action",
+                "\(describe(action, id: body.action)) "
+                    + (body.dryRun == true ? "(drafted, not sent)" : "(executed)"),
                 reason: action?.rationale)
         case ActionEventType.failed:
             let body = try event.payload(as: ActionFailed.self)

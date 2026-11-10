@@ -338,6 +338,7 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   (omitted when unset, golden fixtures unchanged) with `PersonBindingTests`.
 - (from eval) FYI: added optional `CaseContext.plan` in core (omitted from JSON when empty).
 - (from eval) New eval event `case.reviewed` {casebook, case, verdict agreed|skipped}; PROTOCOL?
+- (from runtime) Integration edit (decision 0055): `ActionExecuted.dryRun` (true or absent) so a dry run reads as drafted, not done; `Governance` undo treats a drafted undo as not executed.
 
 ## Log
 - 2026-11-10: batch of three commits (G3b retention, (13) probe, (14) import) rebased on

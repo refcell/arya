@@ -23,6 +23,6 @@ struct ProfileAdapterFactory: AdapterFactory {
 /// `{"dryRun": true}`, so the ledger shows which actions policy and people let through.
 struct DryRunExecutor: ActionExecutor {
     func execute(_ request: ExecutionRequest) async -> ExecutionOutcome {
-        .succeeded(output: ["dryRun": true])
+        .drafted(output: ["dryRun": true])
     }
 }

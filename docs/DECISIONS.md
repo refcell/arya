@@ -580,3 +580,30 @@ The serve loop and `RuntimeService(outcomes:)` run the checks. Why: an outcome o
 know which of its moves pay off, and the simplest honest credit is the metric's movement in
 the window the action ran.
 
+### 0054 — 2026-11-10 — Proactive findings: stewards report what they notice, a person closes it
+
+Context: a steward only reacted to its input; problems and opportunities it saw on a wake had
+nowhere to go. Decision: a run result may carry `findings` (`id`, `kind` problem or
+opportunity, `title`, `evidence`, optional `suggestion` action, `needsPerson`). A live run
+that is not a crew child records each well-formed one as `finding.raised` on the run (title
+cut to 140 characters, at most 5 evidence lines of 280), unless the steward already has an
+open finding with the same title, compared case- and space-insensitively, so a daily wake
+does not repeat itself. A suggestion is shown, never executed: a steward changes things only
+through the actions it proposes, under policy. A finding stays open until a person resolves it
+(`finding.resolved`, `acted` or `dismissed`, once). The facade's `findings(steward:all:)` feeds
+the Overview, and those with `needsPerson` feed Needs you; `resolveFinding` closes one.
+Rehearsals record no findings. Why: an outcome owner speaks up about what it sees, and a person
+decides what to do about it without the steward acting on a guess.
+
+### 0055 — 2026-11-10 — A dry run is recorded as drafted, never as done
+
+Context: the workspace still executes actions dry, and the ledger recorded them as executed, so
+the app said a reply was sent when nothing left arya. Decision: executors may return
+`ExecutionOutcome.drafted(output:)`; the dispatcher records it as `action.executed` with
+`dryRun: true` (absent for a real execution, so older records read as before). The dry-run
+executor drafts, replay maps `dryRun` back to a draft, follow-up checks and metric credit skip
+drafts (nothing changed), and effectiveness and context count them apart (`drafted`,
+`actionsDrafted`). The facade marks run-detail actions `drafted`, its activity reads "(drafted,
+not sent)", and live steps read "Drafted, not sent:". Why: the ledger is the truth the person
+reads; a draft shown as done is a lie about the world.
+

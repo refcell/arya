@@ -186,7 +186,9 @@ struct RunRecording: Sendable {
         runEvents.compactMap { event in
             switch event.type {
             case ActionEventType.executed:
-                return .succeeded(output: event.payload["output"] ?? .null)
+                let output = event.payload["output"] ?? .null
+                return event.payload["dryRun"] == true
+                    ? .drafted(output: output) : .succeeded(output: output)
             case ActionEventType.failed:
                 let error = event.payload["error"]?.stringValue ?? ""
                 return .failed(error: error, output: event.payload["output"])

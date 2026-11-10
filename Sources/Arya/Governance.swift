@@ -225,6 +225,7 @@ extension Workspace {
         option.undoneBy = compensation.id
         let executed: Bool =
             if case .succeeded? = disposal.first?.outcome { true } else { false }
+        // A drafted undo (dry run) did not change anything either.
         return UndoSummary(
             option: option, decision: disposal.first?.verdict.disposition.rawValue ?? "deny",
             reason: disposal.first?.verdict.reason ?? "",
