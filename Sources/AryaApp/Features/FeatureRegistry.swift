@@ -289,7 +289,10 @@ enum FeatureRegistry {
                 store: store,
                 selection: Binding(
                     get: { context.model.navigation.approval },
-                    set: { context.model.navigation.approval = $0 }))
+                    set: { context.model.navigation.approval = $0 }),
+                openRun: { run, steward in
+                    context.model.navigation.select(run: run, steward: steward)
+                })
         } else {
             Text("Nothing needs you right now.")
                 .aryaText(AryaFont.body, AryaColor.inkMuted)

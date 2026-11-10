@@ -25,7 +25,11 @@ import Testing
         let steward = try #require(model.stewards.first { $0.id == "st_triage" })
         let runs = model.runs[steward.id] ?? []
         let waiting = runs.first { run in model.approvals.contains { $0.run == run.id } }
-        let quiet = runs.first { run in !model.approvals.contains { $0.run == run.id } }
+        // The run page shows a run that read and acted itself, so its work pane has tool calls.
+        let quiet =
+            runs.first { run in
+                !model.approvals.contains { $0.run == run.id } && run.trigger != "join"
+            } ?? runs.first { run in !model.approvals.contains { $0.run == run.id } }
 
         func page(_ name: String, _ arrange: (inout NavigationState) -> Void) throws {
             var navigation = NavigationState()

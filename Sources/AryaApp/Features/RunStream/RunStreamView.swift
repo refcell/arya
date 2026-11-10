@@ -9,6 +9,9 @@ struct RunStreamView: View {
     /// Opens another run's thread (a crew child, a join's parent); nil where navigation is
     /// not available.
     var openRun: ((String) -> Void)? = nil
+    /// The tab picked by the person; nil opens the first tab with something in it.
+    @AryaState private var pickedTab: WorkTab?
+    @AryaState private var selection: String?
 
     var body: some View {
         switch store.state {
@@ -19,32 +22,67 @@ struct RunStreamView: View {
                 "The run could not be loaded.", guidance: message, actionTitle: "Retry",
                 action: { Task { await store.reload() } })
         case .loaded(let events):
-            content(RunStream.build(events: events, run: run))
+            let stream = RunStream.build(events: events, run: run)
+            content(stream, work: RunWork.build(stream: stream, events: events))
         }
     }
 
     @ViewBuilder
-    private func content(_ stream: RunStream) -> some View {
+    private func content(_ stream: RunStream, work: RunWork) -> some View {
         if stream.steps.isEmpty {
             EmptyState(
                 "No steps yet.",
                 guidance: "Steps appear here as the run reads, decides, and proposes.")
         } else {
             VStack(spacing: 0) {
-                ScrollView {
-                    RunThread(
-                        stream: stream, now: store.now, context: context(stream),
-                        accessory: accessory
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                RunHeader(stream: stream, accessory: accessory)
                     .padding(.horizontal, AryaSpace.s4)
-                    .padding(.vertical, AryaSpace.s4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, AryaSpace.s2)
+                AryaHairline()
+                HStack(spacing: 0) {
+                    VStack(spacing: 0) {
+                        ScrollView {
+                            RunThread(
+                                stream: stream, now: store.now, context: context(stream),
+                                showsHeader: false, selection: selectionBinding
+                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, AryaSpace.s4)
+                            .padding(.vertical, AryaSpace.s3)
+                        }
+                        if let steward = stream.steward {
+                            Composer(store: store, steward: steward)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    AryaHairline(.vertical)
+                    WorkPane(
+                        store: store, work: work, running: stream.status == .running,
+                        tab: tabBinding(work), selection: selectionBinding
+                    )
+                    .frame(maxWidth: .infinity)
                 }
-                if let steward = stream.steward { Composer(store: store, steward: steward) }
             }
             .background(AryaColor.canvas)
         }
+    }
+
+    private func tabBinding(_ work: RunWork) -> Binding<WorkTab> {
+        Binding(
+            get: {
+                pickedTab ?? WorkTab.allCases.first { work.count($0) > 0 } ?? .tools
+            },
+            set: { pickedTab = $0 })
+    }
+
+    /// Selecting a work step shows its block on the Tools tab.
+    private var selectionBinding: Binding<String?> {
+        Binding(
+            get: { selection },
+            set: { id in
+                selection = id
+                if id != nil, pickedTab != .diff { pickedTab = .tools }
+            })
     }
 
     private func context(_ stream: RunStream) -> StepContext {

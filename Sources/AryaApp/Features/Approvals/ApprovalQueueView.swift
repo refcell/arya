@@ -8,6 +8,8 @@ struct ApprovalQueueView: View {
     var steward: String?
     /// The selected approval, shared with the inspector when the shell passes one.
     var selection: Binding<String?>? = nil
+    /// Opens an approval's run thread (↩); nil where navigation is not available.
+    var openRun: ((String, String) -> Void)? = nil
 
     var body: some View {
         switch store.state {
@@ -72,6 +74,13 @@ struct ApprovalQueueView: View {
             }
             return .handled
         }
+        .onKeyPress(.return) {
+            guard let item = keys.current, let run = item.run, let steward = item.steward,
+                let openRun
+            else { return .ignored }
+            openRun(run, steward)
+            return .handled
+        }
         .onKeyPress(.downArrow) {
             selected = keys.step(1); return .handled
         }
@@ -124,7 +133,7 @@ struct ApprovalQueueView: View {
         let detail = NeedsYouDetail.build(item: current, events: events)
         InlineApproval(
             action: detail.action, approval: current.id, source: detail.source,
-            texts: store.approvalTexts[current.id], primary: true,
+            texts: store.approvalTexts[current.id], primary: false,
             decide: decide)
         if current.kind != "question" {
             ApproversLine(events: events, steward: current.steward, kind: current.kind)
@@ -299,10 +308,10 @@ struct NeedsYouKeys {
 private struct NeedsYouHints: View {
     var body: some View {
         HStack(spacing: AryaSpace.s2) {
-            hint("j/k", "move")
-            hint("↩", "approve")
             hint("A", "approve")
             hint("D", "deny")
+            hint("↩", "open run")
+            hint("j/k", "move")
         }
     }
 

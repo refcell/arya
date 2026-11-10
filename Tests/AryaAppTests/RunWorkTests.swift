@@ -1,0 +1,51 @@
+import Foundation
+import Testing
+
+@testable import AryaApp
+
+@Test func workPaneHasABlockPerToolCallAndActionWithDiffsLogAndOutput() {
+    let now = FeatureTestClock.now
+    let events = PreviewFixtures.triage(now: now)
+    let stream = RunStream.build(events: events, run: PreviewFixtures.finishedRun)
+    let work = RunWork.build(stream: stream, events: events)
+    let workSteps = stream.steps.filter { RunWork.isWork($0.kind) }.map(\.id)
+    #expect(work.blocks.map(\.id) == workSteps)
+    #expect(!work.blocks.isEmpty)
+    #expect(
+        work.diffs.count
+            >= stream.steps.filter {
+                if case .action = $0.kind { return true }
+                return false
+            }.count)
+    #expect(
+        work.log.count
+            == events.filter {
+                $0.run == stream.run && $0.type != "run.adapter.event"
+            }.count)
+    #expect(work.count(.tools) == work.blocks.count)
+}
+
+@Test func actionDiffsAddWhatTheActionWrites() throws {
+    let step = StreamStep(
+        id: "e1", number: 1, at: FeatureTestClock.now,
+        kind: .action(
+            ProposedActionStep(
+                actionID: "a1", kind: "reply", target: "inbox:MSG-1", summary: "", rationale: "",
+                policy: "ask", outcome: .proposed,
+                params: ["text": .string("Line one\nLine two")])))
+    let diff = try #require(RunWork.actionDiff(step))
+    #expect(diff.text.hasPrefix("--- inbox:MSG-1\n+++ inbox:MSG-1\n@@ reply @@"))
+    #expect(diff.added == 3)
+    #expect(diff.countText == "+3 −0")
+}
+
+@Test func outputLinesShowDirectionMethodAndOneLineJSON() {
+    let event = FeatureEvent(
+        seq: 1, id: "e1", at: FeatureTestClock.now, steward: "s", run: "r", actor: .localUser,
+        type: "run.adapter.event",
+        payload: ["direction": "sent", "message": ["method": "initialize", "params": ["v": 1]]])
+    let line = RunWork.outputLine(event, timeZone: TimeZone(identifier: "UTC")!)
+    #expect(line.tag == "→ initialize")
+    #expect(line.text == #"{"v":1}"#)
+    #expect(line.tone == WorkLine.Tone.sent)
+}

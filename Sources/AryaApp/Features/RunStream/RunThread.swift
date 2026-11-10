@@ -10,10 +10,14 @@ struct RunThread: View {
     var context: StepContext
     /// Run controls (More, Run now…) at the right end of the top line.
     var accessory = AnyView(EmptyView())
+    /// The split work pane shows the header above both halves instead.
+    var showsHeader = true
+    /// The selected work step, shared with the work pane; nil outside the split view.
+    var selection: Binding<String?>? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s4) {
-            header
+        VStack(alignment: .leading, spacing: AryaSpace.s3) {
+            if showsHeader { RunHeader(stream: stream, accessory: accessory) }
             if let store = context.store { FeatureWriteErrorLine(store: store) }
             if let reading = stream.reading {
                 RunInputView(reading: reading, openRun: context.openRun)
@@ -26,20 +30,34 @@ struct RunThread: View {
                         InlineApproval(
                             action: action, approval: approval, source: stream.input,
                             texts: context.store?.approvalTexts[approval],
-                            primary: approval == stream.pendingApprovals.first,
+                            // ↩ belongs to the composer; approve by click or in Needs you.
+                            primary: false,
                             decide: context.decide
                         )
                         .padding(.vertical, AryaSpace.s3)
                     } else {
-                        ThreadLine(step: step, now: now)
+                        ThreadLine(
+                            step: step, now: now,
+                            selected: selection?.wrappedValue == step.id,
+                            select: selectAction(step))
                     }
                 }
             }
         }
     }
 
-    /// Trigger and start time only; the summary is the last step, shown once.
-    private var header: some View {
+    private func selectAction(_ step: StreamStep) -> (() -> Void)? {
+        guard let selection, RunWork.isWork(step.kind) else { return nil }
+        return { selection.wrappedValue = step.id }
+    }
+}
+
+/// Trigger and start time, then the run's facts in mono, with the run controls at the right.
+struct RunHeader: View {
+    var stream: RunStream
+    var accessory = AnyView(EmptyView())
+
+    var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
             HStack(alignment: .center, spacing: AryaSpace.s2) {
                 if case .running = stream.status { StatusDot(.running) }
@@ -58,12 +76,17 @@ struct RunThread: View {
 private struct ThreadLine: View {
     var step: StreamStep
     var now: Date
+    var selected = false
+    /// Set in the split view: a click selects the step's block in the work pane instead of
+    /// expanding it here.
+    var select: (() -> Void)? = nil
     @AryaState private var toggled = false
     @Environment(\.crewOpenByDefault) private var crewOpen
 
     /// Tool calls start open, so their output reads inline (folded after four lines); crew
     /// lines can start open (offscreen snapshots). A click flips either default.
     private var open: Bool {
+        if select != nil { return false }
         switch step.kind {
         case .toolCall(let call) where call.output != nil: return !toggled
         case .delegated where crewOpen: return !toggled
@@ -80,8 +103,16 @@ private struct ThreadLine: View {
                 line
                 Spacer(minLength: 0)
             }
+            .padding(.vertical, AryaSpace.s1 / 2)
+            .background(selected ? AryaColor.selection : .clear)
             .contentShape(Rectangle())
-            .onTapGesture { if expandable { toggled.toggle() } }
+            .onTapGesture {
+                if let select {
+                    select()
+                } else if expandable {
+                    toggled.toggle()
+                }
+            }
             if open { detail.padding(.leading, AryaSize.stepGutter * 2) }
         }
         .accessibilityElement(children: .combine)
