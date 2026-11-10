@@ -52,6 +52,19 @@ final class FakeBackend: CLIBackend, @unchecked Sendable {
         record("create \(charterPath)")
         return Self.detail
     }
+    func fleet() async throws(CLIError) -> [FleetRow] {
+        record("fleet")
+        return [
+            FleetRow(
+                steward: "st_triage", name: "Support triage", state: "active", ready: true,
+                metric: "routing_accuracy", unit: "ratio", current: 0.96, target: 0.95,
+                status: "on_track", pendingApprovals: 3, needsYou: 3,
+                lastRun: .init(
+                    id: "run_1", title: "MSG-201", status: "finished",
+                    at: "2026-01-02T03:04:05.000Z"),
+                nextWake: nil)
+        ]
+    }
     func listStewards() async throws(CLIError) -> [StewardRow] {
         record("list")
         return [Self.summary]

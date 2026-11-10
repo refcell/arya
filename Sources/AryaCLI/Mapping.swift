@@ -153,6 +153,19 @@ enum Mapping {
             })
     }
 
+    static func fleet(_ item: FleetItem) -> FleetRow {
+        FleetRow(
+            steward: item.steward, name: item.name, state: item.state, ready: item.ready,
+            metric: item.metric, unit: item.unit, current: item.current, target: item.target,
+            status: item.status, pendingApprovals: item.pendingApprovals,
+            needsYou: item.needsYou,
+            lastRun: item.lastRun.map {
+                FleetRow.LastRun(
+                    id: $0.id, title: $0.title, status: $0.status, at: timestamp($0.time.date))
+            },
+            nextWake: item.nextWake.map { timestamp($0.date) })
+    }
+
     /// RFC 3339 UTC with milliseconds, the ledger's time format.
     static func timestamp(_ date: Date) -> String {
         let millis = Int64((date.timeIntervalSince1970 * 1000).rounded(.down))

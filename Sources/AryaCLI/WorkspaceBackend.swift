@@ -53,6 +53,11 @@ struct WorkspaceBackend: CLIBackend {
             outcome: summary.outcome, charter: CharterDigest(json: data))
     }
 
+    func fleet() async throws(CLIError) -> [FleetRow] {
+        let workspace = try await open()
+        return try await call("fleet") { try await workspace.fleet() }.map(Mapping.fleet)
+    }
+
     func listStewards() async throws(CLIError) -> [StewardRow] {
         let workspace = try await open()
         let stewards = try await call("stewards") { try await workspace.stewards() }

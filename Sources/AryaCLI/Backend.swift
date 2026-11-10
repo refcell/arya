@@ -57,6 +57,8 @@ protocol CLIBackend: ImprovementBackend, HistoryBackend {
     func initHome() async throws(CLIError) -> InitReport
     func createSteward(charterPath: String) async throws(CLIError) -> StewardDetail
     func listStewards() async throws(CLIError) -> [StewardRow]
+    /// Every active or paused steward's outcome, those needing a person first.
+    func fleet() async throws(CLIError) -> [FleetRow]
     func showSteward(_ id: String) async throws(CLIError) -> StewardDetail
     /// Pauses a steward and returns it as it is now.
     func pauseSteward(_ id: String) async throws(CLIError) -> StewardDetail

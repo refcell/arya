@@ -58,7 +58,7 @@ M4:
 - [x] Crew run in the demo (MSG-203 delegates "Draft the refund reply"; a join checks it) and
   `just e2e` steps for the charter editor proposal with readiness and a crew run (37 steps).
 - [ ] One `just e2e` step per M3.6 parity item as it lands (docs/ROADMAP.md).
-- [ ] Fleet columns in `arya steward list` (metric against target, next wake) once workspace has
+- [x] `arya fleet` on the workspace fleet read (metric vs target, needs you, next wake), e2e step.
   a fleet read.
 
 ## Decisions

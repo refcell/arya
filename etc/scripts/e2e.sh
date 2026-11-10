@@ -144,6 +144,20 @@ check_verify() { expect ok "$(get ok)" true; }
 check_refunds() { expect id "$(get summary.id)" st_refunds; }
 check_digest() { expect id "$(get summary.id)" st_digest; }
 check_fleet() { expect stewards "$(grep -c '"charterVersion"' "$out")" 3; }
+check_fleet_read() {
+  local i needs seen_clear=no
+  expect stewards "$(grep -c '"needsYou"' "$out")" 3 || return 1
+  for i in 0 1 2; do
+    needs=$(get "$i.needsYou")
+    [ -n "$(get "$i.target")" ] || { echo "    $(get "$i.steward") has no target"; return 1; }
+    if [ "$needs" -eq 0 ]; then
+      seen_clear=yes
+    elif [ "$seen_clear" = yes ]; then
+      echo "    $(get "$i.steward") needs you but is listed after a steward that does not"
+      return 1
+    fi
+  done
+}
 check_paused() { expect state "$(get summary.state)" paused; }
 check_resumed() { expect state "$(get summary.state)" draft; }
 check_policy_hold() {
@@ -264,6 +278,7 @@ step "approvals explain each hold" holds fleet check_hold_reasons approvals
 step "deny the refund reply" holds fleet check_denied deny "${refund_approval:-unknown}" \
   --note "billing already wrote"
 step "approve the digest post" holds fleet check_approved approve "${digest_approval:-unknown}"
+step "fleet: who needs you, each vs target" fleet holds check_fleet_read fleet
 step "propose charter v2: the gate fails" improve live check_proposal \
   propose st_triage --charter "$example/charter-v2.json"
 step "the live charter stays ready (v1)" improve live check_still_ready steward show st_triage

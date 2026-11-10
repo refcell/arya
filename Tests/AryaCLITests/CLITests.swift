@@ -189,3 +189,13 @@ import Testing
     #expect(lines.contains("crew: run_3"))
     #expect(lines.contains("joined by: run_4"))
 }
+
+@Test func fleetShowsEachOutcomeAgainstItsTarget() async {
+    let backend = FakeBackend()
+    let (status, capture) = await runCLI(["fleet"], backend: backend)
+    #expect(status == .ok)
+    #expect(capture.outText.contains("routing_accuracy"))
+    #expect(capture.outText.contains("0.96"))
+    #expect(capture.outText.contains("on track"))
+    #expect(backend.calls == ["fleet"])
+}

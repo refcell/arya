@@ -59,6 +59,8 @@ enum CLI {
             try output.emit(
                 await backend.createSteward(charterPath: charter), json: json,
                 text: TextRender.steward)
+        case .fleet:
+            try output.emit(await backend.fleet(), json: json, text: TextRender.fleet)
         case .stewardList:
             try output.emit(await backend.listStewards(), json: json, text: TextRender.stewards)
         case .stewardShow:

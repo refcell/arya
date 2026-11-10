@@ -37,6 +37,40 @@ struct StewardRow: Codable, Sendable, Equatable {
     }
 }
 
+/// One row of `arya fleet`: a steward's outcome at a glance, those needing a person first.
+struct FleetRow: Codable, Sendable, Equatable {
+    /// The newest live run.
+    struct LastRun: Codable, Sendable, Equatable {
+        let id: String
+        let title: String
+        /// `running`, `finished`, or `failed`.
+        let status: String
+        let at: String
+    }
+
+    let steward: String
+    let name: String
+    /// `active` or `paused`.
+    let state: String
+    let ready: Bool
+    let metric: String
+    let unit: String
+    let current: Double?
+    let target: Double?
+    /// `on_track`, `off_track`, `no_target`, or `no_data`.
+    let status: String
+    let pendingApprovals: Int
+    let needsYou: Int
+    let lastRun: LastRun?
+    /// When the next scheduled run starts (RFC 3339 UTC).
+    let nextWake: String?
+
+    enum CodingKeys: String, CodingKey {
+        case steward, name, state, ready, metric, unit, current, target, status
+        case pendingApprovals, needsYou, lastRun, nextWake
+    }
+}
+
 /// `arya steward show` and `arya steward create`.
 struct StewardDetail: Codable, Sendable, Equatable {
     let summary: StewardRow

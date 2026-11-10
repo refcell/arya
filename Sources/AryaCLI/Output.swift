@@ -78,6 +78,28 @@ enum TextRender {
         return table.lines
     }
 
+    static func fleet(_ rows: [FleetRow]) -> [String] {
+        guard !rows.isEmpty else {
+            return ["no stewards yet; create one with `arya steward create`"]
+        }
+        func value(_ number: Double?) -> String {
+            number.map { String(format: "%.2f", $0) } ?? "-"
+        }
+        var table = Table(headers: [
+            "id", "state", "metric", "now", "target", "status", "needs you", "last run",
+            "next wake",
+        ])
+        for row in rows {
+            table.rows.append([
+                row.steward, row.ready ? row.state : "\(row.state), not ready", row.metric,
+                value(row.current), value(row.target), row.status.replacing("_", with: " "),
+                "\(row.needsYou)", row.lastRun.map { "\($0.status) \($0.at)" } ?? "-",
+                row.nextWake ?? "-",
+            ])
+        }
+        return table.lines
+    }
+
     static func steward(_ detail: StewardDetail) -> [String] {
         let summary = detail.summary
         var lines = [
