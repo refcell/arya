@@ -95,8 +95,9 @@ struct RunHarness {
     #expect(outcome.disposals.map(\.verdict.disposition) == [.auto, .ask])
     #expect(
         try await harness.types() == [
-            "steward.created", "run.started", "run.decision", "action.proposed",
-            "action.executed", "action.proposed", "approval.requested", "run.finished",
+            "steward.created", "run.started", "run.step.started", "run.decision",
+            "action.proposed", "action.executed", "action.proposed", "approval.requested",
+            "run.finished",
         ])
     let started = try #require(try await harness.last("run.started"))
     #expect(started.draft.actor == .localUser)
@@ -168,8 +169,8 @@ struct RunHarness {
     #expect(outcome.leak)
     #expect(
         try await harness.types() == [
-            "steward.created", "run.started", "run.decision", "action.proposed",
-            "action.proposed", "run.finished",
+            "steward.created", "run.started", "run.step.started", "run.decision",
+            "action.proposed", "action.proposed", "run.finished",
         ])
     #expect(await harness.executor.requests.isEmpty)
     let book = try RunBook(try await harness.sink.events(from: 1))

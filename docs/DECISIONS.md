@@ -494,3 +494,17 @@ appends throw `HomeEncryptionError.locked` instead of skipping sealed events, wh
 still runs. Events written before encryption was enabled stay as written. Why: sealing whole
 lines would have discarded the raw-byte read speedups and keyless integrity checks, and disk
 encryption alone does not cover copies and backups of the home.
+
+### 0049 — 2026-11-10 — Runs record live steps, with long output in blobs
+
+Context: the app could only rebuild a run's progress from raw wire lines, so a running steward
+looked like a static report. Decision: the run driver records each tool call as a step:
+`run.step.started` (`step`, `tool`, `input` cut to 1 KiB), `run.step.output` (chunks of at
+most 4 KiB numbered by `seq` within the step), and `run.step.finished` (`ok`, `bytes`,
+`chunks`, `millis`). An adapter may stream an open call's output as `tool_output` events
+(`id`, `text`), each recorded as a chunk when it arrives; otherwise the `tool_result` output
+is chunked. Output over 16 KiB goes to the home's blob store, and the chunk keeps the key and a
+1 KiB preview. The wire lines stay the replay record. Why: the app needs progress events it can
+show while a run works, without each screen parsing JSON-RPC or the ledger growing with every
+tool's full output twice.
+

@@ -30,6 +30,10 @@ public struct LedgerEventSink: EventSink {
     public func events(from seq: Int) async throws -> [RuntimeEvent] {
         try reader.events(from: Int64(max(1, seq))).map(RuntimeEvent.init)
     }
+
+    public func putBlob(_ data: Data) async throws -> String? {
+        try store.blobs.put(data)
+    }
 }
 
 extension RuntimeActor {

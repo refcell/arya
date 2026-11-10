@@ -150,6 +150,7 @@ an adapter is alive (the "test connection" step uses it). An adapter from before
 | `tool_result` | `id`, `output`, `isError` | the tool answered |
 | `status` | `state`, `detail` | progress (`working`, `waiting`, …) |
 | `error` | `message` | a recoverable error |
+| `tool_output` | `id`, `text` | optional: a piece of an open tool call's output as it streams, before its `tool_result` |
 
 Events are informational: they feed the run stream and the transcript. Only `run/result` carries
 decisions and actions. `at` is informational too; arya stamps its own time from `Ambient`.

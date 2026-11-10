@@ -17,6 +17,7 @@ final class RunDriver: @unchecked Sendable {
     private var session: String?
     private var leak = false
     private var turns = 0
+    private var steps = StepRecorder()
     private let overdue = Flag()
     /// Set once a person asks to abort the run (`run.abort.requested`).
     private let aborted = Flag()
@@ -205,6 +206,7 @@ final class RunDriver: @unchecked Sendable {
             case .event(let params):
                 try transition(.adapterEvent)
                 noteToolCall(params.event)
+                try await recordSteps(params.event)
                 if let breach = await budgetBreach(adapter, params.event) {
                     return try await stopAndFail(adapter, &updates, .budget, .budget, breach)
                 }
@@ -322,6 +324,17 @@ final class RunDriver: @unchecked Sendable {
         else { return }
         let answered = context.toolResults.contains { $0.tool == tool && $0.input == input }
         if !answered { leak = true }
+    }
+
+    /// Records the live step events an adapter event adds (decision 0049).
+    private func recordSteps(_ event: RunEvent) async throws {
+        let sink = loop.sink
+        let drafts = try await steps.drafts(for: event, now: loop.ambient.now()) { data in
+            try await sink.putBlob(data)
+        }
+        for (type, payload) in drafts {
+            try await append(type.rawValue, .adapter(charter.adapter), payload)
+        }
     }
 
     private func recordWire(_ record: WireRecord) async throws {

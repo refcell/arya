@@ -273,3 +273,4 @@ M4:
 - 2026-11-09: re-planning after failed, denied, or expired actions, bounded per chain (0046)
 - 2026-11-09: steward context read model (`StewardContext`, `Workspace.context`) (0047)
 - 2026-11-09: Paused for the night after publishing re-planning (0046) and steward context (0047). Next: in-run `host/delegate` through the crew path (replace the refusal in `RunDriver`'s `.delegate` case with a bounded child via `CrewBudget`, record `run.delegated`, answer `HostDelegateResult`; replay answers from the recording), then learn-from-results, proactive findings, and onboard runs.
+- 2026-11-10: live step events (`run.step.started`/`output`/`finished`, chunked, long output in blobs) (0049). Moves point 4 (live feel) at the source; the app view is app-views'.

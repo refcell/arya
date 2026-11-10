@@ -1,4 +1,5 @@
 import AryaCore
+import AryaLedger
 import Foundation
 
 // The runtime's seam to the ledger. Everything the runtime does is an appended event, and all
@@ -92,6 +93,13 @@ public protocol EventSink: Sendable {
     func append(_ draft: RuntimeEventDraft) async throws -> RuntimeEvent
     /// Events with `seq >= from`, in order.
     func events(from seq: Int) async throws -> [RuntimeEvent]
+    /// Stores `data` outside the ledger and returns its key, or nil when the sink keeps no
+    /// blobs (long step output is then cut to a preview, decision 0049).
+    func putBlob(_ data: Data) async throws -> String?
+}
+
+extension EventSink {
+    public func putBlob(_ data: Data) async throws -> String? { nil }
 }
 
 /// An in-memory sink for tests; ids and times come from its ambient.
@@ -115,6 +123,17 @@ public actor MemoryEventSink: EventSink {
     public func events(from seq: Int) async throws -> [RuntimeEvent] {
         stored.filter { $0.seq >= seq }
     }
+
+    private var blobs: [String: Data] = [:]
+
+    public func putBlob(_ data: Data) async throws -> String? {
+        let key = LedgerLine.hexSHA256(data)
+        blobs[key] = data
+        return key
+    }
+
+    /// A blob stored with `putBlob`.
+    public func blob(_ key: String) -> Data? { blobs[key] }
 }
 
 /// Encoding helpers between payload structs and `JSONValue`.
