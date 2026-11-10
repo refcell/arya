@@ -15,12 +15,17 @@ enum DemoStep {
     case propose(
         steward: String, change: (inout [String: Any]) -> Void, title: String, reason: String)
     case remember(text: String, steward: String?, person: String)
+    case report(steward: String)
 }
 
 struct DemoSeeder {
     let home: URL
     let examples: URL
     let now: Date
+    /// False seeds only the three example stewards (a quick check of the seeder itself).
+    var fleet = true
+    /// When set, every adapter profile paces the fake adapter (`ARYA_FAKE_PACE_MS`).
+    var paceMillis: Int? = nil
 
     private var nowMillis: Int64 { Int64((now.timeIntervalSince1970 * 1000).rounded(.down)) }
     private var today: Int64 { nowMillis - nowMillis % 86_400_000 }
@@ -32,7 +37,7 @@ struct DemoSeeder {
     func seed() async throws -> String {
         try? FileManager.default.removeItem(at: home)
         var rng = SeededGenerator(0xA27A_DE30)
-        let generated = try DemoStewards.all.map {
+        let generated = try (fleet ? DemoStewards.all : []).map {
             try GeneratedSteward(
                 $0, templates: examples.appendingPathComponent("templates"), today: today,
                 rng: &rng)
@@ -120,6 +125,36 @@ struct DemoSeeder {
                     ))
             }
         }
+        // People at work on the examples (connect lane): Sam and Priya ask, correct, and hand
+        // off work, and reports go out; the example scripts answer the asks and hand-offs.
+        for (when, steward, person, intent, text) in [
+            (
+                at(daysAgo: 3, hour: 10), "st_triage", "person:sam", "ask",
+                "How many refund requests came in this week?"
+            ),
+            (
+                at(daysAgo: 3, hour: 11), "st_triage", "person:sam", "correct",
+                "Duplicate charges always go to billing, even when shipping is mentioned."
+            ),
+            (
+                at(daysAgo: 2, hour: 14), "st_refunds", "person:priya", "ask",
+                "Which approved refunds are still unconfirmed?"
+            ),
+            (
+                at(daysAgo: 1, hour: 11), "st_refunds", "person:priya", "handoff",
+                "Follow up on ORDER-1043 with the customer."
+            ),
+            (
+                at(daysAgo: 1, hour: 16), "st_triage", "person:priya", "handoff",
+                "Check that every duplicate-charge refund went out."
+            ),
+        ] {
+            steps.append(
+                (when, .message(steward: steward, person: person, intent: intent, text: text)))
+        }
+        steps.append((at(daysAgo: 2, hour: 17), .report(steward: "st_refunds")))
+        steps.append((at(daysAgo: 1, hour: 9), .report(steward: "st_triage")))
+        guard fleet else { return sorted(steps + newest()) }
         // Proposals waiting on a person, each a charter diff.
         steps.append(
             (
@@ -161,19 +196,32 @@ struct DemoSeeder {
                     text: "Renewals over 50k go to the finance lead, not the budget owner.",
                     steward: "st_vendor_spend_review", person: "local")
             ))
-        // The demo's newest moments: a quiet check about two hours ago (the last look lands
-        // after it, `writeVisits`), then a triage run now.
-        let current = nowMillis
-        steps.append(
-            (current - 7_200_000, .run(steward: "st_refunds", input: "Check approved refunds")))
-        steps.append(
+        return sorted(steps + newest())
+    }
+
+    /// The demo's newest moments: a quiet check about two hours ago (the last look lands after
+    /// it, `writeVisits`), a triage run, and Sam handing off MSG-140, now.
+    private func newest() -> [(Int64, DemoStep)] {
+        [
+            (nowMillis - 7_200_000, .run(steward: "st_refunds", input: "Check approved refunds")),
             (
-                current - 60_000,
+                nowMillis - 120_000,
                 .run(
                     steward: "st_triage",
                     input: "New message MSG-201: Refund for a duplicate charge")
-            ))
-        return steps.filter { $0.0 <= current }.enumerated()
+            ),
+            (
+                nowMillis - 60_000,
+                .message(
+                    steward: "st_triage", person: "person:sam", intent: "handoff",
+                    text: "Take MSG-140 and close it out with the customer.")
+            ),
+        ]
+    }
+
+    /// Steps up to now, in time order; equal times keep their order.
+    private func sorted(_ steps: [(Int64, DemoStep)]) -> [(Int64, DemoStep)] {
+        steps.filter { $0.0 <= nowMillis }.enumerated()
             .sorted {
                 $0.element.0 != $1.element.0 ? $0.element.0 < $1.element.0 : $0.offset < $1.offset
             }
@@ -195,7 +243,11 @@ struct DemoSeeder {
         var profiles: [String: Any] = [:]
         func profile(_ script: String) -> [String: Any] {
             let args = ["--script", script]
-            return ["command": fake, "args": ["low": args, "medium": args, "high": args]]
+            var entry: [String: Any] = [
+                "command": fake, "args": ["low": args, "medium": args, "high": args],
+            ]
+            if let paceMillis { entry["env"] = ["ARYA_FAKE_PACE_MS": "\(paceMillis)"] }
+            return entry
         }
         for name in ["triage", "refunds", "digest"] {
             profiles["fake-\(name)"] = profile(
@@ -304,6 +356,8 @@ struct Context {
                 baseVersion: version, title: title, reason: reason)
         case .remember(let text, let steward, let person):
             _ = try await workspace.remember(text, steward: steward, by: person)
+        case .report(let steward):
+            _ = try await workspace.sendReport(steward: steward)
         }
     }
 

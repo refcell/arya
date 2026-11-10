@@ -7,12 +7,19 @@
 # departments from etc/examples/templates, with weeks of rhythmic history, approvals decided
 # and waiting, messages from people, proposals, memory, and today's runs. A person's last look
 # lands about two hours before the newest activity (`app/visits.json`).
+#
+#   demo.sh          reseed .build/demo-home
+#   demo.sh --live   reseed, then keep it busy: `arya serve --demo-pace` starts a paced run
+#                    every 20-40 s with the fake adapter pacing its steps (decision 0051),
+#                    until Ctrl-C; a running app on the home shows stewards at work
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
+live=""
 case "${1:-}" in
   --no-open | "") ;;
-  *) echo "usage: demo.sh" >&2; exit 64 ;;
+  --live) live=1 ;;
+  *) echo "usage: demo.sh [--live]" >&2; exit 64 ;;
 esac
 
 home="$PWD/.build/demo-home"
@@ -29,5 +36,10 @@ if [ ! -x "$bin/arya-demo" ] || [ ! -x "$bin/arya-fake-adapter" ] || [ ! -x "$bi
     exit 1
   fi
 fi
-"$bin/arya-demo" "$home" "$PWD/etc/examples"
+# Live: the fake adapter takes about 1.5 s per event, tool output streamed.
+"$bin/arya-demo" "$home" "$PWD/etc/examples" ${live:+--pace-ms 1500}
 echo "demo: seeded $home; render it with \`just snapshot\` (offscreen, no window)"
+if [ -n "$live" ]; then
+  echo "demo: serving $home with demo pace (Ctrl-C to stop)"
+  exec "$bin/arya" --home "$home" serve --demo-pace --every 30
+fi
