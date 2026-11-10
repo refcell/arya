@@ -55,6 +55,9 @@ M4:
   points trending to 0.96, an evolving four-item steward plan).
 - [x] Fleet data for M3.5: `etc/examples/{refunds,digest}` and `arya steward pause|resume`; the
   demo seeds three stewards (on track, behind target, paused) on one time-sorted timeline.
+- [x] Crew run in the demo (MSG-203 delegates "Draft the refund reply"; a join checks it) and
+  `just e2e` steps for the charter editor proposal with readiness and a crew run (37 steps).
+- [ ] One `just e2e` step per M3.6 parity item as it lands (docs/ROADMAP.md).
 - [ ] Fleet columns in `arya steward list` (metric against target, next wake) once workspace has
   a fleet read.
 
@@ -110,6 +113,10 @@ M4:
   bindings; the app page is covered by `ConnectionsCatalogTests` and the `connections` snapshot.
 
 ## Log
+- 2026-11-10: crew in the demo (MSG-203's `delegations` plus a `joins` response in the fake
+  script, keyed by delegation id); `arya run show` lists crew and join; `arya readiness`; e2e 37
+  steps (editor proposal and readiness, crew run); ROADMAP M3.6 parity map. Readiness on crew
+  runs asked of eval.
 - 2026-11-09: `arya run correct` (a run becomes a case and a memory), `arya retract`, and
   `heldBy`/`heldBecause` on `arya approvals`; `just e2e` grows to 33 steps (about 30 s), with
   `test-publish.sh docs-only` as its publish step; ROADMAP M3.5 refreshed.

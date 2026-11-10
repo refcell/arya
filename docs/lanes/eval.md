@@ -206,6 +206,10 @@ Later:
   `AryaRuntime.MetricRecorded` (`metric`, `value`); live runs only, so say if rehearsals need it.
 - (from workspace) `CaseRunRequest.routine` is honored: `RuntimeCaseRunner` runs the case with the candidate in place of the live version; gate wiring is next.
 - (from adapters) For `arya replay`: `ReplayAdapter(ledgerPayloads:exit:)` builds the adapter from the run's `run.adapter.event` payloads in ledger order (nil if one is damaged); an `AdapterFactory` returning it drives the runtime unchanged, and any differing host line throws `AdapterError.replayDivergence` with both lines.
+- (from cli-e2e) `liveReadiness` treats a crew's runs as plain recent runs: the parent is
+  scored on its join's result and the join replays alone, so one crew run makes any proposal
+  "Not ready: 2 of last N runs would fail". Repro: `just demo`, propose any charter, readiness.
+
 
 ## Log
 

@@ -5,7 +5,9 @@
 # the run with zero divergence; then a fleet of three stewards (etc/examples/refunds and a
 # digest steward at `suggest` autonomy) with pause and resume, a policy hold and an autonomy
 # hold, deny and approve, a gated charter proposal that leaves the live steward ready, a run
-# correction that becomes a case and a memory, a retract, the docs-only publish path
+# correction that becomes a case and a memory, a retract, a charter editor proposal (one more
+# guardrail) that passes its gate and live readiness, a crew run whose child drafts the reply
+# and only proposes, the docs-only publish path
 # (etc/scripts/test-publish.sh docs-only), and verify the ledger. Run with `just e2e`.
 #
 #   e2e.sh           run the scenario; the temporary home is deleted afterwards
@@ -13,7 +15,7 @@
 #
 # Each step prints ok, PENDING (the command or the piece behind it is not built yet: exit 69
 # or an unknown command), or FAIL. Steps belong to groups (setup, rehearsal, live, metrics,
-# replay, fleet, holds, improve, publish);
+# replay, fleet, holds, improve, crew, publish);
 # a step runs only while its own group and the groups it needs are ok, and is skipped
 # otherwise, so the live run is exercised even while rehearsal is pending.
 # Exit status: 0 all ok, 1 a step failed, 2 a step is pending.
@@ -158,6 +160,24 @@ check_run_corrected() {
 check_new_case() { expect "cases in the newest casebook" "$(get 0.cases)" 9; }
 check_remembered() { grep -q "\"${memory_id:-none}\"" "$out" || { echo "    $memory_id not in memory"; return 1; }; }
 check_retracted() { expect retracted "$(get retracted)" true; }
+check_editor_proposal() {
+  expect state "$(get state)" passed && expect regressions "$(get regressions)" 0 || return 1
+  proposal_id=$(get id)
+}
+check_readiness() {
+  expect ready "$(get ready)" true && [ "$(get runsChecked)" -ge 1 ] ||
+    { echo "    $(get summary)"; return 1; }
+}
+check_crew() {
+  expect status "$(get status)" completed && expect "crew children" "$(get crew)" 1 &&
+    [ -n "$(get join)" ] || { echo "    no join run"; return 1; }
+  crew_parent=$(get run)
+  crew_child=$(get crew.0)
+}
+check_child() {
+  expect parent "$(get parent)" "${crew_parent:-}" &&
+    expect "drafted reply" "$(get actions.0.disposition)" proposed
+}
 check_forgotten() { ! grep -q "\"${memory_id:-none}\"" "$out" || { echo "    $memory_id still recalled"; return 1; }; }
 
 # script_step NAME GROUP COMMAND...: a step that runs a script instead of the CLI.
@@ -182,6 +202,9 @@ install_profile() {
   # The digest steward at `suggest` autonomy: every action waits for a person.
   cp etc/examples/digest/charter.json "$work/digest.json"
   plutil -insert autonomy -string suggest "$work/digest.json"
+  # What the charter editor proposes: the live triage charter with one more guardrail.
+  cp "$example/charter.json" "$work/edited.json"
+  plutil -insert guardrails.3 -string "Never promise a delivery date." "$work/edited.json"
 }
 
 echo "e2e: scenario (home: temporary)"
@@ -231,6 +254,12 @@ step "the note became a memory" improve live check_remembered memory st_triage
 step "retract the note" improve live check_retracted retract "${memory_id:-unknown}" \
   --reason "Billing owns refunds."
 step "later runs no longer recall it" improve live check_forgotten memory st_triage
+step "editor proposal: the gate passes" improve live check_editor_proposal \
+  propose st_triage --charter "$work/edited.json"
+step "it is ready to go live" improve live check_readiness readiness "${proposal_id:-unknown}"
+step "MSG-203: a crew drafts the reply" crew live check_crew \
+  run st_triage --input "New message MSG-203: Damaged order, please refund"
+step "the crew child only proposes" crew live check_child run show "${crew_child:-unknown}"
 script_step "docs-only publish skips the build" publish etc/scripts/test-publish.sh docs-only
 step "verify the ledger" setup - check_verify ledger verify
 
