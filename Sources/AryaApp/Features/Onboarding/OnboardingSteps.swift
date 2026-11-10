@@ -23,16 +23,17 @@ struct OnboardingSteps: Hashable, Sendable {
     /// Bindings that can page their past items (`history` among their reads).
     var historyBindings: [String]
     /// Mark ready is enabled only when the go-live gate passes; otherwise its sentence shows.
-    var gate: FeatureOnboarding.Gate?
+    var gate: FeatureGoLiveGate?
     /// The finished rehearsal of the live charter, which Mark ready records.
     var rehearsal: String?
     var charterVersion: Int?
 
     var canMarkReady: Bool { gate?.ready == true && rehearsal != nil && charterVersion != nil }
 
-    static func build(onboarding: FeatureOnboarding, events: [FeatureEvent], steward: String)
-        -> OnboardingSteps
-    {
+    static func build(
+        onboarding: FeatureOnboarding, gate: FeatureGoLiveGate?, events: [FeatureEvent],
+        steward: String
+    ) -> OnboardingSteps {
         let live = LiveCharter.find(events: events, steward: steward)
         let bindings = (live?.charter["bindings"]?.array ?? []).compactMap { binding -> String? in
             guard let id = binding["id"]?.string,
@@ -65,7 +66,7 @@ struct OnboardingSteps: Hashable, Sendable {
                 done: done("review")),
             Step(
                 stage: .live, title: "Rehearse and go live",
-                detail: onboarding.gate?.summary ?? detail("ready"), done: done("ready")),
+                detail: gate?.summary ?? detail("ready"), done: done("ready")),
         ]
         let version = live?.version
         let started = events.last {
@@ -84,7 +85,7 @@ struct OnboardingSteps: Hashable, Sendable {
                     about: OutcomePeople.humanize($0.about, names: names),
                     text: OutcomePeople.humanize($0.text, names: names))
             },
-            historyBindings: bindings, gate: onboarding.gate, rehearsal: finished ? id : nil,
+            historyBindings: bindings, gate: gate, rehearsal: finished ? id : nil,
             charterVersion: version)
     }
 }

@@ -90,6 +90,9 @@ struct OverviewTab: View {
         if let queue = try? await store.workspace.reviewQueue(steward: steward) {
             store.reviewQueues[steward] = queue
         }
+        if onboarding != nil, let gate = try? await store.workspace.goLiveGate(steward: steward) {
+            store.goLiveGates[steward] = gate
+        }
     }
 
     private func visit() {
@@ -111,7 +114,8 @@ struct OverviewTab: View {
                         OnboardingPanel(
                             store: store, steward: steward,
                             steps: OnboardingSteps.build(
-                                onboarding: onboarding, events: events, steward: steward))
+                                onboarding: onboarding, gate: store.goLiveGates[steward],
+                                events: events, steward: steward))
                     } else if case .notReady(let reason) = snapshot.state.readiness {
                         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                             Text("Not ready: \(reason).")

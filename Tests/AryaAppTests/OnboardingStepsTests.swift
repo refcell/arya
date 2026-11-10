@@ -42,10 +42,9 @@ func onboardingQueue(total: Int, reviewed: Int) -> FeatureReviewQueue {
 }
 
 /// The workspace's onboarding read for the fixture steward: `done` names the finished steps.
-func onboardingRead(
-    done: Set<String>, notes: [FeatureOnboarding.Note] = [],
-    gate: FeatureOnboarding.Gate? = nil
-) -> FeatureOnboarding {
+func onboardingRead(done: Set<String>, notes: [FeatureOnboarding.Note] = [])
+    -> FeatureOnboarding
+{
     let details = [
         ("systems", "Read its systems", "Read 1 of 2 systems: inbox."),
         ("people", "Find its people", "Knows 3 people: person:ana, person:ben, person:cy."),
@@ -62,7 +61,17 @@ func onboardingRead(
                 detail: done.contains($0.0) || $0.0 == "review" || $0.0 == "ready"
                     ? $0.2 : "Nothing yet for \($0.0).")
         },
-        summary: "\(done.count) of 7 steps done", notes: notes, onboardedAt: nil, gate: gate)
+        summary: "\(done.count) of 7 steps done", notes: notes, onboardedAt: nil)
+}
+
+func onboardingGate(ready: Bool, summary: String) -> FeatureGoLiveGate {
+    FeatureGoLiveGate(
+        ready: ready, summary: summary,
+        conditions: [
+            .init(key: "review", met: ready, detail: ready ? "10 of 10 agreed" : "6 of 10 agreed"),
+            .init(key: "rehearsal", met: true, detail: "4/4 passed, no regressions"),
+            .init(key: "checks", met: true, detail: "3 of 3 checks green"),
+        ])
 }
 
 let onboardingNotes = [
@@ -75,7 +84,8 @@ let onboardingNotes = [
 /// A new steward starts by reading its systems, with Run onboarding and no notes.
 @Test func newStewardStartsByReadingItsSystems() {
     let steps = OnboardingSteps.build(
-        onboarding: onboardingRead(done: []), events: onboardingEvents(), steward: steward)
+        onboarding: onboardingRead(done: []), gate: nil, events: onboardingEvents(),
+        steward: steward)
     #expect(steps.current == .systems)
     #expect(steps.notes.isEmpty)
     #expect(steps.steps[0].detail == "Nothing yet for systems.")
@@ -88,7 +98,7 @@ let onboardingNotes = [
     let steps = OnboardingSteps.build(
         onboarding: onboardingRead(
             done: ["systems", "people", "processes", "notes", "history"], notes: onboardingNotes),
-        events: onboardingEvents(), steward: steward)
+        gate: nil, events: onboardingEvents(), steward: steward)
     #expect(steps.current == .review)
     #expect(steps.notes.count == 4)
     #expect(
@@ -105,21 +115,20 @@ let onboardingNotes = [
 @Test func markReadyFollowsTheGoLiveGate() {
     let all: Set = ["systems", "people", "processes", "notes", "history", "review"]
     let failing = OnboardingSteps.build(
-        onboarding: onboardingRead(
-            done: all,
-            gate: .init(ready: false, summary: "Not ready: 4 more agreed reviews needed.")),
+        onboarding: onboardingRead(done: all),
+        gate: onboardingGate(ready: false, summary: "Not ready: 4 more agreed reviews needed."),
         events: onboardingEvents(rehearsed: 4), steward: steward)
     #expect(failing.current == .live)
     #expect(!failing.canMarkReady)
     #expect(failing.steps[3].detail == "Not ready: 4 more agreed reviews needed.")
     let passing = OnboardingSteps.build(
-        onboarding: onboardingRead(
-            done: all, gate: .init(ready: true, summary: "Ready to go live: 10 agreed.")),
+        onboarding: onboardingRead(done: all),
+        gate: onboardingGate(ready: true, summary: "Ready to go live: 10 agreed."),
         events: onboardingEvents(rehearsed: 4), steward: steward)
     #expect(passing.canMarkReady)
     #expect(passing.rehearsal == "rh_1")
     let unrehearsed = OnboardingSteps.build(
-        onboarding: onboardingRead(done: all, gate: .init(ready: true, summary: "")),
+        onboarding: onboardingRead(done: all), gate: onboardingGate(ready: true, summary: ""),
         events: onboardingEvents(), steward: steward)
     #expect(!unrehearsed.canMarkReady)
 }

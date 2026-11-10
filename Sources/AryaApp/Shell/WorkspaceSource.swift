@@ -55,7 +55,7 @@ protocol WorkspaceSource: Sendable {
     func impactSummary(steward: String) async throws -> FeatureImpact?
     /// Imports a binding's past items as cases (`Workspace.importHistory`); its summary line.
     func historyImport(steward: String, binding: String) async throws -> String
-    /// `onboardingState`, the latest onboard run, context notes, and `goLiveGate`.
+    /// `onboardingState`, the latest onboard run, and context notes.
     func onboardingSummary(steward: String) async throws -> FeatureOnboarding
     /// `Workspace.onboard(steward:)`, as one line.
     func onboardRun(steward: String) async throws -> String
@@ -455,15 +455,13 @@ extension Workspace: WorkspaceSource {
             + context.connections.flatMap { connection in
                 connection.notes.map { FeatureOnboarding.Note(about: connection.id, text: $0) }
             }
-        let gate = try? await goLiveGate(steward: steward)
         return FeatureOnboarding(
             steps: state.steps.map {
                 FeatureOnboarding.Step(
                     key: $0.key, title: $0.title, done: $0.done, detail: $0.detail)
             },
             summary: state.summary, notes: notes,
-            onboardedAt: try await onboarding(steward: steward)?.at,
-            gate: gate.map { FeatureOnboarding.Gate(ready: $0.ready, summary: $0.summary) })
+            onboardedAt: try await onboarding(steward: steward)?.at)
     }
 
     func onboardRun(steward: String) async throws -> String {

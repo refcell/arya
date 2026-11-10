@@ -92,6 +92,7 @@ struct OnboardingPanel: View {
                     ReviewQueuePanel(store: store, steward: steward, queue: queue)
                 }
             case .live:
+                if let gate = steps.gate { GoLiveGateRow(gate: gate) }
                 HStack(spacing: AryaSpace.s2) {
                     if steps.canMarkReady, let rehearsal = steps.rehearsal,
                         let version = steps.charterVersion
@@ -154,6 +155,9 @@ struct OnboardingPanel: View {
     private func refresh() async {
         await store.reload()
         store.reviewQueues[steward] = try? await store.workspace.reviewQueue(steward: steward)
+        if let gate = try? await store.workspace.goLiveGate(steward: steward) {
+            store.goLiveGates[steward] = gate
+        }
         if let onboarding = try? await store.workspace.onboarding(steward: steward) {
             store.outcomeReads[steward, default: OutcomeReads()].onboarding = onboarding
         }
