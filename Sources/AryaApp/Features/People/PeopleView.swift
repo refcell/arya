@@ -126,7 +126,7 @@ struct PeopleView: View {
                     }
                     Button("Remove…", role: .destructive) { removing = person.id }
                 }
-                .menuStyle(.borderlessButton)
+                .aryaMenuButton()
                 .menuIndicator(.hidden)
                 .fixedSize()
                 .aryaText(AryaFont.caption, AryaColor.inkMuted)

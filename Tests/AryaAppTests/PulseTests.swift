@@ -75,3 +75,25 @@ import Testing
                 == "Support inbox triage running · step 3 · 4.0 s")
     }
 }
+
+@Test func portfolioMetricFigureDropsTheName() {
+    var row = PortfolioRow(
+        id: "s", name: "S", outcome: "", metric: "0.84 / 0.90 confirmed_within_1d", trend: [],
+        behind: true, state: "live", waiting: 0, lastRun: "now", nextWake: "on demand",
+        health: .behind)
+    #expect(row.metricFigure == "0.84 / 0.90")
+    row.metric = "no metric"
+    #expect(row.metricFigure == "no metric")
+}
+
+@Test func actionWordsHumanizeKindsOneWay() {
+    #expect(ActionWords.kind("follow_up") == "follow-up")
+    #expect(ActionWords.kind("follow-up") == "follow-up")
+    #expect(ActionWords.kind("") == "action")
+    #expect(ActionWords.line(kind: "reply", target: "inbox:ORDER-1043") == "Reply inbox:ORDER-1043")
+}
+
+@Test func liveRunsMeanServing() {
+    #expect(StatusBarLine.scheduler(false, live: true) == "serving")
+    #expect(StatusBarLine.scheduler(false) == "scheduler stopped")
+}

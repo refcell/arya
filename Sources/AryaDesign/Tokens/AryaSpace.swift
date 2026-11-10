@@ -20,6 +20,8 @@ public enum AryaSize {
     public static let sidebarMinWidth: CGFloat = 200
     public static let sidebarMaxWidth: CGFloat = 320
     public static let inspectorWidth: CGFloat = 340
+    /// The inspector beside a run: narrower, so the work pane keeps its room.
+    public static let inspectorNarrowWidth: CGFloat = 280
     /// The bottom status bar.
     public static let statusBarHeight: CGFloat = 22
     /// The command palette.

@@ -205,3 +205,18 @@ public struct AryaToolbar<Content: View>: View {
             .overlay(alignment: .bottom) { AryaHairline() }
     }
 }
+
+extension View {
+    /// A pull-down `Menu` drawn as a secondary button: 24 pt, a `ruleStrong` hairline, label
+    /// in `bodyStrong` `ink`, the system chevron kept as the menu's tell.
+    public func aryaMenuButton() -> some View {
+        self.menuStyle(.borderlessButton)
+            .aryaText(AryaFont.bodyStrong, AryaColor.ink)
+            .padding(.horizontal, AryaSpace.s2)
+            .frame(height: AryaSize.buttonHeight)
+            .overlay {
+                RoundedRectangle(cornerRadius: AryaRadius.small)
+                    .strokeBorder(AryaColor.ruleStrong, lineWidth: 1)
+            }
+    }
+}

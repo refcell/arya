@@ -19,6 +19,19 @@ struct PortfolioRow: Identifiable, Equatable {
     var nextWake: String
     var health: StatusMapping.SidebarRow.Health
 
+    /// The metric without its name: "0.84 / 0.90", or "no metric".
+    var metricFigure: String {
+        guard metric != "no metric", let space = metric.lastIndex(of: " ") else { return metric }
+        return String(metric[..<space])
+    }
+    /// Top-level runs per day for the last week, oldest first, and the failed ones.
+    var runsPerDay: [Int] = []
+    var failedPerDay: [Int] = []
+    /// "$0.0042", or "—" when no run today reported a cost.
+    var costToday: String = "—"
+    /// A run is going right now.
+    var running: Bool = false
+
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], approvals: [ApprovalSummary],
         events: [FeatureEvent], now: Date, timeZone: TimeZone = .current
@@ -45,13 +58,19 @@ struct PortfolioRow: Identifiable, Equatable {
             } else {
                 wake = "on demand"
             }
-            let last = runs[steward.id]?.map(\.startedAt).max()
+            let mine = runs[steward.id] ?? []
+            let last = mine.map(\.startedAt).max()
+            let (totals, failed) = StewardPulse.perDay(
+                mine.filter { $0.parent == nil }, now: now, timeZone: timeZone)
+            let cost = StewardPulse.costToday(mine, now: now, timeZone: timeZone)
             return PortfolioRow(
                 id: steward.id, name: steward.name, outcome: steward.outcome, metric: metric,
                 trend: state.trend, behind: series?.meetsTarget == false, state: stateWord(steward),
                 waiting: waiting,
                 lastRun: last.map { AryaTime.label($0, now: now, timeZone: timeZone) } ?? "never",
-                nextWake: wake, health: sidebar.health)
+                nextWake: wake, health: sidebar.health, runsPerDay: totals, failedPerDay: failed,
+                costToday: cost.replacingOccurrences(of: " today", with: ""),
+                running: mine.contains { $0.status == .running })
         }
         return rows.sorted {
             $0.health != $1.health
@@ -77,8 +96,9 @@ struct PortfolioView: View {
     let now: Date
 
     private static let columns: [(String, CGFloat?)] = [
-        ("Steward", 168), ("Metric", nil), ("Trend", AryaSize.sparklineWidth),
-        ("State", 56), ("Needs you", 64), ("Last run", 56), ("Next", 88),
+        ("Steward", nil), ("Metric", 88), ("Trend", AryaSize.sparklineWidth),
+        ("State", 56), ("Runs 7d", 64), ("Needs you", 64), ("Cost today", 72),
+        ("Last run", 56), ("Next", 88),
     ]
 
     var body: some View {
@@ -127,17 +147,19 @@ struct PortfolioView: View {
 
     private func line(_ row: PortfolioRow) -> some View {
         HStack(spacing: AryaSpace.s2) {
-            cell(168) {
+            cell(nil) {
                 HStack(spacing: AryaSpace.s2) {
                     StatusDot(row.waiting > 0 ? .needsYou : row.state == "paused" ? .paused : .idle)
                     Text(row.name).aryaText(AryaFont.body, AryaColor.ink).lineLimit(1)
                         .help(row.outcome)
                 }
             }
-            cell(nil) {
-                Text(row.metric)
+            cell(88) {
+                // "0.84 / 0.90"; the metric's name is in the help.
+                Text(row.metricFigure)
                     .aryaText(AryaFont.monoSmall, row.behind ? AryaColor.negative : AryaColor.ink)
                     .lineLimit(1)
+                    .help(row.metric)
             }
             cell(AryaSize.sparklineWidth) {
                 if row.trend.count > 1 {
@@ -145,12 +167,24 @@ struct PortfolioView: View {
                         .frame(width: AryaSize.sparklineWidth, height: AryaSize.sparklineHeight / 2)
                 }
             }
-            cell(56) { Text(row.state).aryaText(AryaFont.caption, AryaColor.inkMuted) }
+            cell(56) {
+                HStack(spacing: AryaSpace.s1) {
+                    if row.running { AryaLiveDot() }
+                    Text(row.running ? "running" : row.state)
+                        .aryaText(
+                            AryaFont.caption, row.running ? AryaColor.positive : AryaColor.inkMuted)
+                }
+            }
+            cell(64) {
+                DayBars(row.runsPerDay, failed: row.failedPerDay, height: 12)
+                    .help("\(row.runsPerDay.reduce(0, +)) runs in 7 days")
+            }
             cell(64) {
                 Text(row.waiting > 0 ? "\(row.waiting)" : "—")
                     .aryaText(
                         AryaFont.monoSmall, row.waiting > 0 ? AryaColor.ink : AryaColor.inkFaint)
             }
+            cell(72) { Text(row.costToday).aryaText(AryaFont.monoSmall, AryaColor.inkMuted) }
             cell(56) { Text(row.lastRun).aryaText(AryaFont.monoSmall, AryaColor.inkMuted) }
             cell(88) { Text(row.nextWake).aryaText(AryaFont.monoSmall, AryaColor.inkMuted) }
         }

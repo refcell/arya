@@ -130,7 +130,7 @@ struct ConnectionsView: View {
                         .disabled(blocker != nil)
                     if let blocker { Text(blocker) }
                 }
-                .menuStyle(.borderlessButton)
+                .aryaMenuButton()
                 .fixedSize()
                 .help("More actions for \(entry.id)")
             } else {

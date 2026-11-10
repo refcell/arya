@@ -101,11 +101,13 @@ struct StatusBarLine: Equatable {
 
     /// "serving" while a process fires this home's triggers, "scheduler stopped" when none
     /// does, "scheduler —" when the source cannot tell.
-    static func scheduler(_ serving: Bool?) -> String {
+    /// Live runs mean something is serving (the demo pacer or `arya serve`).
+    static func scheduler(_ serving: Bool?, live: Bool = false) -> String {
+        if live { return "serving" }
         switch serving {
-        case true?: "serving"
-        case false?: "scheduler stopped"
-        case nil: "scheduler —"
+        case true?: return "serving"
+        case false?: return "scheduler stopped"
+        case nil: return "scheduler —"
         }
     }
 }
@@ -121,7 +123,7 @@ struct StatusBar: View {
             stewards: model.stewards, runs: model.runs, waiting: model.pendingApprovalCount,
             events: events, check: model.ledgerCheck, now: now, liveRuns: model.liveLines)
         HStack(spacing: AryaSpace.s4) {
-            item(StatusBarLine.scheduler(model.serving))
+            item(StatusBarLine.scheduler(model.serving, live: !line.live.isEmpty))
             if !line.live.isEmpty {
                 // Elapsed seconds tick once a second while a run goes.
                 Group {
@@ -153,6 +155,8 @@ struct StatusBar: View {
                 // The newest event slides in from below as it lands.
                 Text(ticker.text).aryaText(AryaFont.monoSmall, AryaColor.inkMuted).lineLimit(1)
                     .id(ticker.id)
+                    // The first cell to give way: counts never truncate before it.
+                    .layoutPriority(-1)
                     .transition(.push(from: .bottom))
                     .help("Newest event in the ledger")
             }
@@ -192,13 +196,13 @@ struct StatusBar: View {
             Text(StatusBarLine.live(live, now: now) ?? "")
                 .aryaText(AryaFont.monoSmall, AryaColor.positive).lineLimit(1)
             if let progress = live.last?.progress {
-                AryaProgressBar(progress, isLive: true).frame(width: 40)
+                AryaProgressBar(progress).frame(width: 40)
             }
         }
     }
 
     private func item(_ text: String) -> some View {
-        Text(text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
+        Text(text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1).fixedSize()
     }
 }
 

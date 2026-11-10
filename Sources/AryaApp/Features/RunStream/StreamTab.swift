@@ -60,7 +60,7 @@ private struct RunControls: View {
                             .disabled(!ended)
                     }
                     .popover(isPresented: $correcting, arrowEdge: .bottom) { correctForm }
-                    .menuStyle(.borderlessButton)
+                    .aryaMenuButton()
                     .fixedSize()
                     .aryaText(AryaFont.caption, AryaColor.inkMuted)
                     .help("Replay re-runs the run from the ledger alone and compares.")

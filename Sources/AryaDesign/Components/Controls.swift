@@ -166,6 +166,8 @@ public struct Keycap: View {
     public var body: some View {
         Text(keys)
             .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            .lineLimit(1)
+            .fixedSize()
             .padding(.horizontal, AryaSpace.s1)
             .overlay(
                 RoundedRectangle(cornerRadius: AryaRadius.small)

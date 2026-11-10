@@ -309,3 +309,14 @@ M4:
 - Visual check (`just snapshot`, settled in 177 s under load 32: needs-you, overview-live):
   moves (2) — Needs you fills both panes; (3) Approve/Deny/Correct carry keycaps; (4) the
   status bar reads "running · step 1 · 11.0 s", sidebar rows "step 1" with live dots.
+- 2026-11-10 Review #10 and VC26: scheduler cell reads "serving" while runs are live; status
+  bar counts never truncate (the ticker gives way first); Needs you rows lead with a humanized
+  "Reply inbox:ORDER-1043" that wraps instead of cutting ids, then steward and why;
+  `ActionWords` humanizes kinds in one place (follow_up reads follow-up); the pulse lists
+  waiting targets; keycaps no longer squeeze to empty; every "More" menu is a secondary
+  button (`aryaMenuButton`); the inspector narrows to 280 pt beside a run; AryaProgressBar is
+  ink (green when finished well), never orange. Portfolio: Runs 7d bars, Cost today, a
+  running state with live dot; the metric column shows value / target with the name in help.
+- Visual check (`just snapshot` needs-you, run, portfolio-live, overview-live): moves (2) and
+  (3) — no duplicate rows, menus boxed, run pane wider; (4) status bar "serving · running ·
+  step 1 · 11.3 s".

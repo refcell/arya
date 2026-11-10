@@ -225,8 +225,14 @@ struct StewardPulseView: View {
                         } label: {
                             HStack(spacing: AryaSpace.s2) {
                                 StatusDot(.needsYou)
-                                Text(approval.text).aryaText(AryaFont.caption, AryaColor.ink)
-                                    .lineLimit(1)
+                                // The target, not the why-label (several share one).
+                                Text(
+                                    ActionWords.line(
+                                        kind: approval.actionKind ?? approval.kind.rawValue,
+                                        target: approval.target ?? "")
+                                )
+                                .aryaText(AryaFont.monoSmall, AryaColor.ink)
+                                .lineLimit(1).truncationMode(.head)
                                 Spacer(minLength: 0)
                             }
                             .frame(height: AryaSize.rowHeight)
@@ -242,7 +248,8 @@ struct StewardPulseView: View {
                     Text("Recent decisions").aryaText(AryaFont.label, AryaColor.inkFaint)
                     ForEach(pulse.decisions) { line in
                         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                            Text(line.key).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                            Text(ActionWords.kind(line.key))
+                                .aryaText(AryaFont.monoSmall, AryaColor.ink)
                             Text(line.text).aryaText(AryaFont.caption, AryaColor.inkMuted)
                                 .lineLimit(2)
                         }

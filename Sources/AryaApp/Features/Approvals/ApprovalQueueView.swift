@@ -246,20 +246,14 @@ private struct NeedsYouRow: View {
                 Circle().fill(tone).frame(width: AryaSize.statusDot, height: AryaSize.statusDot)
                     .alignmentGuide(.firstTextBaseline) { $0[.bottom] }
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(item.summary.isEmpty ? "\(item.kind) \(item.target)" : item.summary)
-                        .aryaText(AryaFont.body, isSelected ? AryaColor.ink : AryaColor.inkMuted)
+                    // What and where first; ids wrap rather than lose their middle.
+                    Text(title)
+                        .aryaText(AryaFont.mono, isSelected ? AryaColor.ink : AryaColor.inkMuted)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text([stewardName, why].compactMap { $0 }.joined(separator: " · "))
+                        .aryaText(AryaFont.caption, AryaColor.inkFaint)
                         .lineLimit(1)
-                    HStack(spacing: AryaSpace.s1) {
-                        if let stewardName {
-                            Text(stewardName).aryaText(AryaFont.caption, AryaColor.inkFaint)
-                                .lineLimit(1)
-                        }
-                        if item.kind != "question" {
-                            Text("\(item.kind) \(item.target)")
-                                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                                .lineLimit(1).truncationMode(.middle)
-                        }
-                    }
                 }
                 Spacer(minLength: AryaSpace.s2)
                 Text(AryaTime.label(item.requestedAt, now: now, style: .short))
@@ -282,6 +276,17 @@ private struct NeedsYouRow: View {
     }
 
     private var risk: ActionRisk { ActionRisk(kind: item.kind) }
+
+    private var title: String {
+        item.kind == "question"
+            ? item.summary : ActionWords.line(kind: item.kind, target: item.target)
+    }
+
+    /// The reason, else the summary; nil when both are empty.
+    private var why: String? {
+        let text = item.rationale.isEmpty ? item.summary : item.rationale
+        return text.isEmpty || item.kind == "question" ? nil : text
+    }
 
     /// High risk reads negative, medium warning, low faint; questions faint.
     private var tone: Color {

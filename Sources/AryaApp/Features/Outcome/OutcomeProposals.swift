@@ -384,7 +384,7 @@ struct OutcomeProposalRow: View {
                 Button("Accept anyway…") { confirming = true }
             }
         }
-        .menuStyle(.borderlessButton)
+        .aryaMenuButton()
         .fixedSize()
         .aryaText(AryaFont.caption, AryaColor.inkMuted)
     }

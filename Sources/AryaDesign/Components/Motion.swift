@@ -14,24 +14,24 @@ extension AryaMotion {
     public static func isStill(reduceMotion: Bool) -> Bool { frozenByProcess || reduceMotion }
 }
 
-/// A thin determinate progress bar: a `rule` track with an `ink` fill, or the accent while
-/// it is the live, primary work. 3 pt tall, fluid width.
+/// A thin determinate progress bar: a `rule` track with an `ink` fill, `positive` once the
+/// work finished well. Never the accent (that is the primary action's). 3 pt tall, fluid width.
 public struct AryaProgressBar: View {
     let fraction: Double
-    let isLive: Bool
+    let succeeded: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// `fraction` is clamped to 0...1.
-    public init(_ fraction: Double, isLive: Bool = false) {
+    /// `fraction` is clamped to 0...1; `succeeded` tints a finished bar green.
+    public init(_ fraction: Double, succeeded: Bool = false) {
         self.fraction = min(max(fraction, 0), 1)
-        self.isLive = isLive
+        self.succeeded = succeeded
     }
 
     public var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 Capsule().fill(AryaColor.rule)
-                Capsule().fill(isLive ? AryaColor.accentFill : AryaColor.inkMuted)
+                Capsule().fill(succeeded && fraction >= 1 ? AryaColor.positive : AryaColor.ink)
                     .frame(width: proxy.size.width * fraction)
             }
         }

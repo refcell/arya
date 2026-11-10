@@ -19,6 +19,11 @@ enum InspectorFocus: Equatable {
     case fleet
     case none
 
+    var isRun: Bool {
+        if case .run = self { return true }
+        return false
+    }
+
     static func of(_ navigation: NavigationState) -> InspectorFocus {
         if navigation.destination == .approvals { return .approval(navigation.approval) }
         if navigation.destination == .portfolio { return .fleet }
@@ -148,7 +153,8 @@ struct InspectorView: View {
             .padding(.bottom, AryaSpace.s4)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: AryaSize.inspectorWidth)
+        // Narrower beside a run, so the work pane keeps its room.
+        .frame(width: focus.isRun ? AryaSize.inspectorNarrowWidth : AryaSize.inspectorWidth)
         .accessibilityLabel("Inspector")
     }
 
