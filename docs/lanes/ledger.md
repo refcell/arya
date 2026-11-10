@@ -267,6 +267,18 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
+- HANDOFF 2026-11-09 (governance session 1, ended near auto-compaction): (G1), (G2a), (G2b),
+  (G3a) done and on main. Next: (G4) encryption at rest, then (G5) signed export, (G3b) when
+  runtime/eval answer, then (13), (14). Facade code lives in `Sources/Arya/Governance.swift`
+  (tests in `Tests/AryaTests/GovernanceTests.swift`); integration edits elsewhere are logged
+  in workspace.md and runtime.md. UI, snapshot states, and e2e steps for every item are asked
+  in app-views.md, app-shell.md, and cli-e2e.md Questions; check whether they landed and
+  answer follow-ups. G4 note: the ledger reader sieves raw bytes (`LineSieve`, `memmem`), so
+  per-line encryption would cost the read speedups; start with a design note weighing a
+  Keychain-held key over memory, blobs, and credential references first versus file
+  protection, then migrate. Run all four test targets with one build:
+  `just test 'AryaCoreTests|AryaLedgerTests|AryaRuntimeTests|AryaTests\.'`.
+  A "dirty tree" from `just publish` right after a commit is transient: `git status`, retry.
 - 2026-11-09: (G3a) done: retention settings on the ledger and a whole-segment retention
   plan; archiving held back until history folds use checkpoint seeds (asked runtime, eval).
 - 2026-11-09: (G2b) done: undo as a policy-gated compensation (`policy.undo`,
