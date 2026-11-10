@@ -9,6 +9,16 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 
 ## Backlog
 
+**#1 item, before everything below (user feedback, 2026-11-09 night).** The user compared the overview, run, and
+command palette snapshots against the visual target. Verdict: less than 60% of the look, and
+not even remotely close to the feel. Green CI and reviewer scores are not the bar; the user
+is. Fix these five first; this lane owns its share:
+1. A run is a sparse log, not a work pane. Raw JSON dumped as INPUT; the right side is run metadata. Target: a split work pane, with the conversation on the left and live tools, diffs, logs and command output on the right, streaming as it happens.
+2. Dead space everywhere. The bottom 40% of every screen is empty, the inspector is mostly blank, and the top padding is large. Density must come from real content, not wider margins.
+3. Controls read as plain labels ("Edit charter...", "Pause", Low/Medium/High). Actions need clear, compact, keyboard-hinted affordances.
+4. The feel is missing: no sense of an agent working live, no streaming, no motion or progress, no inline diffs, no keyboard-driven flow beyond the palette. It feels like a static report.
+5. The content is thin: 3 stewards and a short plan. The demo home must look like a busy, real workspace.
+
 - [x] Overview tab, the default and first steward tab: recap paragraph for a returning
   person, the current plan as a quiet checklist with why it changed, Recent activity (mono
   action and target, muted why, expands to policy, risk, and run), details on demand
