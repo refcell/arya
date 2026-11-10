@@ -16,6 +16,13 @@ enum DemoStep {
         steward: String, change: (inout [String: Any]) -> Void, title: String, reason: String)
     case remember(text: String, steward: String?, person: String)
     case report(steward: String)
+    /// Grows the steward's casebook from its own runs, then rehearses it (eval).
+    case improve(steward: String)
+    /// Imports an example's history export and works part of the review queue (eval).
+    case reviewHistory(
+        steward: String, file: String, binding: String?, agree: [String], skip: [String])
+    /// A proposal from `etc/examples/proposals.json`, by index, gated on the casebook (eval).
+    case proposeExample(index: Int)
 }
 
 struct DemoSeeder {
@@ -52,6 +59,9 @@ struct DemoSeeder {
             try reshapeTriage(&triage)
             scripts["fake-triage"] = triage
         }
+        // Charter v2's adapter, so the triage proposal's rehearsal runs instead of failing.
+        scripts["fake-triage-v2"] = try FakeScript.load(
+            from: examples.appendingPathComponent("triage/fake-script-v2.json"))
         for steward in generated { scripts[steward.adapter] = steward.script }
         try writeProfiles(generated)
 
@@ -195,7 +205,27 @@ struct DemoSeeder {
         }
         steps.append((at(daysAgo: 2, hour: 17), .report(steward: "st_refunds")))
         steps.append((at(daysAgo: 1, hour: 9), .report(steward: "st_triage")))
+        // The refund steward's past refunds and what people did, part reviewed, and one titled
+        // proposal for each example fleet steward (eval).
+        steps.append(
+            (
+                at(daysAgo: 1, hour: 8),
+                .reviewHistory(
+                    steward: "st_refunds", file: "refunds/history-export.json",
+                    binding: "billing",
+                    agree: ["hist-ORDER-1140", "hist-ORDER-1141", "hist-ORDER-1142"],
+                    skip: ["hist-ORDER-1143"])
+            ))
+        steps.append((at(daysAgo: 1, hour: 8.5), .proposeExample(index: 1)))
+        steps.append((at(daysAgo: 1, hour: 8.75), .proposeExample(index: 2)))
         guard fleet else { return sorted(steps + newest()) }
+        // Every generated steward gets a casebook from its own runs and a rehearsal (eval).
+        for (index, steward) in generated.enumerated() {
+            steps.append(
+                (at(daysAgo: 2, hour: 5 + Double(index) * 0.1), .improve(steward: steward.spec.id))
+            )
+        }
+        steps += EvalProposals.steps(at: { at(daysAgo: 1, hour: $0) })
         // Proposals waiting on a person, each a charter diff.
         steps.append(
             (
@@ -349,8 +379,10 @@ struct Context {
                 steward: "st_triage", data: try file("casebook.jsonl"), name: "casebook")
             _ = try await workspace.rehearse(steward: "st_triage")
             // charter v2: case-0006 improves, case-0005 regresses.
+            let titled = try ExampleProposal.load(examples, index: 0)
             let proposal = try await workspace.proposeCharter(
-                steward: "st_triage", charter: try file("charter-v2.json"), baseVersion: 1)
+                steward: "st_triage", charter: try file("charter-v2.json"), baseVersion: 1,
+                title: titled.title, reason: titled.reason)
             _ = try await workspace.checkProposal(proposal.id)
             let expected = try await workspace.expected(
                 steward: "st_triage", case: "case-0006", choice: "billing")
@@ -363,8 +395,18 @@ struct Context {
                 steward: "st_triage", data: try file("history-export.json"),
                 source: "history-export.json")
             _ = try await workspace.rehearse(steward: "st_triage")
+            // A review queue part worked: agreements, a skip, and one correction (eval).
+            for item in ["110", "111", "112", "114", "116", "121"] {
+                _ = try await workspace.reviewCase(
+                    steward: "st_triage", case: "hist-MSG-\(item)", verdict: "agree")
+            }
             _ = try await workspace.reviewCase(
-                steward: "st_triage", case: "hist-MSG-110", verdict: "agree")
+                steward: "st_triage", case: "hist-MSG-115", verdict: "skip")
+            _ = try await workspace.correct(
+                steward: "st_triage", case: "hist-MSG-113",
+                expected: try await workspace.expected(
+                    steward: "st_triage", case: "hist-MSG-113", choice: "how-to"),
+                note: "A missing usage report is a how-to question, not a bug.")
         case .setupExample(let steward, let name):
             let folder = examples.appendingPathComponent(name)
             _ = try await workspace.createSteward(
@@ -401,6 +443,30 @@ struct Context {
             _ = try await workspace.remember(text, steward: steward, by: person)
         case .report(let steward):
             _ = try await workspace.sendReport(steward: steward)
+        case .improve(let steward):
+            _ = try await workspace.buildCasebook(steward: steward, limit: 40)
+            _ = try await workspace.rehearse(steward: steward)
+        case .reviewHistory(let steward, let file, let binding, let agree, let skip):
+            _ = try await workspace.importHistory(
+                steward: steward,
+                data: try Data(contentsOf: examples.appendingPathComponent(file)),
+                source: URL(fileURLWithPath: file).lastPathComponent, binding: binding)
+            _ = try await workspace.rehearse(steward: steward)
+            for item in agree {
+                _ = try await workspace.reviewCase(steward: steward, case: item, verdict: "agree")
+            }
+            for item in skip {
+                _ = try await workspace.reviewCase(steward: steward, case: item, verdict: "skip")
+            }
+        case .proposeExample(let index):
+            let example = try ExampleProposal.load(examples, index: index)
+            let root = examples.deletingLastPathComponent().deletingLastPathComponent()
+            let version = try await workspace.steward(example.steward)?.charterVersion ?? 1
+            let proposal = try await workspace.proposeCharter(
+                steward: example.steward,
+                charter: try Data(contentsOf: root.appendingPathComponent(example.charter)),
+                baseVersion: version, title: example.title, reason: example.reason)
+            _ = try? await workspace.checkProposal(proposal.id)
         }
     }
 
@@ -420,5 +486,95 @@ struct Context {
                 _ = try await workspace.approve(approval.id)
             }
         }
+    }
+}
+
+/// One entry of `etc/examples/proposals.json`: a charter file with the title and why approvers
+/// read (titles describe the diff; `demoProposalTitlesDescribeTheirDiffs` checks them).
+struct ExampleProposal: Decodable {
+    let steward: String
+    let charter: String
+    let title: String
+    let reason: String
+
+    static func load(_ examples: URL, index: Int) throws -> ExampleProposal {
+        let all = try JSONDecoder().decode(
+            [ExampleProposal].self,
+            from: Data(contentsOf: examples.appendingPathComponent("proposals.json")))
+        return all[index]
+    }
+}
+
+/// One titled proposal for each generated steward that has none, each title saying what the
+/// diff does: a guardrail it adds, or a relaxed window that changes only the window and target.
+enum EvalProposals {
+    static func guardrail(_ steward: String, _ text: String, title: String, reason: String)
+        -> DemoStep
+    {
+        .propose(
+            steward: steward,
+            change: { charter in
+                charter["guardrails"] = (charter["guardrails"] as? [String] ?? []) + [text]
+            }, title: title, reason: reason)
+    }
+
+    static func steps(at: (Double) -> Int64) -> [(Int64, DemoStep)] {
+        [
+            (
+                at(9),
+                guardrail(
+                    "st_vendor_spend_review",
+                    "Flag every renewal over 50k for the finance lead.",
+                    title: "Flag large renewals for the finance lead",
+                    reason: "A 70k renewal went to the budget owner and nearly auto-renewed.")
+            ),
+            (
+                at(9.5),
+                guardrail(
+                    "st_product_adoption", "Send an account at most one adoption nudge a week.",
+                    title: "Limit adoption nudges to one a week",
+                    reason: "Two admins asked us to stop the daily reminders.")
+            ),
+            (
+                at(10),
+                guardrail(
+                    "st_customer_commitments",
+                    "Confirm a promised date with its owner before telling the customer.",
+                    title: "Confirm promised dates with their owner",
+                    reason: "A date we passed on had already slipped by a week.")
+            ),
+            (
+                at(10.5),
+                .propose(
+                    steward: "st_release_notes",
+                    change: { charter in
+                        let outcome = charter["outcome"] as? String ?? ""
+                        charter["outcome"] = outcome.replacingOccurrences(
+                            of: "within a day", with: "within two days")
+                        var metric = charter["metric"] as? [String: Any] ?? [:]
+                        if let target = metric["target"] as? Double {
+                            metric["target"] = ((target - 0.05) * 100).rounded() / 100
+                        }
+                        charter["metric"] = metric
+                    },
+                    title: "Relax the release notes window",
+                    reason: "Friday releases miss the day; notes land on Monday.")
+            ),
+            (
+                at(11.5),
+                guardrail(
+                    "st_oncall_digest", "Group repeated alerts from one service into one line.",
+                    title: "Group repeated alerts in the digest",
+                    reason: "One flapping service filled half of Tuesday's digest.")
+            ),
+            (
+                at(12),
+                guardrail(
+                    "st_churn_watch",
+                    "Escalate churn signals on accounts over 100 seats to the account lead.",
+                    title: "Escalate churn signals on large accounts",
+                    reason: "A 300-seat account churned before anyone senior saw the signal.")
+            ),
+        ]
     }
 }

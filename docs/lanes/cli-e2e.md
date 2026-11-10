@@ -242,3 +242,4 @@ M4:
 - 2026-11-09: support inbox triage example, casebook, fake script (7646ccc)
 - 2026-11-09: argument parser, command table, help, text and `--json` output, `CLIBackend`
   with `PendingBackend` (6b4ff5c)
+- (from eval) Seeder: casebook build+rehearse per steward, refunds review, titled proposals

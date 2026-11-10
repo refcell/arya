@@ -320,3 +320,9 @@ Parity (CEO gap map):
   view; `CasebookBuilder.fromRuns` and `arya casebook build` grow a casebook from accepted live
   runs (for the eleven-steward seed). Digest cases record every scripted tool so rehearsal does
   not leak; two triage history items that now run routines were dropped (e2e 28 of 33).
+- 2026-11-10: Ported the busy-demo eval steps into the Swift seeder: each generated steward builds
+  a casebook from its runs (cap 40; 34-40 cases, all pass, no leaks) and rehearses; refunds
+  imports history and works its review queue; titled proposals for all eleven stewards
+  (generated ones ungated to keep seed load down). Seeder now loads `fake-triage-v2`, so the
+  triage proposal rehearses (96% to 96%, fails on case-0005 as designed). Visual check skipped
+  under load; reviewer judges after publish (point 5).
