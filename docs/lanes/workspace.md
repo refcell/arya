@@ -105,8 +105,10 @@ M3:
 ## Questions
 
 - (from app-outcome) Could proposal summaries carry `impact: outcome | metric | guardrails |
-  routine` (plus removed guardrails and loosened actions)? The app classifies proposed vs
-  live charter today (`ProposalImpact`) and would switch to the facade read.
+  routine | oversight` (plus removed guardrails, loosened actions, and oversight cuts: a
+  report stopped, recipients dropped, a longer cadence, approvers removed)? The app
+  classifies proposed vs live charter today (`ProposalImpact`) and would switch to the
+  facade read.
 
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).

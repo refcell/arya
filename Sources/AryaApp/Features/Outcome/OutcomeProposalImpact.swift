@@ -75,6 +75,7 @@ struct ProposalImpact: Hashable, Sendable {
                 (impact.loosened.isEmpty ? "sign-off decisions stay the same; " : "")
                     + "drops the explanation on \(dropped) \(noun)")
         }
+        impact.loosened += oversight(live: live, proposed: proposed)
         let oldAdapter = live["adapter"]?.string ?? ""
         let newAdapter = proposed["adapter"]?.string ?? ""
         if oldAdapter != newAdapter {
@@ -127,6 +128,74 @@ struct ProposalImpact: Hashable, Sendable {
                     ? "\(action) no longer blocked" : "sign-off no longer required for \(action)")
         }
         return out
+    }
+
+    /// Oversight the proposal takes away: a report stopped, sent to fewer people, or sent less
+    /// often, and approvers removed from an action. People read by their charter names.
+    static func oversight(live: FeatureJSON, proposed: FeatureJSON) -> [String] {
+        var names: [String: String] = ["local": "you"]
+        for binding in (live["bindings"]?.array ?? []) + (proposed["bindings"]?.array ?? []) {
+            if let id = binding["id"]?.string, let name = binding["name"]?.string {
+                names[id] = name
+            }
+        }
+        func people(_ ids: [String]) -> String {
+            let words = ids.map {
+                names[$0] ?? ($0.hasPrefix("person:") ? String($0.dropFirst(7)) : $0)
+            }
+            guard words.count > 1 else { return words.joined() }
+            return words.dropLast().joined(separator: ", ") + " and " + (words.last ?? "")
+        }
+        var out: [String] = []
+        if let report = live["report"], report != .null {
+            let cadence = report["cadence"]?.string ?? "periodic"
+            let recipients = report["to"]?.strings ?? []
+            let next = proposed["report"]
+            if next == nil || next == .null {
+                out.append(
+                    "stops the \(cadence) report"
+                        + (recipients.isEmpty ? "" : " to \(people(recipients))"))
+            } else {
+                let kept = Set(next?["to"]?.strings ?? [])
+                let dropped = recipients.filter { !kept.contains($0) }
+                if !dropped.isEmpty {
+                    out.append("the \(cadence) report no longer goes to \(people(dropped))")
+                }
+                let nextCadence = next?["cadence"]?.string ?? cadence
+                if cadenceDays(nextCadence) > cadenceDays(cadence) {
+                    out.append("the report goes from \(cadence) to \(nextCadence)")
+                }
+            }
+        }
+        func approvers(_ charter: FeatureJSON) -> [String: [String]] {
+            var map: [String: [String]] = [:]
+            for entry in charter["policy"]?["approvers"]?.array ?? [] {
+                if let action = entry["action"]?.string {
+                    map[action, default: []] += entry["people"]?.strings ?? []
+                }
+            }
+            return map
+        }
+        let after = approvers(proposed)
+        for (action, before) in approvers(live).sorted(by: { $0.key < $1.key }) {
+            let kept = Set(after[action] ?? [])
+            let dropped = before.filter { !kept.contains($0) }
+            guard !dropped.isEmpty else { continue }
+            let verb = dropped.count == 1 && dropped != ["local"] ? "signs" : "sign"
+            out.append("\(people(dropped)) no longer \(verb) off \(action)")
+        }
+        return out
+    }
+
+    /// Days between reports, so a longer cadence counts as less oversight.
+    static func cadenceDays(_ cadence: String) -> Int {
+        switch cadence {
+        case "hourly": 0
+        case "daily": 1
+        case "weekly": 7
+        case "monthly": 30
+        default: 7
+        }
     }
 
     /// Rules that keep their action but lose their `note`.

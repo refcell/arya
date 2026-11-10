@@ -131,6 +131,32 @@ private func reviews() throws -> (
             == "Sign-off decisions stay the same; drops the explanation on 1 rule.")
     #expect(ProposalImpact.sentence("ends “in a day.”") == "ends “in a day.”")
     #expect(ProposalImpact.sentence("plain") == "plain.")
+}
+
+/// Removing a report, a recipient, or an approver loosens oversight and confirms.
+@Test func oversightCutsAreLoosening() {
+    let sam: FeatureJSON = ["id": "person:sam", "kind": "person", "name": "Sam"]
+    let live: FeatureJSON = [
+        "bindings": [sam], "report": ["cadence": "weekly", "to": ["person:sam"]],
+        "policy": ["approvers": [["action": "reply", "people": ["local", "person:sam"]]]],
+    ]
+    let stopped = ProposalImpact.build(live: live, proposed: ["bindings": [sam]])
+    #expect(stopped.needsConfirm)
+    #expect(
+        stopped.loosensSentence
+            == "Stops the weekly report to Sam; you and Sam no longer sign off reply.")
+    let monthly = ProposalImpact.build(
+        live: live,
+        proposed: [
+            "bindings": [sam], "report": ["cadence": "monthly", "to": []],
+            "policy": ["approvers": [["action": "reply", "people": ["local"]]]],
+        ])
+    #expect(
+        monthly.loosened == [
+            "the weekly report no longer goes to Sam", "the report goes from weekly to monthly",
+            "Sam no longer signs off reply",
+        ])
+    #expect(!ProposalImpact.build(live: live, proposed: live).needsConfirm)
     let metric = ProposalImpact.build(
         live: ["metric": ["name": "m", "target": 0.95, "direction": "up"]],
         proposed: ["metric": ["name": "m", "target": 0.9, "direction": "up"]])

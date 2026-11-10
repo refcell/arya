@@ -97,8 +97,31 @@ struct OverviewTab: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
-                if let plan = snapshot.plan, !plan.steps.isEmpty {
-                    OutcomePlanSection(plan: plan, now: store.now, openRun: openRun)
+                OutcomeMetricsPanel(
+                    metrics: OutcomeMetrics.build(
+                        events: events, steward: steward, state: snapshot.state, now: store.now),
+                    now: store.now)
+                let impact = OutcomeImpact.build(
+                    events: events, steward: steward, metric: snapshot.state.metric)
+                columns {
+                    VStack(alignment: .leading, spacing: AryaSpace.s4) {
+                        OutcomeNowSection(
+                            now: OutcomeNow.build(
+                                events: events, steward: steward, wake: snapshot.state.wake,
+                                now: store.now),
+                            openRun: openRun)
+                        if let plan = snapshot.plan, !plan.steps.isEmpty {
+                            OutcomePlanSection(plan: plan, now: store.now, openRun: openRun)
+                        }
+                    }
+                } trailing: {
+                    VStack(alignment: .leading, spacing: AryaSpace.s4) {
+                        OutcomeFindingsSection(
+                            findings: OutcomeFinding.build(
+                                events: events, steward: steward, state: snapshot.state,
+                                recap: snapshot.recap, now: store.now))
+                        if let impact { OutcomeImpactSection(impact: impact) }
+                    }
                 }
                 OutcomeActivitySection(
                     activity: snapshot.activity, now: store.now, openRun: openRun,
@@ -115,6 +138,17 @@ struct OverviewTab: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+}
+
+/// Two panels side by side, top-aligned, splitting the stream's width.
+@ViewBuilder
+private func columns<Leading: View, Trailing: View>(
+    @ViewBuilder _ leading: () -> Leading, @ViewBuilder trailing: () -> Trailing
+) -> some View {
+    HStack(alignment: .top, spacing: AryaSpace.s5) {
+        leading().frame(maxWidth: .infinity, alignment: .topLeading)
+        trailing().frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 

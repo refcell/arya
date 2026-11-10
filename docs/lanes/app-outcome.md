@@ -201,3 +201,17 @@ is. Fix these five first; this lane owns its share:
   commands for my actions, then parity: onboarding ("Getting to know your team"), scope plus
   multiple metrics, Impact, Findings. The user judged the app under 60% of the visual target;
   visual feel is tomorrow's top priority.
+- 2026-11-10: resumed. Approver safety: removing oversight is loosening and confirms: a
+  report stopped ("Stops the weekly report to Sam"), recipients dropped, a longer cadence,
+  approvers removed ("you and Sam no longer sign off reply"); workspace question extended
+  with `oversight`. Dense Overview, top to bottom: recap; METRICS (the outcome over 30 days
+  with min/max axis, the dashed target and dates, beside runs, actions taken, held for you,
+  failed runs, and other recorded metrics, each with a sparkline and a 7-day count); then
+  two columns: NOW (live runs with a progress bar against the typical run and what each is
+  doing, else the next wake and how the last run ended) over PLAN, and FINDINGS (missed
+  target days, the week's trend, approvals waiting with the oldest, failed runs, routine
+  reasons, proposals that made a case worse) over IMPACT (metric moves split over the action
+  kinds executed between readings, labeled estimated); RECENT below. Findings and impact are
+  ledger projections until runtime's reads land. Visual check (offscreen `just snapshot`,
+  reseeded demo home): overview, dark and light. Moves points 2 (no dead space: the stream is
+  filled with outcome content to the status bar) and 5 (busier screen from real data).

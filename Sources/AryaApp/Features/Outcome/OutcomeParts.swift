@@ -70,6 +70,7 @@ struct OutcomePill: View {
 struct OutcomeSparkline: View {
     let values: [Double]
     let target: Double?
+    var height: CGFloat = AryaSize.sparklineHeight
 
     var body: some View {
         GeometryReader { geometry in
@@ -100,7 +101,7 @@ struct OutcomeSparkline: View {
                 }
             }
         }
-        .frame(height: AryaSize.sparklineHeight)
+        .frame(height: height)
         .accessibilityHidden(true)
     }
 
