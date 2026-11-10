@@ -142,6 +142,8 @@ struct StreamStep: Identifiable, Hashable, Sendable {
         case action(ProposedActionStep)
         case finished(status: String, summary: String)
         case failed(reason: String)
+        /// Work handed to a crew child run (`run.delegated`), with the child's own steps.
+        indirect case delegated(DelegationStep)
     }
 
     /// The id of the event that opened the step.
@@ -178,8 +180,17 @@ struct RunStream: Hashable, Sendable {
         for event in events where event.run == run {
             projector.apply(event)
         }
+        let steps = projector.steps.map { step -> StreamStep in
+            guard case .delegated(var delegation) = step.kind, let child = delegation.child,
+                child != run
+            else { return step }
+            delegation.attach(child: RunStream.build(events: events, run: child), events: events)
+            var filled = step
+            filled.kind = .delegated(delegation)
+            return filled
+        }
         return RunStream(
-            run: run, steward: projector.steward, steps: projector.steps,
+            run: run, steward: projector.steward, steps: steps,
             status: projector.status, input: projector.input)
     }
 
@@ -230,6 +241,7 @@ private struct RunStreamProjector {
                     rationale: d["rationale"]?.string ?? "",
                     alternatives: d["alternatives"]?.strings ?? []))
         case "action.proposed": applyProposed(event)
+        case "run.delegated": add(event, .delegated(DelegationStep(p)))
         case "run.finished":
             let state = p["status"]?.string ?? "completed"
             let summary = p["summary"]?.string ?? ""
@@ -396,4 +408,99 @@ extension RunStream {
     var waiting: [StreamStep] { steps.filter { $0.pendingApproval != nil } }
     /// The other work steps, in order.
     var work: [StreamStep] { steps.filter { $0.pane == .work && $0.pendingApproval == nil } }
+}
+
+/// A delegation to a crew child run: what was asked, the budget the child ran with (capped at
+/// the parent's, decision 0043), or why it was refused; then the child's steps and result.
+struct DelegationStep: Hashable, Sendable {
+    var delegation: String
+    var title: String
+    var child: String?
+    var adapter: String?
+    var effort: String?
+    var limits: FeatureJSON?
+    var refused: String?
+    var childStatus: RunStatus?
+    var childSteps: [StreamStep] = []
+    var seconds: Double?
+
+    init(_ payload: FeatureJSON) {
+        delegation = payload["delegation"]?.string ?? ""
+        title = payload["title"]?.string ?? ""
+        child = payload["child"]?.string
+        adapter = payload["adapter"]?.string
+        effort = payload["effort"]?.string
+        limits = payload["limits"]
+        refused = payload["refused"]?.string
+    }
+
+    mutating func attach(child stream: RunStream, events: [FeatureEvent]) {
+        guard !stream.steps.isEmpty else { return }
+        childStatus = stream.status
+        childSteps = stream.steps
+        let times = events.filter { $0.run == stream.run }.map(\.at)
+        if stream.status != .running, let first = times.min(), let last = times.max() {
+            seconds = last.timeIntervalSince(first)
+        }
+    }
+}
+
+/// Words for crew lines in the run thread.
+enum CrewText {
+    /// "drafted the refund reply · child run · 2.1 s" (the status is the line's mark), a
+    /// failure word when it did not complete, or why it was refused.
+    static func line(_ step: DelegationStep) -> String {
+        let title = step.title.isEmpty ? step.delegation : step.title
+        if let refused = step.refused { return "\(title) · refused: \(refusal(refused))" }
+        var parts = [title, "child run"]
+        switch step.childStatus {
+        case .finished(let status, _)?:
+            if status != "completed" { parts.append(status) }
+            if let seconds = step.seconds { parts.append(duration(seconds)) }
+        case .failed?: parts.append("failed")
+        case .running?: parts.append("running")
+        case nil: parts.append(step.child == nil ? "not started" : "starting")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// The child's budget as it ran: "adapter fake · effort low · 4 turns · 60 s · $0.20".
+    static func budget(_ step: DelegationStep) -> String? {
+        var parts: [String] = []
+        if let adapter = step.adapter { parts.append("adapter \(adapter)") }
+        if let effort = step.effort { parts.append("effort \(effort)") }
+        if let turns = step.limits?["maxTurns"]?.number { parts.append("\(Int(turns)) turns") }
+        if let timeout = step.limits?["timeoutSeconds"]?.number {
+            parts.append("\(Int(timeout)) s")
+        }
+        if let micros = step.limits?["maxCostMicros"]?.number {
+            parts.append(String(format: "$%.2f", micros / 1_000_000))
+        }
+        return parts.isEmpty ? nil : "budget: " + parts.joined(separator: " · ")
+    }
+
+    /// The child's result: its summary, else its failure.
+    static func result(_ step: DelegationStep) -> String? {
+        switch step.childStatus {
+        case .finished(_, let summary)?: summary.isEmpty ? nil : summary
+        case .failed(let reason)?: "Failed: \(reason)"
+        default: nil
+        }
+    }
+
+    static func duration(_ seconds: Double) -> String {
+        seconds < 60
+            ? String(format: "%.1f s", seconds) : "\(Int(seconds / 60)) min \(Int(seconds) % 60) s"
+    }
+
+    /// `adapter_not_allowed:x` -> "adapter x is not in the crew"; `unknown_effort:y` alike.
+    static func refusal(_ reason: String) -> String {
+        let parts = reason.split(separator: ":", maxSplits: 1).map(String.init)
+        guard parts.count == 2 else { return reason }
+        switch parts[0] {
+        case "adapter_not_allowed": return "adapter \(parts[1]) is not in the crew"
+        case "unknown_effort": return "unknown effort \(parts[1])"
+        default: return reason
+        }
+    }
 }

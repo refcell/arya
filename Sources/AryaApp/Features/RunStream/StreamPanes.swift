@@ -25,6 +25,7 @@ extension StreamStepText {
         case .failed: return "failed"
         case .toolCall: return "tool"
         case .action: return "action"
+        case .delegated: return "crew"
         }
     }
 
@@ -41,6 +42,14 @@ extension StreamStepText {
             case .awaitingApproval: return .waiting
             case .approved: return .running
             case .proposed: return .idle
+            }
+        case .delegated(let step):
+            if step.refused != nil { return .failed }
+            switch step.childStatus {
+            case .finished(let status, _)?: return status == "completed" ? .ok : .failed
+            case .failed?: return .failed
+            case .running?: return .running
+            case nil: return .idle
             }
         default: return .idle
         }

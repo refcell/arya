@@ -125,6 +125,19 @@ import Testing
             }
         }
 
+        // A run that delegated to a crew child (app-views): the child line expanded inline.
+        let now = FakeWorkspaceSource.referenceDate
+        let crewStore = FeatureStore(
+            workspace: PreviewWorkspace(events: PreviewFixtures.crew(now: now), now: now),
+            now: now)
+        await crewStore.reload()
+        let crew = RunStreamView(store: crewStore, run: PreviewFixtures.crewRun)
+            .environment(\.crewOpenByDefault, true)
+            .padding(AryaSpace.s5)
+            .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+            .background(AryaColor.canvas)
+        try write("run-crew", scheme: scheme, render(crew, dark: dark))
+
         let empty = try await emptyModel()
         defer { try? FileManager.default.removeItem(at: empty.home) }
         await empty.model.refresh()

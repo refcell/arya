@@ -360,3 +360,67 @@ enum PreviewFixtures {
             ])
     }
 }
+
+extension PreviewFixtures {
+    static let crewRun = "run_c1"
+    static let crewChild = "run_c1a"
+
+    /// A run that hands the reply to a crew child (decision 0043): one child runs with a
+    /// smaller budget and finishes in 2.1 s, a second delegation asks for an unlisted adapter
+    /// and is refused, then the parent finishes.
+    static func crew(now: Date) -> [FeatureEvent] {
+        var log = FeatureEventBuilder(start: now.addingTimeInterval(-300))
+        log.add("steward.created", actor: .localUser, ["charter": charter, "version": 1])
+        log.add(
+            "run.started", run: crewRun,
+            [
+                "input": [
+                    "kind": "message", "text": "New message MSG-301: Charged twice for one order",
+                ]
+            ])
+        log.add(
+            "run.decision", run: crewRun,
+            [
+                "decision": [
+                    "id": "d1", "choice": "billing",
+                    "rationale": "A duplicate charge; a helper drafts the reply.",
+                ]
+            ])
+        log.add(
+            "run.delegated", run: crewRun,
+            [
+                "delegation": "dl_1", "title": "drafted the refund reply",
+                "child": .string(crewChild), "adapter": "fake", "effort": "low",
+                "limits": ["maxTurns": 4, "timeoutSeconds": 60, "maxCostMicros": 200_000],
+            ])
+        log.add(
+            "run.started", run: crewChild, after: 1,
+            [
+                "input": ["kind": "message", "text": "Draft a reply about the duplicate charge"],
+                "parent": .string(crewRun),
+            ])
+        log.add(
+            "run.decision", run: crewChild, after: 2,
+            [
+                "decision": [
+                    "id": "c1", "choice": "apologize and refund", "rationale": "Clear duplicate.",
+                ]
+            ])
+        log.add(
+            "run.finished", run: crewChild, after: 0.1,
+            [
+                "status": "completed",
+                "summary": "Drafted a reply offering a refund for the second charge.",
+            ])
+        log.add(
+            "run.delegated", run: crewRun, after: 1,
+            [
+                "delegation": "dl_2", "title": "checked the order history",
+                "refused": "adapter_not_allowed:browser",
+            ])
+        log.add(
+            "run.finished", run: crewRun,
+            ["status": "completed", "summary": "Labeled MSG-301 as billing with a drafted reply."])
+        return log.events
+    }
+}

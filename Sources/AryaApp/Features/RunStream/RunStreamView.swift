@@ -106,6 +106,7 @@ enum StreamStepText {
         case .action(let action): return "\(action.kind) \(action.target)"
         case .finished(let status, let summary): return summary.isEmpty ? status : summary
         case .failed(let reason): return "Run failed: \(reason)"
+        case .delegated(let step): return "↳ " + CrewText.line(step)
         }
     }
 

@@ -57,7 +57,14 @@ struct RunThread: View {
 private struct ThreadLine: View {
     var step: StreamStep
     var now: Date
-    @AryaState private var open = false
+    @AryaState private var toggled = false
+    @Environment(\.crewOpenByDefault) private var crewOpen
+
+    /// Crew lines can start open (offscreen snapshots); a click flips either default.
+    private var open: Bool {
+        guard case .delegated = step.kind, crewOpen else { return toggled }
+        return !toggled
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -69,7 +76,7 @@ private struct ThreadLine: View {
                 Spacer(minLength: 0)
             }
             .contentShape(Rectangle())
-            .onTapGesture { if expandable { open.toggle() } }
+            .onTapGesture { if expandable { toggled.toggle() } }
             if open { detail.padding(.leading, AryaSize.stepGutter * 2) }
         }
         .accessibilityElement(children: .combine)
@@ -81,6 +88,7 @@ private struct ThreadLine: View {
         switch step.kind {
         case .toolCall: return true
         case .action(let action): return action.routine != nil || !action.paramLines.isEmpty
+        case .delegated(let delegation): return delegation.refused == nil
         default: return false
         }
     }
@@ -118,6 +126,11 @@ private struct ThreadLine: View {
         case .message:
             Text(StreamStepText.title(step.kind)).aryaText(AryaFont.body, AryaColor.ink)
                 .textSelection(.enabled)
+        case .delegated(let delegation):
+            Text("↳").aryaText(AryaFont.mono, AryaColor.inkFaint).accessibilityHidden(true)
+            MarkGlyph(mark: StreamStepText.mark(step.kind))
+            Text(CrewText.line(delegation)).aryaText(
+                AryaFont.body, delegation.refused == nil ? AryaColor.ink : AryaColor.inkMuted)
         }
     }
 
@@ -134,6 +147,19 @@ private struct ThreadLine: View {
                     Text($0).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                 }
                 if let run = action.routine { RoutineRunBody(run: run) }
+            }
+        case .delegated(let delegation):
+            // The child's own steps, then its budget and result; AnyView breaks the recursion.
+            VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                ForEach(delegation.childSteps) { child in
+                    AnyView(ThreadLine(step: child, now: now))
+                }
+                if let budget = CrewText.budget(delegation) {
+                    Text(budget).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
+                if delegation.childSteps.isEmpty, let result = CrewText.result(delegation) {
+                    Text(result).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                }
             }
         default: EmptyView()
         }
@@ -399,5 +425,17 @@ enum ActionSummary {
             number.rounded() == number ? String(Int(number)) : String(number)
         default: nil
         }
+    }
+}
+
+private struct CrewOpenByDefault: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether crew delegation lines start expanded; set for offscreen snapshots.
+    var crewOpenByDefault: Bool {
+        get { self[CrewOpenByDefault.self] }
+        set { self[CrewOpenByDefault.self] = newValue }
     }
 }
