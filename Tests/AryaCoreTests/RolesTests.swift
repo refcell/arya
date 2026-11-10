@@ -67,3 +67,21 @@ private func action(_ kind: String, binding: String? = "tracker", name: String? 
     // An empty list stays off the wire, so existing charters encode byte for byte.
     #expect(!(try CanonicalJSON.string(try charter(approvers: []).policy)).contains("approvers"))
 }
+
+@Test func undoRulesMatchKindThenBindingAndValidate() throws {
+    var charter = try charter(approvers: [])
+    let general = UndoRule(action: "label", with: "unlabel")
+    let here = UndoRule(action: "label", binding: "tracker", with: "label")
+    charter.policy.undo = [general, here]
+    #expect(charter.policy.undoRule(forAction: "label", binding: "tracker") == here)
+    #expect(charter.policy.undoRule(forAction: "label", binding: "other") == general)
+    #expect(charter.policy.undoRule(forAction: "close") == nil)
+    #expect(charter.validate().isEmpty)
+    #expect(try Charter.load(from: CanonicalJSON.encode(charter)) == charter)
+    charter.policy.undo = [UndoRule(action: "label", binding: "nowhere", with: "")]
+    #expect(
+        charter.validate().map(\.description) == [
+            "policy.undo[0].with: must not be empty",
+            "policy.undo[0].binding: unknown binding nowhere",
+        ])
+}

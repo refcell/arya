@@ -79,3 +79,32 @@ extension Policy {
         return rule.people.contains(person) ? .allowed(rule) : .refused(rule)
     }
 }
+
+/// One `policy.undo[]` entry: an executed action of kind `action` (optionally only through one
+/// binding) is undone by proposing a `with` action on the same binding and target. The
+/// compensation goes through policy and approval like any other action.
+public struct UndoRule: Hashable, Sendable, Codable {
+    public var action: String
+    public var binding: String?
+    /// The compensating action kind; may equal `action` (set the field back).
+    public var with: String
+    /// The rule in a person's words, for example "Unlabel restores the old label".
+    public var note: String?
+
+    public init(action: String, binding: String? = nil, with: String, note: String? = nil) {
+        self.action = action
+        self.binding = binding
+        self.with = with
+        self.note = note
+    }
+
+    private enum CodingKeys: String, CodingKey { case action, binding, with, note }
+}
+
+extension Policy {
+    /// The undo rule for an action kind through `binding` (kind and binding first, then kind).
+    public func undoRule(forAction kind: String, binding: String? = nil) -> UndoRule? {
+        undo.first { $0.action == kind && $0.binding != nil && $0.binding == binding }
+            ?? undo.first { $0.action == kind && $0.binding == nil }
+    }
+}

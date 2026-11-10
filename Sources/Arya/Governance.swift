@@ -151,3 +151,143 @@ extension Workspace {
         try CanonicalJSON.decode(JSONValue.self, from: try CanonicalJSON.encode(payload))
     }
 }
+
+/// An executed action the charter's `policy.undo` says how to undo.
+public struct UndoOption: Sendable, Hashable, Codable {
+    public var run: String
+    /// The executed action's id within the run.
+    public var action: String
+    public var kind: String
+    public var binding: String?
+    public var target: String?
+    /// The compensating action kind.
+    public var with: String
+    /// The undo rule's note.
+    public var note: String?
+    /// The compensation already requested for it, if any (then it cannot be undone again).
+    public var undoneBy: String?
+}
+
+/// What happened to a requested undo.
+public struct UndoSummary: Sendable, Hashable, Codable {
+    public var option: UndoOption
+    /// The compensating action's disposition: `auto`, `ask`, or `deny`.
+    public var decision: String
+    /// The policy verdict's reason.
+    public var reason: String
+    /// The approval it waits on, for `ask`.
+    public var approval: String?
+    /// True when the compensation executed successfully.
+    public var executed: Bool
+}
+
+extension Workspace {
+    /// The run's executed actions that the live charter can undo, in execution order.
+    public func undoOptions(run: String) async throws -> [UndoOption] {
+        try await undoState(run).2
+    }
+
+    /// Undoes an executed action on behalf of `person`: records `action.undo.requested`, then
+    /// proposes the compensating action (`undo:<id>`, same binding and target) through policy,
+    /// so it runs, waits for approval, or is refused like any other action. Its params are
+    /// `{undoes, params, previous}`: the action's id and params, and the params of the last
+    /// action of the same kind and target executed before it (null when none).
+    public func undoAction(
+        run: String, action: String, reason: String? = nil, as person: String = "local"
+    ) async throws -> UndoSummary {
+        let (record, charter, options) = try await undoState(run)
+        guard var option = options.first(where: { $0.action == action }) else {
+            throw WorkspaceError.rejected("\(action) in \(run) is not an executed, undoable action")
+        }
+        if let done = option.undoneBy {
+            throw WorkspaceError.rejected("\(action) in \(run) is already undone by \(done)")
+        }
+        let original = try await executedAction(record, action)
+        let compensation = ProposedAction(
+            id: "undo:\(action)", kind: option.with, binding: original.action.binding,
+            target: original.action.target,
+            params: [
+                "undoes": .string(action), "params": original.action.params ?? .null,
+                "previous": original.previous ?? .null,
+            ],
+            rationale: reason, why: "Undo \(original.action.kind) \(action)")
+        let text = reason.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: ActionUndoRequested.type.rawValue, steward: record.steward, run: record.id,
+                actor: .person(person),
+                payload: try Self.json(
+                    ActionUndoRequested(
+                        action: action, compensation: compensation.id, reason: text))))
+        let disposal = try await dispatcher.dispose(
+            [compensation], charter: charter, run: record.id)
+        option.undoneBy = compensation.id
+        let executed: Bool =
+            if case .succeeded? = disposal.first?.outcome { true } else { false }
+        return UndoSummary(
+            option: option, decision: disposal.first?.verdict.disposition.rawValue ?? "deny",
+            reason: disposal.first?.verdict.reason ?? "",
+            approval: disposal.first?.approval?.rawValue,
+            executed: executed)
+    }
+
+    private func undoState(_ run: String) async throws -> (RunRecord, Charter, [UndoOption]) {
+        guard let record = try await runBook().records[RunID(unchecked: run)] else {
+            throw WorkspaceError.notFound(run)
+        }
+        let charter = try await existing(record.steward.rawValue).charter
+        var proposed: [String: ProposedAction] = [:]
+        var executed: [String] = []
+        var undone: [String: String] = [:]
+        for event in try reader.events(LedgerFilter(run: record.id)) {
+            switch event.type {
+            case .actionProposed:
+                let action = try event.payload(as: ActionProposed.self).action
+                proposed[action.id] = action
+            case .actionExecuted: executed.append(try event.payload(as: ActionExecuted.self).action)
+            case .actionUndoRequested:
+                let body = try event.payload(as: ActionUndoRequested.self)
+                undone[body.action] = body.compensation
+            default: break
+            }
+        }
+        let options = executed.compactMap { id -> UndoOption? in
+            guard let action = proposed[id],
+                let rule = charter.policy.undoRule(forAction: action.kind, binding: action.binding)
+            else { return nil }
+            return UndoOption(
+                run: run, action: id, kind: action.kind, binding: action.binding,
+                target: action.target, with: rule.with, note: rule.note, undoneBy: undone[id])
+        }
+        return (record, charter, options)
+    }
+
+    /// The executed action and the params of the last action of its kind and target that the
+    /// steward executed before it.
+    private func executedAction(_ record: RunRecord, _ id: String) async throws
+        -> (action: ProposedAction, previous: JSONValue?)
+    {
+        let filter = LedgerFilter(
+            steward: record.steward, types: [.actionProposed, .actionExecuted])
+        var proposed: [String: ProposedAction] = [:]
+        var history: [ProposedAction] = []
+        for event in try reader.events(filter) {
+            guard let run = event.run?.rawValue else { continue }
+            if event.type == .actionProposed {
+                let action = try event.payload(as: ActionProposed.self).action
+                proposed["\(run):\(action.id)"] = action
+                continue
+            }
+            let executedID = try event.payload(as: ActionExecuted.self).action
+            guard let action = proposed["\(run):\(executedID)"] else { continue }
+            if run == record.id.rawValue, executedID == id {
+                let previous = history.last {
+                    $0.kind == action.kind && $0.target == action.target
+                }
+                return (action, previous?.params)
+            }
+            history.append(action)
+        }
+        throw WorkspaceError.notFound(id)
+    }
+}

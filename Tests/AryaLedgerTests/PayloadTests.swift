@@ -56,6 +56,8 @@ let payloadSamples: [PayloadSample] = [
     PayloadSample(ActionFailed(action: "a1", error: "tracker returned 503")),
     PayloadSample(ActionRejected(action: "a2", reason: "rule:close")),
     PayloadSample(
+        ActionUndoRequested(action: "a1", compensation: "undo:a1", reason: "Wrong label.")),
+    PayloadSample(
         ApprovalRequested(
             approval: ap1, action: label, expiresAt: Timestamp(millis: 1_767_312_000_000))),
     PayloadSample(ApprovalGranted(approval: ap1, note: "Go ahead.")),

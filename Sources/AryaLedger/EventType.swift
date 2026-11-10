@@ -51,6 +51,7 @@ extension EventType {
     public static let actionExecuted: EventType = "action.executed"
     public static let actionFailed: EventType = "action.failed"
     public static let actionRejected: EventType = "action.rejected"
+    public static let actionUndoRequested: EventType = "action.undo.requested"
 
     public static let approvalRequested: EventType = "approval.requested"
     public static let approvalGranted: EventType = "approval.granted"
@@ -92,7 +93,7 @@ extension EventType {
         stewardRetired, stewardEffortSet,
         runStarted, runInput, runAdapterEvent, runToolCall, runToolResult, runDecision,
         runFinished, runFailed, runAbortRequested, actionProposed, actionExecuted, actionFailed,
-        actionRejected,
+        actionRejected, actionUndoRequested,
         approvalRequested, approvalGranted, approvalDenied, approvalExpired, approvalRefused,
         memoryAdded, memoryRetracted, routineProposed, routinePromoted, routineRetired,
         casebookImported, caseCorrected, rehearsalStarted, rehearsalCaseScored, rehearsalFinished,

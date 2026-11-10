@@ -165,15 +165,18 @@ public struct Policy: Hashable, Sendable, Codable {
     /// Who may approve which held actions (`ApproverRule`); omitted when empty, which lets
     /// anyone who can see an approval decide it.
     public var approvers: [ApproverRule]
+    /// How executed actions are undone (`UndoRule`); omitted when empty (nothing is undoable).
+    public var undo: [UndoRule]
 
     public init(
         default: PolicyDecision = .ask, rules: [Rule] = [], risk: [RiskRule] = [],
-        approvers: [ApproverRule] = []
+        approvers: [ApproverRule] = [], undo: [UndoRule] = []
     ) {
         self.default = `default`
         self.rules = rules
         self.risk = risk
         self.approvers = approvers
+        self.undo = undo
     }
 
     /// The decision for an action of `kind` through `binding`. A binding-specific rule beats
@@ -186,7 +189,7 @@ public struct Policy: Hashable, Sendable, Codable {
         return matching.first(where: { $0.binding == nil })?.decision ?? self.default
     }
 
-    private enum CodingKeys: String, CodingKey { case `default`, rules, risk, approvers }
+    private enum CodingKeys: String, CodingKey { case `default`, rules, risk, approvers, undo }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -194,6 +197,7 @@ public struct Policy: Hashable, Sendable, Codable {
         rules = try c.decodeIfPresent([Rule].self, forKey: .rules) ?? []
         risk = try c.decodeIfPresent([RiskRule].self, forKey: .risk) ?? []
         approvers = try c.decodeIfPresent([ApproverRule].self, forKey: .approvers) ?? []
+        undo = try c.decodeIfPresent([UndoRule].self, forKey: .undo) ?? []
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -202,6 +206,7 @@ public struct Policy: Hashable, Sendable, Codable {
         try c.encode(rules, forKey: .rules)
         if !risk.isEmpty { try c.encode(risk, forKey: .risk) }
         if !approvers.isEmpty { try c.encode(approvers, forKey: .approvers) }
+        if !undo.isEmpty { try c.encode(undo, forKey: .undo) }
     }
 }
 

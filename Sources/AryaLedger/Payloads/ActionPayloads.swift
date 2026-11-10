@@ -81,3 +81,24 @@ public struct ActionRejected: EventPayload {
 
     enum CodingKeys: String, CodingKey { case action, approval, reason }
 }
+
+/// `action.undo.requested`: a person asked to undo an executed action (actor: that person).
+/// The compensating action (`compensation`, an action id in the same run) is proposed right
+/// after it and goes through policy and approval like any other.
+public struct ActionUndoRequested: EventPayload {
+    public static let type = EventType.actionUndoRequested
+    /// The executed action's id within the run.
+    public var action: String
+    /// The compensating action's id within the run.
+    public var compensation: String
+    /// Why, in the person's words.
+    public var reason: String?
+
+    public init(action: String, compensation: String, reason: String? = nil) {
+        self.action = action
+        self.compensation = compensation
+        self.reason = reason
+    }
+
+    enum CodingKeys: String, CodingKey { case action, compensation, reason }
+}

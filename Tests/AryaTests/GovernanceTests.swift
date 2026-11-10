@@ -123,3 +123,54 @@ private func guardedCharterJSON() throws -> Data {
         try await workspace.abortRun("run_missing")
     }
 }
+
+/// The inbox charter where a label is undone by `unlabel`, which waits for approval.
+private func undoableCharterJSON(allowUnlabel: Bool = true) throws -> Data {
+    var charter = try JSONDecoder().decode(Charter.self, from: try inboxCharterJSON())
+    if allowUnlabel { charter.bindings[0].actions.append("unlabel") }
+    charter.policy.undo = [UndoRule(action: "label", with: "unlabel", note: "Restores the label")]
+    return try CanonicalJSON.encode(charter)
+}
+
+@Test func undoProposesTheCompensationThroughPolicy() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try undoableCharterJSON())
+    let run = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let options = try await workspace.undoOptions(run: run.id)
+    #expect(options.map(\.action) == ["a1"])
+    #expect(options.first?.with == "unlabel")
+    #expect(options.first?.undoneBy == nil)
+
+    let undo = try await workspace.undoAction(run: run.id, action: "a1", reason: "Wrong label")
+
+    #expect(undo.decision == "ask")
+    #expect(!undo.executed)
+    #expect(undo.option.undoneBy == "undo:a1")
+    let approval = try #require(undo.approval)
+    let types = try await opened.types()
+    #expect(types.suffix(3) == ["action.undo.requested", "action.proposed", "approval.requested"])
+    _ = try await workspace.approve(approval)
+    let request = try #require(await opened.executor.requests.last)
+    #expect(request.action.kind == "unlabel")
+    #expect(request.action.target == "inbox:MSG-9")
+    #expect(request.action.params?["undoes"] == "a1")
+    #expect(request.action.params?["previous"] == .null)
+    #expect(try await workspace.undoOptions(run: run.id).first?.undoneBy == "undo:a1")
+    await #expect(throws: WorkspaceError.rejected("a1 in \(run.id) is already undone by undo:a1")) {
+        try await workspace.undoAction(run: run.id, action: "a1")
+    }
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.undoAction(run: run.id, action: "a2")
+    }
+}
+
+@Test func undoIsRefusedWhenTheBindingCannotCarryTheCompensation() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try undoableCharterJSON(allowUnlabel: false))
+    let run = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let undo = try await workspace.undoAction(run: run.id, action: "a1")
+    #expect(undo.decision == "deny")
+    #expect(try await opened.types().suffix(2) == ["action.proposed", "action.rejected"])
+}

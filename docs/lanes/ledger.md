@@ -110,8 +110,9 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - [x] (G2a) Abort a running run (recorded, safe): `run.abort.requested`, the run driver stops
   the adapter and executes nothing, `Workspace.abortRun(_:reason:as:)`. App button and e2e
   asked in app-views.md and cli-e2e.md.
-- [ ] (G2b) Undo or compensate an approved action where its kind supports it, with the audit
-  trail.
+- [x] (G2b) Undo or compensate an approved action where its kind supports it, with the audit
+  trail: `policy.undo`, `action.undo.requested`, `undoOptions(run:)`, `undoAction(...)`;
+  app control and e2e asked.
 - [ ] (G3) Data retention: per-steward retention (archive or compact older than N days, on
   top of compaction), shown in settings.
 - [ ] (G4) Encryption at rest for the home (ledger, memory, credential references) with a
@@ -139,6 +140,13 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   `run.failed` `aborted` when the adapter exits or times out first; a pending `host/ask`
   question is denied by `system`. When no live process holds the run's lease, the facade
   records `run.failed` `aborted` ("no process was running it") itself.
+- (G2b undo) Undo is a compensation, never a ledger rewrite: `policy.undo` rules
+  (`{action, binding?, with, note?}`, kind and binding first) say which executed kinds can be
+  undone and by which kind. `undoAction(run:action:reason:as:)` records
+  `action.undo.requested {action, compensation, reason?}` (actor: the person), then proposes
+  `undo:<id>` (same binding and target, params `{undoes, params, previous}`) through the
+  normal dispatcher, so policy, autonomy, approvers, and the binding's action list all apply;
+  a binding that does not list `with` refuses it structurally. One undo per action.
 
 - Ids are `PrefixedID` structs (`st_`, `run_`, `ev_`, `ap_`, `prop_`, `reh_`, `mem_`); generated
   bodies are 26-character ULIDs (48-bit ms time, 80 random bits, Crockford base32). `CaseID`
@@ -245,6 +253,8 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
+- 2026-11-09: (G2b) done: undo as a policy-gated compensation (`policy.undo`,
+  `action.undo.requested`, `undoOptions`, `undoAction`).
 - 2026-11-09: (G2a) done: abort a running run from any process (`run.abort.requested`,
   `RunFailureReason.aborted`, `abortRun`); runtime integration noted in runtime.md.
 - 2026-11-09: lane restaffed as ledger and governance. (G1) done: `policy.approvers`,
