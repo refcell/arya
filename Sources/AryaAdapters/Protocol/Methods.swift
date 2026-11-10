@@ -125,6 +125,8 @@ public struct InitializeResult: Sendable, Hashable, Codable {
 /// What started a run.
 public enum RunInputKind: String, Sendable, Hashable, Codable {
     case manual, schedule, message, `case`, join
+    /// A setback (a failed, denied, or expired action) asks the steward to revise its plan.
+    case replan
 }
 
 /// The input a run works on.

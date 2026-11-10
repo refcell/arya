@@ -173,6 +173,24 @@ public actor Scheduler {
         }
     }
 
+    /// Starts a re-plan of `run` for `setbacks` in the background (see `RunEngine.replan`), for
+    /// setbacks found after the run ended: denied, expired, or failed approved actions.
+    public func replan(after run: RunID, steward: StewardID, setbacks: [Setback]) {
+        guard !setbacks.isEmpty else { return }
+        let key = nextTask
+        nextTask += 1
+        let engine = engine
+        let finished = finished
+        tasks[key] = Task {
+            if let outcome = try? await engine.replan(
+                after: run, steward: steward, setbacks: setbacks)
+            {
+                await finished?(outcome)
+            }
+            await self.forget(key)
+        }
+    }
+
     /// Ticks every `interval` (by `engine`'s ambient clock) until the task is cancelled.
     public func run(every interval: Duration) async throws {
         while !Task.isCancelled {

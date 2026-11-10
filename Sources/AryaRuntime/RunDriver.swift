@@ -272,7 +272,12 @@ final class RunDriver: @unchecked Sendable {
         guard let plan = PlanBook.plan(in: result) else { return }
         let current = try PlanBook(try await loop.sink.events(from: 1)).plans[charter.id]
         guard PlanBook.differs(plan, current) else { return }
-        let reason = result.summary.isEmpty ? nil : result.summary
+        var reason = result.summary.isEmpty ? nil : result.summary
+        if request.input.kind == .replan {
+            let count = request.input.attachments.count
+            let setbacks = count == 1 ? "a setback" : "\(count) setbacks"
+            reason = "Re-planned after \(setbacks)" + (reason.map { ": \($0)" } ?? "")
+        }
         try await append(
             PlanEventType.updated, .steward(charter.id),
             try Payload.encode(PlanUpdated(items: plan, reason: reason)))

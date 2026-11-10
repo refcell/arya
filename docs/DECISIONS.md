@@ -454,3 +454,18 @@ granting is gated: denying is always allowed, and questions are not gated. A gra
 refuses records `approval.refused {approval, by, people, rule, note}` (actor: that person) and
 leaves the approval pending. Why: a steward that can act on money or customers needs a record
 of who was allowed to say yes, not only who did.
+
+### 0046 — 2026-11-09 — Stewards re-plan after setbacks, a bounded number of times
+
+When an action a steward proposed does not happen (an auto action fails; a person denies it
+or lets its approval expire; an approved action then fails), arya starts a `replan` run of
+that steward (`parent` = the run that hit the setback, actor: system). Its input lists each
+setback (`kind`, the action, the error or the person's note) as text and as attachments, its
+instructions carry the current plan, and a changed plan is recorded as `plan.updated` with
+reason "Re-planned after …: <summary>", so the Overview plan shows why it changed. A chain of
+re-plans from one run is bounded by the new `limits.maxReplans` (default 2, omitted from
+charters at the default); past it, `run.replan.refused {setbacks, reason}` is recorded on the
+run that hit the setback. Only active stewards re-plan, and never from rehearsals, crew
+children, or replay (a re-plan is replayed as its own recorded run). Re-plan runs propose
+actions through policy as usual. Why: a steward that owns an outcome must react when its
+plan meets reality, but must not loop.

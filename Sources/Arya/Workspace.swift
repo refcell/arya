@@ -351,7 +351,11 @@ public actor Workspace {
         }
         if case .action = record.subject {
             let charter = try await existing(record.steward.rawValue).charter
-            _ = try await dispatcher.executeGranted(record, charter: charter)
+            let outcome = try await dispatcher.executeGranted(record, charter: charter)
+            if let setback = Setback(record, executed: outcome) {
+                await scheduler.replan(
+                    after: record.run, steward: record.steward, setbacks: [setback])
+            }
         }
         return try await detailed([ApprovalSummary(record)])[0]
     }
@@ -365,6 +369,10 @@ public actor Workspace {
             throw WorkspaceError.rejected("\(id) is already \(record.status.rawValue)")
         }
         try await dispatcher.rejectDecided(record)
+        if let setback = Setback(record) {
+            // The steward hears about the denial and may revise its plan (decision 0046).
+            await scheduler.replan(after: record.run, steward: record.steward, setbacks: [setback])
+        }
         return try await detailed([ApprovalSummary(record)])[0]
     }
 

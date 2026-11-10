@@ -56,7 +56,14 @@ public actor RuntimeService {
     /// One pass at `now`.
     @discardableResult
     public func tick(now: Timestamp) async throws -> ServiceTick {
-        let expired = try await engine.approvals.expireDue(now: now).map(\.id)
+        let expiredRecords = try await engine.approvals.expireDue(now: now)
+        for record in expiredRecords {
+            if let setback = Setback(record) {
+                await scheduler.replan(
+                    after: record.run, steward: record.steward, setbacks: [setback])
+            }
+        }
+        let expired = expiredRecords.map(\.id)
         let scheduled = try await scheduler.tick(now: now)
         let (relayed, relayErrors) = try await pullRelays()
         let fresh = try await engine.approvals.book().pending.filter {

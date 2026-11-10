@@ -2,7 +2,7 @@ import AryaCore
 
 /// What started a run; the same values as `run/start.input.kind`.
 public enum RunTriggerKind: String, Hashable, Sendable, Codable {
-    case manual, schedule, message, `case`, join
+    case manual, schedule, message, `case`, join, replan
 }
 
 /// The input a run received, in the shape of `run/start.input`.

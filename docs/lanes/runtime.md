@@ -199,6 +199,10 @@ M4:
 - Crew budgets (decision 0043): `CrewBudget`, `RunDelegated` in `Crews.swift`; additive
   `RunResult.Delegation` fields (adapters), `Crew.adapters` (core), and a replay line in
   `RunReplayer` (eval) so crew children replay with their recorded budget.
+- Re-planning (decision 0046): `Replans.swift` (`Setback`, `RunEngine.replan`,
+  `ReplanRefused`); `Scheduler.replan` for setbacks found after a run; the service tick
+  re-plans expired approvals. Integration edits: `Workspace.approve/deny`, the replayer, and
+  additive `replan` input kinds (adapters, ledger) and `Limits.maxReplans` (core).
 
 ## Questions
 
@@ -263,3 +267,4 @@ M4:
 - 2026-11-09: `RuntimeService` pulls relay bindings each tick when given `relays`
 - 2026-11-09: default risk by action kind (`Risk.defaults`), `Workspace.risk` read (0037)
 - 2026-11-09: crew children with bounded adapter, effort, and limits; `run.delegated` (0043)
+- 2026-11-09: re-planning after failed, denied, or expired actions, bounded per chain (0046)

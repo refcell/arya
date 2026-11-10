@@ -517,3 +517,24 @@ struct Opened {
                 field: "label", from: "billing", to: "urgent",
                 text: "label: billing → urgent"))
 }
+
+@Test func denyingAnApprovalLetsTheStewardReplan() async throws {
+    let replanned: JSONValue = [
+        "summary": "Reply held back; will ask first.",
+        "plan": [["id": "p1", "text": "Ask before replying", "status": "pending"]],
+    ]
+    let opened = try await Opened([
+        FakeScript.Run(input: "New message MSG-9", result: liveResult),
+        FakeScript.Run(result: replanned),
+    ])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let approval = try #require(try await workspace.approvals().first)
+    _ = try await workspace.deny(approval.id, note: "not yet")
+    await workspace.settle()
+    let types = try await opened.types()
+    #expect(types.contains("plan.updated"))
+    let runs = try await workspace.runs(steward: "st_inbox")
+    #expect(runs.contains { $0.trigger == "replan" })
+}

@@ -62,6 +62,8 @@ public struct RunRequest: Sendable, Hashable {
     /// A routine version to run in place of the live version of its name (or added, for a new
     /// name): a routine proposal under rehearsal.
     public var routine: CandidateRoutine?
+    /// Whether setbacks of this run start a re-plan run (decision 0046); replay turns it off.
+    public var replanning = true
     /// For a crew child: the adapter, effort, and limits it runs with instead of the charter's.
     public var crew: CrewBudget?
     /// The run id to use instead of a fresh one (a crew child's id is recorded on
@@ -140,6 +142,8 @@ public struct RunOutcome: Sendable, Hashable {
     public var leak: Bool
     /// The crew this run delegated to, if any.
     public var crew: CrewOutcome?
+    /// The re-plan run its failed actions started (at most one; it may have its own).
+    public var replans: [RunOutcome] = []
 }
 
 /// Makes a fresh adapter for each run (one process per run, PROTOCOL.md).
@@ -211,6 +215,9 @@ public struct RunEngine: Sendable {
         if request.fansOut, let delegations = outcome.result?.delegations, !delegations.isEmpty {
             outcome.crew = try await runCrew(
                 delegations, parent: run, request: request, charter: charter)
+        }
+        if let replan = try await replanAfterFailures(outcome, request) {
+            outcome.replans = [replan]
         }
         return outcome
     }

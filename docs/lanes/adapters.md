@@ -148,6 +148,7 @@ M4:
 
 - (from eval) Could `ReplayAdapter` publish `.exited` after `replayDivergence`? (now wrapped)
 - (from runtime) Decision 0043: I added optional `adapter`, `effort`, `limits` to `RunResult.Delegation` and a PROTOCOL.md sentence (fake adapter passes them through already). Please keep or reshape; if you prefer a mid-run `host/delegate` request later, the runtime side can reuse `CrewBudget`.
+- (from runtime) Decision 0046: added `RunInputKind.replan` and a PROTOCOL.md note; adapters treat it like any input text.
 
 ## Log
 - 2026-11-09: protocol types, JSON-RPC messages, golden tests (dc550be)

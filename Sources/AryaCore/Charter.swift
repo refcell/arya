@@ -148,14 +148,42 @@ public struct Limits: Hashable, Sendable, Codable {
     public var maxTurns: Int
     public var timeoutSeconds: Int
     public var maxCostMicros: Int64
+    /// Re-plan runs one run's setbacks may start, counted along its chain (decision 0046);
+    /// omitted from the document when it is the default.
+    public var maxReplans: Int
 
-    public init(maxTurns: Int = 40, timeoutSeconds: Int = 900, maxCostMicros: Int64 = 2_000_000) {
+    public static let defaultMaxReplans = 2
+
+    public init(
+        maxTurns: Int = 40, timeoutSeconds: Int = 900, maxCostMicros: Int64 = 2_000_000,
+        maxReplans: Int = Limits.defaultMaxReplans
+    ) {
         self.maxTurns = maxTurns
         self.timeoutSeconds = timeoutSeconds
         self.maxCostMicros = maxCostMicros
+        self.maxReplans = maxReplans
     }
 
-    private enum CodingKeys: String, CodingKey { case maxTurns, timeoutSeconds, maxCostMicros }
+    private enum CodingKeys: String, CodingKey {
+        case maxTurns, timeoutSeconds, maxCostMicros, maxReplans
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        maxTurns = try c.decode(Int.self, forKey: .maxTurns)
+        timeoutSeconds = try c.decode(Int.self, forKey: .timeoutSeconds)
+        maxCostMicros = try c.decode(Int64.self, forKey: .maxCostMicros)
+        maxReplans =
+            try c.decodeIfPresent(Int.self, forKey: .maxReplans) ?? Limits.defaultMaxReplans
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(maxTurns, forKey: .maxTurns)
+        try c.encode(timeoutSeconds, forKey: .timeoutSeconds)
+        try c.encode(maxCostMicros, forKey: .maxCostMicros)
+        if maxReplans != Limits.defaultMaxReplans { try c.encode(maxReplans, forKey: .maxReplans) }
+    }
 }
 
 /// Gate settings (decision 0017).

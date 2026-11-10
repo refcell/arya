@@ -67,11 +67,16 @@ public protocol ActionExecutor: Sendable {
 public actor RecordingExecutor: ActionExecutor {
     /// Requests in the order they arrived.
     public private(set) var requests: [ExecutionRequest] = []
-    private let outcomes: [String: ExecutionOutcome]
+    private var outcomes: [String: ExecutionOutcome]
 
     /// Creates an executor that answers `outcomes[kind]` for each action kind.
     public init(outcomes: [String: ExecutionOutcome] = [:]) {
         self.outcomes = outcomes
+    }
+
+    /// Answers `outcome` for actions of `kind` from now on.
+    public func setOutcome(_ kind: String, _ outcome: ExecutionOutcome) {
+        outcomes[kind] = outcome
     }
 
     public func execute(_ request: ExecutionRequest) async -> ExecutionOutcome {

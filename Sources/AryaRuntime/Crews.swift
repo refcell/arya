@@ -134,7 +134,7 @@ struct CrewChildReport: Codable, Hashable {
 
 extension RunRequest {
     /// True for a crew child (it has a parent and is not the join).
-    var isCrewChild: Bool { parent != nil && input.kind != .join }
+    var isCrewChild: Bool { parent != nil && input.kind != .join && input.kind != .replan }
 
     /// True when this run's delegations become a crew.
     var fansOut: Bool {
