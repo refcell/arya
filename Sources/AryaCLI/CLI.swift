@@ -120,6 +120,8 @@ enum CLI {
             try await dispatchGovernance(invocation, backend: backend, output: output)
         case .runFacts, .stewardLive:
             try await dispatchLive(invocation, backend: backend, output: output)
+        case .stewardOnboarding, .stewardGate, .stewardTrajectories, .stewardMetrics:
+            try await dispatchStewardReads(invocation, backend: backend, output: output)
         case .serve:
             try await backend.serve(
                 every: try Self.every(invocation),

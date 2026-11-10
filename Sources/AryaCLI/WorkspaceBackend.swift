@@ -621,3 +621,37 @@ extension WorkspaceBackend {
         }
     }
 }
+
+extension WorkspaceBackend {
+    func onboarding(steward: String) async throws(CLIError) -> OnboardingState {
+        let workspace = try await open()
+        return try await call("onboardingState", rejection: { .notFound($0) }) {
+            try await workspace.onboardingState(steward: steward)
+        }
+    }
+
+    func goLiveGate(steward: String, agreed: Int?) async throws(CLIError) -> GoLiveSummary {
+        let workspace = try await open()
+        return try await call("goLiveGate", rejection: { .notFound($0) }) {
+            if let agreed {
+                try await workspace.goLiveGate(steward: steward, agreed: agreed)
+            } else {
+                try await workspace.goLiveGate(steward: steward)
+            }
+        }
+    }
+
+    func trajectories(steward: String) async throws(CLIError) -> TrajectorySummary {
+        let workspace = try await open()
+        return try await call("trajectories", rejection: { .notFound($0) }) {
+            try await workspace.trajectories(steward: steward)
+        }
+    }
+
+    func metricStatuses(steward: String, windows: Int?) async throws(CLIError) -> [MetricStatus] {
+        let workspace = try await open()
+        return try await call("metricStatuses", rejection: { .notFound($0) }) {
+            try await workspace.metricStatuses(steward: steward, windows: windows)
+        }
+    }
+}

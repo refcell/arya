@@ -218,3 +218,12 @@ import Testing
     let (live, _) = await runCLI(["steward", "live", "st_triage"])
     #expect(facts == .unavailable && live == .unavailable)
 }
+
+@Test func stewardReadsAreUnavailableWithoutAFacade() async {
+    for command in ["onboarding", "gate", "trajectories", "metrics"] {
+        let (status, _) = await runCLI(["steward", command, "st_triage"])
+        #expect(status == .unavailable, "steward \(command)")
+    }
+    let (bad, _) = await runCLI(["steward", "gate", "st_triage", "--agreed", "zero"])
+    #expect(bad == .usage)
+}

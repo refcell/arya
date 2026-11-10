@@ -72,7 +72,8 @@ private func usageError(_ arguments: [String]) -> CLIError? {
     (
         ["steward"],
         .usage(
-            "steward needs a subcommand: create, list, show, pause, resume, onboard, policy, live")
+            "steward needs a subcommand: create, list, show, pause, resume, onboard, policy, live, "
+                + "onboarding, gate, trajectories, metrics")
     ),
     (["steward", "bogus"], .usage("unknown command: steward bogus")),
     (["run"], .usage("missing <steward>", command: .run)),

@@ -54,7 +54,8 @@ enum ApprovalDecision: String, Sendable, Codable, Equatable {
 /// use an in-memory fake. Results are CLI view models, so `--json` output stays stable even when
 /// the facade's types change.
 protocol CLIBackend:
-    ImprovementBackend, HistoryBackend, PeopleBackend, GovernanceBackend, LiveBackend
+    ImprovementBackend, HistoryBackend, PeopleBackend, GovernanceBackend, LiveBackend,
+    StewardReadBackend
 {
     func initHome() async throws(CLIError) -> InitReport
     func createSteward(charterPath: String) async throws(CLIError) -> StewardDetail
