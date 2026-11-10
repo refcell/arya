@@ -156,6 +156,22 @@ and receive a periodic report from it.
   used connection green with its last call, chat 5 calls; All stewards People lists 9
   people with in/out counts, Lena 1 in on row and inspector; only Sam shows approves. Moves
   (4) live feel and the review-13 consistency items.
+- 2026-11-10: M3.6 #6 and #17. Attribution: the facade's note provenance names people by
+  their charter name ("From Sam's correction.", "Alex's preference, added by Alex"), so
+  Knowledge and every other reader say who corrected what; People shows "taught N" on rows
+  and a LEARNED FROM list in the person inspector (`PeopleLearned`: notes a person authored,
+  any steward, with source and steward). Reports is a third People pane per steward (decision:
+  a pane, not a steward tab, since app-shell owns tabs and STYLE caps segments at four):
+  cadence, next and last send, the next report from the real digest, Send now (the screen's
+  one primary; relayed sends run as a report run under policy), and past reports with each
+  recipient's delivery (`PeopleReportHistory`: inbox, sent, drafted, waiting, denied, failed).
+  app-shell's `ARYA_SNAPSHOT_STATES` filter (`just snapshot <state>...`) replaced the one
+  connect added earlier today.
+- Visual check (2026-11-10, reports, people-learned): Reports shows "Weekly on Mondays at
+  09:00 UTC to Sam, Priya", next 16 Nov 09:00, the digest with routed_within_1h 0.96 vs 0.95
+  and "(drafted, not sent)", one past report delivered to both inboxes; people-learned shows
+  Lee's correction under LEARNED FROM LEE and "taught 1" on Lena, Sam, Lee. Moves (4) live
+  feel and M3.6 #6, #17.
 
 ## Questions
 

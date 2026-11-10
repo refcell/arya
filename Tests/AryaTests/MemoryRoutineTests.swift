@@ -216,7 +216,7 @@ private func propose(_ opened: Opened, _ body: String, reason: String) async thr
     #expect(knowledge.shared.map(\.note.id) == [preference.id, shared.id])
     #expect(
         knowledge.shared.map(\.provenance) == [
-            "alex's preference, added by person:alex for every steward.",
+            "Alex's preference, added by Alex for every steward.",
             "Shared with every steward by you.",
         ])
 

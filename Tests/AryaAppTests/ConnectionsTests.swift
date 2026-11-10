@@ -344,3 +344,80 @@ private func events() -> [FeatureEvent] {
         #expect(person.outbound == 0)
     }
 }
+
+@Suite struct PeopleLearnedAndReportsTests {
+    private let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+    @Test func notesAPersonAuthoredAreWhatStewardsLearnedFromThem() {
+        var log = FeatureEventBuilder(start: start)
+        func note(_ id: String, _ author: String, tags: [FeatureJSON], case caseID: String? = nil) {
+            var provenance: [String: FeatureJSON] = [
+                "author": ["kind": "human", "id": .string(author)]
+            ]
+            if let caseID { provenance["case"] = .string(caseID) }
+            log.add(
+                "memory.added", actor: FeatureActor(kind: .human, id: author),
+                [
+                    "v": 1,
+                    "note": [
+                        "id": .string(id), "text": .string("note \(id)"), "tags": .array(tags),
+                        "provenance": .object(provenance),
+                    ],
+                ])
+        }
+        note("n1", "person:sam", tags: ["correction"])
+        note("n2", "person:lee", tags: [])
+        note("n3", "person:sam", tags: [], case: "case-2")
+        log.add("memory.retracted", actor: .localUser, ["v": 1, "note": "n1"])
+        let learned = PeopleLearned(events: log.events, person: "person:sam")
+        #expect(learned.items.map(\.id) == ["n3", "n1"])
+        #expect(learned.items.map(\.source) == ["case correction", "correction"])
+        #expect(learned.live.map(\.id) == ["n3"])
+    }
+
+    @Test func pastReportsCarryEachRecipientsDelivery() throws {
+        var log = FeatureEventBuilder(start: start)
+        log.add(
+            "action.proposed", run: "run_r",
+            [
+                "action": ["id": "r1", "kind": "send", "binding": "person:lee"],
+                "disposition": "auto",
+            ])
+        log.add("action.executed", run: "run_r", ["action": "r1", "dryRun": true])
+        log.add(
+            "report.sent", actor: FeatureActor(kind: .system, id: "arya"),
+            [
+                "cadence": "weekly", "text": "Weekly report: Triage.\nDid: 3 runs.",
+                "run": "run_r",
+                "to": [
+                    ["person": "person:sam", "name": "Sam", "channel": "inbox"],
+                    ["person": "person:lee", "name": "Lee", "channel": "@lee", "via": "chat"],
+                ],
+            ])
+        let sent = try #require(
+            PeopleReportHistory(events: log.events, steward: PreviewFixtures.steward).sent.first)
+        #expect(sent.subject == "Weekly report: Triage.")
+        #expect(sent.recipients.map(\.status) == [.inbox, .drafted])
+        #expect(sent.recipients.map(\.status.label) == ["in inbox", "drafted, not sent"])
+    }
+
+    @Test func theNextReportFollowsTheSlotRule() throws {
+        var log = FeatureEventBuilder(start: start)
+        var charter = PreviewFixtures.charter
+        if case .object(var members) = charter {
+            members["report"] = [
+                "to": ["person:alex"], "cadence": "weekly", "weekday": 1, "hour": 9,
+            ]
+            charter = .object(members)
+        }
+        log.add("steward.created", actor: .localUser, ["charter": charter, "version": 1])
+        let report = PeopleReport(events: log.events, steward: PreviewFixtures.steward)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let next = try #require(report.next(after: now))
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
+        #expect(calendar.component(.weekday, from: next) == 2)
+        #expect(calendar.component(.hour, from: next) == 9)
+        #expect(next > now && next.timeIntervalSince(now) <= 7 * 86_400)
+    }
+}

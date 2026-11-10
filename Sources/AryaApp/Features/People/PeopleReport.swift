@@ -45,6 +45,23 @@ struct PeopleReport: Hashable, Sendable {
         return "\(when) to \(who)."
     }
 
+    /// The next moment it goes out after `now` (the runtime's slot rule: the UTC hour, on the
+    /// weekday for weekly reports); nil when no report is set.
+    func next(after now: Date) -> Date? {
+        guard let cadence else { return nil }
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
+        var slot = calendar.startOfDay(for: now).addingTimeInterval(Double(hour) * 3600)
+        if slot <= now { slot = slot.addingTimeInterval(86_400) }
+        guard cadence == "weekly" else { return slot }
+        for _ in 0..<7 {
+            // Calendar's 1 is Sunday; ISO's 1 is Monday.
+            if (calendar.component(.weekday, from: slot) + 5) % 7 + 1 == weekday { return slot }
+            slot = slot.addingTimeInterval(86_400)
+        }
+        return slot
+    }
+
     static let days = [
         "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
     ]

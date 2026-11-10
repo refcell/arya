@@ -118,7 +118,13 @@ extension Workspace {
     public func knowledge(steward: String, timeZone: TimeZone = .current) async throws
         -> KnowledgeView
     {
-        let id = try await existing(steward).id
+        let record = try await existing(steward)
+        let id = record.id
+        // Person bindings by id, so a correction from person:sam reads "Sam".
+        let people = Dictionary(
+            record.charter.bindings.filter { $0.kind == .person }.compactMap { binding in
+                binding.name.map { (binding.id, $0) }
+            }, uniquingKeysWith: { first, _ in first })
         let state = try facadeState()
         let now = now()
         func time(_ seq: Int) -> TimeText {
@@ -131,7 +137,8 @@ extension Workspace {
             KnowledgeView.Note(
                 note: note,
                 provenance: Self.provenance(
-                    note, runTitle: note.run.flatMap { titles[RunID(unchecked: $0)] }),
+                    note, runTitle: note.run.flatMap { titles[RunID(unchecked: $0)] },
+                    people: people),
                 time: time(note.seq))
         }
         let notes = try await memory(steward: steward).reversed().map(entry)
@@ -190,16 +197,26 @@ extension Workspace {
             + ": mean \(candidate)\(against)\(regressions)."
     }
 
-    static func provenance(_ note: MemorySummary, runTitle: String?) -> String {
+    /// Where a note came from, naming who added it: a person binding by its charter name
+    /// (`people`), else its id without `person:`, capitalized ("Sam").
+    static func provenance(
+        _ note: MemorySummary, runTitle: String?, people: [String: String] = [:]
+    ) -> String {
+        func person(_ id: String) -> String {
+            guard id.hasPrefix("person:") else { return id }
+            if let name = people[id] { return name }
+            let bare = id.dropFirst("person:".count)
+            return bare.prefix(1).uppercased() + bare.dropFirst()
+        }
         let who =
             switch note.author {
             case "human:local", "local": "you"
-            case let author where author.hasPrefix("human:"): String(author.dropFirst(6))
+            case let author where author.hasPrefix("human:"): person(String(author.dropFirst(6)))
             case let author where author.hasPrefix("steward:"): "the steward"
             default: note.author
             }
         if let about = note.about {
-            let name = String(about.dropFirst("person:".count))
+            let name = person(about)
             let scope = note.shared ? "every steward" : "this steward"
             return who == "you"
                 ? "\(name)'s preference, added by you for \(scope)."
@@ -213,6 +230,10 @@ extension Workspace {
             return who == "you"
                 ? "From your correction to case \(caseID)."
                 : "From a correction to case \(caseID) by \(who)."
+        }
+        // A person's correction through the inbox (tagged `correction`, no case).
+        if note.tags.contains("correction") {
+            return who == "you" ? "From your correction." : "From \(who)'s correction."
         }
         if let runTitle, !runTitle.isEmpty { return "Learned in run \(runTitle)." }
         if note.run != nil { return "Learned in a run." }

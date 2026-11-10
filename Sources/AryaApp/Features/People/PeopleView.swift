@@ -70,11 +70,13 @@ struct PeopleView: View {
                     case .people:
                         directory(people, steward)
                         others(roster.notWith(steward), directory: people)
+                    case .channels:
+                        PeopleChannelsView(store: store, steward: steward, tests: tests)
+                    case .reports:
                         PeopleReportSection(
                             store: store, reports: reports, directory: people, read: readReport,
                             propose: propose)
-                    case .channels:
-                        PeopleChannelsView(store: store, steward: steward, tests: tests)
+                        PeopleReportHistoryView(store: store, directory: people)
                     }
                 } else {
                     everyone(roster)
@@ -162,6 +164,11 @@ struct PeopleView: View {
                     Text(role).aryaText(AryaFont.caption, AryaColor.inkMuted)
                 }
                 Spacer()
+                let taught = PeopleLearned(events: store.events, person: person.id).live.count
+                if taught > 0 {
+                    Text("taught \(taught)").aryaText(AryaFont.monoSmall, AryaColor.positive)
+                        .help("Notes stewards keep from \(person.name)'s corrections")
+                }
                 Text("\(person.inbound) in · \(person.outbound) out")
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 if let first = person.stewards.first {
@@ -394,12 +401,13 @@ enum ApproversText {
 
 /// What the People page shows: the directory with threads, or the channels people use.
 enum PeoplePane: String, CaseIterable, Hashable, Sendable {
-    case people, channels
+    case people, channels, reports
 
     var title: String {
         switch self {
         case .people: "People"
         case .channels: "Channels"
+        case .reports: "Reports"
         }
     }
 }

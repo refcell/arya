@@ -31,7 +31,9 @@ struct PeopleReportSection: View {
                     }
                     .buttonStyle(.aryaTertiary)
                 }
-                if report.configured {
+                if report.configured, !editing {
+                    // The screen's one primary: the report goes out now as a report run, so a
+                    // relayed send meets the charter's policy and may wait for approval.
                     Button("Send now") {
                         Task {
                             if await store.perform(.sendReport(steward: directory.steward)) {
@@ -39,12 +41,19 @@ struct PeopleReportSection: View {
                             }
                         }
                     }
-                    .buttonStyle(.aryaSecondary)
+                    .buttonStyle(.aryaPrimary)
+                    .help("Send it now; sends through a relay follow the charter's policy.")
                 }
             }
-            if let sent = report.lastSent {
-                Text("Last sent \(FeatureTime.relative(sent, now: store.now)).")
-                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
+            if report.configured {
+                HStack(spacing: AryaSpace.s5) {
+                    if let next = report.next(after: store.now) {
+                        fact("Next", FeatureTime.absolute(next, timeZone: utc))
+                    }
+                    fact(
+                        "Last sent",
+                        report.lastSent.map { FeatureTime.phrase($0, now: store.now) } ?? "never")
+                }
             }
             if editing { form(report) }
             preview
@@ -141,5 +150,87 @@ struct PeopleReportSection: View {
 
     private func name(_ id: String) -> String {
         directory.people.first { $0.id == id }?.name ?? PeopleDirectory.displayName(id)
+    }
+
+    private var utc: TimeZone { TimeZone(identifier: "UTC") ?? .current }
+
+    private func fact(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+            Text(label.uppercased()).aryaText(AryaFont.label, AryaColor.inkFaint)
+            Text(value).aryaText(AryaFont.monoSmall, AryaColor.ink)
+        }
+    }
+}
+
+/// Past reports, newest first: when, who sent it, the subject, and each recipient with how it
+/// reached them. Selecting one shows its text.
+struct PeopleReportHistoryView: View {
+    @ObservedObject var store: FeatureStore
+    let directory: PeopleDirectory
+    @AryaState private var open: String?
+
+    var body: some View {
+        let history = PeopleReportHistory(events: store.events, steward: directory.steward)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: AryaSpace.s2) {
+                Text("PAST REPORTS").aryaText(AryaFont.label, AryaColor.inkFaint)
+                if !history.sent.isEmpty {
+                    Text("\(history.sent.count)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
+            }
+            .padding(.bottom, AryaSpace.s1)
+            if history.sent.isEmpty {
+                Text("None sent yet.").aryaText(AryaFont.caption, AryaColor.inkFaint)
+            }
+            ForEach(history.sent) { sent in
+                row(sent)
+                if open == sent.id {
+                    Text(sent.text).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                        .padding(AryaSpace.s3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small))
+                }
+                AryaHairline()
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Past reports")
+    }
+
+    private func row(_ sent: PeopleReportHistory.Sent) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
+            DisclosureChevron(isExpanded: open == sent.id)
+            Text(FeatureTime.relative(sent.at, now: store.now))
+                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                .frame(minWidth: 44, alignment: .leading)
+            Text(sent.subject).aryaText(AryaFont.caption, AryaColor.ink).lineLimit(1)
+            Spacer(minLength: AryaSpace.s3)
+            ForEach(sent.recipients) { recipient in
+                Text("\(recipient.name) · \(recipient.status.label)")
+                    .aryaText(AryaFont.monoSmall, Self.color(recipient.status))
+                    .lineLimit(1)
+            }
+            Text(sent.by.kind == .system ? "on schedule" : "sent by hand")
+                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+        }
+        .frame(minHeight: AryaSize.rowHeight)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(AryaMotion.quick) { open = open == sent.id ? nil : sent.id }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+    }
+
+    static func color(_ status: PeopleReportHistory.Status) -> Color {
+        switch status {
+        case .inbox, .sent: AryaColor.positive
+        case .drafted, .waiting: AryaColor.warning
+        case .denied, .failed: AryaColor.negative
+        case .unknown: AryaColor.inkFaint
+        }
     }
 }

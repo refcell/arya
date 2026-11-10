@@ -195,6 +195,19 @@ import Testing
             $0.showPeople(steward: steward.id)
             $0.peoplePane = .channels
         }
+        // Reports: cadence, next and last send, the next report from the real digest, Send now,
+        // and past reports with each recipient's delivery.
+        model.reports.digests[steward.id] = try? await model.source.reportDigest(
+            steward: steward.id)
+        try page("reports") {
+            $0.showPeople(steward: steward.id)
+            $0.peoplePane = .reports
+        }
+        // What stewards learned from Lee: his correction, kept by the triage steward.
+        try page("people-learned") {
+            $0.showPeople(steward: nil)
+            $0.select(person: "person:lee")
+        }
         // The same thread while a new hand-off's run is still going: only that message and run
         // are added, so every count and report stays the workspace's own.
         if let store = model.featureStore {

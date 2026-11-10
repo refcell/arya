@@ -131,6 +131,41 @@ struct PersonInspector: View {
     let steward: String
     let person: String
 
+    /// What stewards learned from this person, from any steward: their corrections and notes,
+    /// each with the steward that keeps it.
+    @ViewBuilder
+    private func learned(_ name: String) -> some View {
+        let items = PeopleLearned(events: store.events, person: person).live
+        let stewards = StewardNames.build(events: store.events)
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            HStack(spacing: AryaSpace.s2) {
+                Text("LEARNED FROM \(name.uppercased())")
+                    .aryaText(AryaFont.label, AryaColor.inkFaint)
+                if !items.isEmpty {
+                    Text("\(items.count)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
+            }
+            if items.isEmpty {
+                Text("Nothing yet. Their corrections become notes every run reads.")
+                    .aryaText(AryaFont.caption, AryaColor.inkFaint)
+            }
+            ForEach(items.prefix(5)) { item in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.text).aryaText(AryaFont.caption, AryaColor.ink).lineLimit(3)
+                    Text(
+                        [
+                            item.source,
+                            item.steward.map { stewards[$0] ?? $0 },
+                            FeatureTime.relative(item.at, now: store.now),
+                        ].compactMap { $0 }.joined(separator: " · ")
+                    )
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
     var body: some View {
         let directory = PeopleDirectory(events: store.events, steward: steward)
         if let found = directory.people.first(where: { $0.id == person }) {
@@ -157,6 +192,7 @@ struct PersonInspector: View {
                 if let reports = PeopleThreadText.reports(thread, now: store.now) {
                     fact("Reports", reports)
                 }
+                learned(found.name)
                 VStack(alignment: .leading, spacing: AryaSpace.s1) {
                     Text("HANDED OFF").aryaText(AryaFont.label, AryaColor.inkFaint)
                     if thread.tasks.isEmpty {

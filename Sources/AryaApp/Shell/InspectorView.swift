@@ -32,8 +32,10 @@ enum InspectorFocus: Equatable {
         }
         // People always shows a person: "" stands for the directory's first person, so the
         // inspector is never empty on that page.
-        if case .people = navigation.destination, navigation.peoplePane == .people {
-            return .person(navigation.person ?? "")
+        if case .people(let steward) = navigation.destination {
+            if navigation.peoplePane == .people { return .person(navigation.person ?? "") }
+            // Channels and Reports are about the steward: show its context.
+            if let steward { return .steward(steward) }
         }
         if navigation.tab == .ledger, navigation.steward != nil,
             let event = navigation.ledgerEvent
