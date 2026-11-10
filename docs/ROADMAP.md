@@ -106,71 +106,86 @@ redesigned Overview and run-approval screens; the other screens still await revi
 
 ## M3.6 — Outcome platform parity (functional parity before polish)
 
-arya has about half of what an outcome-owning agent platform offers. Functional parity comes
-before polishing any one screen. An item is done only when it works end to end in the app:
-reachable, on real data, with a `just snapshot` state, a Visual check line in its lane, tests, and
-a `just e2e` step. Status is done, partial, or missing; owning lanes are in parentheses (new
-lanes: connect, governance). `e2e:` names what `just e2e` covers today.
+Functional parity comes before polishing any one screen. Each item has a status (done,
+partial, missing) judged on what works end to end in the app on real data, the commits that
+built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-10: 13 done,
+5 partial, 0 missing.
 
-1. Outcome, success definition, guardrails, ownership (app-outcome UI). Partial: the New steward
-   wizard and the charter editor exist; the scope of what a steward owns and multiple metrics
-   are missing. e2e: create, editor proposal through its gate and readiness.
-2. Self-onboarding: the steward ingests connected systems and history and builds context about
-   people, processes, and decisions (runtime; app-outcome UI). Missing; groundwork: a binding
-   history tool, served by the fake binding.
-3. Train on history: run against past tickets, deals, and decisions, see what it would have
-   done, correct, decide when ready (eval; app-views UI). Partial: casebook rehearsal, Correct,
-   and Mark ready exist; importing real history from a connection as cases, and a review queue
-   to go through cases one by one, are missing. e2e: rehearse, correct a case, correct a run
-   into a case, mark ready.
-4. Learn from results after acting: watch the outcome and credit it to past actions (runtime;
-   app-outcome UI). Missing.
-5. Changes simulated against past cases before going live. Done: the proposal gate and live
-   readiness. e2e: a regressing proposal fails its gate; an editor proposal passes and is ready.
-6. Works where people work (chat, email, team chat); anyone can ask, correct, or hand off, and
-   corrections improve it for everyone (connect). Partial: the local inbox and email and chat
-   relay exist; conversation threads in the app, hand-off tasks, and attribution to many people
-   are missing.
-7. Self-written routines in a versioned repository; repeatable work becomes reusable code
-   (app-views UI). Done (connect): the Routines library (Go ▸ Routines, ⇧⌘L) lists every
-   routine across stewards with its live version, stewards, pass rate, last run, and runs per
-   day; the inspector shows the newest diff and Use in steward…, gated on the target's casebook
-   (`Workspace.adoptRoutine`, decision 0060). e2e: `routines-library`.
-8. Custom policies; sensitive actions approved first. Done: charter policy, autonomy, and risk.
-   e2e: a policy hold and an autonomy hold, each explained; approve and deny.
-9. Precise metrics, or evaluations it builds from its own work and expert judgment (eval).
-   Partial: metrics and the rubric judge exist; evaluations built automatically from
-   corrections and expert labels are missing. e2e: the run's metric and series.
-10. Fleets: fan out sub-agents across tasks and scale with the work (app-views UI). Partial:
-    crew delegation exists, and the demo seeds one crew run. Done (connect): the run inspector
-    shows a crew run's fan-out (host and delegates with status, step, duration, outcome),
-    following the run live. e2e: a crew run whose child only proposes, then a join;
-    `crew-fanout-live`.
-11. Organizational memory: preferences and best practices across people and runs, updated as it
-    learns (workspace). Partial: memory with retract exists; per-person preferences and scope
-    (one steward or shared) are missing. e2e: a correction becomes a memory; retract.
-12. Persistent and proactive: keeps working for weeks and surfaces problems and opportunities on
-    its own (runtime; app-views UI). Partial: the scheduler exists; a feed of proactive findings
-    and opportunities is missing.
-13. Governance: fine-grained access by organization, team, user, and tool; every action
-    attributable and auditable (governance). Partial: the ledger audit is done; charters name
-    who may approve which actions, enforced and recorded (`arya approve --as`), and the app has
-    a people directory with roles; access by organization, team, and tool is missing. e2e: a
-    refused approver is recorded, the allowed one approves; verify the ledger.
-14. Sandboxed execution, encryption at rest, configurable retention (governance). Partial: the
-    sandbox is done, and retention is set per steward with a plan of what it would archive;
-    encryption at rest is missing.
-15. Many stewards per organization, by department, with a portfolio view (workspace facade;
-    app-shell UI). Partial: the sidebar lists stewards with health, the demo seeds three, and
-    the facade's fleet read backs `arya fleet`; a portfolio screen with every outcome against
-    its target is missing. e2e: three stewards, pause and resume, the fleet read.
-16. Templates: start from an example steward such as lead conversion, vendor spend, adoption,
-    commitments, or support triage (workspace facade; app-shell UI). Missing.
-17. Reports to people: a periodic digest of progress (connect). Missing.
-18. Abort and rollback paths (governance). Partial: a running run can be aborted from any
-    process (`arya run abort`), recorded and executing nothing, and an executed action can be
-    undone through a policy-gated compensation; both still need to be reachable in the app.
-    e2e: abort a long run from another process.
+| #  | Item                                   | Status  |
+| -- | -------------------------------------- | ------- |
+| 1  | Outcome, guardrails, ownership         | partial |
+| 2  | Self-onboarding                        | partial |
+| 3  | Train on history                       | done    |
+| 4  | Learn from results after acting        | partial |
+| 5  | Changes simulated before going live    | done    |
+| 6  | Works where people work                | done    |
+| 7  | Self-written, versioned routines       | done    |
+| 8  | Custom policies, approvals first       | done    |
+| 9  | Metrics and self-built evaluations     | done    |
+| 10 | Fleets of sub-agents                   | done    |
+| 11 | Organizational memory                  | partial |
+| 12 | Persistent and proactive               | done    |
+| 13 | Fine-grained access and audit          | partial |
+| 14 | Sandbox, encryption, retention         | done    |
+| 15 | Many stewards, portfolio               | done    |
+| 16 | Templates                              | done    |
+| 17 | Reports to people                      | done    |
+| 18 | Abort and rollback                     | done    |
+
+1. Outcome, success definition, guardrails, ownership (workspace; app-outcome). Partial: the
+   New steward wizard, the charter editor, and guardrail metrics with per-metric status
+   (b611e046); the scope of what a steward owns is missing. e2e: create, editor proposal
+   through its gate and readiness, `steward metrics` (primary vs target).
+2. Self-onboarding (runtime, workspace; app-outcome). Partial: onboarding from directory and
+   process bindings (b8ac5b7b), the onboarding state (8ffeb88a), and the "getting to know your
+   team" overview (7406e974); reading connected systems end to end is still thin ("read 0 of 3
+   systems" in e2e). e2e: `steward onboarding` (24 history cases, 7 steps).
+3. Train on history (eval; app-views). Done: history import as cases and the review queue
+   (e3187fc7, 91452312), import from a binding and a real folder connector (a05aad51,
+   e02b9fd3), and the go-live gate. e2e: import, rehearse with history, review, agree,
+   `steward gate`.
+4. Learn from results after acting (runtime, eval; app-outcome). Partial: outcome checks scored
+   per action kind (bbe9256d), trajectory grading with credit (8703fef0), and Impact in the app
+   (b4548d6e); e2e only drafts, so no graded run is covered yet. e2e: `steward trajectories`.
+5. Changes simulated against past cases before going live (eval). Done: the proposal gate and
+   live readiness. e2e: a regressing proposal fails its gate; an editor proposal passes.
+6. Works where people work; anyone can ask, correct, or hand off (connect). Done: person
+   threads, hand-offs as tasks (fc534a04), relay delivery (c385cd5d), and who corrected what
+   (c8bd367a). e2e: a person asks and corrects.
+7. Self-written routines in a versioned repository (connect, app-views). Done: routine
+   proposals and versions, version diffs (4cdd93de), and the Routines library with pass rate,
+   runs per day, and Use in steward gated on the target's casebook (50c7fd6d, decision 0060).
+   Snapshot: `routines-library`; e2e: none yet.
+8. Custom policies; sensitive actions approved first (governance). Done. e2e: a policy hold and
+   an autonomy hold, each explained; approve, deny; `steward policy`.
+9. Metrics, or evaluations built from its work and expert judgment (eval). Done: metrics, the
+   rubric judge, learned checks from corrections and agreements (fff15ee0, 73b922e6), and a
+   casebook built from accepted runs (cbde7e1e). e2e: metric series, checks, casebook build.
+10. Fleets: fan out sub-agents (runtime; connect). Done: crew delegation, in-run
+    `host/delegate` children (6b26d22b), and the crew fan-out view following the run live
+    (50c7fd6d). Snapshot: `crew-fanout-live`; e2e: a crew run whose child only proposes.
+11. Organizational memory (workspace). Partial: memory with retract and memory scopes, one
+    steward or shared (618b1ce6); per-person preferences are read-only. e2e: a correction
+    becomes a memory; retract.
+12. Persistent and proactive (runtime; app-outcome). Done: the scheduler, proactive findings
+    (afc02209), and overview findings (b4548d6e). e2e: none yet (findings need a served home).
+13. Governance: fine-grained access, attributable and auditable (governance). Partial: the
+    ledger audit, approver rules enforced and recorded (9af3f91c), and a people directory with
+    roles (cc50514f); access by organization, team, and tool is missing. e2e: a refused
+    approver is recorded, the allowed one approves; verify the ledger.
+14. Sandboxed execution, encryption at rest, retention (governance). Done: the OS sandbox,
+    encryption (d87306ce) and re-sealing older history (24284e8a), retention applied by
+    archiving (ed96bb79), all in the app (6c940da4). e2e: retention, signed export and import.
+15. Many stewards by department, with a portfolio (workspace; app-shell). Done: the portfolio
+    (5ebcf471), fleet by department (4f7e44ed), and the busy demo of eleven stewards
+    (e93b1289). e2e: three stewards, pause and resume, `arya fleet`.
+16. Templates (workspace; app-shell). Done: templates in the facade (618b1ce6) and the
+    templates step in New steward (4f7e44ed). e2e: none yet.
+17. Reports to people (connect). Done: periodic reports (fc534a04), report runs to relay people
+    (c385cd5d), and the reports pane with delivery (c8bd367a). e2e: report show and send.
+18. Abort and rollback (governance). Done: abort from any process (9af3f91c), undo through a
+    policy-gated compensation (09749ec7), both in the app (6c940da4). e2e: abort a long run;
+    undo a label.
 
 ## M4 — Real harnesses
 

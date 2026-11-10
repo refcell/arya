@@ -156,6 +156,11 @@ M4:
 - (from runtime) Integration edits (decision 0059): `arya steward onboard <steward>` (`CommandID.stewardOnboard`, `OnboardReport`, `TextRender.onboard`, backend default in the `CLIBackend` extension). Demo: a triage binding listing `directory` and `process` over the example `inbox-history.json` data would make the demo home show onboarding notes; add an e2e step if you wire it.
 
 ## Log
+- 2026-11-10: `arya steward onboarding|gate|trajectories|metrics` (onboardingState, goLiveGate,
+  trajectories, metricStatuses; `steward onboard` stays runtime's action), each with an e2e
+  step (71 steps). The live steward re-plans three days before the seed's today, so its PLAN
+  reads recent (CEO review 15). ROADMAP M3.6 now has a status table with commit refs: 13 done,
+  5 partial, 0 missing; e2e gaps named (routines, proactive findings, templates).
 - 2026-11-10: seed retimed: 1244 runs in 236 s at load 40 (0.19 s per run); no hotspot left
   in a sample (no full-ledger reads, fsync under 1%). Full history kept (CEO).
 - 2026-11-10: publish queue (decision 0058): `just publish` waits for its turn first come
