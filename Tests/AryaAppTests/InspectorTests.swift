@@ -65,3 +65,23 @@ import Testing
     #expect(facts["Duration"] == "—")
     #expect(facts["Cost"] == "—")
 }
+
+@Test func portfolioRowsSortByNeedAndReadTheFleet() {
+    let now = Date(timeIntervalSince1970: 1_700_000_000)
+    func steward(_ id: String, _ name: String, _ status: StewardSummary.Status) -> StewardSummary {
+        StewardSummary(
+            id: id, name: name, outcome: "An outcome", charterVersion: 1, status: status,
+            ready: true)
+    }
+    let rows = PortfolioRow.build(
+        stewards: [steward("st_d", "Digest", .paused), steward("st_t", "Triage", .active)],
+        runs: [:], approvals: [], events: [], now: now)
+    #expect(rows.map(\.name) == ["Triage", "Digest"])
+    #expect(rows[1].nextWake == "paused" && rows[1].state == "paused")
+    #expect(rows[0].metric == "no metric" && rows[0].lastRun == "never")
+    var navigation = NavigationState()
+    navigation.showPortfolio()
+    navigation.reconcile(stewards: ["st_t"], runs: [])
+    #expect(navigation.destination == .portfolio)
+    #expect(InspectorFocus.of(navigation) == .none)
+}

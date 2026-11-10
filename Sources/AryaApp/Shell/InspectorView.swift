@@ -17,8 +17,8 @@ enum InspectorFocus: Equatable {
 
     static func of(_ navigation: NavigationState) -> InspectorFocus {
         if navigation.destination == .approvals { return .approval(navigation.approval) }
-        if case .connections = navigation.destination, let connection = navigation.connection {
-            return .connection(connection)
+        if case .connections = navigation.destination {
+            if let connection = navigation.connection { return .connection(connection) }
         }
         if navigation.tab == .ledger, navigation.steward != nil,
             let event = navigation.ledgerEvent
@@ -71,10 +71,14 @@ enum RunFacts {
             ("Trigger", run.trigger.isEmpty ? "manual" : run.trigger),
             ("Started", AryaTime.label(run.startedAt, now: now)),
         ]
-        // Unknown reads "—": a run that did work never shows 0.0 s or $0.
-        let seconds = run.endedAt.map { $0.timeIntervalSince(run.startedAt) } ?? 0
-        out.append(("Duration", seconds > 0 ? duration(seconds) : "—"))
-        out.append(("Cost", run.costMicros > 0 ? cost(run.costMicros) : "—"))
+        // The run header's own figures (app-views' RunMetrics), "—" when unknown.
+        let facts = RunStream.build(events: events, run: run.id).facts
+        out.append(("Duration", facts.seconds.map(FeatureTime.duration) ?? "—"))
+        let micros = facts.costMicros ?? 0
+        out.append(("Cost", micros > 0 ? RunMetrics.dollars(micros) : "—"))
+        if let tokens = facts.tokens, tokens > 0 {
+            out.append(("Tokens", RunMetrics.grouped(tokens)))
+        }
         let mine = events.filter { $0.run == run.id }
         let decisions = mine.filter { $0.type == "run.decision" }.count
         let tools = mine.filter { $0.type.hasPrefix("tool.") || $0.type.hasPrefix("action.") }
@@ -161,10 +165,8 @@ struct InspectorView: View {
     @ViewBuilder private var focusContent: some View {
         switch focus {
         case .approval(let id):
-            if let approval = model.approvals.first(where: { $0.id == id })
-                ?? model.approvals.first
-            {
-                approvalContent(approval)
+            if let id = id ?? model.approvals.first?.id {
+                FeatureRegistry.approvalInspector(model.featureContext(), approval: id)
             } else {
                 Text("Nothing needs you.").aryaText(AryaFont.caption, AryaColor.inkFaint)
             }
@@ -177,23 +179,9 @@ struct InspectorView: View {
         case .steward:
             if let steward = model.selectedSteward { stewardContent(steward) }
         case .none:
-            EmptyView()
-        }
-    }
-
-    /// The oldest (or selected) approval's essentials until Needs you shares its selection
-    /// and app-views' fuller approval inspector is mounted here.
-    private func approvalContent(_ approval: ApprovalSummary) -> some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s2) {
-            Text([approval.actionKind, approval.target].compactMap { $0 }.joined(separator: " "))
-                .aryaText(AryaFont.monoStrong, AryaColor.ink)
-            fact("Steward", model.stewards.first { $0.id == approval.steward }?.name ?? "")
-            if let run = model.runs[approval.steward]?.first(where: { $0.id == approval.run }) {
-                fact("Run", StatusMapping.threadTitle(of: run))
-            }
-            fact("Asked", AryaTime.label(approval.requestedAt, now: now))
-            if let policy = approval.policyText ?? approval.policyRule { fact("Policy", policy) }
-            if let risk = approval.risk { fact("Risk", risk) }
+            Text("Select a steward to see its schedule, policy, connections, and people.")
+                .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

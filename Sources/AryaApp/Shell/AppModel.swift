@@ -24,6 +24,8 @@ final class AppModel {
     var paletteOpen = false
     /// The last ledger integrity check, for the status bar.
     private(set) var ledgerCheck: LedgerCheck?
+    /// Whether some process serves this home's triggers; nil when the source cannot tell.
+    private(set) var serving: Bool?
     /// The New steward flow's starting answers while its sheet is open.
     var stewardSheet: NewStewardDraft?
     private(set) var stewards: [StewardSummary] = []
@@ -96,6 +98,7 @@ final class AppModel {
             self.efforts = efforts.compactMapValues(AryaEffort.init(rawValue:))
             // Integrity is a status-bar fact; a failed check leaves the last one shown.
             if let check = try? await source.verifyLedger() { ledgerCheck = check }
+            serving = await source.schedulerServing()
             problem = nil
             announce(approvals, stewards: stewards)
         } catch {

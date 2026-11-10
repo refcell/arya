@@ -266,3 +266,18 @@ M4:
   palette lists steward, go, and steward-jump commands with keycaps; the status bar shows on
   every state; Needs you's inspector shows the approval's steward, run, policy, and risk; R1-R5
   pass.
+- 2026-11-09 (VC21, #15): Portfolio ("All stewards" row, ⌘9, palette): one table of every
+  steward (metric vs target with sparkline, state, needs you, last run, next), sorted by need.
+  The inspector mounts app-views' `approvalInspector` (Needs you selection bound to
+  `navigation.approval`); connect's selected-connection focus stays as they shipped it. Status bar: waiting
+  in ink with a dot, "serving" / "scheduler stopped" from the home's `scheduler.lock`, "spend —
+  today" when unknown. RunFacts take the run header's duration, cost, and tokens. Palette
+  keycaps ⌥⌘P pause, ⌥⌘T rehearse, ⌃1-9 stewards, Approve/Deny selected (no approve for high
+  risk); Settings window at its own size with a Text size choice row.
+- Visual check (`just snapshot` portfolio, run, needs-you, app-settings): portfolio rows sort by
+  need with red behind-target metrics; run inspector reads 14 ms like the header; status bar
+  reads scheduler stopped and • 4 waiting on you; R1-R5 pass.
+- 2026-11-09 Paused for the night (user order) after this commit. Next: Portfolio's Next column
+  clips beside the inspector (give the table min widths or let Outcome flex less); Templates
+  (#16) as step 0 of New steward; register app-views' and app-outcome's commands; the visual
+  feel gap is tomorrow's top priority.

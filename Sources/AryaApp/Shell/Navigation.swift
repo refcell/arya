@@ -28,6 +28,8 @@ enum Destination: Hashable, Sendable {
     case steward(String)
     /// The approval queue across all stewards.
     case approvals
+    /// Every steward in one table: outcome, metric against target, state, next wake.
+    case portfolio
     /// The Connections page; Connect and Disconnect act on `steward`.
     case connections(steward: String?)
     /// The People page for `steward`.
@@ -80,6 +82,11 @@ struct NavigationState: Hashable, Sendable {
         run = id
     }
 
+    mutating func showPortfolio() {
+        destination = .portfolio
+        run = nil
+    }
+
     mutating func showApprovals() {
         destination = .approvals
         run = nil
@@ -128,7 +135,7 @@ struct NavigationState: Hashable, Sendable {
     /// Keeps the selection valid after the steward list changes: a vanished steward falls back
     /// to the first one, and an empty list clears the selection.
     mutating func reconcile(stewards ids: [String], runs runIDs: [String]) {
-        if destination == .approvals { return }
+        if destination == .approvals || destination == .portfolio { return }
         if case .connections(let id) = destination {
             if let id, !ids.contains(id) { destination = .connections(steward: ids.first) }
             return

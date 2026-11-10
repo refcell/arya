@@ -49,6 +49,9 @@ struct AryaApp: App {
 
 /// App-wide settings, apart from any steward: where the home is, appearance, and text size.
 struct AppSettingsView: View {
+    /// The Settings window's content size.
+    static let windowSize = CGSize(width: 420, height: 220)
+
     /// The open home's label; nil before one opens.
     let home: String?
     @AppStorage(AryaApp.appearanceKey) private var appearance = AryaAppearance.dark.rawValue
@@ -70,18 +73,16 @@ struct AppSettingsView: View {
                 }
             }
             section("Text size") {
-                HStack(spacing: AryaSpace.s3) {
-                    Button("Smaller") { textScale = Double(TextScale.smaller(textScale)) }
-                        .buttonStyle(.aryaTertiary)
-                    Button("Actual size") { textScale = Double(TextScale.standard) }
-                        .buttonStyle(.aryaTertiary)
-                    Button("Bigger") { textScale = Double(TextScale.bigger(textScale)) }
-                        .buttonStyle(.aryaTertiary)
-                }
+                ChoiceRow(
+                    zip(TextScale.steps, TextScale.labels).map { ($0, $1) },
+                    selection: TextScale.normalized(textScale)
+                ) { textScale = Double($0) }
             }
         }
         .padding(AryaSpace.s4)
-        .frame(width: AryaSize.inspectorWidth, alignment: .leading)
+        .frame(
+            width: Self.windowSize.width, height: Self.windowSize.height, alignment: .topLeading
+        )
         .background(AryaColor.canvas)
     }
 
@@ -157,10 +158,15 @@ struct AryaCommands: Commands {
                 .disabled(steward == nil || steward?.status != .active)
             if steward?.status == .paused {
                 Button("Resume") { Task { await session.model?.setPaused(false) } }
+                    .keyboardShortcut("p", modifiers: [.command, .option])
             } else {
                 Button("Pause") { Task { await session.model?.setPaused(true) } }
+                    .keyboardShortcut("p", modifiers: [.command, .option])
                     .disabled(steward?.status != .active)
             }
+            Button("Rehearse") { session.model?.navigation.tab = .improve }
+                .keyboardShortcut("t", modifiers: [.command, .option])
+                .disabled(steward == nil)
         }
         CommandMenu("Go") {
             Button("Command Palette…") { session.model?.paletteOpen.toggle() }
@@ -168,6 +174,8 @@ struct AryaCommands: Commands {
             Divider()
             Button("Needs You") { session.model?.navigation.showApprovals() }
                 .keyboardShortcut("0")
+            Button("All Stewards") { session.model?.navigation.showPortfolio() }
+                .keyboardShortcut("9")
             Button("Toggle Sidebar") { session.model?.navigation.sidebar.toggle() }
                 .keyboardShortcut("\\")
             Button("Toggle Inspector") { session.model?.navigation.inspector.toggle() }
@@ -176,6 +184,12 @@ struct AryaCommands: Commands {
                 .keyboardShortcut("k", modifiers: [.command, .shift])
             Button("People") { session.model?.navigation.showPeople() }
                 .keyboardShortcut("p", modifiers: [.command, .shift])
+            Divider()
+            let stewards = Array((session.model?.stewards ?? []).prefix(9).enumerated())
+            ForEach(stewards, id: \.element.id) { index, steward in
+                Button(steward.name) { session.model?.navigation.select(steward: steward.id) }
+                    .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .control)
+            }
             Divider()
             ForEach(Array(StewardTab.allCases.enumerated()), id: \.element) { index, tab in
                 Button(tab.title) { session.model?.navigation.tab = tab }

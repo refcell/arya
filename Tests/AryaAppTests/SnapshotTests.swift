@@ -46,15 +46,18 @@ import Testing
             try page("run-approval") { $0.select(run: waiting.id, steward: steward.id) }
         }
         try page("needs-you") { $0.showApprovals() }
+        // Every steward in one table, sorted by need.
+        try page("portfolio") { $0.showPortfolio() }
         // Command-K over the Overview: the search line, commands, groups, and keycaps.
         model.paletteOpen = true
         try page("command-palette") { $0.tab = .overview }
         model.paletteOpen = false
         // App settings, behind the gear (Command-comma), apart from any steward.
+        // At the Settings window's own size, not the main window's.
         let settings = AppSettingsView(home: model.source.label)
-            .frame(width: Self.size.width, height: Self.size.height, alignment: .center)
-            .background(AryaColor.canvas)
-        try write("app-settings", scheme: scheme, render(settings, dark: dark))
+        try write(
+            "app-settings", scheme: scheme,
+            render(settings, dark: dark, size: AppSettingsView.windowSize))
         // The fleet in the sidebar: another steward selected, so every steward's dot, the
         // paused word, and the selected one's metric against its target all show.
         if let other = model.stewards.first(where: { $0.id != steward.id && $0.status == .active })

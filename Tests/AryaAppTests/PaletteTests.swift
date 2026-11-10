@@ -56,7 +56,29 @@ import Testing
         timeZone: utc)
     #expect(line.stewards == "2 stewards · 1 paused")
     #expect(line.ledger == "✓ verified 1755")
-    #expect(line.cost == "$0.420 today")
+    #expect(line.cost == "$0.42 today")
     #expect(line.schedule == "no scheduled runs")
     #expect(line.waiting == 2)
+}
+
+@Test func schedulerCellReadsTheLock() {
+    #expect(StatusBarLine.scheduler(true) == "serving")
+    #expect(StatusBarLine.scheduler(false) == "scheduler stopped")
+    #expect(StatusBarLine.scheduler(nil) == "scheduler —")
+}
+
+@MainActor @Test func paletteShowsShortcutsAndActsOnTheSelectedApproval() async {
+    let model = AppModel(source: FakeWorkspaceSource())
+    await model.refresh()
+    model.navigation.select(steward: "st_triage")
+    let keys = Dictionary(
+        CommandCatalog.all(model).map { ($0.id, $0.keys) }, uniquingKeysWith: { a, _ in a })
+    #expect(keys["pause"] == "⌥⌘P")
+    #expect(keys["rehearse"] == "⌥⌘T")
+    let first = model.stewards.first?.id ?? ""
+    #expect(keys["steward-\(first)"] == "⌃1")
+    #expect(keys["sidebar"] == "⌘\\")
+    model.navigation.showApprovals()
+    let ids = CommandCatalog.all(model).map(\.id)
+    #expect(ids.contains("deny-selected"))
 }

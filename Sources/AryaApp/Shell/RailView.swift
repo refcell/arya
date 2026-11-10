@@ -55,6 +55,18 @@ struct RailView: View {
             .padding(.horizontal, AryaSpace.s2)
             .frame(height: AryaSize.rowHeight)
             .padding(.bottom, AryaSpace.s3)
+            if !model.stewards.isEmpty {
+                Button {
+                    model.navigation.showPortfolio()
+                } label: {
+                    RailRow(
+                        "All stewards", trailing: "\(model.stewards.count)",
+                        isSelected: model.navigation.destination == .portfolio,
+                        trailingIsMono: true)
+                }
+                .buttonStyle(.plain)
+                .help("Every steward in one table (Command-9)")
+            }
             needsYouRow
             if !model.stewards.isEmpty {
                 RailGroupLabel("Stewards")

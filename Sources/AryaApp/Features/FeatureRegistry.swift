@@ -247,7 +247,11 @@ enum FeatureRegistry {
     @ViewBuilder
     static func approvals(_ context: FeatureContext) -> some View {
         if let store = context.store {
-            ApprovalQueueView(store: store)
+            ApprovalQueueView(
+                store: store,
+                selection: Binding(
+                    get: { context.model.navigation.approval },
+                    set: { context.model.navigation.approval = $0 }))
         } else {
             Text("Nothing needs you right now.")
                 .aryaText(AryaFont.body, AryaColor.inkMuted)

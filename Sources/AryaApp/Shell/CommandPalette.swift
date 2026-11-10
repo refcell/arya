@@ -31,13 +31,15 @@ enum CommandCatalog {
                         keys: "⇧⌘R"
                     ) { model in Task { await model.startRun() } })
                 out.append(
-                    PaletteCommand(id: "pause", title: "Pause \(steward.name)", group: "Steward") {
-                        model in Task { await model.setPaused(true) }
-                    })
+                    PaletteCommand(
+                        id: "pause", title: "Pause \(steward.name)", group: "Steward",
+                        keys: "⌥⌘P"
+                    ) { model in Task { await model.setPaused(true) } })
             } else if steward.status == .paused {
                 out.append(
                     PaletteCommand(
-                        id: "resume", title: "Resume \(steward.name)", group: "Steward"
+                        id: "resume", title: "Resume \(steward.name)", group: "Steward",
+                        keys: "⌥⌘P"
                     ) { model in Task { await model.setPaused(false) } })
             }
             out.append(
@@ -46,7 +48,8 @@ enum CommandCatalog {
                 ) { model in FeatureRegistry.editCharter(model) })
             out.append(
                 PaletteCommand(
-                    id: "rehearse", title: "Rehearse against past cases", group: "Steward"
+                    id: "rehearse", title: "Rehearse against past cases", group: "Steward",
+                    keys: "⌥⌘T"
                 ) {
                     model in model.navigation.tab = .improve
                 })
@@ -55,6 +58,10 @@ enum CommandCatalog {
             PaletteCommand(
                 id: "new-steward", title: "New steward…", group: "Steward", keys: "⌘N"
             ) { model in model.stewardSheet = NewStewardDraft() })
+        out.append(
+            PaletteCommand(
+                id: "portfolio", title: "Go to All stewards", group: "Go", keys: "⌘9"
+            ) { model in model.navigation.showPortfolio() })
         out.append(
             PaletteCommand(id: "needs-you", title: "Go to Needs you", group: "Go", keys: "⌘0") {
                 model in model.navigation.showApprovals()
@@ -66,10 +73,11 @@ enum CommandCatalog {
                     keys: "⌘\(index + 1)"
                 ) { model in model.navigation.tab = tab })
         }
-        for other in model.stewards {
+        for (index, other) in model.stewards.enumerated() {
             out.append(
                 PaletteCommand(
-                    id: "steward-\(other.id)", title: "Go to \(other.name)", group: "Stewards"
+                    id: "steward-\(other.id)", title: "Go to \(other.name)", group: "Stewards",
+                    keys: index < 9 ? "⌃\(index + 1)" : nil
                 ) {
                     model in model.navigation.select(steward: other.id)
                 })
@@ -82,6 +90,24 @@ enum CommandCatalog {
                         group: "Runs"
                     ) { model in model.navigation.select(run: run.id, steward: steward.id) })
             }
+        }
+        if model.navigation.destination == .approvals,
+            let selected = model.approvals.first(where: { $0.id == model.navigation.approval })
+                ?? model.approvals.first
+        {
+            let what = [selected.actionKind, selected.target].compactMap { $0 }
+                .joined(separator: " ")
+            // High-risk actions are approved in Needs you itself, where the confirm is.
+            if selected.risk != "high" {
+                out.append(
+                    PaletteCommand(
+                        id: "approve-selected", title: "Approve \(what)", group: "Needs you"
+                    ) { model in Task { await model.approve(selected.id) } })
+            }
+            out.append(
+                PaletteCommand(id: "deny-selected", title: "Deny \(what)", group: "Needs you") {
+                    model in Task { await model.deny(selected.id) }
+                })
         }
         for approval in model.approvals.prefix(10) {
             let what = [approval.actionKind, approval.target].compactMap { $0 }

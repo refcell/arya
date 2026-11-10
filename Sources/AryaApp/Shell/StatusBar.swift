@@ -45,7 +45,18 @@ struct StatusBarLine: Equatable {
             schedule: next.map { "next run \(AryaTime.upcoming($0, now: now, timeZone: timeZone))" }
                 ?? "no scheduled runs",
             stewards: fleet.joined(separator: " · "), waiting: waiting, ledger: ledger,
-            ledgerOK: check?.ok ?? true, cost: "\(RunFacts.cost(today)) today")
+            ledgerOK: check?.ok ?? true,
+            cost: today > 0 ? "\(RunMetrics.dollars(today)) today" : "spend — today")
+    }
+
+    /// "serving" while a process fires this home's triggers, "scheduler stopped" when none
+    /// does, "scheduler —" when the source cannot tell.
+    static func scheduler(_ serving: Bool?) -> String {
+        switch serving {
+        case true?: "serving"
+        case false?: "scheduler stopped"
+        case nil: "scheduler —"
+        }
     }
 }
 
@@ -60,16 +71,16 @@ struct StatusBar: View {
             stewards: model.stewards, runs: model.runs, waiting: model.pendingApprovalCount,
             events: events, check: model.ledgerCheck, now: now)
         HStack(spacing: AryaSpace.s4) {
-            // Whether a scheduler is serving this home: "—" until the facade reports it.
-            item("scheduler —")
+            item(StatusBarLine.scheduler(model.serving))
             item(line.schedule)
             item(line.stewards)
             if line.waiting > 0 {
                 Button {
                     model.navigation.showApprovals()
                 } label: {
-                    Text("\(line.waiting) waiting on you").aryaText(
-                        AryaFont.monoSmall, AryaColor.accent)
+                    // Orange is for the primary action only; the count reads in ink.
+                    Text("• \(line.waiting) waiting on you")
+                        .aryaText(AryaFont.monoSmall, AryaColor.ink)
                 }
                 .buttonStyle(.plain)
             }

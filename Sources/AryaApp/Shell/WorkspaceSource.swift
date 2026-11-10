@@ -45,12 +45,17 @@ protocol WorkspaceSource: Sendable {
     func liveReadinessSummary(proposal: String) async throws -> FeatureLiveReadiness
     /// Each pending approval's policy sentence and change line.
     func approvalTexts() async throws -> [String: FeatureApprovalText]
+    /// Whether a process (this app or `arya serve`) fires this home's triggers; nil when the
+    /// source cannot tell.
+    func schedulerServing() async -> Bool?
     /// Starts a connection's server with its secret and lists its tools (the Test button).
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
         async throws -> ConnectionTest
 }
 
 extension WorkspaceSource {
+    func schedulerServing() async -> Bool? { nil }
+
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
         async throws -> ConnectionTest
     {
@@ -100,6 +105,21 @@ extension WorkspaceSource {
 
 extension Workspace: WorkspaceSource {
     nonisolated var label: String { home.lastPathComponent }
+
+    /// Serving here, or another process holds `<home>/scheduler.lock` (the lock `arya serve`
+    /// takes with an exclusive flock). The probe asks for a shared, non-blocking lock and
+    /// drops it at once; nil when the home has no lock file to ask.
+    func schedulerServing() async -> Bool? {
+        if await isServing { return true }
+        let path = home.appendingPathComponent("scheduler.lock").path
+        guard FileManager.default.fileExists(atPath: path) else { return false }
+        let fd = Darwin.open(path, O_RDONLY | O_CLOEXEC)
+        guard fd >= 0 else { return nil }
+        defer { Darwin.close(fd) }
+        guard flock(fd, LOCK_SH | LOCK_NB) == 0 else { return true }
+        flock(fd, LOCK_UN)
+        return false
+    }
 
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
         async throws -> ConnectionTest
