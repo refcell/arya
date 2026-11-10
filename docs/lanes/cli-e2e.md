@@ -131,8 +131,9 @@ M4:
   weeks ago and a recovery, failed runs, 11 approvals waiting across 7 stewards (the rest
   decided), messages, proposals, memory, today's runs and cost; about 13 min under load 38
   (facade calls scan the ledger; workspace is making them incremental). `just snapshot` copies
-  the home and keeps a live lead run in progress. `arya message`, `arya report [--send]`; e2e 52
-  steps. Visual check: pending app-shell's snapshot settle fix (point 5).
+  the home and keeps a live lead run in progress. Connect's people threads, reports, and
+  `demo.sh --live` now go through the seeder. e2e: message ask and correct, report show and send
+  (52 steps). Visual check: pending app-shell's snapshot settle fix (point 5).
 - 2026-11-10: Paused for the night after the approvers and abort batch. Next: an e2e step per
   new M3.6 item (undo through compensation, retention plan, connection probe without Keychain).
 - 2026-11-10: `arya fleet` (workspace fleet read); `arya approve --as`, approvers on
