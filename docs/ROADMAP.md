@@ -65,7 +65,7 @@ is. Fix these five before any other app work:
 The M3 checklist passes, but the app was far from the target experience. Owners are in
 parentheses; status as of 2026-11-09, evening. "Landed" means on main. The reviewer passed the
 redesigned Overview and run-approval screens; the other screens still await review. `just e2e`
-(37 steps, about a minute) drives the facade flows behind these screens headlessly.
+(42 steps, about 30 s once built) drives the facade flows behind these screens headlessly.
 
 - Restyle (app-shell, app-views). Landed in a clean single-canvas style instead of the dense
   dark layout first listed (decision 0036): hidden title bar, four tabs, one accent.
@@ -116,7 +116,8 @@ lanes: connect, governance). `e2e:` names what `just e2e` covers today.
    wizard and the charter editor exist; the scope of what a steward owns and multiple metrics
    are missing. e2e: create, editor proposal through its gate and readiness.
 2. Self-onboarding: the steward ingests connected systems and history and builds context about
-   people, processes, and decisions (runtime; app-outcome UI). Missing.
+   people, processes, and decisions (runtime; app-outcome UI). Missing; groundwork: a binding
+   history tool, served by the fake binding.
 3. Train on history: run against past tickets, deals, and decisions, see what it would have
    done, correct, decide when ready (eval; app-views UI). Partial: casebook rehearsal, Correct,
    and Mark ready exist; importing real history from a connection as cases, and a review queue
@@ -148,18 +149,24 @@ lanes: connect, governance). `e2e:` names what `just e2e` covers today.
     its own (runtime; app-views UI). Partial: the scheduler exists; a feed of proactive findings
     and opportunities is missing.
 13. Governance: fine-grained access by organization, team, user, and tool; every action
-    attributable and auditable (governance). Partial: the ledger audit is done; roles and
-    approver permissions are missing. e2e: verify the ledger.
+    attributable and auditable (governance). Partial: the ledger audit is done; charters name
+    who may approve which actions, enforced and recorded (`arya approve --as`), and the app has
+    a people directory with roles; access by organization, team, and tool is missing. e2e: a
+    refused approver is recorded, the allowed one approves; verify the ledger.
 14. Sandboxed execution, encryption at rest, configurable retention (governance). Partial: the
-    sandbox is done; encryption and retention are missing.
+    sandbox is done, and retention is set per steward with a plan of what it would archive;
+    encryption at rest is missing.
 15. Many stewards per organization, by department, with a portfolio view (workspace facade;
-    app-shell UI). Partial: the sidebar lists stewards with health, and the demo seeds three;
-    a portfolio screen with every outcome against its target is missing. e2e: three stewards,
-    pause and resume.
+    app-shell UI). Partial: the sidebar lists stewards with health, the demo seeds three, and
+    the facade's fleet read backs `arya fleet`; a portfolio screen with every outcome against
+    its target is missing. e2e: three stewards, pause and resume, the fleet read.
 16. Templates: start from an example steward such as lead conversion, vendor spend, adoption,
     commitments, or support triage (workspace facade; app-shell UI). Missing.
 17. Reports to people: a periodic digest of progress (connect). Missing.
-18. Abort and rollback paths (governance). Missing.
+18. Abort and rollback paths (governance). Partial: a running run can be aborted from any
+    process (`arya run abort`), recorded and executing nothing, and an executed action can be
+    undone through a policy-gated compensation; both still need to be reachable in the app.
+    e2e: abort a long run from another process.
 
 ## M4 — Real harnesses
 
