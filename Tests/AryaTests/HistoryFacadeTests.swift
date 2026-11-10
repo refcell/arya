@@ -56,3 +56,40 @@ import Testing
         try await workspace.importHistory(steward: "st_inbox", binding: "nowhere")
     }
 }
+
+@Test func onboardingStateFollowsHistoryReviewAndContext() async throws {
+    let opened = try await Opened(improvementScript())
+    let workspace = opened.workspace
+    var charter = inboxCharter()
+    charter.scorer = .exact(fields: ["decisions.choice", "actions.kind", "actions.target"])
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+
+    let fresh = try await workspace.onboardingState(steward: "st_inbox")
+    #expect(
+        fresh.steps.map(\.key)
+            == ["systems", "people", "processes", "notes", "history", "review", "ready"])
+    #expect(fresh.historyCases == 0 && fresh.review == nil && !fresh.ready)
+    #expect(fresh.next?.key == fresh.steps.first { !$0.done }?.key)
+    #expect(fresh.steps.first { $0.key == "history" }?.detail == "No history imported yet.")
+    #expect(fresh.summary.hasPrefix("\(fresh.done) of 7 steps done; next: "))
+
+    _ = try await workspace.importCasebook(
+        steward: "st_inbox", data: try casebookLines(), name: "inbox")
+    let export = """
+        {"v":1,"history":[
+        {"id":"MSG-9","at":"2026-09-02T08:00:00Z","input":"New message MSG-9","choice":"bug"}]}
+        """
+    _ = try await workspace.importHistory(
+        steward: "st_inbox", data: Data(export.utf8), source: "export.jsonl")
+    _ = try await workspace.reviewCase(steward: "st_inbox", case: "case-1", verdict: "agree")
+
+    let state = try await workspace.onboardingState(steward: "st_inbox")
+    let history = try #require(state.steps.first { $0.key == "history" })
+    #expect(history.done && history.count == 1 && state.historyCases == 1)
+    #expect(history.detail == "Imported 1 case from history.")
+    let review = try #require(state.steps.first { $0.key == "review" })
+    #expect(!review.done && review.count == 1 && review.total == 4)
+    #expect(review.detail.hasPrefix("1 of 4 reviewed"))
+    #expect(state.done == fresh.done + 1)
+    #expect(state.progress == Double(state.done) / 7)
+}

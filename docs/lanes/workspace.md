@@ -252,3 +252,6 @@ M3:
 - 2026-11-10: one serving rule: `serveState()` (scheduler lock held, or a running run's lease
   held), used by `serveStatus()` and `stewardLive`; `LedgerCheck.lines` from the ledger's
   verification report (optional, older JSON decodes).
+- 2026-11-10: M3.6 #2 onboarding: `onboardingState(steward:)`, seven ordered steps (systems
+  read, people and processes found, context notes, history imported, review progress,
+  readiness) from the context, routines, casebook, review queue, and readiness reads.
