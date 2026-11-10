@@ -120,6 +120,12 @@ M4:
 - (from eval) Added triage/history-export.jsonl, demo history import + review, e2e steps 15-18.
 
 ## Log
+- 2026-11-10: Paused for the night after the approvers and abort batch. Next: an e2e step per
+  new M3.6 item (undo through compensation, retention plan, connection probe without Keychain).
+- 2026-11-10: `arya fleet` (workspace fleet read); `arya approve --as`, approvers on
+  `arya approvals`, `arya run abort`; e2e 42 steps (fleet read, refused approver recorded, abort a
+  long run from another process; MSG-204 sleeps 30 s in the triage script); demo seeds a last
+  look 2 h before the newest activity in `app/visits.json` (asked app-outcome to read it).
 - 2026-11-10: crew in the demo (MSG-203's `delegations` plus a `joins` response in the fake
   script, keyed by delegation id); `arya run show` lists crew and join; `arya readiness`; e2e 37
   steps (editor proposal and readiness, crew run); ROADMAP M3.6 parity map. Readiness on crew

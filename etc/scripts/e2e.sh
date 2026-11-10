@@ -7,7 +7,8 @@
 # hold, deny and approve, a gated charter proposal that leaves the live steward ready, a run
 # correction that becomes a case and a memory, a retract, a charter editor proposal (one more
 # guardrail) that passes its gate and live readiness, a crew run whose child drafts the reply
-# and only proposes, the docs-only publish path
+# and only proposes, approver rules (a refused approver is recorded), aborting a running run
+# from another process, the docs-only publish path
 # (etc/scripts/test-publish.sh docs-only), and verify the ledger. Run with `just e2e`.
 #
 #   e2e.sh           run the scenario; the temporary home is deleted afterwards
@@ -15,7 +16,7 @@
 #
 # Each step prints ok, PENDING (the command or the piece behind it is not built yet: exit 69
 # or an unknown command), or FAIL. Steps belong to groups (setup, rehearsal, live, metrics,
-# replay, fleet, holds, improve, crew, publish);
+# replay, fleet, holds, improve, crew, abort, publish);
 # a step runs only while its own group and the groups it needs are ok, and is skipped
 # otherwise, so the live run is exercised even while rehearsal is pending.
 # Exit status: 0 all ok, 1 a step failed, 2 a step is pending.
@@ -171,7 +172,20 @@ check_autonomy_hold() {
 check_hold_reasons() {
   expect "refund reply held by" "$(get 0.heldBy)" rule:reply &&
     expect "digest post held by" "$(get 1.heldBy | cut -d: -f1-2)" autonomy:suggest &&
-    [ -n "$(get 1.heldBecause)" ]
+    [ -n "$(get 1.heldBecause)" ] &&
+    expect "digest post approvers" "$(get 1.approvers.0)" local
+}
+check_refusal_recorded() {
+  expect "approval.refused events" "$(grep -c '"approval.refused"' "$out")" 1
+}
+# The process running it may not have stopped yet when `run abort` returns.
+check_abort_requested() {
+  expect run "$(get run)" "${long_run:-}" || return 1
+  case "$(get status)" in running | stopped) ;; *) echo "    status $(get status)"; return 1 ;; esac
+}
+check_aborted() {
+  expect run "$(get run)" "${long_run:-}" &&
+    expect status "$(get status)" stopped && expect "actions" "$(get actions)" 0
 }
 check_denied() { expect state "$(get state)" denied; }
 check_proposal() { expect state "$(get state)" failed && expect regression "$(get regressions.0)" case-0005; }
@@ -206,6 +220,46 @@ check_child() {
 }
 check_forgotten() { ! grep -q "\"${memory_id:-none}\"" "$out" || { echo "    $memory_id still recalled"; return 1; }; }
 
+# refused_step NAME GROUP NEEDS TEXT ARGS...: `arya ARGS...` must fail with TEXT on stderr.
+refused_step() {
+  local name=$1 group=$2 needs=$3 text=$4 dep
+  shift 4
+  n=$((n + 1))
+  for dep in $group ${needs//,/ }; do
+    if [ "$dep" != - ] && [[ "$groups_bad" == *" $dep "* ]]; then
+      printf '  %2d  %-36s skipped (needs %s)\n' "$n" "$name" "$dep"
+      return 0
+    fi
+  done
+  if ! arya "$@" >"$out" 2>"$err" && grep -F "$text" "$err" >/dev/null; then
+    printf '  %2d  %-36s ok\n' "$n" "$name"
+    return 0
+  fi
+  printf '  %2d  %-36s FAIL (wanted a refusal: %s)\n' "$n" "$name" "$text"
+  sed 's/^/    /' "$err"
+  groups_bad="$groups_bad$group "
+  state=fail
+}
+
+# start_long_run: run MSG-204 (the script sleeps 30 s) in the background, so another process
+# can abort it; sets long_pid and long_run (empty if it never started).
+start_long_run() {
+  local before
+  before=$(arya ledger tail -n 1 | plutil -extract 0.seq raw -o - - 2>/dev/null || echo 0)
+  arya run st_triage --input "New message MSG-204: Please export every ticket I ever filed" \
+    >"$work/long.json" 2>&1 &
+  long_pid=$!
+  long_run=""
+  for _ in $(seq 1 200); do
+    long_run=$(arya ledger tail -n 50 | awk -v before="$before" '
+      /"run" :/ { run = $3; gsub(/[",]/, "", run) }
+      /"seq" :/ { seq = $3; gsub(/,/, "", seq) }
+      /"type" : "run.started"/ { if (seq + 0 > before + 0) print run }' | tail -n 1)
+    [ -n "$long_run" ] && return 0
+    sleep 0.1
+  done
+}
+
 # script_step NAME GROUP COMMAND...: a step that runs a script instead of the CLI.
 script_step() {
   local name=$1 group=$2
@@ -228,6 +282,10 @@ install_profile() {
   # The digest steward at `suggest` autonomy: every action waits for a person.
   cp etc/examples/digest/charter.json "$work/digest.json"
   plutil -insert autonomy -string suggest "$work/digest.json"
+  # Only the person at this home may approve its posts.
+  plutil -insert policy.approvers -json \
+    '[{"action":"post","people":["local"],"note":"Only the team lead posts the digest"}]' \
+    "$work/digest.json"
   # What the charter editor proposes: the live triage charter with one more guardrail.
   cp "$example/charter.json" "$work/edited.json"
   plutil -insert guardrails.3 -string "Never promise a delivery date." "$work/edited.json"
@@ -277,6 +335,9 @@ step "digest post: held by autonomy" holds fleet check_autonomy_hold \
 step "approvals explain each hold" holds fleet check_hold_reasons approvals
 step "deny the refund reply" holds fleet check_denied deny "${refund_approval:-unknown}" \
   --note "billing already wrote"
+refused_step "sam may not approve the digest post" holds fleet "may not approve post" \
+  approve "${digest_approval:-unknown}" --as person:sam
+step "the refusal is recorded" holds fleet check_refusal_recorded ledger tail -n 5
 step "approve the digest post" holds fleet check_approved approve "${digest_approval:-unknown}"
 step "fleet: who needs you, each vs target" fleet holds check_fleet_read fleet
 step "propose charter v2: the gate fails" improve live check_proposal \
@@ -306,6 +367,12 @@ step "a steward reading the inbox binding" history setup check_history_steward \
   steward create --charter "$work/history.json"
 step "import 40 past messages from it" history setup check_binding_history \
   history import st_history --binding inbox
+start_long_run
+step "abort a long run from another process" abort live check_abort_requested \
+  run abort "${long_run:-unknown}" --reason "the customer withdrew the request"
+# The aborted `arya run` exits non-zero; its end is checked through `run show`.
+if [ -n "${long_pid:-}" ]; then wait "$long_pid" 2>/dev/null || true; fi
+step "it stopped and executed nothing" abort live check_aborted run show "${long_run:-unknown}"
 script_step "docs-only publish skips the build" publish etc/scripts/test-publish.sh docs-only
 step "verify the ledger" setup - check_verify ledger verify
 

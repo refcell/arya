@@ -3877,6 +3877,52 @@
           }
         ]
       }
+    },
+    "New message MSG-204: Please export every ticket I ever filed": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "collecting every ticket for the export"
+        }
+      ],
+      "steps": [
+        {
+          "sleepMs": 30000
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Exported every ticket for MSG-204.",
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "export",
+            "why": "The customer asked for a copy of their own tickets."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "binding": "inbox",
+            "kind": "reply",
+            "target": "inbox:MSG-204",
+            "params": {
+              "text": "Your export is attached."
+            },
+            "risk": "low",
+            "why": "Send the finished export to the customer."
+          }
+        ],
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Collect every ticket the customer filed",
+            "status": "done",
+            "rationale": "The export must be complete before it is sent."
+          }
+        ]
+      }
     }
   },
   "default": {
