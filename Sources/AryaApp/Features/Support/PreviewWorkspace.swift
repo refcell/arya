@@ -112,11 +112,13 @@ actor PreviewWorkspace: FeatureWorkspace {
                 steward: steward, run: nil, "case.reviewed", .localUser,
                 ["v": 1, "case": .string(caseID), "verdict": .string(verdict)])
         case .proposeCharter(let proposal): try propose(proposal)
-        case .message(let steward, let text, let intent):
+        case .message(let steward, let text, let intent, let by):
             emit(
-                steward: steward, run: nil, "inbox.message", .localUser,
+                steward: steward, run: nil, "inbox.message",
+                by == "local" ? .localUser : FeatureActor(kind: .human, id: by),
                 [
-                    "v": 1, "from": "person:local", "channel": "app",
+                    "v": 1, "from": .string(by == "local" ? "person:local" : by),
+                    "channel": "app",
                     "intent": .string(intent.rawValue), "text": .string(text),
                 ])
         case .startRun(let steward, let input):
@@ -125,6 +127,10 @@ actor PreviewWorkspace: FeatureWorkspace {
                 steward: steward, run: run, "run.started", .localUser,
                 ["trigger": "manual", "input": .string(input)])
         case .rehearse(let steward, let casebook): rehearse(steward: steward, casebook: casebook)
+        case .sendReport(let steward):
+            emit(
+                steward: steward, run: nil, "report.sent", .localUser,
+                ["cadence": "weekly", "text": "Weekly report.", "to": []])
         case .createSteward(let draft):
             emit(
                 steward: draft.id, run: nil, "steward.created", .localUser,

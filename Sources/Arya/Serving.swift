@@ -22,6 +22,8 @@ extension Workspace {
                 if (try? await scheduler.tick(now: now)) != nil {
                     try? Data(String(now.millis).utf8).write(to: heartbeat, options: .atomic)
                 }
+                // Periodic reports that came due (connect lane, `Reports.swift`).
+                _ = try? await self.sendDueReports()
                 try? await Task.sleep(for: interval)
             }
         }

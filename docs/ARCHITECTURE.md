@@ -118,6 +118,8 @@ Each line is one event:
   - `casebook.*`: `imported`; `case.*`: `corrected`
   - `rehearsal.*`: `started`, `case.scored`, `finished`; `proposal.*`: `created`, `gated`,
     `accepted`, `rejected`, `overridden`
+  - `inbox.message` (a person's message, decision 0039); `report.sent` (a periodic report
+    recorded as delivered to the people its charter names, with its text)
   - `metric.recorded`, `env.read` (an ambient reading not already carried by an envelope),
     `system.repair`, `system.started`, `system.key.added` (a checkpoint signing key),
     `system.checkpoint`
@@ -201,6 +203,10 @@ A charter is a versioned JSON document. Version numbers increase by one per acce
 - `policy.default` is `ask` when omitted: an unknown action kind is never executed silently.
 - `owner` and `department` (optional) say who answers for the outcome and which part of the
   organization it serves; the portfolio groups stewards by department.
+- `report` (optional) sends a digest of the outcome, its trend, and what the steward did to
+  people through their own person bindings: `{"to":["person:sam"],"cadence":"weekly",
+  "weekday":1,"hour":9}` (`daily` or `weekly`; ISO weekday, 1 is Monday; UTC hour; weekday
+  and hour default to Monday 09:00). `arya serve` sends it when due and records `report.sent`.
 - `policy.rules[].note` (optional) states the guardrail in a person's words, for example
   "Replies to customers need sign-off"; the approval view shows it where the rule holds an
   action.

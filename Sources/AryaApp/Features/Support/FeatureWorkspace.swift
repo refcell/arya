@@ -16,8 +16,9 @@ enum FeatureWrite: Hashable, Sendable {
     /// Records a person's correction of a rehearsed case (`case.corrected`), optionally with a
     /// new expected result, and keeps it as a memory note attributed to the person.
     case correctCase(CaseCorrection)
-    /// A person's message to a steward through the inbox (decision 0039), as the local person.
-    case message(steward: String, text: String, intent: MessageIntent)
+    /// A person's message to a steward through the inbox (decision 0039): `by` is a person
+    /// binding id ("Message as Sam" on People), or `local` for the person at this home.
+    case message(steward: String, text: String, intent: MessageIntent, by: String = "local")
     /// Teaches a steward from a live run: the run becomes a case expecting `choice` as its
     /// first decision, with an optional memory note (`correct(run:expected:note:by:)`).
     case correctRun(steward: String, run: String, choice: String, note: String)
@@ -34,6 +35,8 @@ enum FeatureWrite: Hashable, Sendable {
     case rehearse(steward: String, casebook: String?)
     /// Answers a question; recorded as `approval.granted` with the answer as its `note`.
     case answer(approval: String, text: String)
+    /// Sends a steward's periodic report now to the people its charter names (`report.sent`).
+    case sendReport(steward: String)
     /// Creates a steward from the New steward flow (`steward.created`, version 1).
     case createSteward(StewardDraft)
 }

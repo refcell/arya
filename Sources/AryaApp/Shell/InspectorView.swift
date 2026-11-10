@@ -11,6 +11,8 @@ enum InspectorFocus: Equatable {
     case event(String)
     /// A connection selected on the Connections page.
     case connection(String)
+    /// A person selected on the People page.
+    case person(String)
     case run(String)
     case steward(String)
     case none
@@ -19,6 +21,9 @@ enum InspectorFocus: Equatable {
         if navigation.destination == .approvals { return .approval(navigation.approval) }
         if case .connections = navigation.destination {
             if let connection = navigation.connection { return .connection(connection) }
+        }
+        if case .people = navigation.destination, let person = navigation.person {
+            return .person(person)
         }
         if navigation.tab == .ledger, navigation.steward != nil,
             let event = navigation.ledgerEvent
@@ -151,6 +156,7 @@ struct InspectorView: View {
         case .approval: "Approval"
         case .event: "Event"
         case .connection: "Connection"
+        case .person: "Person"
         case .run: "Run"
         case .steward: "Steward"
         case .none: "Inspector"
@@ -174,6 +180,8 @@ struct InspectorView: View {
             FeatureRegistry.eventInspector(model.featureContext(), event: id)
         case .connection(let id):
             FeatureRegistry.connectionInspector(model.featureContext(), connection: id)
+        case .person(let id):
+            FeatureRegistry.personInspector(model.featureContext(), person: id)
         case .run:
             if let run = model.selectedRun { runContent(run) }
         case .steward:

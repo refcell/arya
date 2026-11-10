@@ -117,5 +117,9 @@
   "gate": {
     "samples": 1,
     "tolerance": 0.0
+  },
+  "report": {
+    "cadence": "weekly",
+    "to": ["person:sam"]
   }
 }

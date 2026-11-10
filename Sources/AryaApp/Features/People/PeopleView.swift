@@ -9,7 +9,12 @@ struct PeopleView: View {
     @ObservedObject var store: FeatureStore
     let stewards: [StewardSummary]
     let steward: String?
+    /// The selected person: their conversation opens under their row.
+    let selected: String?
     let selectSteward: (String) -> Void
+    let select: (String) -> Void
+    @ObservedObject var reports: ReportDigestStore
+    let readReport: @Sendable (String) async throws -> ReportDigest
 
     /// `"new"`, a person id being edited, or nil.
     @AryaState private var editing: String?
@@ -34,7 +39,11 @@ struct PeopleView: View {
                     InlineError(error) { store.dismissWriteError() }
                 }
                 if let steward {
-                    directory(PeopleDirectory(events: store.events, steward: steward))
+                    let people = PeopleDirectory(events: store.events, steward: steward)
+                    directory(people, steward)
+                    PeopleReportSection(
+                        store: store, reports: reports, directory: people, read: readReport,
+                        propose: propose)
                 }
             }
             .padding(.horizontal, AryaSize.pagePadding)
@@ -45,7 +54,7 @@ struct PeopleView: View {
     }
 
     @ViewBuilder
-    private func directory(_ directory: PeopleDirectory) -> some View {
+    private func directory(_ directory: PeopleDirectory, _ steward: String) -> some View {
         if directory.people.isEmpty, editing == nil {
             EmptyState(
                 "No people yet.", guidance: "Add the people this steward answers to and asks.")
@@ -55,6 +64,10 @@ struct PeopleView: View {
                 form(directory, editing: person.id)
             } else {
                 row(person, directory: directory)
+                if selected == person.id {
+                    PersonThreadView(store: store, steward: steward, person: person)
+                        .padding(.bottom, AryaSpace.s2)
+                }
             }
             AryaHairline()
         }
@@ -78,6 +91,11 @@ struct PeopleView: View {
                 }
                 Text(person.id).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 Spacer()
+                Button(selected == person.id ? "Conversation" : "Message") {
+                    select(person.id)
+                }
+                .buttonStyle(.aryaTertiary)
+                .disabled(selected == person.id)
                 Button("Edit") {
                     draft = PersonDraft(person)
                     editing = person.id

@@ -246,9 +246,26 @@ enum FeatureRegistry {
             PeopleView(
                 store: store, stewards: model.stewards,
                 steward: model.navigation.pageSteward ?? model.stewards.first?.id,
-                selectSteward: { model.navigation.showPeople(steward: $0) })
+                selected: model.navigation.person,
+                selectSteward: { model.navigation.showPeople(steward: $0) },
+                select: { model.navigation.select(person: $0) }, reports: model.reports,
+                readReport: { [source = model.source] in try await source.reportDigest(steward: $0)
+                })
         } else {
             EmptyState("No people yet.", guidance: "The people stewards work with appear here.")
+        }
+    }
+
+    /// The inspector content for a person selected on the People page: reach, approvals, and
+    /// the work they handed off with its status.
+    @ViewBuilder
+    static func personInspector(_ context: FeatureContext, person: String) -> some View {
+        let model = context.model
+        if let store = context.store,
+            let steward = model.navigation.pageSteward
+                ?? model.stewards.first?.id
+        {
+            PersonInspector(store: store, steward: steward, person: person)
         }
     }
 

@@ -27,6 +27,8 @@ public struct Charter: Hashable, Sendable, Codable {
     public var owner: String?
     /// The part of the organization it serves, for the portfolio, for example `Support`.
     public var department: String?
+    /// A periodic report to people through their channels (connect lane); nil sends none.
+    public var report: ReportConfig?
 
     public init(
         id: StewardID, name: String, outcome: String, metric: Metric,
@@ -54,7 +56,7 @@ public struct Charter: Hashable, Sendable, Codable {
 
     private enum CodingKeys: String, CodingKey {
         case v, id, name, outcome, metric, guardrails, bindings, triggers, policy, adapter
-        case effort, crew, limits, scorer, gate, autonomy, owner, department
+        case effort, crew, limits, scorer, gate, autonomy, owner, department, report
     }
 
     public init(from decoder: any Decoder) throws {
@@ -77,6 +79,7 @@ public struct Charter: Hashable, Sendable, Codable {
         autonomy = try c.decodeIfPresent(Autonomy.self, forKey: .autonomy)
         owner = try c.decodeIfPresent(String.self, forKey: .owner)
         department = try c.decodeIfPresent(String.self, forKey: .department)
+        report = try c.decodeIfPresent(ReportConfig.self, forKey: .report)
     }
 
     /// Decodes and validates a charter document.

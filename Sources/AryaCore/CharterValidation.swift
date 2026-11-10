@@ -35,6 +35,7 @@ extension Charter {
         issues += validateBindings()
         issues += validateTriggers()
         issues += validatePolicy()
+        issues += validateReport()
         if adapter.trimmed.isEmpty { issues.append(.init("adapter", "must not be empty")) }
         if crew.maxParallel < 1 { issues.append(.init("crew.maxParallel", "must be at least 1")) }
         if limits.maxTurns < 1 { issues.append(.init("limits.maxTurns", "must be at least 1")) }

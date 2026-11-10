@@ -150,7 +150,36 @@ import Testing
             $0.showConnections()
             $0.select(connection: "inbox")
         }
+        // Offscreen renders run no tasks, so load the Report section's digest first.
+        model.reports.digests[steward.id] = try? await model.source.reportDigest(
+            steward: steward.id)
         try page("people") { $0.showPeople() }
+        // A person's conversation (connect lane): Sam's messages, the steward's replies, and
+        // hand-offs as tasks in the inspector, over the demo home's events.
+        if let store = model.featureStore {
+            let base = store.events.map(\.seq).max() ?? 0
+            let thread = PeopleFixtures.events(
+                steward: steward.id, person: "person:sam",
+                start: store.now.addingTimeInterval(-5 * 3600)
+            ).map {
+                var event = $0
+                event.seq += base
+                return event
+            }
+            let threadStore = FeatureStore(
+                workspace: PreviewWorkspace(events: store.events + thread, now: store.now),
+                now: store.now)
+            await threadStore.reload()
+            let threadModel = AppModel(source: model.source, featureStore: threadStore)
+            await threadModel.refresh()
+            threadModel.reports.digests = model.reports.digests
+            var navigation = NavigationState()
+            navigation.showPeople(steward: steward.id)
+            navigation.select(person: "person:sam")
+            threadModel.navigation = navigation
+            try write(
+                "people-thread", scheme: scheme, render(RootView(model: threadModel), dark: dark))
+        }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()
         model.navigation.select(steward: steward.id)

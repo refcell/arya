@@ -143,6 +143,10 @@ M3:
   and the app hand binding servers their secret once runtime takes a provider.
 - (from app-views) proposed: a facade call for the run-thread composer, `message(steward:text:intent:by:)` that posts `inbox.message` (decision 0039, intent ask, correct, or handoff) as the local person and starts the message run when the charter allows; today only `deliverMessage(_:from:to:)` exists and it needs a person binding. The app's `FeatureWrite.message` forwards to it as soon as it lands.
 - (from runtime) Integration edits: `Workspace.context(steward:)` in new `Context.swift` (decision 0047); `approve`/`deny` start a re-plan on a setback through the scheduler (decision 0046), so ledger tails after a deny now include the re-plan run (`settle()` first).
+- (from connect) Integration edit: the serve loop in `startServing` calls `sendDueReports()`
+  after each tick; reports live in the connect-owned `Sources/Arya/Reports.swift`
+  (`reportDigest`, `sendReport`, `dueReports`, `sendDueReports`; charter `report`, event
+  `report.sent`).
 
 - (from eval) Added Sources/Arya/History.swift: importHistory, reviewQueue, reviewCase.
 

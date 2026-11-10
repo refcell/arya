@@ -26,12 +26,19 @@ and receive a periodic report from it.
   role, reach (local inbox or an address on a relay), what they may approve, and their
   messages; add, edit, and remove as gated charter proposals; approval cards name who may
   approve the action. Snapshot `people-*`.
-- [ ] Channels: conversations with people (local inbox and email/chat relays, decision 0042)
-  as threads on the steward, with the steward's replies; send a message from the app.
-- [ ] Hand off work: a person assigns a task ("take this ticket") that becomes a run trigger
-  and shows as a task with status.
-- [ ] Periodic report: a digest from the recap and metric trend sent to chosen people through
-  a channel, configured in the charter.
+- [x] Channels: each person's thread on People (their `inbox.message` events, the steward's
+  deliveries to them, and reports sent to them), with a composer that writes as that person
+  ("Message as Sam", Ask, Correct, or Hand off) through the facade's
+  `message(steward:text:intent:by:)`. Snapshot `people-thread`.
+- [x] Hand off work: a hand-off is a task in the person inspector with the status of the run
+  that took it (queued, running, needs approval, done, failed).
+- [x] Periodic report: a charter `report` block (who, cadence, weekday, UTC hour); the
+  facade's `reportDigest`, `sendReport`, `dueReports`, and `sendDueReports` (called by the serve
+  loop) build the digest from the outcome trend and recap and record `report.sent`; People's
+  Report section shows the schedule, the next report, Send now, and a gated form. Snapshot
+  `people` (Report section) and the report in `people-thread`.
+- [ ] Reports and replies reach relay people (email/chat) through their relay's send tool, not
+  only the ledger (asked of runtime).
 - [ ] e2e steps for each item (with cli-e2e).
 
 ## Decisions
@@ -61,9 +68,42 @@ and receive a periodic report from it.
   every field the page does not manage (reply actions); removing a person also drops message
   triggers from them.
 
+- 2026-11-10: A person's thread is read from the ledger in the app (`PeopleThread`), the same
+  fold as runtime's `InboxBook`, plus `report.sent`; a hand-off's run is the one whose
+  `run.started` input attaches the message id. "Message as Sam" passes the person binding as
+  `by`, so the message is recorded in their name and a hand-off starts a run as them. No second
+  message API: the app uses workspace's `message(steward:text:intent:by:)`.
+- 2026-11-10: A report is one `report.sent` event per send, addressed to each recipient's
+  person binding (channel and relay), with the digest text; that event is the delivery for the
+  local inbox and the record for relays until runtime sends through them. The digest covers
+  everything since the previous report: the metric against its target with the change over
+  the period, counts of runs, decisions, and actions, the last three actions, failures, and
+  approvals waiting. A charter without `report` sends nothing; the app still previews a weekly
+  digest to every person. Due means the latest slot (UTC hour, on the weekday for weekly) has
+  passed with no report since, so a missed slot sends once, not once per missed period.
+
 ## Questions
 
+- (to runtime) Relay delivery: when a report or reply goes to a person reached `via` a relay,
+  call the relay's send tool with the person's address and the text, and record the result
+  on `report.sent` (today it is recorded only).
+- (to cli-e2e) `arya message <steward> --as <person> [--intent ask|correct|handoff] <text>` and
+  `arya report send|show <steward>` over `Workspace.message` and `sendReport`/`reportDigest`,
+  so the demo can seed a real conversation instead of the snapshot's fixture events.
+
 ## Log
+
+- 2026-11-10: Channels, hand-offs, and periodic reports. People shows each person's thread and
+  a "Message as" composer; the inspector lists their hand-offs with run status; the Report
+  section sets a charter `report` and previews the next digest. Facade `Reports.swift`, AryaCore
+  `ReportConfig`, and a one-line serve-loop integration edit (`sendDueReports`). Demo triage
+  charter sends Sam a weekly report.
+  Visual check (`people-thread`, `people`, dark and light): Sam's thread reads top to bottom
+  with ask, correct, hand off, reply, and report tags, the steward's lines in the accent; the
+  composer sits under the thread with Ask, Correct, Hand off and "Message as Sam…"; the
+  inspector lists hand-offs as queued, needs approval (warning), done (green); the Report row
+  shows "Weekly on Mondays at 09:00 UTC to Sam." with the next digest in mono. Dropped the
+  "ratio" unit from report numbers after the first look.
 
 - 2026-11-10 HANDOFF: Connections (c955cdb) and People are on main. Next is Channels and hand
   off work. Plan: add `Workspace.postMessage(text, from:, to:, intent:)` over

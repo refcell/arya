@@ -49,6 +49,8 @@ final class AppModel {
     @ObservationIgnored var credentials: any CredentialStore = KeychainCredentialStore()
     /// Connection test results for this session (Connections page and inspector).
     @ObservationIgnored let connectionTests = ConnectionTestStore()
+    /// Report previews for this session (People's Report section).
+    @ObservationIgnored let reports = ReportDigestStore()
 
     init(source: any WorkspaceSource, featureStore: FeatureStore? = nil) {
         self.source = source

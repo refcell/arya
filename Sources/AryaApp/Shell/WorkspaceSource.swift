@@ -51,10 +51,16 @@ protocol WorkspaceSource: Sendable {
     /// Starts a connection's server with its secret and lists its tools (the Test button).
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
         async throws -> ConnectionTest
+    /// The periodic report a steward would send now (People's Report section).
+    func reportDigest(steward: String) async throws -> ReportDigest
 }
 
 extension WorkspaceSource {
     func schedulerServing() async -> Bool? { nil }
+
+    func reportDigest(steward: String) async throws -> ReportDigest {
+        throw FeatureReadError.unavailable("reports")
+    }
 
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
         async throws -> ConnectionTest
@@ -188,14 +194,16 @@ extension Workspace: WorkspaceSource {
             } catch WorkspaceError.notFound {}
         case .startRun(let steward, let input):
             _ = try await startRun(steward: steward, input: input)
-        case .message:
-            // Waits on a facade call that posts `inbox.message` as the local person.
-            throw FeatureReadError.unavailable("messaging a steward")
+        case .message(let steward, let text, let intent, let by):
+            // Records `inbox.message` as `by`; an ask or hand-off also runs the steward on it.
+            _ = try await message(steward: steward, text: text, intent: intent.rawValue, by: by)
         case .rehearse(let steward, let casebook):
             _ = try await rehearse(steward: steward, casebook: casebook)
         case .answer(let approval, let text):
             // A person binding's answer to a question approves it with the answer as the note.
             _ = try await approve(approval, note: text)
+        case .sendReport(let steward):
+            _ = try await sendReport(steward: steward)
         case .createSteward(let draft):
             _ = try await createSteward(draft)
         }

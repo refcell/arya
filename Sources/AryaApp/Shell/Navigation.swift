@@ -50,6 +50,8 @@ struct NavigationState: Hashable, Sendable {
     var approval: String?
     /// The connection selected on the Connections page; the inspector shows it.
     var connection: String?
+    /// The person selected on the People page; the inspector shows them.
+    var person: String?
     /// The ledger event whose inspector is open on the Ledger tab.
     var ledgerEvent: String?
 
@@ -109,6 +111,7 @@ struct NavigationState: Hashable, Sendable {
     /// Switches the steward the People page shows.
     mutating func showPeople(steward id: String) {
         destination = .people(steward: id)
+        person = nil
         run = nil
     }
 
@@ -123,6 +126,12 @@ struct NavigationState: Hashable, Sendable {
     /// Selects a connection on the Connections page and shows it in the inspector.
     mutating func select(connection id: String) {
         connection = id
+        inspector = true
+    }
+
+    /// Selects a person on the People page and shows them in the inspector.
+    mutating func select(person id: String) {
+        person = id
         inspector = true
     }
 
