@@ -251,7 +251,7 @@ Parity (CEO gap map):
 - (from governance, resolved 2026-11-10 in the ledger; no change needed) Same as runtime.md: eval folds `sink.events(from: 1)` (RehearsalGate, RehearsalReport, CasebookBuilder, RunCases, Counterfactual, ReadinessReport, LiveReadiness, CasebookBook, Proposals) block retention archiving (G3); seeded `ProjectionCache` books would unblock it.
 - (from adapters) Integration edit: `Canonicalizer` drops `run.step.finished.millis` (wall time; a replay runs at its own speed). It surfaced once MSG-201 made tool calls: the facade scenario replay diverged on `millis` 3 vs 1. Keep or move to a recorded-clock approach.
 - (from governance) Same as runtime.md: eval folds `sink.events(from: 1)` (RehearsalGate, RehearsalReport, CasebookBuilder, RunCases, Counterfactual, ReadinessReport, LiveReadiness, CasebookBook, Proposals) block retention archiving (G3); seeded `ProjectionCache` books would unblock it.
-- (from runtime) Integration edit (decision 0052): `RunRecording.delegations` gives the replay each recorded `host/delegate` answer and `run.delegated`, so an in-run crew replays; in-run children record `run.delegated` like result delegations, so `CrewTree` scores both alike.
+- (from runtime) Integration edit (decision 0053): `RunRecording.delegations` gives the replay each recorded `host/delegate` answer and `run.delegated`, so an in-run crew replays; in-run children record `run.delegated` like result delegations, so `CrewTree` scores both alike.
 
 ## Log
 

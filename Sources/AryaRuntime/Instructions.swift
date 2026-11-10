@@ -95,7 +95,7 @@ public struct InstructionInputs: Sendable, Hashable {
     public var routines: [InstructionRoutine]
     /// The steward's current plan.
     public var plan: [PlanItem] = []
-    /// How each action kind has worked so far (decision 0053).
+    /// How each action kind has worked so far (decision 0054).
     public var effects: [KindEffect] = []
 
     /// Creates composer inputs.

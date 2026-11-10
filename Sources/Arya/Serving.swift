@@ -20,7 +20,7 @@ extension Workspace {
         let heartbeat = Self.tickFile(home)
         let pause = demoPace ? min(interval, .seconds(2)) : interval
         // Follow-up checks of executed actions through each binding's `outcome` tool (runtime
-        // decision 0053): an hour after an action, or a minute under demo pace.
+        // decision 0054): an hour after an action, or a minute under demo pace.
         let outcomes = OutcomeChecker(
             sink: sink, delay: demoPace ? 60_000 : FollowUps.delay,
             connect: BindingActionExecutor.spawn)

@@ -18,7 +18,7 @@ final class RunDriver: @unchecked Sendable {
     private var leak = false
     private var turns = 0
     private var steps = StepRecorder()
-    /// In-run delegations still running (decision 0052).
+    /// In-run delegations still running (decision 0053).
     private var delegations: [Task<Void, Never>] = []
     private lazy var gate = DelegationGate(width: charter.crew.maxParallel)
     private let overdue = Flag()
@@ -271,7 +271,7 @@ final class RunDriver: @unchecked Sendable {
         }
     }
 
-    /// Records `finding.raised` for each well-formed finding not already open (decision 0054).
+    /// Records `finding.raised` for each well-formed finding not already open (decision 0055).
     private func recordFindings(_ findings: [RunResult.Finding]) async throws {
         guard !findings.isEmpty else { return }
         let open = try FindingBook(try await loop.sink.events(from: 1)).open(charter.id)
@@ -343,7 +343,7 @@ final class RunDriver: @unchecked Sendable {
     }
 
     /// Runs an in-run child for `host/delegate` in the background and answers when it ends,
-    /// so the parent's other messages keep flowing (decision 0052).
+    /// so the parent's other messages keep flowing (decision 0053).
     private func startDelegation(_ adapter: any Adapter, _ id: RPCID, _ params: HostDelegateParams)
     {
         let (loop, request, charter, run, gate) = (loop, request, charter, run, gate)

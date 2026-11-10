@@ -3,7 +3,7 @@ import AryaCore
 import AryaLedger
 import Foundation
 
-// Proactive findings (decision 0054). A live run, typically a scheduled wake, may return
+// Proactive findings (decision 0055). A live run, typically a scheduled wake, may return
 // findings: a problem or an opportunity it noticed beyond its input, with evidence, an optional
 // suggested action, and whether a person must decide. Each well-formed one is recorded as
 // `finding.raised` on the run (actor: the steward) unless the steward already has an open

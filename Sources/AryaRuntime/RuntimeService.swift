@@ -20,7 +20,7 @@ public struct ServiceTick: Sendable, Hashable {
     public var relayed: Int = 0
     /// Relays that failed this tick, as `<steward>/<binding>: <error>`; the next tick retries.
     public var relayErrors: [String] = []
-    /// Follow-up checks recorded this tick (decision 0053).
+    /// Follow-up checks recorded this tick (decision 0054).
     public var checked: Int = 0
     /// Follow-up checks that failed (tried again next tick).
     public var checkErrors: [String] = []

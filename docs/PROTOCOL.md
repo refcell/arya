@@ -210,7 +210,7 @@ Sent exactly once per run:
 - `findings` (optional) are problems or opportunities the run noticed beyond its input:
   `kind` is `problem` or `opportunity`, `evidence` a few short lines, `suggestion` an action
   arya shows but never executes, `needsPerson` whether a person must decide. arya records
-  each one once while it is open; a malformed one is skipped (runtime decision 0054).
+  each one once while it is open; a malformed one is skipped (runtime decision 0055).
 - arya's `resultSchema` lists these fields with their allowed values and a description, so an
   exec adapter's prompt carries them; a `status` or `risk` outside the allowed values fails the
   run with `invalid_result`.

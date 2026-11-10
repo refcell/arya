@@ -152,7 +152,7 @@ M3:
 
 - (from eval) Added Sources/Arya/History.swift: importHistory, reviewQueue, reviewCase.
 - (from runtime) Integration edit (decision 0051): `startServing(every:demoPace:)` turns on `Scheduler.setDemoPace(DemoPacer())` and checks `scheduler.pace(now:)` every 2 s.
-- (from runtime) Integration edits (decision 0053): new `Effectiveness.swift` (`effectiveness`, `checks`); the serve loop runs `OutcomeChecker` (spawned binding servers, read-only `outcome` tool) each pass.
+- (from runtime) Integration edits (decision 0054): new `Effectiveness.swift` (`effectiveness`, `checks`); the serve loop runs `OutcomeChecker` (spawned binding servers, read-only `outcome` tool) each pass.
 
 ## Log
 

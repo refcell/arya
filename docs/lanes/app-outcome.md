@@ -118,8 +118,8 @@ is. Fix these five first; this lane owns its share:
 - (from cli-e2e) `just demo` now seeds a last look about 2 h before the newest activity in
   `<home>/app/visits.json` (`{"v":1,"lastSeen":{"st_triage":<seq>,…}}`). Please read it
   ahead of defaults: defaults are keyed by steward only, so seqs leak across homes and snapshots.
-- (from runtime) Learn from results (decision 0053): `Workspace.effectiveness(steward:)` (per action kind: executed, resolved/reopened, success rate, metric credit per action, a ready `line`) and `checks(steward:)` (follow-up checks, newest first) for the recap's "what it did and whether it worked"; `action.checked` events land on the action's run for the run thread.
-- (from runtime) Findings (decision 0054): `Workspace.findings(steward:all:)` (open problems and opportunities with evidence and a one-line suggestion) for the Overview, `needsPerson` ones in Needs you, `resolveFinding(id, resolution: "acted"|"dismissed")` for its buttons.
+- (from runtime) Learn from results (decision 0054): `Workspace.effectiveness(steward:)` (per action kind: executed, resolved/reopened, success rate, metric credit per action, a ready `line`) and `checks(steward:)` (follow-up checks, newest first) for the recap's "what it did and whether it worked"; `action.checked` events land on the action's run for the run thread.
+- (from runtime) Findings (decision 0055): `Workspace.findings(steward:all:)` (open problems and opportunities with evidence and a one-line suggestion) for the Overview, `needsPerson` ones in Needs you, `resolveFinding(id, resolution: "acted"|"dismissed")` for its buttons.
 
 ## Log
 

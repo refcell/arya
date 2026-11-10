@@ -546,7 +546,7 @@ home and keeps one live run in progress in the copy (its process holds the run's
 Why: a process per seeded run made a fleet of eleven stewards take many minutes, and a run in
 progress only exists while a process holds it.
 
-### 0052 — 2026-11-10 — In-run delegations run through the crew path
+### 0053 — 2026-11-10 — In-run delegations run through the crew path
 
 Context: adapters can send `host/delegate` and wait for a child's result, but the runtime
 refused it. Decision (CEO): the child runs exactly like a `run/result` delegation (decision
@@ -561,7 +561,7 @@ result. Replay answers from the recorded `host/delegate` responses (`RunRequest.
 and replays the child as a crew member. Why: one path for crews keeps the safety rules and
 eval's scoring (`CrewTree`, by `run.delegated`) the same for both kinds.
 
-### 0053 — 2026-11-10 — Stewards learn from the results of their actions
+### 0054 — 2026-11-10 — Stewards learn from the results of their actions
 
 Context: a steward never found out whether what it did worked. Decision: an executed action
 with a target, through an MCP binding that lists the `outcome` read tool, gets follow-up checks:
@@ -580,7 +580,7 @@ The serve loop and `RuntimeService(outcomes:)` run the checks. Why: an outcome o
 know which of its moves pay off, and the simplest honest credit is the metric's movement in
 the window the action ran.
 
-### 0054 — 2026-11-10 — Proactive findings: stewards report what they notice, a person closes it
+### 0055 — 2026-11-10 — Proactive findings: stewards report what they notice, a person closes it
 
 Context: a steward only reacted to its input; problems and opportunities it saw on a wake had
 nowhere to go. Decision: a run result may carry `findings` (`id`, `kind` problem or
@@ -595,7 +595,7 @@ the Overview, and those with `needsPerson` feed Needs you; `resolveFinding` clos
 Rehearsals record no findings. Why: an outcome owner speaks up about what it sees, and a person
 decides what to do about it without the steward acting on a guess.
 
-### 0055 — 2026-11-10 — A dry run is recorded as drafted, never as done
+### 0056 — 2026-11-10 — A dry run is recorded as drafted, never as done
 
 Context: the workspace still executes actions dry, and the ledger recorded them as executed, so
 the app said a reply was sent when nothing left arya. Decision: executors may return

@@ -3,7 +3,7 @@ import AryaCore
 import AryaLedger
 import Foundation
 
-// Learning from results (decision 0053). An executed action that acted on a target through an
+// Learning from results (decision 0054). An executed action that acted on a target through an
 // MCP binding with the `outcome` read tool (PROTOCOL.md "Binding conventions") gets follow-up
 // checks: `FollowUps.delay` after it ran, arya asks the binding how the target stands now and
 // records `action.checked`, linked to the action by its run and id. `resolved` and `reopened`

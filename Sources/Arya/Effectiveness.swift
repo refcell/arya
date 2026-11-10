@@ -2,7 +2,7 @@ import AryaCore
 import AryaRuntime
 import Foundation
 
-// What worked (runtime decision 0053): each action kind's follow-up check results and the
+// What worked (runtime decision 0054): each action kind's follow-up check results and the
 // metric change credited to it, for the recap and the plan.
 
 /// How one action kind has worked for a steward.

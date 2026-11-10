@@ -72,7 +72,7 @@ public struct RunRequest: Sendable, Hashable {
     /// Whether a live top-level run's delegations become a crew (default `.run`). A replay
     /// skips it and replays each recorded child and join run on its own.
     public var crewPolicy: CrewPolicy = .run
-    /// For a replay: each in-run delegation as recorded, by delegation id (decision 0052).
+    /// For a replay: each in-run delegation as recorded, by delegation id (decision 0053).
     public var delegations: [String: RecordedDelegation] = [:]
 
     /// Creates a request.

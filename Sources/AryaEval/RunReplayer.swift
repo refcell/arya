@@ -151,7 +151,7 @@ struct RunRecording: Sendable {
     }
 
     /// Each in-run delegation (`host/delegate`) as recorded, by delegation id: the parent's
-    /// `run.delegated` and the answer arya sent (runtime decision 0052).
+    /// `run.delegated` and the answer arya sent (runtime decision 0053).
     var delegations: [String: RecordedDelegation] {
         var asked: [RPCID: String] = [:]
         var answers: [String: HostDelegateResult] = [:]

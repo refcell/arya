@@ -3,7 +3,7 @@ import AryaCore
 import AryaLedger
 import Foundation
 
-// In-run crews (decision 0052). An adapter may hand part of its work to a child run with
+// In-run crews (decision 0053). An adapter may hand part of its work to a child run with
 // `host/delegate` and wait for the answer. The child runs through the same crew path as a
 // `run/result` delegation (decision 0043): the parent's charter and policy with a budget capped
 // at the parent's (`CrewBudget`), `parent` set, its actions recorded as proposals only, and
