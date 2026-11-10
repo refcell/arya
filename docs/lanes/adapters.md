@@ -86,6 +86,34 @@ M4:
   someone runs the live test with a signed-in agent CLI.
 - [x] Eval's history import reads binding `history` as `HistoryItem` (`HistoryImport`).
 
+## Handoff (2026-11-10)
+
+The lane's backlog is done; the session is retiring. State for whoever picks it up:
+
+- Protocol: `docs/PROTOCOL.md` matches the code (`Sources/AryaAdapters/Protocol`). Work
+  events are `tool_output` (runtime 0049, plus optional `stream`), `diff`, and `progress`,
+  read through `RunEvent.outputChunk`, `fileDiff`, and `progress`; they decode as `.other`,
+  so they are not `Body` cases. Binding conventions: `history`, `outcome`, `directory`,
+  `process` (`Protocol/History.swift`, `Protocol/BindingConventions.swift`).
+- Adapters: fake (`Fake/`, scripts with `stream` and `pauseMs` steps, runtime's demo pace
+  `ARYA_FAKE_PACE_MS`), replay (`Replay/`), exec (`Exec/`; parse modes `text`, `jsonl`,
+  `stream-json` with partial messages as `compose` steps, `codex-json` with calls shown at
+  `item.started`, and `command` for live shell output). Example profiles: `claude-code`,
+  `codex-cli`, `shell` (`Profiles/ExampleProfiles.swift`, mirrored in
+  `etc/examples/adapters/adapters.json`, which `AryaCLITests` checks).
+- Bindings: `arya-binding folder` and `http-json` (`Bindings/`), secrets only through
+  `ARYA_CREDENTIAL`; the fake binding serves the triage data in
+  `etc/examples/triage/inbox-history.json`.
+- Tests: `just test AryaAdaptersTests` (deterministic, no network, no waits at pace 0).
+  `ARYA_LIVE_HARNESS=<profile>` runs one real run end to end; it is opt-in and never in CI.
+- Open: the one unchecked backlog item (record a real `stream-json` transcript with a
+  signed-in agent CLI to replace the hand-written fixture). Questions from other lanes above
+  are answered in the log and Decisions; none waits on this lane.
+- Watch: example script results feed policy, e2e, casebook, and replay tests in other
+  targets; changing a response's `result` (not its events) moves their expectations. Replay
+  compares derived events, so any new clock-derived payload field needs an entry in eval's
+  `Canonicalizer.durations`.
+
 ## Decisions
 
 - Free-form JSON uses `AryaCore.JSONValue`; the wire encoding is `CanonicalJSON`, so recorded
@@ -237,3 +265,4 @@ M4:
 - 2026-11-10: profile-name question closed (CEO: keep tool-named ids, neutral docs).
   Partial-message `compose` steps, `command` parse mode and `shell` profile with live stdout
   and stderr, opt-in live harness test; eval's `HistoryItem` adoption confirmed.
+- 2026-11-10: handoff written; backlog done (one optional fixture refresh left).
