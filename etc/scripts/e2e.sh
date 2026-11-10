@@ -215,6 +215,20 @@ check_live_running() {
   expect running "$(get running.run)" "${long_run:-}" && expect status "$(get running.status)" running
 }
 check_live_idle() { expect running "$(get running.run)" ""; }
+check_onboarding() {
+  expect "history cases" "$(get historyCases)" 24 && expect steps "$(get steps)" 7 &&
+    expect "ready" "$(get ready)" false
+}
+check_gate() {
+  expect ready "$(get ready)" false &&
+    expect review "$(get conditions.0.detail)" "1 of 10 agreed reviews"
+}
+# The e2e home only drafts (dry run), and drafts are never graded.
+check_trajectories() { expect graded "$(get good)/$(get bad)" 0/0; }
+check_metric_statuses() {
+  expect role "$(get 0.role)" primary && expect metric "$(get 0.name)" routed_within_1h &&
+    case "$(get 0.line)" in *"on track"*) ;; *) echo "    $(get 0.line)"; return 1 ;; esac
+}
 check_denied() { expect state "$(get state)" denied; }
 # Governance (ledger lane): policy and approvers, undo, retention, signed export and import.
 check_policy() {
@@ -427,6 +441,13 @@ step "agree with MSG-110" history rehearsal check_reviewed \
   review st_triage --case hist-MSG-110 --verdict agree
 step "corrections and agreements became checks" history rehearsal check_checks \
   checks st_triage
+step "onboarding: history imported, review next" history rehearsal check_onboarding \
+  steward onboarding st_triage
+step "go-live gate: what is still missing" history rehearsal check_gate steward gate st_triage
+step "trajectories: drafts are not graded" history live check_trajectories \
+  steward trajectories st_triage
+step "metrics: routed within 1 h vs target" metrics live check_metric_statuses \
+  steward metrics st_triage
 step "grow the casebook from its runs" history rehearsal check_casebook_build \
   casebook build st_triage
 step "a steward reading the inbox binding" history setup check_history_steward \
