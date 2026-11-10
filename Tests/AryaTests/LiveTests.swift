@@ -146,3 +146,45 @@ private func first(
     #expect(update.steps[2...3].compactMap(\.text).joined() == "first part, second part")
     #expect(update.steps[4].title == "Tool done in 42 ms")
 }
+
+@Test func runFactsLiveRunsAndStewardLiveAgree() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let done = try await workspace.startRun(steward: "st_inbox", input: "First")
+
+    let finished = try #require(try await workspace.runFacts(run: done.id))
+    #expect(finished.status == "finished")
+    #expect(finished.decisions == 1)
+    #expect(finished.actionsProposed == 3)
+    #expect(finished.actionsApplied + finished.actionsDrafted == 2)
+    #expect(finished.actionsWaiting == 1)
+    #expect(finished.progress == 1)
+    #expect(finished.ended != nil)
+    #expect(try await workspace.runFacts(run: "run_missing") == nil)
+
+    var started: Event?
+    try workspace.reader.forEach { event in
+        if event.run?.rawValue == done.id, event.type.rawValue == RunEventType.started {
+            started = event
+        }
+    }
+    let start = try #require(started)
+    _ = try await workspace.sink.append(
+        RuntimeEventDraft(
+            type: RunEventType.started, steward: start.steward, run: RunID(unchecked: "run_live"),
+            actor: .localUser, payload: start.payload))
+
+    let facts = try #require(try await workspace.runFacts(run: "run_live"))
+    let live = try #require(try await workspace.liveRuns().first)
+    let steward = try await workspace.stewardLive(steward: "st_inbox")
+    #expect(facts.status == "running" && facts.ended == nil)
+    #expect(live.run.id == "run_live" && steward.running?.run == "run_live")
+    #expect(facts.stepIndex == live.stepCount && steward.running?.stepIndex == live.stepCount)
+    #expect(facts.progress == live.progress && steward.running?.progress == live.progress)
+    #expect(facts.estimatedSteps == live.estimatedSteps)
+    #expect(facts.estimatedSteps == finished.stepIndex)
+    #expect(abs(facts.elapsedSeconds - live.elapsedSeconds) < 2)
+    #expect(steward.alsoRunning == 0)
+    #expect(steward.schedule == "off" || steward.schedule == "unscheduled")
+}

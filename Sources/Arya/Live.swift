@@ -51,6 +51,10 @@ public struct LiveRun: Sendable, Hashable {
     public var progress: Double?
     /// When it started.
     public var started: TimeText
+    /// Seconds since it started (the workspace clock), as `runFacts` reports.
+    public var elapsedSeconds: Double = 0
+    /// The steward's usual steps per run, as `runFacts` reports.
+    public var estimatedSteps: Int?
 }
 
 extension Workspace {
@@ -68,7 +72,9 @@ extension Workspace {
                 run: run, stewardName: names[run.steward] ?? run.steward,
                 stepCount: tally.counts[id] ?? 0, lastStep: tally.lastTitle[id],
                 progress: tally.progress(run: id, steward: StewardID(unchecked: run.steward)),
-                started: TimeText(run.startedAt, now: now, timeZone: timeZone))
+                started: TimeText(run.startedAt, now: now, timeZone: timeZone),
+                elapsedSeconds: max(0, now.timeIntervalSince(run.startedAt)),
+                estimatedSteps: tally.usualSteps(steward: StewardID(unchecked: run.steward)))
         }
     }
 
@@ -146,13 +152,17 @@ struct LiveTally: Sendable {
     private var calls: Set<String> = []
     private var results: Set<String> = []
 
-    /// Steps so far against the median of the steward's last five ended runs.
+    /// The median steps of the steward's last five ended runs, when any ended.
+    func usualSteps(steward: StewardID) -> Int? {
+        let recent = (ended[steward] ?? []).suffix(5).sorted()
+        return recent.isEmpty ? nil : max(1, recent[recent.count / 2])
+    }
+
+    /// Steps so far against the steward's usual run length.
     func progress(run: RunID, steward: StewardID) -> Double? {
         let state = status[run] ?? .running
         if state != .running { return 1 }
-        let recent = (ended[steward] ?? []).suffix(5).sorted()
-        guard !recent.isEmpty else { return nil }
-        let usual = max(1, recent[recent.count / 2])
+        guard let usual = usualSteps(steward: steward) else { return nil }
         return min(0.95, Double(counts[run] ?? 0) / Double(usual))
     }
 

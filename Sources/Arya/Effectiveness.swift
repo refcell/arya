@@ -40,7 +40,7 @@ extension Workspace {
     /// Each action kind `steward` executed, with its check results and metric credit.
     public func effectiveness(steward: String) async throws -> [EffectSummary] {
         let id = try await existing(steward).id
-        return try Effectiveness.of(id, in: try await sink.events(from: 1)).map {
+        return try Effectiveness.of(id, in: try facadeState().bySteward[id] ?? []).map {
             EffectSummary(
                 kind: $0.kind, executed: $0.executed, failed: $0.failed, drafted: $0.drafted,
                 resolved: $0.resolved,
@@ -52,7 +52,7 @@ extension Workspace {
     /// `steward`'s follow-up checks, newest first, at most `limit`.
     public func checks(steward: String, limit: Int = 20) async throws -> [CheckSummary] {
         let id = try await existing(steward).id
-        let events = try await sink.events(from: 1).filter {
+        let events = try (facadeState().bySteward[id] ?? []).filter {
             $0.draft.steward == id && $0.type == OutcomeEventType.checked.rawValue
         }
         return events.reversed().prefix(limit).compactMap { event in

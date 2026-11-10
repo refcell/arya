@@ -240,3 +240,7 @@ M3:
 - 2026-11-10: published the cache (d9fadbbf). Then memory, routines, and plan reads on the
   cached state, and seq times by direct lookup: warm on 50k events memory 0.2 ms, knowledge
   0.6 ms, proposals 0.2 ms, plan 8 ms, improve 49 ms (eval reports through `CachedReadSink`).
+- 2026-11-10: one source per fact (CEO): `runFacts(run:)`, `liveRuns()`, and `stewardLive(
+  steward:)` read the same cached tally (tested to agree). `impact(steward:)` (window
+  attribution, rows for separable kinds, confidence from windows, agreement, and check results)
+  and `overviewFindings(steward:)`; `findings`, `effectiveness`, `checks` on the cache.

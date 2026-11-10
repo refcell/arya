@@ -31,7 +31,7 @@ extension Workspace {
     {
         var id: StewardID?
         if let steward { id = try await existing(steward).id }
-        let book = try FindingBook(try await sink.events(from: 1))
+        let book = try FindingBook(try facadeState().findingEvents)
         return book.all.reversed().filter {
             (all || $0.isOpen) && (id == nil || $0.steward == id)
         }.map { record in
@@ -57,7 +57,7 @@ extension Workspace {
         do {
             try await FindingBook.resolve(
                 parts[1], run: RunID(unchecked: parts[0]), resolution: resolution, note: note,
-                by: .person(person), sink: sink)
+                by: .person(person), sink: readSink)
         } catch FindingError.notFound {
             throw WorkspaceError.notFound(id)
         } catch FindingError.alreadyResolved {

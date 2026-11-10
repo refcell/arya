@@ -26,6 +26,8 @@ struct FacadeState: Sendable {
     var bySteward: [StewardID: [RuntimeEvent]] = [:]
     var rehearsals = RehearsalBook()
     var proposals = ProposalBook()
+    /// `finding.*` events, for `FindingBook`.
+    var findingEvents: [RuntimeEvent] = []
     var memory = MemoryProjection()
     var routines = RoutineLibrary()
     /// Each steward's charter by version, from the versions folded here (a book seeded from
@@ -81,6 +83,7 @@ struct FacadeState: Sendable {
         if let run = event.run { byRun[run, default: []].append(event) }
         try? rehearsals.apply(runtimeEvent)
         try? proposals.apply(runtimeEvent)
+        if event.type.namespace == "finding" { findingEvents.append(runtimeEvent) }
         try? memory.apply(event)
         try? routines.apply(event)
         live.add(event)
