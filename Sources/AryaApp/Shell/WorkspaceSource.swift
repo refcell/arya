@@ -48,6 +48,8 @@ protocol WorkspaceSource: Sendable {
     /// Whether a process (this app or `arya serve`) fires this home's triggers; nil when the
     /// source cannot tell.
     func schedulerServing() async -> Bool?
+    /// Runs in progress with their step counts, oldest first; empty when none or unknown.
+    func liveLines() async -> [LiveLine]
     /// Starts a connection's server with its secret and lists its tools (the Test button).
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
         async throws -> ConnectionTest
@@ -57,6 +59,8 @@ protocol WorkspaceSource: Sendable {
 
 extension WorkspaceSource {
     func schedulerServing() async -> Bool? { nil }
+
+    func liveLines() async -> [LiveLine] { [] }
 
     func reportDigest(steward: String) async throws -> ReportDigest {
         throw FeatureReadError.unavailable("reports")
@@ -115,6 +119,14 @@ extension Workspace: WorkspaceSource {
     /// Serving here, or another process holds `<home>/scheduler.lock` (the lock `arya serve`
     /// takes with an exclusive flock). The probe asks for a shared, non-blocking lock and
     /// drops it at once; nil when the home has no lock file to ask.
+    func liveLines() async -> [LiveLine] {
+        ((try? await liveRuns()) ?? []).map {
+            LiveLine(
+                run: $0.run.id, steward: $0.run.steward, name: $0.stewardName, steps: $0.stepCount,
+                lastStep: $0.lastStep, progress: $0.progress, started: $0.run.startedAt)
+        }
+    }
+
     func schedulerServing() async -> Bool? {
         if await isServing { return true }
         let path = home.appendingPathComponent("scheduler.lock").path

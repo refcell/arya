@@ -26,6 +26,8 @@ final class AppModel {
     private(set) var ledgerCheck: LedgerCheck?
     /// Whether some process serves this home's triggers; nil when the source cannot tell.
     private(set) var serving: Bool?
+    /// Runs in progress (workspace `liveRuns`), re-read on every ledger change.
+    var liveLines: [LiveLine] = []
     /// The New steward flow's starting answers while its sheet is open.
     var stewardSheet: NewStewardDraft?
     private(set) var stewards: [StewardSummary] = []
@@ -102,6 +104,7 @@ final class AppModel {
             // Integrity is a status-bar fact; a failed check leaves the last one shown.
             if let check = try? await source.verifyLedger() { ledgerCheck = check }
             serving = await source.schedulerServing()
+            liveLines = await source.liveLines()
             problem = nil
             announce(approvals, stewards: stewards)
         } catch {

@@ -87,13 +87,20 @@ struct RailView: View {
         return MetricSeries.build(events: events, steward: steward)
     }
 
+    /// The runs going now (workspace `liveRuns`, else projected from the ledger).
+    private var liveLines: [LiveLine] {
+        guard case .loaded(let events) = model.featureStore?.state else { return model.liveLines }
+        return StatusBarLine.lines(
+            live: model.liveLines, stewards: model.stewards, runs: model.runs, events: events)
+    }
+
     private func sidebarRow(_ steward: StewardSummary) -> StatusMapping.SidebarRow {
         let series = metric(steward.id)
         return StatusMapping.SidebarRow(
             steward, pending: model.pendingApprovals(steward: steward.id),
             latest: series?.latest?.value, target: series?.definition.target,
             onTrack: series?.meetsTarget, isSelected: model.navigation.steward == steward.id,
-            running: (model.runs[steward.id] ?? []).contains { $0.status == .running })
+            runningSteps: liveLines.last { $0.steward == steward.id }?.steps)
     }
 
     private var sortedStewards: [StewardSummary] {

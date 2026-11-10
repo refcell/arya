@@ -59,9 +59,19 @@ import Testing
             "st_triage": [run("r1", "st_triage", hoursAgo: 0.1, status: .running)],
             "st_refund": [run("r2", "st_refund", hoursAgo: 0.05, status: .running)],
         ]
+        let lines = StatusBarLine.lines(live: [], stewards: stewards, runs: runs, events: [])
+        let text = StatusBarLine.live(lines, now: now) ?? ""
+        #expect(text.hasPrefix("Refund follow-up running · step 1"))
+        #expect(text.hasSuffix("· +1 more"))
+        #expect(StatusBarLine.live([], now: now) == nil)
+        let reported = LiveLine(
+            run: "r9", steward: "st_triage", name: "Support inbox triage", steps: 3,
+            lastStep: "Called search", progress: 0.4, started: now.addingTimeInterval(-4))
         #expect(
-            StatusBarLine.live(stewards: stewards, runs: runs, events: [])
-                == "Refund follow-up running · step 1 · +1 more")
-        #expect(StatusBarLine.live(stewards: stewards, runs: [:], events: []) == nil)
+            StatusBarLine.lines(live: [reported], stewards: stewards, runs: runs, events: [])
+                == [reported])
+        #expect(
+            StatusBarLine.live([reported], now: now)
+                == "Support inbox triage running · step 3 · 4.0 s")
     }
 }

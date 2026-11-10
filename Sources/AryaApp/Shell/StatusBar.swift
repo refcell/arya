@@ -11,8 +11,8 @@ struct StatusBarLine: Equatable {
     var ledger: String
     var ledgerOK: Bool
     var cost: String
-    /// "Support inbox triage running · step 3" while a run goes; nil when idle.
-    var live: String? = nil
+    /// The runs going now, oldest first.
+    var live: [LiveLine] = []
     /// The newest event worth reading: "3m · run.decision · Refund follow-up".
     var ticker: Ticker? = nil
 
@@ -24,20 +24,31 @@ struct StatusBarLine: Equatable {
     /// Ledger noise the ticker skips: raw adapter lines and bookkeeping.
     static let quiet: Set<String> = ["run.adapter.event", "metric.recorded"]
 
-    static func live(
-        stewards: [StewardSummary], runs: [String: [RunSummary]], events: [FeatureEvent]
-    )
-        -> String?
-    {
-        let going = stewards.flatMap { steward in
-            (runs[steward.id] ?? []).filter { $0.status == .running }.map { (steward, $0) }
+    /// The runs going now: the workspace's live runs when it reports them, else the running
+    /// summaries with step counts projected from the ledger.
+    static func lines(
+        live: [LiveLine], stewards: [StewardSummary], runs: [String: [RunSummary]],
+        events: [FeatureEvent]
+    ) -> [LiveLine] {
+        if !live.isEmpty { return live }
+        return stewards.flatMap { steward in
+            (runs[steward.id] ?? []).filter { $0.status == .running }.map { run in
+                LiveLine(
+                    run: run.id, steward: steward.id, name: steward.name,
+                    steps: RunStream.build(events: events, run: run.id).steps.count,
+                    lastStep: nil, progress: nil, started: run.startedAt)
+            }
         }
-        guard let (steward, run) = going.max(by: { $0.1.startedAt < $1.1.startedAt }) else {
-            return nil
-        }
-        let steps = RunStream.build(events: events, run: run.id).steps.count
-        let more = going.count > 1 ? " · +\(going.count - 1) more" : ""
-        return "\(steward.name) running · step \(max(steps, 1))\(more)"
+        .sorted { $0.started < $1.started }
+    }
+
+    /// "Support inbox triage running · step 3 · 4.0 s · +1 more" for the newest live run.
+    static func live(_ lines: [LiveLine], now: Date) -> String? {
+        guard let line = lines.last else { return nil }
+        let more = lines.count > 1 ? " · +\(lines.count - 1) more" : ""
+        let seconds = max(0, now.timeIntervalSince(line.started))
+        let steps = "step \(max(line.steps, 1))"
+        return "\(line.name) running · \(steps) · \(FeatureTime.duration(seconds))\(more)"
     }
 
     static func ticker(stewards: [StewardSummary], events: [FeatureEvent], now: Date) -> Ticker? {
@@ -50,7 +61,8 @@ struct StatusBarLine: Equatable {
 
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], waiting: Int,
-        events: [FeatureEvent], check: LedgerCheck?, now: Date, timeZone: TimeZone = .current
+        events: [FeatureEvent], check: LedgerCheck?, now: Date, timeZone: TimeZone = .current,
+        liveRuns: [LiveLine] = []
     ) -> StatusBarLine {
         var next: Date?
         var behind = 0
@@ -83,7 +95,7 @@ struct StatusBarLine: Equatable {
             stewards: fleet.joined(separator: " · "), waiting: waiting, ledger: ledger,
             ledgerOK: check?.ok ?? true,
             cost: today > 0 ? "\(RunMetrics.dollars(today)) today" : "spend — today",
-            live: live(stewards: stewards, runs: runs, events: events),
+            live: lines(live: liveRuns, stewards: stewards, runs: runs, events: events),
             ticker: ticker(stewards: stewards, events: events, now: now))
     }
 
@@ -107,13 +119,20 @@ struct StatusBar: View {
     var body: some View {
         let line = StatusBarLine.build(
             stewards: model.stewards, runs: model.runs, waiting: model.pendingApprovalCount,
-            events: events, check: model.ledgerCheck, now: now)
+            events: events, check: model.ledgerCheck, now: now, liveRuns: model.liveLines)
         HStack(spacing: AryaSpace.s4) {
             item(StatusBarLine.scheduler(model.serving))
-            if let live = line.live {
-                HStack(spacing: AryaSpace.s1) {
-                    AryaLiveDot()
-                    Text(live).aryaText(AryaFont.monoSmall, AryaColor.positive).lineLimit(1)
+            if !line.live.isEmpty {
+                // Elapsed seconds tick once a second while a run goes.
+                TimelineView(.periodic(from: now, by: 1)) { context in
+                    HStack(spacing: AryaSpace.s1) {
+                        AryaLiveDot()
+                        Text(StatusBarLine.live(line.live, now: max(context.date, now)) ?? "")
+                            .aryaText(AryaFont.monoSmall, AryaColor.positive).lineLimit(1)
+                        if let progress = line.live.last?.progress {
+                            AryaProgressBar(progress, isLive: true).frame(width: 40)
+                        }
+                    }
                 }
                 .layoutPriority(1)
                 .transition(.opacity)
@@ -159,7 +178,7 @@ struct StatusBar: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Status")
         .animation(AryaMotion.panel, value: line.ticker)
-        .animation(AryaMotion.panel, value: line.live)
+        .animation(AryaMotion.panel, value: line.live.isEmpty)
         .clipped()
     }
 
@@ -171,4 +190,15 @@ struct StatusBar: View {
     private func item(_ text: String) -> some View {
         Text(text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
     }
+}
+
+/// A run in progress as the shell shows it (from workspace `liveRuns`, or projected).
+struct LiveLine: Equatable, Sendable {
+    var run: String
+    var steward: String
+    var name: String
+    var steps: Int
+    var lastStep: String?
+    var progress: Double?
+    var started: Date
 }

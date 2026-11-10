@@ -33,8 +33,9 @@ enum StatusMapping {
 
         init(
             _ steward: StewardSummary, pending: Int, latest: Double?, target: Double?,
-            onTrack: Bool?, isSelected: Bool, running: Bool = false
+            onTrack: Bool?, isSelected: Bool, runningSteps: Int? = nil
         ) {
+            let running = runningSteps != nil
             let value = latest.map(StatusMapping.metric)
             let behind = onTrack == false && steward.status != .paused
             var spoken = [steward.name]
@@ -50,12 +51,15 @@ enum StatusMapping {
                 status = running ? .running : pending > 0 ? .needsYou : .idle
                 if running { spoken.append("running") }
                 health = pending > 0 ? .needsYou : behind ? .behind : .onTrack
-                trailing = behind || isSelected ? value : nil
+                // While a run goes the trailing text is its step: "step 3".
+                trailing =
+                    runningSteps.map { "step \(max($0, 1))" }
+                    ?? (behind || isSelected ? value : nil)
                 trailingIsMono = true
                 if pending > 0 { spoken.append("needs you") }
                 if onTrack != nil { spoken.append(behind ? "behind target" : "on track") }
             }
-            trailingIsAlert = behind
+            trailingIsAlert = behind && !running
             if steward.status != .paused, let value {
                 spoken.append(target.map { "\(value) of \(StatusMapping.metric($0))" } ?? value)
             }
