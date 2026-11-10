@@ -43,6 +43,12 @@ protocol WorkspaceSource: Sendable {
     func learnedChecksSummary(steward: String) async throws -> FeatureLearnedChecks?
     /// The Knowledge screen's notes and routines.
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge
+    /// What a steward is doing now (`Workspace.stewardLive`).
+    func stewardLiveState(steward: String) async throws -> FeatureStewardLive
+    /// The Overview's findings (`Workspace.overviewFindings`).
+    func overviewFindingLines(steward: String) async throws -> [FeatureOverviewFinding]
+    /// Which actions moved the metric (`Workspace.impact`).
+    func impactSummary(steward: String) async throws -> FeatureImpact?
     /// One person's thread with a steward, oldest first.
     func conversationEntries(steward: String, person: String) async throws
         -> [FeatureConversationEntry]
@@ -131,6 +137,18 @@ extension WorkspaceSource {
 
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge {
         throw FeatureReadError.unavailable("knowledge")
+    }
+
+    func stewardLiveState(steward: String) async throws -> FeatureStewardLive {
+        throw FeatureReadError.unavailable("steward live")
+    }
+
+    func overviewFindingLines(steward: String) async throws -> [FeatureOverviewFinding] {
+        throw FeatureReadError.unavailable("findings")
+    }
+
+    func impactSummary(steward: String) async throws -> FeatureImpact? {
+        throw FeatureReadError.unavailable("impact")
     }
 
     func conversationEntries(steward: String, person: String) async throws
@@ -360,6 +378,35 @@ extension Workspace: WorkspaceSource {
                 seq: $0.seq, inbound: $0.direction == "inbound", intent: $0.intent, text: $0.text,
                 run: $0.run)
         }
+    }
+
+    func stewardLiveState(steward: String) async throws -> FeatureStewardLive {
+        let live = try await stewardLive(steward: steward)
+        // The run's numbers through app-views' one wrapper, from the same cached tally.
+        var facts: FeatureRunFacts?
+        if let run = live.running?.run { facts = try await featureRunFacts(run: run) }
+        return FeatureStewardLive(
+            running: facts, run: live.running?.run,
+            title: live.running?.title, progress: live.running?.progress,
+            alsoRunning: live.alsoRunning, schedule: live.schedule,
+            nextWake: live.nextWake?.date, serving: live.serving)
+    }
+
+    func overviewFindingLines(steward: String) async throws -> [FeatureOverviewFinding] {
+        try await overviewFindings(steward: steward).map {
+            FeatureOverviewFinding(kind: $0.kind, text: $0.text, link: $0.link?.kind)
+        }
+    }
+
+    func impactSummary(steward: String) async throws -> FeatureImpact? {
+        guard let impact = try await impact(steward: steward) else { return nil }
+        return FeatureImpact(
+            readings: impact.readings,
+            rows: impact.rows.map {
+                FeatureImpact.Row(
+                    label: $0.label, credit: $0.credit, helped: $0.helped, actions: $0.actions,
+                    windows: $0.windows, confidence: $0.confidenceLevel)
+            }, summary: impact.summary)
     }
 
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge {

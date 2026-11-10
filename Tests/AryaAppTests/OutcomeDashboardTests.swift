@@ -1,3 +1,4 @@
+import AryaDesign
 import Foundation
 import Testing
 
@@ -40,59 +41,6 @@ private func log() -> [FeatureEvent] {
     #expect(byName["held for you"]?.tone == .plain)
     #expect(byName["failed runs"]?.tone == .plain)
     #expect(byName["runs"]?.values.count == 14)
-}
-
-/// A run in progress shows what it is doing and how far along it is against a typical run.
-@Test func nowShowsTheLiveRunWithProgress() throws {
-    let ledgerState = OutcomeState.build(events: log(), steward: steward, now: now)
-    let state = OutcomeNow.build(events: log(), steward: steward, state: ledgerState, now: now)
-    let live = try #require(state.live.first)
-    #expect(live.run == "run_b")
-    #expect(live.title == "B")
-    #expect(live.doing == "reading")
-    #expect(live.progress.map { $0 > 0 && $0 <= 0.95 } == true)
-    let idle = OutcomeNow.build(
-        events: Array(log().prefix(8)), steward: steward, state: ledgerState, now: now)
-    #expect(idle.live.isEmpty)
-    #expect(idle.last?.hasPrefix("Done A · ") == true)
-}
-
-/// Kinds that always run together are not split: IMPACT says so in one honest line.
-@Test func impactDoesNotSplitKindsThatAlwaysRunTogether() throws {
-    let impact = try #require(OutcomeImpact.build(events: log(), steward: steward, metric: metric))
-    #expect(impact.rows.isEmpty)
-    #expect(impact.together == ["label", "route"])
-    #expect(
-        impact.summary
-            == "Metric +0.20 over 2 actions; label and route always ran together, so the "
-            + "change is not split by action.")
-    #expect(OutcomeDashboardText.credit(-0.03) == "−0.03")
-    #expect(OutcomeImpact.build(events: [], steward: steward, metric: metric) == nil)
-}
-
-/// Kinds that ran in different windows get credit weighted by their share of each window.
-@Test func impactWeightsSeparableKindsByShare() throws {
-    var log = FeatureEventBuilder(start: now.addingTimeInterval(-600))
-    func act(_ id: String, _ kind: String) {
-        log.add(
-            "action.proposed", run: "r", ["action": ["id": .string(id), "kind": .string(kind)]])
-        log.add("action.executed", run: "r", ["action": .string(id)])
-    }
-    log.add("metric.recorded", ["metric": "routed", "value": 0.5])
-    act("a1", "label")
-    act("a2", "label")
-    act("a3", "route")
-    log.add("metric.recorded", ["metric": "routed", "value": 0.8])
-    act("a4", "label")
-    log.add("metric.recorded", ["metric": "routed", "value": 0.7])
-    let impact = try #require(
-        OutcomeImpact.build(events: log.events, steward: steward, metric: metric))
-    let byKind = Dictionary(uniqueKeysWithValues: impact.rows.map { ($0.kind, $0) })
-    // label: 2/3 of +0.3 then all of −0.1 = +0.1; route: 1/3 of +0.3 = +0.1.
-    #expect(abs((byKind["label"]?.credit ?? 0) - 0.1) < 0.0001)
-    #expect(abs((byKind["route"]?.credit ?? 0) - 0.1) < 0.0001)
-    #expect(byKind["label"]?.windows == 2)
-    #expect(byKind["route"]?.windows == 1)
 }
 
 /// Status and findings use one window: on target today after missed days reads recovering.
@@ -142,50 +90,6 @@ private func log() -> [FeatureEvent] {
             == "Charter version 99 missed it.")
 }
 
-/// Findings name a missed target, waiting approvals, and a proposal that made a case worse.
-@Test func findingsNameWhatNeedsAttention() throws {
-    let base = PreviewFixtures.triage(now: now)
-    let live = try #require(LiveCharter.find(events: base, steward: steward)?.charter)
-    let events =
-        base
-        + ProposalFixtures.events(live: live, steward: steward, start: now.addingTimeInterval(1))
-    let snapshot = OutcomeSnapshot.build(events: events, steward: steward, now: now, lastSeen: nil)
-    let findings = OutcomeFinding.build(
-        events: events, steward: steward, state: snapshot.state, recap: snapshot.recap, now: now)
-    let texts = findings.map(\.text)
-    #expect(texts.contains { $0.contains("cases worse in rehearsal (case-0005)") })
-    // Severity first: harm leads, then what waits on you, then good news, then notes.
-    let rank: [OutcomeFinding.Kind: Int] = [.negative: 0, .attention: 1, .positive: 2, .info: 3]
-    let ranks = findings.map { rank[$0.kind] ?? 9 }
-    #expect(ranks == ranks.sorted())
-    #expect(findings.first?.kind == .negative)
-    #expect(texts.contains { $0.contains("wait on you") || $0.contains("waits on you") })
-    #expect(
-        texts.contains { $0.contains("missed its target") } == (snapshot.state.missed > 0))
-}
-
-/// NOW shows what the rail and status bar show: a run the workspace reports live, with its
-/// step count and latest step, even before the ledger projection sees it.
-@Test func nowShowsTheShellsLiveRuns() {
-    let events = log()
-    let state = OutcomeState.build(events: events, steward: steward, now: now)
-    let line = LiveLine(
-        run: "run_shell", steward: steward, name: "Triage", steps: 3,
-        lastStep: "Labeling MSG-212", progress: 0.4, started: now.addingTimeInterval(-30))
-    let other = LiveLine(
-        run: "run_other", steward: "st_other", name: "Other", steps: 1, lastStep: nil,
-        progress: nil, started: now)
-    let built = OutcomeNow.build(
-        events: events, steward: steward, state: state, now: now, running: [line, other])
-    let live = built.live.first { $0.run == "run_shell" }
-    #expect(live?.steps == 3)
-    #expect(live?.doing == "Labeling MSG-212")
-    #expect(live?.progress == 0.4)
-    #expect(live?.elapsed == 30)
-    #expect(!built.live.contains { $0.run == "run_other" })
-    #expect(OutcomeDashboardText.credit(0.001) == "±0.00")
-}
-
 /// People read by name, never as raw ids.
 @Test func peopleReadByName() {
     #expect(OutcomePeople.name("person:priya") == "Priya")
@@ -204,4 +108,67 @@ private func log() -> [FeatureEvent] {
         ]
     ]
     #expect(OutcomeAutonomy.build(charter: charter).auto == ["reply", "label"])
+}
+
+/// NOW shows this steward's live run as the workspace counts it, and the schedule otherwise.
+@Test func nowMapsTheWorkspaceLiveState() {
+    let events = log()
+    let state = OutcomeState.build(events: events, steward: steward, now: now)
+    let running = FeatureStewardLive(
+        running: FeatureRunFacts(
+            running: true, started: now.addingTimeInterval(-35), elapsedSeconds: 35,
+            decisions: 1, toolCalls: 2, actionsProposed: 0, actionsApplied: 0, actionsDrafted: 0,
+            actionsWaiting: 0, stepIndex: 3, estimatedSteps: 7, dryRun: false),
+        run: "run_live", title: "Triage the inbox batch", progress: 0.4, alsoRunning: 1,
+        schedule: "running", nextWake: nil, serving: true)
+    let busy = OutcomeNow.build(
+        events: events, steward: steward, state: state, now: now, live: running)
+    #expect(busy.live.map(\.title) == ["Triage the inbox batch"])
+    #expect(busy.live.first?.steps == "step 3 of ~7")
+    #expect(busy.live.first?.elapsed == 35)
+    #expect(busy.alsoRunning == 1)
+    let idle = FeatureStewardLive(
+        running: nil, alsoRunning: 0, schedule: "waiting",
+        nextWake: now.addingTimeInterval(600), serving: false)
+    let waiting = OutcomeNow.build(
+        events: events, steward: steward, state: state, now: now, live: idle)
+    #expect(waiting.live.isEmpty)
+    #expect(waiting.stopped)
+    #expect(waiting.next.hasPrefix("Scheduler stopped · next due "))
+}
+
+/// FINDINGS map the workspace's kinds, read in plain words, and lead with harm.
+@Test func findingsMapWorkspaceLinesSeverityFirst() {
+    let events = PreviewFixtures.triage(now: now)
+    let live = LiveCharter.find(events: events, steward: steward)?.version ?? 1
+    let lines = [
+        FeatureOverviewFinding(kind: "info", text: "Version \(live) missed it."),
+        FeatureOverviewFinding(kind: "opportunity", text: "Mondays spike"),
+        FeatureOverviewFinding(kind: "attention", text: "3 approvals wait on you"),
+        FeatureOverviewFinding(kind: "attention", text: "A change regressed", link: "proposal"),
+        FeatureOverviewFinding(kind: "problem", text: "Refund queue is unowned"),
+    ]
+    let findings = OutcomeFinding.build(lines, events: events, steward: steward)
+    #expect(findings.map(\.kind) == [.negative, .negative, .attention, .positive, .info])
+    #expect(findings[0].text == "A change regressed")
+    #expect(findings.last?.text == "The current charter missed it.")
+}
+
+/// IMPACT shows the workspace's rows with their confidence; zero credit is neutral.
+@Test func impactMapsRowsWithConfidence() {
+    let impact = OutcomeImpact.build(
+        FeatureImpact(
+            readings: 8,
+            rows: [
+                .init(
+                    label: "label + route", credit: 0.04, helped: true, actions: 12, windows: 5,
+                    confidence: "medium"),
+                .init(
+                    label: "reply", credit: -0.001, helped: false, actions: 2, windows: 2,
+                    confidence: "low"),
+            ], summary: "routed +0.04 over 14 actions; most of it from label + route."))
+    #expect(impact.rows.first?.detail == "12 actions in 5 of 7 windows · medium confidence")
+    #expect(OutcomeImpact.tone(impact.rows[0]) == AryaColor.positive)
+    #expect(OutcomeImpact.tone(impact.rows[1]) == AryaColor.inkMuted)
+    #expect(OutcomeDashboardText.credit(-0.001) == "±0.00")
 }

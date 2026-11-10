@@ -72,6 +72,18 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.knowledgeSummary(steward: steward)
     }
 
+    func stewardLive(steward: String) async throws -> FeatureStewardLive {
+        try await source.stewardLiveState(steward: steward)
+    }
+
+    func overviewFindings(steward: String) async throws -> [FeatureOverviewFinding] {
+        try await source.overviewFindingLines(steward: steward)
+    }
+
+    func impact(steward: String) async throws -> FeatureImpact? {
+        try await source.impactSummary(steward: steward)
+    }
+
     func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
         try await source.eventDetail(seq: seq)
     }

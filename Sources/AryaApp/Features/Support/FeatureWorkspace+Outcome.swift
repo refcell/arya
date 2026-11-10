@@ -130,6 +130,12 @@ protocol FeatureOutcomeReads: Sendable {
     func learnedChecks(steward: String) async throws -> FeatureLearnedChecks?
     /// A charter proposal backtested against the live charter, for Improve.
     func liveReadiness(proposal: String) async throws -> FeatureLiveReadiness
+    /// What the steward is doing now (app-outcome's NOW).
+    func stewardLive(steward: String) async throws -> FeatureStewardLive
+    /// The Overview's findings, the steward's own first (app-outcome's FINDINGS).
+    func overviewFindings(steward: String) async throws -> [FeatureOverviewFinding]
+    /// Which actions moved the metric, nil without enough readings (app-outcome's IMPACT).
+    func impact(steward: String) async throws -> FeatureImpact?
 }
 
 extension FeatureOutcomeReads {
@@ -168,5 +174,17 @@ extension FeatureOutcomeReads {
     /// Workspaces without learned checks report them unavailable; Improve then hides them.
     func learnedChecks(steward: String) async throws -> FeatureLearnedChecks? {
         throw FeatureReadError.unavailable("learned checks")
+    }
+
+    func stewardLive(steward: String) async throws -> FeatureStewardLive {
+        throw FeatureReadError.unavailable("steward live")
+    }
+
+    func overviewFindings(steward: String) async throws -> [FeatureOverviewFinding] {
+        throw FeatureReadError.unavailable("findings")
+    }
+
+    func impact(steward: String) async throws -> FeatureImpact? {
+        throw FeatureReadError.unavailable("impact")
     }
 }

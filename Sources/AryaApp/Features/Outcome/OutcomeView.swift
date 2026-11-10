@@ -48,8 +48,6 @@ struct OverviewTab: View {
     let rehearse: () -> Void
     /// Starts the scheduler from the app; nil where the shell cannot.
     var startServing: (() -> Void)?
-    /// Runs going now, from the shell (the list the rail and status bar show).
-    var running: [LiveLine] = []
     /// The seq the person had seen before this visit; read once per steward.
     @AryaState private var lastSeen: Int?
     @AryaState private var visited: String?
@@ -72,6 +70,22 @@ struct OverviewTab: View {
             }
         }
         .task(id: steward) { visit() }
+        .task(id: "\(steward)#\(revision)") { await loadReads() }
+    }
+
+    /// Changes as the ledger grows, so new findings and checks reload.
+    private var revision: Int {
+        if case .loaded(let events) = store.state { return events.count }
+        return 0
+    }
+
+    /// The workspace's findings and effectiveness; a home without them keeps the projections.
+    private func loadReads() async {
+        let live = try? await store.workspace.stewardLive(steward: steward)
+        let findings = try? await store.workspace.overviewFindings(steward: steward)
+        let impact = try? await store.workspace.impact(steward: steward)
+        store.outcomeReads[steward] = OutcomeReads(
+            live: live, findings: findings, impact: impact ?? nil)
     }
 
     private func visit() {
@@ -107,14 +121,14 @@ struct OverviewTab: View {
                     metrics: OutcomeMetrics.build(
                         events: events, steward: steward, state: snapshot.state, now: store.now),
                     now: store.now)
-                let impact = OutcomeImpact.build(
-                    events: events, steward: steward, metric: snapshot.state.metric)
+                let reads = store.outcomeReads[steward]
+                let impact = reads?.impact.map(OutcomeImpact.build)
                 columns {
                     VStack(alignment: .leading, spacing: AryaSpace.s4) {
                         OutcomeNowSection(
                             now: OutcomeNow.build(
                                 events: events, steward: steward, state: snapshot.state,
-                                now: store.now, running: running),
+                                now: store.now, live: reads?.live),
                             openRun: openRun, startServing: startServing)
                         if let plan = snapshot.plan, !plan.steps.isEmpty {
                             OutcomePlanSection(plan: plan, now: store.now, openRun: openRun)
@@ -124,8 +138,7 @@ struct OverviewTab: View {
                     VStack(alignment: .leading, spacing: AryaSpace.s4) {
                         OutcomeFindingsSection(
                             findings: OutcomeFinding.build(
-                                events: events, steward: steward, state: snapshot.state,
-                                recap: snapshot.recap, now: store.now))
+                                reads?.findings ?? [], events: events, steward: steward))
                         if let impact { OutcomeImpactSection(impact: impact) }
                     }
                 }

@@ -42,6 +42,8 @@ import Testing
             model.navigation = navigation
             try write(name, scheme: scheme, render(RootView(model: model), dark: dark))
         }
+        // Offscreen renders run no tasks: load NOW, FINDINGS, and IMPACT's workspace reads.
+        await loadOutcomeReads(model, steward: steward.id)
         try page("overview") { $0.tab = .overview }
         // Nothing selected: the inspector lists the steward's context, Settings last.
         try page("overview-with-inspector") { $0.tab = .overview }
@@ -234,36 +236,11 @@ import Testing
                 "people-thread-live", scheme: scheme, render(RootView(model: liveModel), dark: dark)
             )
         }
-        // A run in progress (app-outcome): NOW's live row with its progress bar and the
-        // adapter's latest step, over the demo home's events.
-        if let store = model.featureStore {
-            let base = store.events.map(\.seq).max() ?? 0
-            var live = FeatureEventBuilder(start: store.now.addingTimeInterval(-40))
-            live.add(
-                "run.started", steward: steward.id, run: "run_live",
-                ["input": ["text": "Triage the 09:00 inbox batch"]])
-            live.add(
-                "run.adapter.event", steward: steward.id, run: "run_live", after: 20,
-                [
-                    "message": [
-                        "params": ["event": ["detail": "Labeling MSG-212 as billing (3 of 7)"]]
-                    ]
-                ])
-            let events = live.events.map {
-                var event = $0
-                event.seq += base
-                return event
-            }
-            let liveStore = FeatureStore(
-                workspace: PreviewWorkspace(events: store.events + events, now: store.now),
-                now: store.now)
-            await liveStore.reload()
-            liveStore.serve = store.serve
-            let liveModel = AppModel(source: model.source, featureStore: liveStore)
-            await liveModel.refresh()
-            liveModel.navigation.select(steward: steward.id)
-            try write(
-                "overview-live", scheme: scheme, render(RootView(model: liveModel), dark: dark))
+        // A run in progress (app-outcome): the steward the snapshot home is actually running
+        // (snapshot.sh starts a lead follow-up run), with NOW read from stewardLive.
+        if let live = model.liveLines.first?.steward ?? model.stewards.first?.id {
+            await loadOutcomeReads(model, steward: live)
+            try page("overview-live") { $0.select(steward: live) }
         }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()
@@ -359,6 +336,16 @@ import Testing
         defer { try? FileManager.default.removeItem(at: empty.home) }
         await empty.model.refresh()
         try write("first-launch", scheme: scheme, render(RootView(model: empty.model), dark: dark))
+    }
+
+    /// The Overview's workspace reads, as its task would load them on screen.
+    func loadOutcomeReads(_ model: AppModel, steward: String) async {
+        guard let store = model.featureStore else { return }
+        let live = try? await store.workspace.stewardLive(steward: steward)
+        let findings = try? await store.workspace.overviewFindings(steward: steward)
+        let impact = try? await store.workspace.impact(steward: steward)
+        store.outcomeReads[steward] = OutcomeReads(
+            live: live, findings: findings, impact: impact ?? nil)
     }
 
     /// The seeded demo home when `ARYA_SNAPSHOT_HOME` is set, else the fake workspace.

@@ -130,269 +130,134 @@ struct OutcomeMetrics: Hashable, Sendable {
     }
 }
 
-/// NOW: runs in progress with an estimated progress, else when the next one starts.
+/// NOW: this steward's live run from `stewardLive(steward:)`, else when the next one starts.
 struct OutcomeNow: Hashable, Sendable {
     struct Live: Hashable, Sendable, Identifiable {
         var run: String
         var title: String
+        /// The adapter's latest step line, when it sent one.
         var doing: String?
         var elapsed: TimeInterval
-        /// 0…1, elapsed against the typical run; nil without finished runs to compare.
         var progress: Double?
-        /// Steps taken so far, when the workspace counts them (`liveRuns`).
-        var steps: Int?
+        /// "step 3 of ~7", from the workspace's step count and usual steps.
+        var steps: String
         var id: String { run }
     }
 
     var live: [Live]
+    /// Other runs of this steward in progress (crew children, overlapping wakes).
+    var alsoRunning = 0
     var next: String
     var last: String?
 
     /// Whether "Start serving" belongs beside the next time: the scheduler is stopped.
     var stopped = false
 
+    /// Maps the workspace's live state; without it (a home that cannot say) NOW shows only the
+    /// schedule from the serve status. The last run's summary line comes from the ledger.
     static func build(
         events: [FeatureEvent], steward: String, state: OutcomeState, now: Date,
-        running: [LiveLine] = []
+        live: FeatureStewardLive? = nil
     ) -> OutcomeNow {
         let ledger = OutcomeLedger(events: events, steward: steward)
-        let durations = ledger.runs.compactMap { started -> TimeInterval? in
-            guard let end = ledger.finished[started.run ?? ""] else { return nil }
-            return end.at.timeIntervalSince(started.at)
+        let running = live.flatMap { live in
+            live.running.map { facts in (facts, live.run ?? "", live.title, live.progress) }
+        }.map { facts, run, title, progress in
+            Live(
+                run: run, title: title ?? "Run in progress", doing: ledger.status[run],
+                elapsed: facts.elapsedSeconds, progress: progress,
+                steps: "step \(facts.stepIndex)"
+                    + (facts.estimatedSteps.map { " of ~\($0)" } ?? ""))
         }
-        .sorted()
-        let typical = durations.isEmpty ? nil : durations[durations.count / 2]
-        let titles = Dictionary(
-            ledger.runs.compactMap { started -> (String, String)? in
-                guard let run = started.run,
-                    let title = started.payload["input"]?["text"]?.string
-                        ?? started.payload["title"]?.string
-                else { return nil }
-                return (run, title)
-            }, uniquingKeysWith: { $1 })
-        // The shell's live runs (the rail and status bar read the same list) come first.
-        let shell = running.filter { $0.steward == steward }.map { line -> Live in
-            let elapsed = max(0, now.timeIntervalSince(line.started))
-            return Live(
-                run: line.run, title: titles[line.run] ?? line.lastStep ?? "Run in progress",
-                doing: line.lastStep ?? ledger.status[line.run], elapsed: elapsed,
-                progress: line.progress
-                    ?? typical.map { $0 > 0 ? min(0.95, elapsed / $0) : 0.95 },
-                steps: line.steps)
+        var wake = state.wake
+        var serving = state.serving
+        if let live, wake != .paused {
+            serving = live.serving
+            if live.schedule == "unscheduled" {
+                wake = .onDemand
+            } else if let date = live.nextWake {
+                wake = .at(date)
+            }
         }
-        let known = Set(shell.map(\.run))
-        let projected = ledger.runs.filter {
-            ledger.finished[$0.run ?? ""] == nil && !known.contains($0.run ?? $0.id)
-        }.map { started in
-            let run = started.run ?? started.id
-            let elapsed = max(0, now.timeIntervalSince(started.at))
-            return Live(
-                run: run,
-                title: started.payload["input"]?["text"]?.string
-                    ?? started.payload["title"]?.string ?? run,
-                doing: ledger.status[run], elapsed: elapsed,
-                progress: typical.map { $0 > 0 ? min(0.95, elapsed / $0) : 0.95 })
-        }
-        let live = shell + projected
         let last = ledger.runs.last { ledger.finished[$0.run ?? ""] != nil }.flatMap {
             ledger.finished[$0.run ?? ""]
         }
         return OutcomeNow(
-            live: live, next: state.wake.schedule(now: now, serving: state.serving),
+            live: running.map { [$0] } ?? [], alsoRunning: live?.alsoRunning ?? 0,
+            next: wake.schedule(now: now, serving: serving),
             last: last.map {
                 ($0.payload["summary"]?.string ?? "Last run") + " · "
                     + AryaTime.label($0.at, now: now, style: .long)
-            }, stopped: state.serving == false && state.wake != .paused)
+            }, stopped: serving == false && wake != .paused)
     }
 }
 
-/// A line that needs attention or explains a change, derived from the ledger.
+/// A FINDINGS line, from `overviewFindings(steward:)`.
 struct OutcomeFinding: Hashable, Sendable, Identifiable {
     enum Kind: Hashable, Sendable { case attention, negative, positive, info }
     var kind: Kind
     var text: String
     var id: String { text }
 
+    /// Maps the workspace's lines, plain words for charter versions, severity first: harm,
+    /// then what waits on you, then good news, then notes.
     static func build(
-        events: [FeatureEvent], steward: String, state: OutcomeState, recap: OutcomeRecap,
-        now: Date
+        _ lines: [FeatureOverviewFinding], events: [FeatureEvent], steward: String
     ) -> [OutcomeFinding] {
-        var out: [OutcomeFinding] = []
-        if let metric = state.metric, state.missed > 0 {
-            out.append(
-                OutcomeFinding(
-                    kind: .negative,
-                    text: "\(metric.name) missed its target on \(state.missed) of the last "
-                        + "\(state.window) measured days"))
+        let rank: [Kind: Int] = [.negative: 0, .attention: 1, .positive: 2, .info: 3]
+        return lines.map { line -> OutcomeFinding in
+            // A proposal that regressed in rehearsal is harm the person must see first.
+            let kind: Kind =
+                switch line.kind {
+                case _ where line.link == "proposal": .negative
+                case "problem", "negative": .negative
+                case "attention": .attention
+                case "opportunity", "positive": .positive
+                default: .info
+                }
+            return OutcomeFinding(
+                kind: kind,
+                text: OutcomeDashboardText.plain(line.text, events: events, steward: steward))
         }
-        let recent = state.points.suffix(OutcomeState.recentDays)
-        if let metric = state.metric, let first = recent.first?.value,
-            let last = recent.last?.value, recent.count >= 2, abs(last - first) >= 0.01
-        {
-            let better = metric.direction == .up ? last > first : last < first
-            out.append(
-                OutcomeFinding(
-                    kind: better ? .positive : .negative,
-                    text: "\(metric.name) \(last > first ? "rose" : "fell") from "
-                        + "\(MetricText.value(first)) to \(MetricText.value(last)) over those days")
-            )
-        }
-        let ledger = OutcomeLedger(events: events, steward: steward)
-        let waiting = Set(recap.pending.map(\.approval))
-        let held = ledger.holds.filter {
-            waiting.contains($0.payload["approval"]?.string ?? $0.payload["id"]?.string ?? "")
-        }
-        if !recap.pending.isEmpty, let oldest = (held.isEmpty ? ledger.holds : held).map(\.at).min()
-        {
-            let count = recap.pending.count
-            out.append(
-                OutcomeFinding(
-                    kind: .attention,
-                    text: "\(count) \(count == 1 ? "approval waits" : "approvals wait") on you, "
-                        + "the oldest since \(AryaTime.label(oldest, now: now, style: .long))"))
-        }
-        let failed = ledger.finished.values.filter {
-            $0.at >= now.addingTimeInterval(-7 * day)
-                && !["completed", "succeeded"].contains($0.payload["status"]?.string ?? "completed")
-        }
-        if !failed.isEmpty {
-            out.append(
-                OutcomeFinding(
-                    kind: .negative,
-                    text: "\(failed.count) \(failed.count == 1 ? "run" : "runs") failed this week"))
-        }
-        for event in events where event.steward == steward && event.type == "routine.proposed" {
-            if let reason = event.payload["reason"]?.string {
-                out.append(
-                    OutcomeFinding(
-                        kind: .info,
-                        text: OutcomeDashboardText.plain(reason, events: events, steward: steward)))
-            }
-        }
-        let list = ChangeList.build(events: events, steward: steward)
-        for item in list.open {
-            let review = ProposalReview.build(item, events: events)
-            if !review.worse.isEmpty {
-                let ids = review.worse.map(\.id).joined(separator: ", ")
-                out.append(
-                    OutcomeFinding(
-                        kind: .negative,
-                        text: "A proposed change made \(review.worse.count) of \(review.cases) "
-                            + "cases worse in rehearsal (\(ids)); it stays off until you decide"))
-            }
-        }
-        // Severity first: harm, then what waits on you, then good news, then notes.
-        let rank: [OutcomeFinding.Kind: Int] = [
-            .negative: 0, .attention: 1, .positive: 2, .info: 3,
-        ]
-        return out.enumerated().sorted {
+        .enumerated().sorted {
             let (left, right) = (rank[$0.element.kind] ?? 9, rank[$1.element.kind] ?? 9)
             return left != right ? left < right : $0.offset < $1.offset
         }.map(\.element)
     }
 }
 
-/// IMPACT: which actions moved the metric. Each change between two readings is credited to
-/// the action kinds executed in that window, weighted by each kind's share of the window's
-/// actions. Kinds that ran in exactly the same windows cannot be told apart, so they share one
-/// row ("label + route"); when nothing can be told apart, IMPACT says so in one line.
+/// IMPACT, from `impact(steward:)`: credit per action kind with the workspace's confidence,
+/// or its one honest line when nothing splits.
 struct OutcomeImpact: Hashable, Sendable {
     struct Row: Hashable, Sendable, Identifiable {
-        /// One kind, or kinds that always ran together, joined by " + ".
-        var kind: String
+        var label: String
         var credit: Double
-        var actions: Int
-        /// Windows (reading to reading) the kind ran in.
-        var windows: Int
-        var id: String { kind }
+        var helped: Bool
+        /// "12 actions in 5 of 7 windows · medium confidence".
+        var detail: String
+        var id: String { label }
     }
 
-    /// Separable groups, best first; empty when the actions cannot be told apart.
     var rows: [Row]
-    /// The whole change over the windows with actions, and the actions in them.
-    var total: Double
-    var actions: Int
-    /// Kinds that always ran together, when the rows could not split them.
-    var together: [String]
+    var summary: String
     var readings: Int
-    var direction: MetricDefinition.Direction
 
-    static let limit = 5
-
-    static func build(events: [FeatureEvent], steward: String, metric: MetricDefinition?)
-        -> OutcomeImpact?
-    {
-        guard let metric else { return nil }
-        let ledger = OutcomeLedger(events: events, steward: steward)
-        let readings = ledger.metrics.filter { $0.payload["metric"]?.string == metric.name }
-        guard readings.count >= 2 else { return nil }
-        var windows: [(delta: Double, counts: [String: Int])] = []
-        for (before, after) in zip(readings, readings.dropFirst()) {
-            guard let from = before.payload["value"]?.number,
-                let to = after.payload["value"]?.number
-            else { continue }
-            let kinds = ledger.executed.filter { $0.seq > before.seq && $0.seq <= after.seq }
-                .compactMap(ledger.kind)
-            guard !kinds.isEmpty else { continue }
-            windows.append((to - from, Dictionary(kinds.map { ($0, 1) }, uniquingKeysWith: +)))
-        }
-        guard !windows.isEmpty else { return nil }
-        // Kinds with the same set of windows are one group.
-        var signature: [String: [Int]] = [:]
-        for (index, window) in windows.enumerated() {
-            for kind in window.counts.keys { signature[kind, default: []].append(index) }
-        }
-        let groups = Dictionary(grouping: signature.keys) { signature[$0] ?? [] }
-            .map { $0.value.sorted() }
-        let total = windows.reduce(0) { $0 + $1.delta }
-        let actions = windows.reduce(0) { $0 + $1.counts.values.reduce(0, +) }
-        let good: (Double) -> Double = { metric.direction == .up ? $0 : -$0 }
-        var rows: [Row] = []
-        if groups.count > 1 {
-            rows = groups.map { kinds in
-                var credit = 0.0
-                var count = 0
-                for window in windows {
-                    let mine = kinds.reduce(0) { $0 + (window.counts[$1] ?? 0) }
-                    let all = window.counts.values.reduce(0, +)
-                    guard mine > 0 else { continue }
-                    credit += window.delta * Double(mine) / Double(all)
-                    count += mine
-                }
-                return Row(
-                    kind: kinds.joined(separator: " + "), credit: credit, actions: count,
-                    windows: signature[kinds[0]]?.count ?? 0)
-            }
-            .sorted { good($0.credit) > good($1.credit) }
-        }
+    static func build(_ impact: FeatureImpact) -> OutcomeImpact {
+        let windows = max(0, impact.readings - 1)
         return OutcomeImpact(
-            rows: Array(rows.prefix(limit)), total: total, actions: actions,
-            together: groups.count == 1 ? groups[0] : [], readings: readings.count,
-            direction: metric.direction)
+            rows: impact.rows.map { row in
+                let noun = row.actions == 1 ? "action" : "actions"
+                return Row(
+                    label: row.label, credit: row.credit, helped: row.helped,
+                    detail: "\(row.actions) \(noun) in \(row.windows) of \(windows) windows · "
+                        + "\(row.confidence) confidence")
+            }, summary: impact.summary, readings: impact.readings)
     }
-
-    func helped(_ credit: Double) -> Bool { direction == .up ? credit >= 0 : credit <= 0 }
 
     /// Green for help, red for harm, muted for a change that rounds to zero.
-    func tone(_ credit: Double) -> Color {
-        if abs(credit) < 0.005 { return AryaColor.inkMuted }
-        return helped(credit) ? AryaColor.positive : AryaColor.negative
-    }
-
-    /// The one honest line when nothing can be split: "Metric +0.17 over 29 actions; label
-    /// and route always ran together, so the change is not split by action."
-    var summary: String {
-        var text = "Metric \(OutcomeDashboardText.credit(total)) over \(actions) "
-        text += actions == 1 ? "action" : "actions"
-        if together.count > 1 {
-            let names =
-                together.dropLast().joined(separator: ", ") + " and "
-                + (together.last ?? "")
-            text += "; \(names) always ran together, so the change is not split by action"
-        } else if let only = together.first {
-            text += ", all of them \(only)"
-        }
-        return text + "."
+    static func tone(_ row: Row) -> Color {
+        if abs(row.credit) < 0.005 { return AryaColor.inkMuted }
+        return row.helped ? AryaColor.positive : AryaColor.negative
     }
 }
 
@@ -495,7 +360,9 @@ struct OutcomeNowSection: View {
     var startServing: (() -> Void)?
 
     var body: some View {
-        OutcomeSection("Now", trailing: now.live.isEmpty ? nil : "\(now.live.count) running") {
+        OutcomeSection(
+            "Now", trailing: now.live.isEmpty ? nil : "\(now.live.count + now.alsoRunning) running"
+        ) {
             if now.live.isEmpty {
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                     Text("○").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
@@ -524,10 +391,7 @@ struct OutcomeNowSection: View {
                             StatusDot(.running)
                             Text(live.title).aryaText(AryaFont.body, AryaColor.ink).lineLimit(1)
                             Spacer(minLength: AryaSpace.s2)
-                            if let steps = live.steps {
-                                Text("step \(steps)")
-                                    .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                            }
+                            Text(live.steps).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                             Text(FeatureTime.duration(live.elapsed))
                                 .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                         }
@@ -609,24 +473,18 @@ struct OutcomeImpactSection: View {
     let impact: OutcomeImpact
 
     var body: some View {
-        OutcomeSection("Impact", trailing: "estimated from \(impact.readings) readings") {
-            if impact.rows.isEmpty {
-                Text(impact.summary).aryaText(AryaFont.body, AryaColor.inkMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(minHeight: AryaSize.rowHeight)
-            }
+        OutcomeSection("Impact", trailing: "from \(impact.readings) readings") {
+            Text(impact.summary).aryaText(AryaFont.body, AryaColor.inkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: AryaSize.rowHeight)
             ForEach(impact.rows) { row in
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                    Text(row.kind).aryaText(AryaFont.mono, AryaColor.ink)
+                    Text(row.label).aryaText(AryaFont.mono, AryaColor.ink)
                         .frame(width: AryaSize.outcomeSeriesLabel, alignment: .leading)
                     Text(OutcomeDashboardText.credit(row.credit))
-                        .aryaText(AryaFont.mono, impact.tone(row.credit))
+                        .aryaText(AryaFont.mono, OutcomeImpact.tone(row))
                         .monospacedDigit()
-                    Text(
-                        "\(row.actions) \(row.actions == 1 ? "action" : "actions") in "
-                            + "\(row.windows) of \(impact.readings - 1) windows"
-                    )
-                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    Text(row.detail).aryaText(AryaFont.caption, AryaColor.inkMuted)
                     Spacer(minLength: 0)
                 }
                 .frame(height: AryaSize.rowHeight)

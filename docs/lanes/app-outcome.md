@@ -154,6 +154,18 @@ is. Fix these five first; this lane owns its share:
   on app-shell's 596d7e9 version).
 - Visual check: not re-rendered this push (CEO load order: only changed states, and no state
   filter yet); last render overview-live 10:09 showed NOW, status bar and inspector agreeing.
+- One source per fact: NOW reads `stewardLive(steward:)` (live run title, step N of ~M,
+  elapsed, progress; else the schedule and serving from the one serving rule), FINDINGS read
+  `overviewFindings(steward:)` (severity first; a proposal link is red), IMPACT reads
+  `impact(steward:)` with its confidence. The ledger projections for those three are deleted.
+  overview-live selects the steward holding the live lease (snapshot.sh's lead follow-up run),
+  and the snapshot preloads the reads (offscreen renders run no tasks). `just snapshot STATE…`
+  renders only the named states.
+- Visual check: overview and overview-live (dark): NOW "LEAD-LIVE … step 9 of ~9 · 30.4 s"
+  with a bar, matching the rail ("step 9"), status bar (serving, Lead follow-up running) and
+  inspector (RUNNING 1, Next run 15:00); Support triage NOW reads "Next run 14:11" like its
+  inspector and the status bar. Moves points 4 (live feel) and 1 (consistency). Open: header
+  "missed 4 of 5" vs FINDINGS "11 of the last 12" (asked workspace for one window).
 - Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
   next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
   (live feel) and 2 (no dead space).
