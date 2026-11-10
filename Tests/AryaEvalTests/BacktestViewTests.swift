@@ -26,6 +26,15 @@ import Testing
         view.metrics.map(\.label)
             == ["Cases passed", "Mean score", "Leaks", "routed_within_1h"])
     #expect(view.metrics[3].current != "n/a" && view.metrics[3].proposed != "n/a")
+    // Structured fields for an inline diff: the regressed case's choice changed, and only the
+    // proposed side misses it; every row links both sides' runs.
+    let regressed = try #require(view.rows.first)
+    let choice = try #require(regressed.fields.first { $0.field == "choice" })
+    #expect(choice.changed && choice.currentMatches && !choice.proposedMatches)
+    #expect(choice.current == choice.expected && choice.proposed != choice.expected)
+    #expect(regressed.currentScore > regressed.proposedScore)
+    #expect(view.rows.allSatisfy { $0.currentRun != nil && $0.proposedRun != nil })
+    #expect(view.rows.dropFirst(2).allSatisfy { row in row.fields.allSatisfy { !$0.changed } })
 }
 
 @Test func backtestViewNumbersAndTrends() {

@@ -19,6 +19,20 @@ public struct BacktestView: Hashable, Sendable, Codable {
         public var trend: Trend
     }
 
+    /// One compared field of a case, for a side-by-side diff: `decisions.choice` once, and
+    /// one line per action (`label inbox:MSG-1`). Values are verbatim; `-` when a side has none.
+    public struct FieldRow: Hashable, Sendable, Codable {
+        /// `choice` or `action`.
+        public var field: String
+        public var expected: String
+        public var current: String
+        public var proposed: String
+        public var currentMatches: Bool
+        public var proposedMatches: Bool
+        /// The two variants differ on this field.
+        public var changed: Bool
+    }
+
     /// One case, side by side.
     public struct CaseRow: Hashable, Sendable, Codable {
         public var caseID: String
@@ -37,6 +51,13 @@ public struct BacktestView: Hashable, Sendable, Codable {
         public var delta: String
         /// One line on the case, for example the field that changed.
         public var note: String
+        /// The case's choice and actions, field by field, for an inline diff.
+        public var fields: [FieldRow] = []
+        public var currentScore: Double = 0
+        public var proposedScore: Double = 0
+        /// The first rehearsal run of each side, to open its work pane; nil when it failed.
+        public var currentRun: String?
+        public var proposedRun: String?
     }
 
     /// Column headers, for example `Live v1` and `Proposed v2`.
@@ -113,7 +134,50 @@ public struct BacktestView: Hashable, Sendable, Codable {
             caseID: item.caseID.rawValue, input: item.input, expected: item.expectedText,
             current: item.current.text, proposed: item.proposed.text,
             currentPassed: item.current.passed, proposedPassed: item.proposed.passed,
-            change: item.change, changeLabel: label, delta: signed(item.delta), note: note)
+            change: item.change, changeLabel: label, delta: signed(item.delta), note: note,
+            fields: fields(item), currentScore: item.current.score,
+            proposedScore: item.proposed.score,
+            currentRun: item.current.runs.compactMap { $0 }.first?.rawValue,
+            proposedRun: item.proposed.runs.compactMap { $0 }.first?.rawValue)
+    }
+
+    /// The choice row, then one row per action seen on any side, in first-seen order.
+    static func fields(_ item: BacktestCase) -> [FieldRow] {
+        let current = item.current.actual ?? .null
+        let proposed = item.proposed.actual ?? .null
+        func choice(_ value: JSONValue) -> String {
+            let found = value.values(at: "decisions.choice")
+            return found.isEmpty ? "-" : found.map(ResultText.value).joined(separator: ", ")
+        }
+        func actions(_ value: JSONValue) -> [String] {
+            (value["actions"]?.arrayValue ?? []).map { action in
+                let kind = action["kind"].map(ResultText.value) ?? "?"
+                let target = action["target"].map(ResultText.value)
+                return target.map { "\(kind) \($0)" } ?? kind
+            }
+        }
+        var rows: [FieldRow] = []
+        let wanted = choice(item.expected)
+        let (old, new) = (choice(current), choice(proposed))
+        if wanted != "-" || old != "-" || new != "-" {
+            rows.append(
+                FieldRow(
+                    field: "choice", expected: wanted, current: old, proposed: new,
+                    currentMatches: old == wanted, proposedMatches: new == wanted,
+                    changed: old != new))
+        }
+        let sides = (actions(item.expected), actions(current), actions(proposed))
+        var seen: [String] = []
+        for line in sides.0 + sides.1 + sides.2 where !seen.contains(line) { seen.append(line) }
+        for line in seen {
+            let has = (sides.0.contains(line), sides.1.contains(line), sides.2.contains(line))
+            rows.append(
+                FieldRow(
+                    field: "action", expected: has.0 ? line : "-", current: has.1 ? line : "-",
+                    proposed: has.2 ? line : "-", currentMatches: has.1 == has.0,
+                    proposedMatches: has.2 == has.0, changed: has.1 != has.2))
+        }
+        return rows
     }
 
     static func row(
