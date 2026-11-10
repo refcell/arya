@@ -389,7 +389,7 @@ extension Workspace: WorkspaceSource {
         case .createSteward(let draft):
             _ = try await createSteward(draft)
         case .adoptRoutine(let name, let version, let source, let target):
-            _ = try await adoptRoutine(
+            _ = try await shareRoutine(
                 name: name, version: version, from: source, into: target, by: person)
         }
     }

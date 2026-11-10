@@ -18,7 +18,7 @@
 #
 # Each step prints ok, PENDING (the command or the piece behind it is not built yet: exit 69
 # or an unknown command), or FAIL. Steps belong to groups (setup, rehearsal, live, metrics,
-# replay, fleet, holds, improve, crew, connect, abort, governance, publish);
+# replay, fleet, holds, improve, crew, connect, library, abort, governance, publish);
 # a step runs only while its own group and the groups it needs are ok, and is skipped
 # otherwise, so the live run is exercised even while rehearsal is pending.
 # Exit status: 0 all ok, 1 a step failed, 2 a step is pending.
@@ -312,6 +312,27 @@ check_report() {
   [ "$(get lines)" -ge 1 ] && expect "goes to" "$(get to.0.person)" person:sam ||
     { echo "    an empty report, or not to person:sam"; return 1; }
 }
+check_routine_run() { expect status "$(get status)" completed; }
+check_library() {
+  expect routine "$(get 0.name)" flag-duplicate-charges &&
+    expect steward "$(get 0.uses.0.steward)" st_triage || return 1
+  routine_version=$(get 0.uses.0.latestVersion)
+  [ -n "$routine_version" ] || { echo "    no routine version"; return 1; }
+}
+check_adopted() {
+  # The refund steward has no casebook here, so the version stays proposed there.
+  expect steward "$(get steward)" st_refunds && expect version "$(get version)" "${routine_version:-}"
+}
+check_library_shared() {
+  expect "stewards with it" "$(get 0.uses)" 2 &&
+    expect "second steward" "$(get 0.uses.1.steward)" st_triage &&
+    expect "same version" "$(get 0.uses.0.latestVersion)" "${routine_version:-}"
+}
+check_fanout() {
+  expect delegates "$(get children)" 1 &&
+    expect "delegate status" "$(get children.0.status)" completed &&
+    expect "delegate run" "$(get children.0.run)" "${crew_child:-}"
+}
 check_forgotten() { ! grep -q "\"${memory_id:-none}\"" "$out" || { echo "    $memory_id still recalled"; return 1; }; }
 
 # refused_step NAME GROUP NEEDS TEXT ARGS...: `arya ARGS...` must fail with TEXT on stderr.
@@ -493,6 +514,14 @@ step "sam's correction is kept as memory" connect live check_message_kept \
   --intent correct
 step "report: what it would send now" connect live check_report report show st_triage
 step "send the report" connect live check_report report send st_triage
+step "crew fan-out: the delegate completed" crew live check_fanout run crew "${crew_parent:-unknown}"
+step "a run proposes a routine" library live check_routine_run \
+  run st_triage --input "New message MSG-134: Duplicate charge on the 3rd"
+step "routine library: triage has it" library live check_library routine library
+step "use it in the refund steward" library fleet check_adopted routine adopt \
+  flag-duplicate-charges "${routine_version:-unknown}" --from st_triage --into st_refunds \
+  --as person:priya
+step "library: two stewards, one version" library fleet check_library_shared routine library
 start_long_run
 step "steward live: the long run is running" abort live check_live_running \
   steward live st_triage

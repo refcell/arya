@@ -103,6 +103,24 @@ struct RoutineLibrary: Hashable, Sendable {
 }
 
 enum RoutineLibraryText {
+    /// "pinned 1a2b3c4d5e6f": each steward runs its own live version until it adopts another
+    /// (decision 0060); "proposed only" before one goes live.
+    static func pin(_ use: RoutineItem) -> String {
+        use.live.map { "pinned " + RoutinesText.shortVersion($0) } ?? "proposed only"
+    }
+
+    /// The newer live version another steward runs, when `use` is pinned to an older one (or
+    /// has none live) and has not proposed that version yet.
+    static func behind(_ use: RoutineItem, _ entry: RoutineLibrary.Entry)
+        -> (steward: String, version: String)?
+    {
+        guard let source = entry.source, source.steward != use.steward,
+            entry.live.contains(where: { $0.steward == source.steward }),
+            use.live != source.version, !use.versions.contains(source.version)
+        else { return nil }
+        return source
+    }
+
     /// "92% pass · 25 runs", "no settled runs · 3 runs", or "not run yet".
     static func runs(_ entry: RoutineLibrary.Entry) -> String {
         guard entry.runs > 0 else { return "not run yet" }

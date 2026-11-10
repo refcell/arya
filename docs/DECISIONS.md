@@ -253,7 +253,6 @@ timeout, the run's workdir, and a clean environment. A macOS `sandbox-exec` prof
 routines is planned for M4, no longer under Later. Why: routines are code a steward wrote for
 itself, so a person approves them by default until real sandboxing lands.
 
-
 ### 0032 — 2026-11-09 — Routines are approved per name and version
 
 The approval policy for routines is per routine, not per action kind; this replaces the
@@ -623,7 +622,6 @@ every line of the segment; the existing first-line seq check still catches a seg
 changed underneath it, and a mismatch forgets the segment's marks and rescans. A probe
 (`ARYA_PERF=1`) measures a warm start on a 50,000-event home: about 5 ms, target 10 ms.
 
-
 ### 0058 — 2026-11-10 — Lanes publish through a first-come queue
 
 `just publish` takes a ticket in `<git common dir>/arya-publish-queue` after its preflight
@@ -659,7 +657,9 @@ steward's own `routine.proposed` (same content, same version, reason "Adopted fr
 by <person>") and runs the target's routine gate, so it goes live only when the target's
 casebook still passes; a failing gate leaves it proposed for an override. Routines stay keyed by
 steward and name. Why: a routine that helps one steward can break another's cases, and a shared
-library outside the gate would let one steward change another's behavior unreviewed.
+library outside the gate would let one steward change another's behavior unreviewed. A target
+without a casebook keeps the version proposed (`shareRoutine` returns `RoutineAdoption` with
+`gate` nil), as a charter proposal does.
 
 ### 0061 — 2026-11-10 — Memory about a person reaches the runs that act for them
 

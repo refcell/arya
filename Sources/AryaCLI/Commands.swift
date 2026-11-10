@@ -49,6 +49,7 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case stewardTrajectories = "steward trajectories", stewardMetrics = "steward metrics"
     case findings, findingResolve = "finding resolve"
     case templateList = "template list", templateUse = "template use"
+    case routineLibrary = "routine library", routineAdopt = "routine adopt", runCrew = "run crew"
 }
 
 /// A command's path, help text, and accepted arguments.
@@ -172,7 +173,7 @@ enum CommandTable {
                 ]),
             CommandSpec(id: .ledgerVerify, summary: "Check the ledger's hash chain and sequence"),
         ] + improvement + history + people + governance + live + stewardReads
-        + findingsAndTemplates
+        + findingsAndTemplates + library
 
     /// M2 commands: the improvement loop.
     private static let improvement: [CommandSpec] = [

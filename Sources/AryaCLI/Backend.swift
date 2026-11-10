@@ -55,7 +55,7 @@ enum ApprovalDecision: String, Sendable, Codable, Equatable {
 /// the facade's types change.
 protocol CLIBackend:
     ImprovementBackend, HistoryBackend, PeopleBackend, GovernanceBackend, LiveBackend,
-    StewardReadBackend, FindingTemplateBackend
+    StewardReadBackend, FindingTemplateBackend, RoutineLibraryBackend
 {
     func initHome() async throws(CLIError) -> InitReport
     func createSteward(charterPath: String) async throws(CLIError) -> StewardDetail

@@ -25,6 +25,8 @@ enum DemoStep {
     case proposeExample(index: Int)
     /// Runtime's follow-up checks due now, answered by `DemoOutcomes` (eval).
     case checkOutcomes
+    /// Promotes the swept shared routine in triage and adopts it into refunds (connect).
+    case shareRoutine
 }
 
 struct DemoSeeder {
@@ -64,6 +66,7 @@ struct DemoSeeder {
         // Charter v2's adapter, so the triage proposal's rehearsal runs instead of failing.
         scripts["fake-triage-v2"] = try FakeScript.load(
             from: examples.appendingPathComponent("triage/fake-script-v2.json"))
+        try SharedRoutine.script(&scripts)
         for steward in generated { scripts[steward.adapter] = steward.script }
         try writeProfiles(generated)
 
@@ -223,6 +226,17 @@ struct DemoSeeder {
         for day in 0...42 { steps.append((at(daysAgo: day, hour: 21), .checkOutcomes)) }
         steps.append((at(daysAgo: 1, hour: 8.5), .proposeExample(index: 1)))
         steps.append((at(daysAgo: 1, hour: 8.75), .proposeExample(index: 2)))
+        // A routine two stewards share and run (connect, M3.6 #7): swept, promoted, adopted.
+        steps.append(
+            (at(daysAgo: 12, hour: 9), .run(steward: "st_triage", input: SharedRoutine.sweep)))
+        steps.append((at(daysAgo: 12, hour: 10), .shareRoutine))
+        for run in SharedRoutine.runs {
+            steps.append(
+                (
+                    at(daysAgo: run.days, hour: 12.25),
+                    .run(steward: run.steward, input: SharedRoutine.input(run.text))
+                ))
+        }
         guard fleet else { return sorted(steps + newest()) }
         // Every generated steward gets a casebook from its own runs and a rehearsal (eval).
         for (index, steward) in generated.enumerated() {
@@ -480,6 +494,8 @@ struct Context {
                     try Data(contentsOf: root.appendingPathComponent(example.charter))),
                 baseVersion: version, title: example.title, reason: example.reason)
             _ = try? await workspace.checkProposal(proposal.id)
+        case .shareRoutine:
+            try await SharedRoutine.share(workspace)
         }
     }
 

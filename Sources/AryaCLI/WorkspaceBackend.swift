@@ -523,6 +523,26 @@ extension WorkspaceBackend {
         }
     }
 
+    func routineLibrary() async throws(CLIError) -> [SharedRoutineSummary] {
+        let workspace = try await open()
+        return try await call("routineLibrary") { try await workspace.routineLibrary() }
+    }
+
+    func adoptRoutine(
+        name: String, version: String, from source: String, into target: String, by person: String
+    ) async throws(CLIError) -> RoutineAdoption {
+        let workspace = try await open()
+        return try await call("adoptRoutine") {
+            try await workspace.shareRoutine(
+                name: name, version: version, from: source, into: target, by: person)
+        }
+    }
+
+    func crew(run: String) async throws(CLIError) -> CrewFanoutSummary {
+        let workspace = try await open()
+        return try await call("crew") { try await workspace.crew(run: run) }
+    }
+
     func sendReport(steward: String) async throws(CLIError) -> ReportDigest {
         let workspace = try await open()
         return try await call("sendReport", rejection: { .invalidInput($0) }) {

@@ -134,10 +134,12 @@ private func proposeRoutine(_ opened: Opened, _ body: String) async throws -> St
         steward: "st_twin", data: try casebookLines(), name: "inbox")
     let version = try await proposeRoutine(opened, "echo v1\n")
 
-    let adopted = try await workspace.adoptRoutine(
+    let adopted = try await workspace.shareRoutine(
         name: "tag-billing", version: version, from: "st_inbox", into: "st_twin", by: "person:sam")
 
-    #expect(adopted.promoted == adopted.verdict.passed)
+    let gate = try #require(adopted.gate)
+    #expect(gate.promoted == gate.verdict.passed)
+    #expect(adopted.live == gate.promoted)
     let proposed = try #require(
         try await workspace.ledger().last {
             $0.type == "routine.proposed" && $0.steward == "st_twin"
@@ -148,6 +150,15 @@ private func proposeRoutine(_ opened: Opened, _ body: String) async throws -> St
         try await workspace.adoptRoutine(
             name: "tag-billing", version: version, from: "st_inbox", into: "st_inbox")
     }
+    var bare = inboxCharter()
+    bare.id = StewardID(unchecked: "st_bare")
+    bare.name = "No casebook"
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(bare))
+    let proposedOnly = try await workspace.shareRoutine(
+        name: "tag-billing", version: version, from: "st_inbox", into: "st_bare")
+    #expect(proposedOnly.gate == nil)
+    #expect(!proposedOnly.live)
+    #expect(try await workspace.routines(steward: "st_bare").first?.latestVersion == version)
     await #expect(throws: WorkspaceError.notFound("tag-billing missing")) {
         try await workspace.adoptRoutine(
             name: "tag-billing", version: "missing", from: "st_inbox", into: "st_twin")

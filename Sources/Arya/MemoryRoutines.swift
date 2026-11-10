@@ -237,14 +237,29 @@ extension Workspace {
         try await routine(steward: steward, name: name, version: version)?.content
     }
 
-    /// Uses one steward's routine version in another (the Routines library's "Use in
-    /// steward…"): proposes the same content to `target` (`routine.proposed`, reason naming the
-    /// source and the person) and runs `target`'s routine gate, so it goes live there only when
-    /// the target's casebook still passes. A version the target already has is only gated.
+    /// Uses one steward's routine version in another and returns the target's gate result
+    /// (`shareRoutine`); a target without a casebook throws `notFound` after the proposal.
     public func adoptRoutine(
         name: String, version: String, from source: String, into target: String,
         by person: String = "local"
     ) async throws -> RoutineGateSummary {
+        let shared = try await shareRoutine(
+            name: name, version: version, from: source, into: target, by: person)
+        guard let gate = shared.gate else {
+            throw WorkspaceError.notFound("casebook for \(target)")
+        }
+        return gate
+    }
+
+    /// Uses one steward's routine version in another (the Routines library's "Use in
+    /// steward…"): proposes the same content to `target` (`routine.proposed`, reason naming the
+    /// source and the person) and runs `target`'s routine gate, so it goes live there only when
+    /// the target's casebook still passes. A version the target already has is only gated; a
+    /// target without a casebook keeps it proposed (`gate` nil), as a charter proposal does.
+    public func shareRoutine(
+        name: String, version: String, from source: String, into target: String,
+        by person: String = "local"
+    ) async throws -> RoutineAdoption {
         let from = try await existing(source)
         let into = try await existing(target).id
         guard from.id != into else {
@@ -267,7 +282,11 @@ extension Workspace {
             throw WorkspaceError.rejected("\(rejected.name): \(rejected.error)")
         }
         for draft in intake.drafts { _ = try await sink.append(RuntimeEventDraft(draft)) }
-        return try await gateRoutine(steward: target, name: name, version: version)
+        var adoption = RoutineAdoption(name: name, version: version, steward: into.rawValue)
+        do {
+            adoption.gate = try await gateRoutine(steward: target, name: name, version: version)
+        } catch WorkspaceError.notFound(let missing) where missing.hasPrefix("casebook") {}
+        return adoption
     }
 
     /// A routine's proposals, promotions, and retirements in ledger order.

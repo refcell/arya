@@ -231,7 +231,8 @@ import Testing
         // The Routines library (connect): every routine across stewards, the selected one's
         // stewards, newest diff, and Use in steward…; the diff is loaded as a selection would.
         if let store = model.featureStore,
-            let first = RoutineLibrary(events: store.events, now: store.now).entries.first
+            let first = RoutineLibrary(events: store.events, now: store.now).entries
+                .max(by: { $0.uses.count < $1.uses.count })
         {
             await store.loadLibraryDiff(first)
             try page("routines-library") {

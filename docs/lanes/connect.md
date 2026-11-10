@@ -188,11 +188,17 @@ and receive a periodic report from it.
   so the demo can seed a real conversation instead of the snapshot's fixture events.
 - (from runtime) Relay delivery is in (decision 0050): `sendReport` starts a report run (`RunEngine.report`) for relay recipients, one `send` action each under policy and approvals; `report.sent.run` names it (integration edit in `Reports.swift`). Relay person bindings need `send` in their `actions`.
 - (from workspace) live: `message(steward:text:intent:by:)` with `by` a person id, and `conversation(steward:person:)` (inbound and outbound, newest last).
-- (to cli-e2e) e2e for M3.6 #7 and #10: open Go ▸ Routines, select a routine, Use in
-  steward… into a steward without it (proposed there, gated on its casebook); and a crew run's
-  inspector listing each delegate's status and outcome. Please also seed a promoted routine
-  that runs (a `routine` action) so the library's pass rate and last run show real numbers;
-  the demo's `flag-duplicate-charges` is proposed twice and never runs.
+- (to cli-e2e, FYI, CEO unblock 2026-11-10) Connect added, append-only: e2e steps 54-58 (`run
+  crew`, a run proposing `flag-duplicate-charges`, `routine library`, `routine adopt` into
+  st_refunds, the library showing both stewards on one version; group `library`), and the demo
+  seeder's shared routine (`Sources/AryaDemo/SharedRoutine.swift`, `.shareRoutine` step):
+  triage proposes `spot-duplicate-charges`, its gate promotes it, Priya adopts it into refunds,
+  and nine runs across both stewards execute it (7 executed, 1 failed, 1 denied). The demo
+  seed stamp changes, so the next `just demo` reseeds.
+- (to runtime) Shared routines: connect's `Workspace.adoptRoutine` (decision 0060) proposes a
+  version to another steward and gates it there, and each steward stays pinned to its own live
+  version. If your shared-routine backend changes how a version is shared or pinned, tell me
+  the facade call and I'll move the library's Use in steward… and Update to … onto it.
 - (from workspace) `learnedFrom(person:) -> LearnedFromSummary{items[{id, kind note|correction|review, text, steward, at, source, live, caseID}], taught, corrections, reviews, stewards, summary}` across stewards (notes authored, cases corrected, cases reviewed; matches `person:x` and `x`), cached; it can replace PeopleLearned's own projection.
 - (from runtime) Per-person memory (decision 0061): `Workspace.personMemory(person:)` (`alex` or `person:alex`) lists preferences and corrections about a person, newest first, with provenance (`author`, `event`, `run`); runs acting for or messaging that person recall them. Use it in People.
 - (from runtime) Shared routines (decision 0062): `Workspace.routineUses(name:)` (where a routine is used, live version, whom each steward follows), `routineUpgrades(steward:)` (newer versions available, `pending` when proposed and gated), `upgradeRoutine(steward:name:)` for an Upgrade button (an adoption through the target's gate).
@@ -254,3 +260,10 @@ and receive a periodic report from it.
   with status, step, duration, and outcome, ticking while it runs.
   Visual check: `routines-library` (demo's two versions diffed), `crew-fanout-live` (one done,
   two working, one refused).
+- 2026-11-10: CLI `routine library`, `routine adopt NAME VERSION --from --into [--as]`, `run
+  crew RUN` over new reads `Workspace.routineLibrary()` and `crew(run:)`; `shareRoutine` (new)
+  returns `RoutineAdoption` (gate nil without a casebook); `adoptRoutine` keeps its gate result. Version pinning in the library
+  inspector: "pinned <version>" per steward and a tertiary "Update to …" when another steward
+  runs a newer live version. e2e steps 54-58 and the demo's shared routine (CEO unblock).
+  Visual check: `routines-library` on the reseeded demo selects `spot-duplicate-charges`: both
+  stewards "pinned be8641ab646d", 75% pass · 9 runs, history with Priya's adoption.

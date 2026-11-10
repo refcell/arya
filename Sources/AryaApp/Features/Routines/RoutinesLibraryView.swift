@@ -123,12 +123,19 @@ struct RoutineInspector: View {
                     HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                         Text(name(use.steward ?? "")).aryaText(AryaFont.caption, AryaColor.ink)
                         Spacer()
-                        Text(RoutinesText.live(use))
+                        if let newer = RoutineLibraryText.behind(use, entry) {
+                            Button("Update to \(RoutinesText.shortVersion(newer.version))") {
+                                adopt(entry.name, newer, into: use.steward ?? "")
+                            }
+                            .buttonStyle(.aryaTertiary)
+                            .help("Propose the newer version; its gate decides.")
+                        }
+                        Text(RoutineLibraryText.pin(use))
                             .aryaText(
                                 AryaFont.monoSmall,
                                 use.live == nil ? AryaColor.inkFaint : AryaColor.positive)
                     }
-                    .accessibilityElement(children: .combine)
+                    .accessibilityElement(children: .contain)
                 }
             }
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -174,18 +181,7 @@ struct RoutineInspector: View {
         if let source = entry.source, !others.isEmpty {
             Menu {
                 ForEach(others, id: \.id) { steward in
-                    Button(steward.name) {
-                        Task {
-                            let done = await store.perform(
-                                .adoptRoutine(
-                                    name: entry.name, version: source.version,
-                                    from: source.steward, into: steward.id))
-                            note =
-                                done
-                                ? "Proposed to \(steward.name); it goes live only if its "
-                                    + "casebook still passes." : nil
-                        }
-                    }
+                    Button(steward.name) { adopt(entry.name, source, into: steward.id) }
                 }
             } label: {
                 Text("Use in steward… ▾").aryaText(AryaFont.body, AryaColor.ink)
@@ -194,6 +190,21 @@ struct RoutineInspector: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .help("Propose this routine to another steward; its gate decides.")
+        }
+    }
+
+    /// Proposes `source`'s version to `target`; its gate decides whether it goes live.
+    private func adopt(
+        _ routine: String, _ source: (steward: String, version: String), into target: String
+    ) {
+        Task {
+            let done = await store.perform(
+                .adoptRoutine(
+                    name: routine, version: source.version, from: source.steward, into: target))
+            note =
+                done
+                ? "Proposed \(RoutinesText.shortVersion(source.version)) to \(name(target)); it "
+                    + "goes live only if its casebook still passes." : nil
         }
     }
 

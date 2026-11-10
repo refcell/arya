@@ -488,3 +488,31 @@ private func events() -> [FeatureEvent] {
                 now: now) == nil)
     }
 }
+
+@Suite struct RoutinePinTests {
+    private let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+    @Test func aStewardPinnedToAnOlderVersionCanUpdateToTheNewerLiveOne() throws {
+        var log = FeatureEventBuilder(start: start)
+        let system = FeatureActor(kind: .system, id: "arya")
+        for (steward, version) in [("st_a", "sha256:old"), ("st_b", "sha256:old")] {
+            log.add(
+                "routine.proposed", steward: steward,
+                ["name": "spot", "version": .string(version), "summary": ""])
+            log.add(
+                "routine.promoted", steward: steward, actor: system,
+                ["name": "spot", "version": .string(version)])
+        }
+        log.add("routine.proposed", steward: "st_a", ["name": "spot", "version": "sha256:new"])
+        log.add(
+            "routine.promoted", steward: "st_a", actor: system,
+            ["name": "spot", "version": "sha256:new"])
+        let entry = try #require(RoutineLibrary(events: log.events, now: start).entries.first)
+        let a = try #require(entry.uses.first { $0.steward == "st_a" })
+        let b = try #require(entry.uses.first { $0.steward == "st_b" })
+        #expect(RoutineLibraryText.pin(b) == "pinned old")
+        #expect(RoutineLibraryText.behind(b, entry)?.version == "sha256:new")
+        #expect(RoutineLibraryText.behind(a, entry) == nil)
+        #expect(RoutineLibraryText.version(entry) == "2 live versions")
+    }
+}
