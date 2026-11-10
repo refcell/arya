@@ -8,8 +8,9 @@
 # correction that becomes a case and a memory, a retract, a charter editor proposal (one more
 # guardrail) that passes its gate and live readiness, a crew run whose child drafts the reply
 # and only proposes, approver rules (a refused approver is recorded), aborting a running run
-# from another process, a person's message (ask, correct) and the progress report, the
-# docs-only publish path
+# from another process, a person's message (ask, correct) and the progress report, a
+# steward's policy and approvers, undoing an executed label, retention, a signed export that
+# checks on its own and imports into a fresh home, the docs-only publish path
 # (etc/scripts/test-publish.sh docs-only), and verify the ledger. Run with `just e2e`.
 #
 #   e2e.sh           run the scenario; the temporary home is deleted afterwards
@@ -17,7 +18,7 @@
 #
 # Each step prints ok, PENDING (the command or the piece behind it is not built yet: exit 69
 # or an unknown command), or FAIL. Steps belong to groups (setup, rehearsal, live, metrics,
-# replay, fleet, holds, improve, crew, connect, abort, publish);
+# replay, fleet, holds, improve, crew, connect, abort, governance, publish);
 # a step runs only while its own group and the groups it needs are ok, and is skipped
 # otherwise, so the live run is exercised even while rehearsal is pending.
 # Exit status: 0 all ok, 1 a step failed, 2 a step is pending.
@@ -189,6 +190,21 @@ check_aborted() {
     expect status "$(get status)" stopped && expect "actions" "$(get actions)" 0
 }
 check_denied() { expect state "$(get state)" denied; }
+# Governance (ledger lane): policy and approvers, undo, retention, signed export and import.
+check_policy() {
+  expect "reply approvers" "$(get bindings.0.actions.2.approvers.1)" person:sam &&
+    expect "fallback" "$(get fallback)" ask
+}
+check_undo_options() {
+  expect "undoable" "$(get 0.kind)" label && expect "with" "$(get 0.with)" unlabel || return 1
+  undo_action=$(get 0.action)
+}
+# Unlabel is `ask` in the triage policy, so the compensation waits for a person.
+check_undone() { expect "compensation" "$(get option.with)" unlabel && expect decision "$(get decision)" ask; }
+check_retention() { expect "triage keeps" "$(get stewards.0.days)" 90; }
+check_exported() { expect issues "$(get issues)" 0 && expect steward "$(get steward)" st_triage; }
+check_export_verified() { expect issues "$(get issues)" 0; }
+check_steward_imported() { expect steward "$(get steward)" st_triage; }
 check_proposal() { expect state "$(get state)" failed && expect regression "$(get regressions.0)" case-0005; }
 check_still_ready() {
   expect state "$(get summary.state)" ready && expect version "$(get summary.charterVersion)" 1
@@ -390,6 +406,30 @@ step "abort a long run from another process" abort live check_abort_requested \
 # The aborted `arya run` exits non-zero; its end is checked through `run show`.
 if [ -n "${long_pid:-}" ]; then wait "$long_pid" 2>/dev/null || true; fi
 step "it stopped and executed nothing" abort live check_aborted run show "${long_run:-unknown}"
+step "policy: who may approve each action" governance setup check_policy \
+  steward policy st_triage
+step "undo: the live run's label can be undone" governance live check_undo_options \
+  undo "${run_id:-unknown}"
+step "undo it: unlabel waits for approval" governance live check_undone \
+  undo "${run_id:-unknown}" "${undo_action:-unknown}" --reason "wrong queue"
+step "retention: triage keeps 90 days" governance setup check_retention \
+  retention --steward st_triage --days 90
+step "export the triage steward, signed" governance live check_exported \
+  export st_triage --signed --out "$work/export"
+step "the export checks on its own" governance live check_export_verified \
+  export verify "$work/export"
+# A copy with one changed byte in its events must no longer check.
+cp -R "$work/export" "$work/tampered" 2>/dev/null &&
+  sed -i '' 's/st_triage/st_triagf/' "$work/tampered/events.jsonl" 2>/dev/null || true
+refused_step "a changed byte fails the check" governance live "does not check" \
+  export verify "$work/tampered"
+# Import into a fresh home: point `arya` at it for one step.
+"$bin/arya" --home "$work/imported" --json init >/dev/null 2>&1 || true
+source_home=$home
+home="$work/imported"
+step "import it into a fresh home" governance live check_steward_imported \
+  import "$work/export"
+home=$source_home
 script_step "docs-only publish skips the build" publish etc/scripts/test-publish.sh docs-only
 step "verify the ledger" setup - check_verify ledger verify
 

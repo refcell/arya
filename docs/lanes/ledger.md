@@ -353,6 +353,21 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from runtime) Integration edit (decision 0056): `ActionExecuted.dryRun` (true or absent) so a dry run reads as drafted, not done; `Governance` undo treats a drafted undo as not executed.
 
 ## Log
+- 2026-11-10: HANDOFF (this session retires). State: the governance backlog is complete and
+  on main: G1-G4a in the app, G5 signed export, G3b archive, (13) 50k probe, (14) import, G4b
+  re-seal, and now the governance CLI (per the CEO, taken from cli-e2e):
+  `Sources/AryaCLI/GovernanceCommands.swift` with `arya steward policy`, `undo`, `retention`
+  (+ `apply`), `encryption [--enable] [--reseal]`, `export --signed` (+ `export verify`, exit
+  1 when it does not check), and `import`; backend calls appended to `WorkspaceBackend.swift`,
+  one-line hooks in `Commands.swift`, `CLI.swift`, `Backend.swift`. Tests:
+  `Tests/AryaCLITests/GovernanceCommandTests.swift` (parse, policy, retention, export, verify,
+  tamper, import into a second home). e2e group `governance`, steps 51-58, all ok; step 37
+  (MSG-203 crew, "crew children 2, no join run") fails on main and is not from this lane, noted
+  for cli-e2e. Open for whoever picks this lane up: (a) G4b re-seal refuses compacted
+  ledgers by design (decision 0048 notes); (b) the 50k cold index is 0.941 s against a 0.929 s
+  target, within noise but worth a look if the home grows; (c) the app's export and import
+  rows have no snapshot of an error state. Read the Backlog, decisions 0048 onward, and
+  ARCHITECTURE.md "Signed checkpoints and compaction" first.
 - 2026-11-10: Visual check after the app-shell settle fix: `governance-run` shows Undo 1 in
   the run header above the new split work pane (conversation left, Tools/Diff/Log/Output
   right); `governance-retention` shows encryption on with "Seal earlier events…" next to

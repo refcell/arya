@@ -499,3 +499,78 @@ extension WorkspaceBackend {
         }
     }
 }
+
+// Governance (ledger lane): GovernanceCommands.swift.
+extension WorkspaceBackend {
+    func policy(steward: String) async throws(CLIError) -> PolicySummary {
+        let workspace = try await open()
+        return try await call("policySummary") {
+            try await workspace.policySummary(steward: steward)
+        }
+    }
+
+    func undoOptions(run: String) async throws(CLIError) -> [UndoOption] {
+        let workspace = try await open()
+        return try await call("undoOptions") { try await workspace.undoOptions(run: run) }
+    }
+
+    func undo(run: String, action: String, reason: String?) async throws(CLIError) -> UndoSummary {
+        let workspace = try await open()
+        return try await call("undoAction", rejection: { .invalidInput($0) }) {
+            try await workspace.undoAction(run: run, action: action, reason: reason)
+        }
+    }
+
+    func retention(steward: String?, days: Int?, clear: Bool) async throws(CLIError)
+        -> RetentionSummary
+    {
+        let workspace = try await open()
+        guard days != nil || clear else {
+            return try await call("retention") { try await workspace.retention() }
+        }
+        return try await call("setRetention", rejection: { .invalidInput($0) }) {
+            try await workspace.setRetention(steward: steward, days: clear ? nil : days)
+        }
+    }
+
+    func applyRetention() async throws(CLIError) -> RetentionSummary {
+        let workspace = try await open()
+        return try await call("applyRetention") { try await workspace.applyRetention() }
+    }
+
+    func encryption(enable: Bool, reseal: Bool) async throws(CLIError) -> EncryptionSummary {
+        let workspace = try await open()
+        return try await call("encryption", rejection: { .invalidInput($0) }) {
+            if enable { _ = try await workspace.enableEncryption() }
+            if reseal { return try await workspace.resealHistory() }
+            return try await workspace.encryption()
+        }
+    }
+
+    func exportSigned(steward: String, to directory: String, reveal: Bool)
+        async throws(CLIError) -> AuditExportSummary
+    {
+        let workspace = try await open()
+        return try await call("exportAudit", rejection: { .invalidInput($0) }) {
+            try await workspace.exportAudit(
+                steward: steward, to: URL(fileURLWithPath: directory, isDirectory: true),
+                reveal: reveal)
+        }
+    }
+
+    func verifyExport(_ directory: String) async throws(CLIError) -> AuditExportSummary {
+        guard
+            let summary = Workspace.verifyAudit(
+                at: URL(fileURLWithPath: directory, isDirectory: true))
+        else { throw .invalidInput("\(directory) holds no readable manifest.json") }
+        return summary
+    }
+
+    func importExport(_ directory: String) async throws(CLIError) -> AuditImportSummary {
+        let workspace = try await open()
+        return try await call("importAudit", rejection: { .invalidInput($0) }) {
+            try await workspace.importAudit(
+                from: URL(fileURLWithPath: directory, isDirectory: true))
+        }
+    }
+}

@@ -90,6 +90,11 @@ arya propose st_triage --charter draft.json          # a gated charter change
 arya run show <run>                                  # decisions and each action's outcome
 arya replay <run>                                    # re-run deterministically, report divergence
 arya ledger verify                                   # check the hash chain
+arya steward policy st_triage                        # who may approve what, and retention
+arya undo <run> [<action>]                           # list or undo an executed action
+arya retention --days 365                            # keep a year; `retention apply` archives
+arya export st_triage --signed --out audit/          # a signed slice; `export verify audit/`
+arya import audit/                                   # recreate the steward in another home
 ```
 
 Every listing takes `--json`. The home defaults to `~/Library/Application Support/arya`;

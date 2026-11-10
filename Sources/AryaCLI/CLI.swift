@@ -112,6 +112,9 @@ enum CLI {
             try await dispatchHistory(invocation, backend: backend, output: output)
         case .message, .reportShow, .reportSend:
             try await dispatchPeople(invocation, backend: backend, output: output)
+        case .stewardPolicy, .undo, .retention, .retentionApply, .encryption, .export,
+            .exportVerify, .importExport:
+            try await dispatchGovernance(invocation, backend: backend, output: output)
         case .serve:
             try await backend.serve(
                 every: try Self.every(invocation),
