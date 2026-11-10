@@ -52,7 +52,7 @@ private func shell(_ script: String) -> AdapterCommand {
             arguments: ["--binding", history.path]))
     #expect(report.ok, "\(report.problem ?? "")")
     #expect(report.server?.name == "arya-fake-binding")
-    #expect(report.tools == ["history", "get", "search"])
+    #expect(report.tools == ["history", "outcome", "directory", "process", "get", "search"])
     #expect(report.servesHistory)
 }
 

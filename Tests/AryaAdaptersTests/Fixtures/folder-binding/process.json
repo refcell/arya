@@ -1,0 +1,1 @@
+{"queues":[{"id":"billing","name":"Billing","owner":"person:sam"}],"rules":[{"id":"r1","when":"A charge or refund","then":{"kind":"route","params":{"queue":"billing"}}}]}

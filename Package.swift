@@ -15,6 +15,7 @@ let package = Package(
         .executable(name: "AryaApp", targets: ["AryaApp"]),
         .executable(name: "arya-fake-adapter", targets: ["AryaFakeAdapter"]),
         .executable(name: "arya-exec-adapter", targets: ["AryaExecAdapter"]),
+        .executable(name: "arya-binding", targets: ["AryaBinding"]),
     ],
     targets: [
         .target(name: "AryaCore"),
@@ -41,6 +42,7 @@ let package = Package(
         .executableTarget(name: "AryaApp", dependencies: ["Arya", "AryaDesign"]),
         .executableTarget(name: "AryaFakeAdapter", dependencies: ["AryaAdapters"]),
         .executableTarget(name: "AryaExecAdapter", dependencies: ["AryaAdapters"]),
+        .executableTarget(name: "AryaBinding", dependencies: ["AryaAdapters"]),
         // Test helper that appends to a ledger from a child process (AryaLedgerTests).
         .executableTarget(name: "AryaLedgerWriter", dependencies: ["AryaCore", "AryaLedger"]),
 
@@ -50,7 +52,7 @@ let package = Package(
             exclude: ["Fixtures"]),
         .testTarget(
             name: "AryaAdaptersTests",
-            dependencies: ["AryaAdapters", "AryaFakeAdapter", "AryaExecAdapter"],
+            dependencies: ["AryaAdapters", "AryaFakeAdapter", "AryaExecAdapter", "AryaBinding"],
             exclude: ["Fixtures"]),
         .testTarget(
             name: "AryaMemoryTests", dependencies: ["AryaCore", "AryaLedger", "AryaMemory"],

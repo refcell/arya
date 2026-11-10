@@ -1563,5 +1563,250 @@
         "at": "2026-09-29T09:00:00Z"
       }
     }
-  ]
+  ],
+  "outcomes": [
+    {
+      "target": "inbox:MSG-201",
+      "status": "resolved",
+      "at": "2026-11-08T15:10:00Z",
+      "note": "Billing refunded the duplicate charge; the customer confirmed.",
+      "metric": {
+        "name": "minutes_to_route",
+        "value": 12,
+        "delta": -35,
+        "unit": "minutes"
+      }
+    },
+    {
+      "target": "billing:ORDER-1043",
+      "status": "resolved",
+      "at": "2026-11-08T16:00:00Z",
+      "note": "Refund of 24.00 reached the original payment method."
+    },
+    {
+      "target": "inbox:MSG-202",
+      "status": "reopened",
+      "at": "2026-11-08T18:30:00Z",
+      "note": "The customer wrote again: the package is still missing."
+    },
+    {
+      "target": "inbox:MSG-203",
+      "status": "open",
+      "note": "Waiting for the refund approval."
+    }
+  ],
+  "directory": [
+    {
+      "id": "person:sam",
+      "name": "Sam",
+      "roles": [
+        "triage lead",
+        "approver"
+      ],
+      "queues": [
+        "billing",
+        "help"
+      ]
+    },
+    {
+      "id": "person:alex",
+      "name": "Alex",
+      "roles": [
+        "triage"
+      ],
+      "queues": [
+        "shipping",
+        "accounts"
+      ]
+    },
+    {
+      "id": "person:jordan",
+      "name": "Jordan",
+      "roles": [
+        "billing specialist",
+        "approver"
+      ],
+      "queues": [
+        "billing"
+      ]
+    },
+    {
+      "id": "person:riley",
+      "name": "Riley",
+      "roles": [
+        "engineer on call"
+      ],
+      "queues": [
+        "engineering"
+      ]
+    },
+    {
+      "id": "person:casey",
+      "name": "Casey",
+      "roles": [
+        "security"
+      ],
+      "queues": [
+        "security"
+      ]
+    },
+    {
+      "id": "person:morgan",
+      "name": "Morgan",
+      "roles": [
+        "support manager",
+        "approver"
+      ],
+      "queues": []
+    }
+  ],
+  "process": {
+    "queues": [
+      {
+        "id": "billing",
+        "name": "Billing",
+        "owner": "person:jordan",
+        "description": "Charges, refunds, invoices, receipts, and plan prices."
+      },
+      {
+        "id": "engineering",
+        "name": "Engineering",
+        "owner": "person:riley",
+        "description": "Bugs and crashes, with steps to reproduce."
+      },
+      {
+        "id": "accounts",
+        "name": "Accounts",
+        "owner": "person:alex",
+        "description": "Sign-in, passwords, usernames, and closing or merging accounts."
+      },
+      {
+        "id": "help",
+        "name": "Help",
+        "owner": "person:sam",
+        "description": "How-to questions answered from the help center."
+      },
+      {
+        "id": "security",
+        "name": "Security",
+        "owner": "person:casey",
+        "description": "Unexpected logins, shared passwords, and anything that looks like account takeover."
+      },
+      {
+        "id": "shipping",
+        "name": "Shipping",
+        "owner": "person:alex",
+        "description": "Orders that are late, lost, damaged, or wrong."
+      },
+      {
+        "id": "spam",
+        "name": "Spam",
+        "owner": "person:sam",
+        "description": "Labeled and left unrouted; never replied to."
+      }
+    ],
+    "rules": [
+      {
+        "id": "r1",
+        "when": "The message asks about a charge, refund, invoice, receipt, or price",
+        "then": {
+          "kind": "route",
+          "params": {
+            "queue": "billing"
+          }
+        },
+        "source": "doc-triage-guide"
+      },
+      {
+        "id": "r2",
+        "when": "The message mentions a login the customer did not make, a password they shared, or a code someone asked for",
+        "then": {
+          "kind": "route",
+          "params": {
+            "queue": "security"
+          }
+        },
+        "source": "doc-triage-guide"
+      },
+      {
+        "id": "r3",
+        "when": "Something in the app does not work as it should",
+        "then": {
+          "kind": "route",
+          "params": {
+            "queue": "engineering"
+          }
+        },
+        "source": "doc-triage-guide"
+      },
+      {
+        "id": "r4",
+        "when": "The customer cannot sign in or wants to change, merge, or close an account",
+        "then": {
+          "kind": "route",
+          "params": {
+            "queue": "accounts"
+          }
+        },
+        "source": "doc-triage-guide"
+      },
+      {
+        "id": "r5",
+        "when": "An order is late, lost, damaged, or wrong",
+        "then": {
+          "kind": "route",
+          "params": {
+            "queue": "shipping"
+          }
+        },
+        "source": "doc-triage-guide"
+      },
+      {
+        "id": "r6",
+        "when": "The customer asks how to do something",
+        "then": {
+          "kind": "route",
+          "params": {
+            "queue": "help"
+          }
+        },
+        "source": "doc-triage-guide"
+      },
+      {
+        "id": "r7",
+        "when": "The message is an unsolicited offer",
+        "then": {
+          "kind": "label",
+          "params": {
+            "label": "spam"
+          }
+        },
+        "source": "doc-triage-guide"
+      },
+      {
+        "id": "r8",
+        "when": "A refund is above 100.00",
+        "then": {
+          "kind": "route",
+          "params": {
+            "queue": "billing",
+            "approver": "person:jordan"
+          }
+        },
+        "source": "doc-refund-policy"
+      }
+    ],
+    "documents": [
+      {
+        "id": "doc-triage-guide",
+        "title": "Support triage guide",
+        "text": "Label every new message with one category and route it to the queue that owns it within an hour. Security wins over every other category: if a message could be account takeover, route it to security even when it also asks about billing. A trial that turned into a charge is a billing question, not an account question. Reply only after a person approves the text."
+      },
+      {
+        "id": "doc-refund-policy",
+        "title": "Refund policy",
+        "text": "Refund a damaged or duplicate order when the customer sends evidence and the amount matches the order. Refunds go back to the original payment method. A billing specialist approves refunds above 100.00. Never promise a refund before it is approved."
+      }
+    ]
+  }
 }

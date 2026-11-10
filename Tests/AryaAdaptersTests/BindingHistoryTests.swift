@@ -77,7 +77,7 @@ private func tool(_ server: FakeBindingServer, _ name: String, _ arguments: JSON
     #expect(try await call(server, "ping").get() == [:])
     let names = try await call(server, "tools/list").get()["tools"]?.arrayValue?
         .compactMap { $0["name"]?.stringValue }
-    #expect(names == ["history", "get", "search"])
+    #expect(names == ["history", "outcome", "get", "search"])
 
     let page = try await tool(server, "history", ["limit": 3])
     #expect(page["isError"] == false)
@@ -163,4 +163,36 @@ private let triageHistory = repositoryRoot.appendingPathComponent(
     let result = try #require(page["result"]?["structuredContent"]).decode(HistoryListResult.self)
     #expect(result.items.count == 40)
     #expect(result.next == nil)
+}
+
+/// The triage binding data gives an onboarding run a consistent picture: every queue has an
+/// owner in the directory, and every rule and past routing uses a known queue.
+@Test func triageDirectoryAndProcessAgree() throws {
+    let data = try FakeBindingData.load(from: triageHistory)
+    let people = try #require(data.directory)
+    let process = try #require(data.process)
+    let ids = Set(people.map(\.id))
+    let queues = Set(process.queues.map(\.id))
+    #expect(process.queues.allSatisfy { $0.owner.map(ids.contains) ?? false })
+    #expect(people.allSatisfy { Set($0.queues).isSubset(of: queues) })
+    let ruleQueues = process.rules.compactMap { $0.then.params?["queue"]?.stringValue }
+    #expect(Set(ruleQueues).isSubset(of: queues))
+    let routed = data.history.flatMap(\.actions).compactMap { $0.params?["queue"]?.stringValue }
+    #expect(Set(routed).isSubset(of: queues))
+    let sources = Set(process.rules.compactMap(\.source))
+    #expect(sources.isSubset(of: Set(process.documents.map(\.id))))
+    #expect(!process.documents.isEmpty)
+}
+
+@Test func triageOutcomesCoverLiveWorkAndHistory() async throws {
+    let server = FakeBindingServer(data: try FakeBindingData.load(from: triageHistory))
+    let live = try await tool(server, "outcome", ["target": "inbox:MSG-201"])
+    #expect(live["structuredContent"]?["status"] == "resolved")
+    #expect(live["structuredContent"]?["metric"]?["name"] == "minutes_to_route")
+    let past = try await tool(server, "outcome", ["target": "inbox:MSG-004"])
+    #expect(past["structuredContent"]?["status"] == "reopened")
+    let approvers = try await tool(server, "directory", ["role": "approver"])
+    let names = approvers["structuredContent"]?["people"]?.arrayValue?
+        .compactMap { $0["id"]?.stringValue }
+    #expect(names == ["person:sam", "person:jordan", "person:morgan"])
 }

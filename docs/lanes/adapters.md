@@ -64,6 +64,12 @@ M4:
   (`arya-fake-adapter --binding`), and `etc/examples/triage/inbox-history.json` (40 messages).
 - [x] Connection testing: protocol `ping`, `ConnectionProbe.adapter` / `.binding` reports with
   a one-sentence `problem`, and a conformance check, for the connect lane's "test connection".
+- [x] Binding conventions `outcome` (follow-up checks), `directory` and `process` (onboarding),
+  served by the fake binding with triage data; shared `BindingServer` core.
+- [x] Local connectors in `arya-binding`: `folder` (JSON, JSONL, CSV exports) and `http-json`
+  (https only, no redirects, token from `ARYA_CREDENTIAL`), tested without network.
+- [ ] Next: confirm eval's casebook importer reads binding `history` (it harvests the ledger
+  today).
 
 ## Decisions
 
@@ -178,3 +184,7 @@ M4:
   the fake `delegate` step, and the triage refund-reply delegation.
 - 2026-11-09: binding `history` convention, fake MCP binding, triage inbox history (40 items).
 - 2026-11-09: `ping` and `ConnectionProbe` (adapter and binding test connection).
+- 2026-11-10: `outcome`, `directory`, `process` conventions; `arya-binding` folder and
+  http-json connectors (connect already uses `ConnectionProbe`; the name stays).
+- 2026-11-10: Paused for the night after the connectors commit. Next: the open backlog item
+  above (eval history import check), then the product-name question.

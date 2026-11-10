@@ -1,0 +1,6 @@
+id,at,subject,body,action.label.label,action.route.queue,target,by,acted_at,choice,outcome,outcome_note
+T-2,2026-09-02T10:00:00Z,"Refund, please","Charged twice.
+Please refund one.",billing,billing,inbox:T-2,person:sam,2026-09-02T10:20:00Z,billing,resolved,
+T-1,2026-09-01T09:00:00Z,"The ""export"" button",Nothing happens.,bug,engineering,inbox:T-1,person:alex,2026-09-01T09:30:00Z,bug,reopened,"Rerouted, twice"
+
+T-3,2026-09-03T08:00:00Z,Unsolicited offer,Buy followers.,spam,,inbox:T-3,person:sam,,spam,resolved,

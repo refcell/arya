@@ -293,6 +293,56 @@ JSON text in `content`), is one page, oldest first:
 The types are `HistoryListParams`, `HistoryListResult`, and `HistoryItem` in `AryaAdapters`;
 `BindingHistory.page` implements the paging for a list held in memory.
 
+### `outcome`
+
+Given what an executed action acted on, says how it stands now, so arya can schedule follow-up
+checks and learn from results. Arguments: `target` (required, such as `inbox:MSG-201`), and
+optionally `action` (the kind) and `since` (when it ran). Result:
+
+```json
+{"target":"inbox:MSG-201","status":"resolved","at":"2026-11-08T15:10:00Z","note":"…",
+ "metric":{"name":"minutes_to_route","value":12,"delta":-35,"unit":"minutes"}}
+```
+
+`status` is `resolved`, `reopened`, `open`, or `unknown` (the binding cannot tell); other words are
+kept as text. `metric` (optional) is a number the outcome moved, with the change since the action as
+`delta` when known. Types: `OutcomeCheckParams`, `OutcomeCheckResult`, `OutcomeMetric`.
+
+### `directory` and `process`
+
+What an onboarding run reads to learn how the work is organized. `directory` (optional argument
+`role`) answers
+`{"people":[{"id":"person:sam","name":"Sam","roles":["approver"],"queues":["billing"]}]}`. `process`
+(no arguments) answers `{"queues":[{id,name,owner,description}],"rules":[{id,when,then,source}],"doc
+uments":[{id,title,text}]}`, where a rule's `when` is plain words, `then` is an action in history
+terms (`kind`, `params`), and `source` names the document it comes from. Types:
+`DirectoryListResult`, `DirectoryPerson`, `ProcessListResult`, `ProcessQueue`, `RoutingRule`,
+`ProcessDocument`.
+
+## Local connectors
+
+`arya-binding` serves real local systems as MCP bindings with no dependencies. A binding's secret
+reaches it in the `ARYA_CREDENTIAL` environment variable, which arya fills from the connection's
+Keychain entry; it is never an argument or a file.
+
+`arya-binding folder <directory>` serves the convention tools from exported files, read again on
+every call: `history`, `outcomes`, and `directory` as `.json` (an array), `.jsonl`, or `.csv`, and
+`process.json`. In `history.csv`, the columns `id`, `at`, `input`, `choice`, `outcome`,
+`outcome_at`, `outcome_note`, `target`, `by`, and `acted_at` have their convention meaning; a column
+`action.<kind>.<param>` adds that param to an action of that kind; every other column is part of the
+record that `get` and `search` return. `outcomes.csv` uses
+`target,status,at,note,metric,value,delta,unit`; `directory.csv` uses `id,name,roles,queues` with
+`;` between list entries.
+
+`arya-binding http-json --base-url <url> [--actions kind,…]` maps tools to requests below the base
+URL, with `Authorization: Bearer <token>` when a token is set: `history` → `GET /history`, `outcome`
+→ `GET /outcomes`, `directory` → `GET /directory`, `process` → `GET /process` (query parameters are
+the tool's arguments), `list` → `GET /items?query&cursor`, `get` → `GET /items/<id>`, and each
+listed action kind → `POST /actions` with `{kind, target, params}`. Convention answers are checked
+against their types. The base URL must be `https` (plain `http` only for localhost) and carry no
+credentials; redirects are not followed, so the token only goes to that host; errors name the
+request and status, never the token.
+
 ## Reference adapters
 
 - `arya-fake-adapter --script <file>`: replays a JSON script of events and results keyed by

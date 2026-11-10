@@ -1,0 +1,3 @@
+target,status,at,note,metric,value,delta,unit
+inbox:LIVE-1,resolved,2026-11-01T12:00:00Z,Closed by billing,minutes_to_route,12,-30,minutes
+inbox:LIVE-2,open,,,,,,
