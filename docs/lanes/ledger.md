@@ -95,8 +95,9 @@ Next (lane-extended toward M3.5 app parity, in order):
   advances past the head each poll (the old `follow(after:)` call shape still works).
 - [x] (12) `ProjectionCache.index()` (`cache/ledger-index.json`) and `events(at: seqs)`, a
   batch read that opens only the named lines.
-- [ ] (13) A 50k-event probe for `verify` and cold `ProjectionCache.index()` (target: per-event
-  cost of the 5k probe), and segment-parallel verify if it misses.
+- [x] (13) 50k probe (`perfVerifyAndColdIndexOf50000EventsScale`): verify 0.852 s and cold
+  `index()` 0.941 s against 0.929 s for the 5k per-event cost times 50k (debug, CPU time);
+  both linear, so segment-parallel verify is not needed.
 - [ ] (14) Export and import on top of checkpoints (ARCHITECTURE.md order of work): a steward's
   events plus the anchoring checkpoint as one bundle, checked on import.
 
@@ -329,6 +330,8 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) New eval event `case.reviewed` {casebook, case, verdict agreed|skipped}; PROTOCOL?
 
 ## Log
+- 2026-11-10: (13) done: the 50k probe meets the 5k per-event target for verify and a cold
+  index; no parallel verify. Committed locally (publish batched).
 - 2026-11-10: (G3b) done: retention archives for real. `LedgerReader` reads archived
   segments first, so history folds are unaffected; `applyRetention` checkpoints, compacts,
   and records `system.retention.applied`; app settings show the eligible plan with "Archive

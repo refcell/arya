@@ -120,3 +120,25 @@ private func weeksHome() throws -> (TempHome, Timestamp) {
     #expect(counts == [1250, 10_000, 10_080, 50_000])
     #expect(filtered < 0.5)
 }
+
+/// Target from the ledger lane (13): `verify` and a cold `ProjectionCache.index()` over 50,000
+/// events cost no more per event than `verify` over 5,000 (plus 25% slack for noise).
+@Test(.enabled(if: perfEnabled)) func perfVerifyAndColdIndexOf50000EventsScale() throws {
+    let small = try filledHome()
+    defer { small.cleanup() }
+    let base = try cpuSeconds { _ = try LedgerVerifier(home: small.url).verify() } / 5000
+    let (home, _) = try weeksHome()
+    defer { home.cleanup() }
+    var ok = false
+    let verify = try cpuSeconds { ok = try LedgerVerifier(home: home.url).verify().ok }
+    let caches = ProjectionCache(home: home.url)
+    try? FileManager.default.removeItem(at: caches.directory)
+    let cold = try cpuSeconds { _ = try caches.index() }
+    let warm = try cpuSeconds { _ = try caches.index() }
+    print(
+        "PERF 50k: verify \(format(verify)) (5k per-event x50k \(format(base * 50_000))); "
+            + "cold index \(format(cold)); warm index \(format(warm))")
+    #expect(ok)
+    #expect(verify / 50_000 < base * 1.25)
+    #expect(cold / 50_000 < base * 1.25)
+}
