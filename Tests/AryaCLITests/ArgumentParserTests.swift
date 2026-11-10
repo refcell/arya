@@ -110,5 +110,7 @@ func rejectsBadCommandLines(arguments: [String], expected: CLIError) {
 @Test func usageLinesListPositionalsThenOptions() {
     #expect(CommandTable.spec(.run).usage == "arya run <steward> [--input <text>]")
     #expect(CommandTable.spec(.stewardCreate).usage == "arya steward create --charter <file>")
-    #expect(CommandTable.spec(.approve).usage == "arya approve <approval> [--note <text>]")
+    #expect(
+        CommandTable.spec(.approve).usage
+            == "arya approve <approval> [--note <text>] [--as <person>]")
 }

@@ -105,6 +105,14 @@ struct WorkspaceBackend: CLIBackend {
         return try await report(run, workspace: workspace)
     }
 
+    func abortRun(_ id: String, reason: String?) async throws(CLIError) -> RunReport {
+        let workspace = try await open()
+        let summary = try await call("abortRun", rejection: { .invalidInput($0) }) {
+            try await workspace.abortRun(id, reason: reason)
+        }
+        return try await showRun(summary.id)
+    }
+
     func showRun(_ id: String) async throws(CLIError) -> RunReport {
         let workspace = try await open()
         guard let detail = try await call("run", { try await workspace.run(id) }) else {
@@ -143,14 +151,16 @@ struct WorkspaceBackend: CLIBackend {
         return approvals.filter { steward == nil || $0.steward == steward }.map(Mapping.approval)
     }
 
-    func decide(approval: String, decision: ApprovalDecision, note: String?)
+    func decide(approval: String, decision: ApprovalDecision, note: String?, as person: String?)
         async throws(CLIError) -> ApprovalRow
     {
         let workspace = try await open()
         let result =
             switch decision {
             case .grant:
-                try await call("approve") { try await workspace.approve(approval, note: note) }
+                try await call("approve") {
+                    try await workspace.approve(approval, note: note, as: person ?? "local")
+                }
             case .deny: try await call("deny") { try await workspace.deny(approval, note: note) }
             }
         return Mapping.approval(result)

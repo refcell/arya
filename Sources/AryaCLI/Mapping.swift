@@ -40,7 +40,8 @@ enum Mapping {
             id: approval.id, steward: approval.steward, run: approval.run,
             action: approval.actionKind ?? approval.kind.rawValue, target: approval.target ?? "-",
             rationale: approval.text, state: state, requestedAt: timestamp(approval.requestedAt),
-            heldBy: approval.policyRule, heldBecause: approval.policyText)
+            heldBy: approval.policyRule, heldBecause: approval.policyText,
+            approvers: approval.approvers, approverNote: approval.approverNote)
     }
 
     static func event(_ entry: LedgerEntry) -> EventSummary {

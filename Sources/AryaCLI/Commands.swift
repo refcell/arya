@@ -9,6 +9,7 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case fleet
     case run
     case runShow = "run show"
+    case runAbort = "run abort"
     case approvals
     case approve
     case deny
@@ -113,6 +114,14 @@ enum CommandTable {
                 id: .runShow, summary: "Show a run's decisions and what happened to each action",
                 positionals: [PositionalSpec(name: "run", help: "run id")]),
             CommandSpec(
+                id: .runAbort, summary: "Stop a running run; nothing it proposes executes",
+                positionals: [PositionalSpec(name: "run", help: "run id")],
+                options: [
+                    OptionSpec(
+                        name: "reason", kind: .value(placeholder: "text"),
+                        help: "why, recorded with the request")
+                ]),
+            CommandSpec(
                 id: .approvals, summary: "List actions held for approval",
                 options: [
                     OptionSpec(
@@ -123,7 +132,12 @@ enum CommandTable {
             CommandSpec(
                 id: .approve, summary: "Approve a held action; it executes right away",
                 positionals: [PositionalSpec(name: "approval", help: "approval id")],
-                options: [noteOption]),
+                options: [
+                    noteOption,
+                    OptionSpec(
+                        name: "as", kind: .value(placeholder: "person"),
+                        help: "who approves: local (default) or a person binding id"),
+                ]),
             CommandSpec(
                 id: .deny, summary: "Deny a held action; it is never executed",
                 positionals: [PositionalSpec(name: "approval", help: "approval id")],

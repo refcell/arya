@@ -77,6 +77,10 @@ enum CLI {
                 steward: try invocation.positional("steward"), input: invocation.values["input"])
             try output.emit(report, json: json, text: TextRender.run)
             if report.status != "completed" { throw .failed("run \(report.run) \(report.status)") }
+        case .runAbort:
+            let report = try await backend.abortRun(
+                try invocation.positional("run"), reason: invocation.values["reason"])
+            try output.emit(report, json: json, text: TextRender.run)
         case .runShow:
             let report = try await backend.showRun(try invocation.positional("run"))
             try output.emit(report, json: json, text: TextRender.run)
@@ -89,7 +93,7 @@ enum CLI {
             let decision: ApprovalDecision = invocation.command == .approve ? .grant : .deny
             let result = try await backend.decide(
                 approval: try invocation.positional("approval"), decision: decision,
-                note: invocation.values["note"])
+                note: invocation.values["note"], as: invocation.values["as"])
             try output.emit(result, json: json, text: TextRender.decision)
         case .ledgerTail:
             let events = try await backend.tailLedger(

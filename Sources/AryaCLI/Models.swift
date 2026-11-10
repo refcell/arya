@@ -155,9 +155,14 @@ struct ApprovalRow: Codable, Sendable, Equatable {
     var heldBy: String? = nil
     /// That verdict in a person's words.
     var heldBecause: String? = nil
+    /// Who may grant it under the charter's approver rules; nil when anyone may.
+    var approvers: [String]? = nil
+    /// The approver rule in a person's words.
+    var approverNote: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, steward, run, action, target, rationale, state, requestedAt, heldBy, heldBecause
+        case approvers, approverNote
     }
 }
 

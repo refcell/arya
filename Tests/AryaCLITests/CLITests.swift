@@ -102,7 +102,8 @@ import Testing
     #expect(status == .usage)
     #expect(
         capture.err == [
-            "arya: missing <approval>", "usage: arya approve <approval> [--note <text>]",
+            "arya: missing <approval>",
+            "usage: arya approve <approval> [--note <text>] [--as <person>]",
             "run `arya --help` for the list of commands",
         ])
     #expect(capture.out.isEmpty)
@@ -198,4 +199,16 @@ import Testing
     #expect(capture.outText.contains("0.96"))
     #expect(capture.outText.contains("on track"))
     #expect(backend.calls == ["fleet"])
+}
+
+@Test func approveAsAPersonAndAbortARun() async {
+    let backend = FakeBackend()
+    let (approved, _) = await runCLI(["approve", "ap_1", "--as", "person:sam"], backend: backend)
+    let (aborted, _) = await runCLI(
+        ["run", "abort", "run_1", "--reason", "wrong customer"], backend: backend)
+    #expect(approved == .ok && aborted == .ok)
+    #expect(
+        backend.calls.prefix(2) == [
+            "decide ap_1 grant - as person:sam", "abort run_1 wrong customer",
+        ])
 }

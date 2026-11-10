@@ -98,6 +98,10 @@ final class FakeBackend: CLIBackend, @unchecked Sendable {
                     approval: "ap_1"),
             ])
     }
+    func abortRun(_ id: String, reason: String?) async throws(CLIError) -> RunReport {
+        record("abort \(id) \(reason ?? "-")")
+        return try await startRun(steward: "st_triage", input: nil)
+    }
     func showRun(_ id: String) async throws(CLIError) -> RunReport {
         record("show run \(id)")
         return try await startRun(steward: "st_triage", input: nil)
@@ -108,10 +112,11 @@ final class FakeBackend: CLIBackend, @unchecked Sendable {
         record("approvals \(steward ?? "-") \(scope)")
         return [Self.approval]
     }
-    func decide(approval: String, decision: ApprovalDecision, note: String?)
+    func decide(approval: String, decision: ApprovalDecision, note: String?, as person: String?)
         async throws(CLIError) -> ApprovalRow
     {
-        record("decide \(approval) \(decision.rawValue) \(note ?? "-")")
+        let who = person.map { " as \($0)" } ?? ""
+        record("decide \(approval) \(decision.rawValue) \(note ?? "-")\(who)")
         let a = Self.approval
         return ApprovalRow(
             id: approval, steward: a.steward, run: a.run, action: a.action, target: a.target,
