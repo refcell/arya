@@ -95,7 +95,7 @@ public struct ServeStatus: Sendable, Hashable, Codable {
         public var nextWake: TimeText?
     }
 
-    /// True when some process (this one or `arya serve`) fires triggers for the home.
+    /// The one serving rule (`scheduler.serving`), as every screen should show it.
     public var serving: Bool
     /// True when this process is the one serving.
     public var servingHere: Bool
@@ -103,6 +103,23 @@ public struct ServeStatus: Sendable, Hashable, Codable {
     public var lastTick: TimeText?
     /// Stewards that are not retired, by name.
     public var stewards: [Steward]
+    /// Who is serving and why; nil only in summaries written before it existed.
+    public var scheduler: ServeState?
+}
+
+/// Whether anything is serving the home: the one rule every screen uses (CEO decision). The
+/// home is serving when a scheduler holds its lock (this process or `arya serve`) or any run
+/// holds a live lease (some process is driving it).
+public struct ServeState: Sendable, Hashable, Codable {
+    public var serving: Bool
+    /// A scheduler holds the home's lock.
+    public var schedulerRunning: Bool
+    /// This process runs the scheduler.
+    public var servingHere: Bool
+    /// Runs in progress whose lease a live process holds.
+    public var drivenRuns: [String]
+    /// `scheduler`, `runs` (only leased runs), or `off`.
+    public var reason: String
 }
 
 extension Workspace {
@@ -127,9 +144,23 @@ extension Workspace {
         let tick = (try? String(contentsOf: Self.tickFile(home), encoding: .utf8))
             .flatMap { Int64($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
             .map { Timestamp(millis: $0).date }
+        let state = try await serveState()
         return ServeStatus(
-            serving: serving != nil || SchedulerLock.isHeld(home: home),
-            servingHere: serving != nil, lastTick: tick.map(time), stewards: stewards)
+            serving: state.serving, servingHere: state.servingHere, lastTick: tick.map(time),
+            stewards: stewards, scheduler: state)
+    }
+
+    /// The one serving rule: a scheduler holds the lock, or a running run's lease is held.
+    public func serveState() async throws -> ServeState {
+        let here = serving != nil
+        let scheduler = here || SchedulerLock.isHeld(home: home)
+        let driven = try await runBook().all.filter {
+            $0.status == .running && leases.isHeld($0.id)
+        }.map(\.id.rawValue)
+        let reason = scheduler ? "scheduler" : driven.isEmpty ? "off" : "runs"
+        return ServeState(
+            serving: scheduler || !driven.isEmpty, schedulerRunning: scheduler, servingHere: here,
+            drivenRuns: driven, reason: reason)
     }
 }
 

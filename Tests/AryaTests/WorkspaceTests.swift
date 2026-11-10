@@ -207,7 +207,9 @@ struct Opened {
     #expect(try await opened.workspace.ledger(limit: 1).map(\.seq) == [1])
     #expect(all[0].steward == "st_inbox")
     #expect(all[0].payload.contains("\"version\":1"))
-    #expect(try await opened.workspace.verifyLedger() == LedgerCheck(ok: true, events: 2))
+    let check = try await opened.workspace.verifyLedger()
+    #expect(check.ok && check.events == 2 && check.firstBadSeq == nil)
+    #expect(check.lines?.first?.isEmpty == false)
 
     let again = try await Workspace.open(home: opened.home.url)
     #expect(try await again.steward("st_inbox")?.status == .paused)

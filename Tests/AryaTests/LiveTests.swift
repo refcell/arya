@@ -188,3 +188,36 @@ private func first(
     #expect(steward.alsoRunning == 0)
     #expect(steward.schedule == "off" || steward.schedule == "unscheduled")
 }
+
+@Test func servingIsOneRuleSchedulerOrALeasedRun() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let done = try await workspace.startRun(steward: "st_inbox", input: "First")
+    var started: Event?
+    try workspace.reader.forEach { event in
+        if event.run?.rawValue == done.id, event.type.rawValue == RunEventType.started {
+            started = event
+        }
+    }
+    let start = try #require(started)
+    let live = RunID(unchecked: "run_live")
+    _ = try await workspace.sink.append(
+        RuntimeEventDraft(
+            type: RunEventType.started, steward: start.steward, run: live, actor: .localUser,
+            payload: start.payload))
+
+    // A run left running with no process behind it does not count.
+    var state = try await workspace.serveState()
+    #expect(!state.serving && state.reason == "off")
+    #expect(try await workspace.stewardLive(steward: "st_inbox").serving == false)
+
+    let lease = try await workspace.leases.acquire(live)
+    state = try await workspace.serveState()
+    #expect(state.serving && state.reason == "runs" && state.drivenRuns == ["run_live"])
+    let status = try await workspace.serveStatus()
+    #expect(status.serving && status.scheduler == state)
+    #expect(try await workspace.stewardLive(steward: "st_inbox").serving)
+    lease.release()
+    #expect(try await workspace.serveState().serving == false)
+}

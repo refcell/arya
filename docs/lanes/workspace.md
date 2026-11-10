@@ -249,3 +249,6 @@ M3:
   per-run, and per-seq indexes in the cached state; the 50k-event warm test now holds twelve
   more reads (activity, recap, plan, event, conversation, run, runFacts, ledger page,
   knowledge, memory, impact, overview findings) under 20 ms each.
+- 2026-11-10: one serving rule: `serveState()` (scheduler lock held, or a running run's lease
+  held), used by `serveStatus()` and `stewardLive`; `LedgerCheck.lines` from the ledger's
+  verification report (optional, older JSON decodes).

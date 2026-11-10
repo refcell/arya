@@ -280,12 +280,19 @@ public struct LedgerCheck: Sendable, Hashable, Codable {
     public var firstBadSeq: Int?
     /// What failed, if anything.
     public var detail: String?
+    /// The ledger's own report, a headline then where, what it means, and the next step, in
+    /// plain words; nil from callers that built the check by hand.
+    public var lines: [String]?
 
     /// Creates a check result.
-    public init(ok: Bool, events: Int, firstBadSeq: Int? = nil, detail: String? = nil) {
+    public init(
+        ok: Bool, events: Int, firstBadSeq: Int? = nil, detail: String? = nil,
+        lines: [String]? = nil
+    ) {
         self.ok = ok
         self.events = events
         self.firstBadSeq = firstBadSeq
         self.detail = detail
+        self.lines = lines
     }
 }

@@ -424,12 +424,13 @@ public actor Workspace {
     /// Verifies the hash chain, `seq` continuity, and envelopes.
     public func verifyLedger() async throws -> LedgerCheck {
         let result = try LedgerVerifier(home: home).verify()
+        let lines = result.report.lines
         guard let failure = result.failure else {
-            return LedgerCheck(ok: true, events: Int(result.events))
+            return LedgerCheck(ok: true, events: Int(result.events), lines: lines)
         }
         return LedgerCheck(
             ok: false, events: Int(result.events), firstBadSeq: Int(result.events) + 1,
-            detail: failure.description)
+            detail: failure.description, lines: lines)
     }
 
     // MARK: Helpers
