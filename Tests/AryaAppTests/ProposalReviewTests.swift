@@ -72,6 +72,10 @@ private func reviews() throws -> (
     #expect(diff.removed == 1)
     #expect(diff.counts == "+1 −1")
     #expect(diff.text.contains("+  \"outcome\": \"Every security report"))
+    let removed = try #require(diff.text.range(of: "-  \"outcome\""))
+    let added = try #require(diff.text.range(of: "+  \"outcome\""))
+    #expect(removed.lowerBound < added.lowerBound)
+    #expect(!diff.text.contains("\","))
     #expect(!diff.text.contains("\"version\""))
 }
 

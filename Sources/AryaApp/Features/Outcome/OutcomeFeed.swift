@@ -259,6 +259,8 @@ struct OutcomeRecap: Hashable, Sendable {
     var openProposals: Int
 
     var unresolvedCount: Int { pending.count + questions + failedActions + openProposals }
+    /// When the newest news happened: the last run or the newest action since the visit.
+    var newestAt: Date? { ([lastRun?.at] + actionsSince.map(\.at)).compactMap { $0 }.max() }
 
     /// `lastSeen` is the newest ledger seq the person saw; nil means never.
     static func build(

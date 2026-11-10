@@ -34,8 +34,11 @@ enum OutcomeRecapText {
         guard recap.runsSince > 0 || !recap.actionsSince.isEmpty || waiting != nil else {
             return nil
         }
-        var text =
-            "Since you looked \(AryaTime.label(seenAt, now: now, style: .long, timeZone: timeZone))"
+        let when = AryaTime.label(seenAt, now: now, style: .long, timeZone: timeZone)
+        // A last look older than the newest news by more than a day reads as a date, not a
+        // visit the person remembers.
+        let stale = recap.newestAt.map { $0.timeIntervalSince(seenAt) > 86_400 } ?? false
+        var text = stale ? "Since \(when)" : "Since you looked \(when)"
         let news = since(recap)
         let list = news.replacing(" · ", with: ", ")
         text += news == "nothing new" ? ", nothing new ran." : ": \(list)."

@@ -15,7 +15,8 @@ struct OutcomeSection<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s2) {
+        // Rows sit flush at the dense row height (24 pt pitch); only the title gets a gap.
+        VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title).aryaText(AryaFont.overline, AryaColor.inkFaint)
                 Spacer(minLength: AryaSpace.s2)
@@ -23,6 +24,7 @@ struct OutcomeSection<Content: View>: View {
                     Text(trailing).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                 }
             }
+            .padding(.bottom, AryaSpace.s1)
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -99,10 +99,13 @@ struct OutcomeContextSection: View {
 
     private var summary: String {
         [
-            (context.people.count, "people"), (context.connections.count, "connections"),
-            (context.notes.count, "notes"), (context.decisions.count, "decisions"),
+            (context.people.count, "person", "people"),
+            (context.connections.count, "connection", "connections"),
+            (context.notes.count, "note", "notes"),
+            (context.decisions.count, "decision", "decisions"),
         ]
-        .filter { $0.0 > 0 }.map { "\($0.0) \($0.1)" }.joined(separator: " · ")
+        .filter { $0.0 > 0 }.map { "\($0.0) \($0.0 == 1 ? $0.1 : $0.2)" }
+        .joined(separator: " · ")
     }
 
     @ViewBuilder

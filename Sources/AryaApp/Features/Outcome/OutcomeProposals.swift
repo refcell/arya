@@ -74,6 +74,8 @@ struct ProposalDiff: Hashable, Sendable {
     var counts: String { "+\(added) −\(removed)" }
 
     static let context = 2
+    /// Changed lines up to which the diff starts open.
+    static let openLimit = 6
 
     static func build(_ item: ProposalItem, events: [FeatureEvent]) -> ProposalDiff? {
         guard let steward = item.steward,
@@ -86,7 +88,7 @@ struct ProposalDiff: Hashable, Sendable {
     static func between(_ live: FeatureJSON, _ proposed: FeatureJSON) -> ProposalDiff? {
         let old = lines(live)
         let new = lines(proposed)
-        let edits = LineDiff.edits(old, new)
+        let edits = removedFirst(LineDiff.edits(old, new))
         let changed = edits.indices.filter {
             if case .same = edits[$0] { false } else { true }
         }
@@ -117,14 +119,40 @@ struct ProposalDiff: Hashable, Sendable {
         return ProposalDiff(text: out.joined(separator: "\n"), added: added, removed: removed)
     }
 
-    /// Pretty JSON without the version, which every proposal bumps.
+    /// Within each run of changes, removed lines before added ones, as unified diffs read.
+    static func removedFirst(_ edits: [LineDiff.Edit]) -> [LineDiff.Edit] {
+        var out: [LineDiff.Edit] = []
+        var removed: [LineDiff.Edit] = []
+        var added: [LineDiff.Edit] = []
+        func flush() {
+            out += removed + added
+            removed = []
+            added = []
+        }
+        for edit in edits {
+            switch edit {
+            case .same:
+                flush()
+                out.append(edit)
+            case .removed: removed.append(edit)
+            case .added: added.append(edit)
+            }
+        }
+        flush()
+        return out
+    }
+
+    /// Pretty JSON without the version, which every proposal bumps, and without trailing
+    /// commas, so dropping the last member of an object changes one line, not two.
     private static func lines(_ charter: FeatureJSON) -> [String] {
         var plain = charter
         if case .object(var members) = charter {
             members["version"] = nil
             plain = .object(members)
         }
-        return plain.prettyText.split(separator: "\n").map(String.init)
+        return plain.prettyText.split(separator: "\n").map {
+            $0.hasSuffix(",") ? String($0.dropLast()) : String($0)
+        }
     }
 }
 
@@ -235,7 +263,8 @@ struct OutcomeProposalRow: View {
     @AryaState private var expanded: String?
     @AryaState private var confirming = false
     @AryaState private var whatIf: String?
-    @AryaState private var showDiff = true
+    /// Short diffs start open; long ones start folded behind their counts.
+    @AryaState private var showDiff: Bool?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
@@ -248,10 +277,10 @@ struct OutcomeProposalRow: View {
             summary
             if let diff = review.diff {
                 Button {
-                    showDiff.toggle()
+                    showDiff = !diffOpen(diff)
                 } label: {
                     HStack(spacing: AryaSpace.s1) {
-                        Text(showDiff ? "▾" : "▸")
+                        Text(diffOpen(diff) ? "▾" : "▸")
                             .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                         Text("Charter diff").aryaText(AryaFont.caption, AryaColor.inkMuted)
                         Text("+\(diff.added)").aryaText(AryaFont.monoSmall, AryaColor.positive)
@@ -260,7 +289,7 @@ struct OutcomeProposalRow: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Charter diff, \(diff.added) added, \(diff.removed) removed")
-                if showDiff { DiffBlock(diff.text) }
+                if diffOpen(diff) { DiffBlock(diff.text) }
             }
             ForEach(review.worse + review.better) { change in
                 OutcomeCaseChangeRow(
@@ -320,6 +349,10 @@ struct OutcomeProposalRow: View {
         .menuStyle(.borderlessButton)
         .fixedSize()
         .aryaText(AryaFont.caption, AryaColor.inkMuted)
+    }
+
+    private func diffOpen(_ diff: ProposalDiff) -> Bool {
+        showDiff ?? (diff.added + diff.removed <= ProposalDiff.openLimit)
     }
 
     private func reject() { perform(.rejectProposal(review.id, reason: "")) }

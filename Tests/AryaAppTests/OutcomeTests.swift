@@ -150,6 +150,11 @@ private func triage() -> OutcomeSnapshot {
         text
             == "Since you looked Jan 14: 1 run ended, 1 action taken. Waiting on you: "
             + "1 approval, 1 question, 2 proposals.")
+    // A last look weeks before the news reads as a date, not a remembered visit.
+    let stale = try #require(
+        OutcomeRecapText.paragraph(
+            recap, seenAt: now.addingTimeInterval(-86_400 * 20), now: now, timeZone: utc))
+    #expect(stale.hasPrefix("Since Dec 26, 2026: "))
     let quiet = OutcomeRecap(
         goal: "", lastRun: nil, runsSince: 0, actionsSince: [], pending: [], questions: 0,
         failedActions: 0, openProposals: 0)

@@ -30,6 +30,11 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 
 ## Decisions
 
+- 2026-11-09: proposal review compares the gate's baseline and candidate rehearsals case by
+  case (passed → failed is worse, failed → passed is better); nothing goes live by default,
+  so a regressed proposal offers no peer Accept. The workspace `liveReadiness` read is wired
+  (`FeatureWorkspace.liveReadiness`) for eval's comparison read when it lands.
+
 - Visual checks are offscreen snapshots only (CEO, user directive; decision 0038): `just
   snapshot` PNGs in `.build/snapshots`. Never open the app or show a window.
 
@@ -137,3 +142,15 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   check (offscreen `just snapshot`): charter-editor (step 1, prefilled) and charter-editor-5
   (why + "Change outcome. It goes live once its gate passes." + Propose change), dark and
   light, pass the 5 requirements.
+- 2026-11-09: Improve's proposal review (now owned here): change-and-why title, "Rehearsal:
+  7 of 8 cases unchanged, 1 got worse." with only "worse" in the destructive tone, changed
+  cases as expandable before → after rows from the gate's baseline and candidate
+  rehearsals, the charter as a unified diff with +/- counts (open up to 6 changed lines).
+  Regressed: quiet Reject, Accept anyway… behind More with a confirm naming the cases;
+  passing: one orange Accept plus quiet Reject. PAUSED status on the OutcomeLine; CONTEXT
+  disclosure on the Overview (people, connections, memory notes, recent decisions); Overview
+  rows at a 24 pt pitch with 16 pt gaps; a stale last look reads "Since Oct 11: …"; editor
+  step 5 says "This changes the outcome. It goes live after rehearsal passes."; charter
+  rule decisions use the ink choice, not a system segmented picker. Visual check (offscreen
+  `just snapshot`, reseeded demo home): overview, improve, improve-proposals (regressed and
+  passing), dark and light, pass the 5 requirements.
