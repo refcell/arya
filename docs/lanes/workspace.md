@@ -277,3 +277,4 @@ M3:
   eval's trajectory confidence per kind; `onboarding(steward:)` on the cache. Busy-home test:
   copies the newest shared seed (`arya-demo-homes/<stamp>`) and checks runFacts tool counts
   equal distinct step records on its runs (skips where no seed exists).
+- (from eval) Seeding.swift: `SeededExecutor` (succeeds) replaces DryRunExecutor; history is real

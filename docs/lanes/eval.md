@@ -344,4 +344,15 @@ Parity (CEO gap map):
   Review queue progress bar is neutral now (no orange on progress). Visual check:
   improve-trajectories (sample data; the demo has no follow-up checks yet) and onboarding-gate
   (real demo read: 1 of 3 met) rendered and viewed; point 5 (busy) and point 3 (real controls).
+- 2026-11-10: The demo has real follow-up checks. Decision: seeded history stands for work that
+  happened, so seeding executes actions with `SeededExecutor` (succeeds, calls no binding)
+  instead of drafting them; demo charters read `outcome` on acting bindings; the seeder runs
+  runtime's `OutcomeChecker` nightly over six weeks (4-day delay) through facade
+  `checkOutcomes(delay:answer:)`, answers deterministic (about 56% resolved, 14% reopened,
+  20% open then resolved, 10% still open). Trajectories count only a top-level `dryRun` as a
+  draft, as runtime does. improve-trajectories now renders the seeded home; sample deleted.
 
+- 2026-11-10 Visual check (point 5, busy demo home): improve-trajectories on the seeded home
+  reads "460 of 819 runs have checked outcomes: 336 good, 124 reopened; 359 still open", the
+  same numbers as the tally; label 336/399, route 357/439, choices 4-9 day lags; onboarding-gate
+  unchanged (1 of 3 met).

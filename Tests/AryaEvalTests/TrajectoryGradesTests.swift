@@ -21,7 +21,7 @@ import Testing
             run, "action.proposed", ["action": ["id": .string(id), "kind": .string(kind)]])
         try await add(
             run, "action.executed",
-            dryRun ? ["action": .string(id), "output": ["dryRun": true]] : ["action": .string(id)])
+            dryRun ? ["action": .string(id), "dryRun": true] : ["action": .string(id)])
     }
     func check(_ run: String, _ id: String, _ status: String) async throws {
         try await add(run, "action.checked", ["action": .string(id), "status": .string(status)])
@@ -53,7 +53,9 @@ import Testing
     #expect((billing.resolved, billing.reopened) == (1, 1))
     #expect(view.credits.first { $0.id == "choice:spam" }?.line == "spam: 1 not checked yet")
     #expect(view.runs.last?.lagDays ?? 0 >= 7)
-    #expect(view.sentence.hasPrefix("Graded 2 runs on later outcomes: 1 good, 1 reopened, 1 still"))
+    #expect(
+        view.sentence.hasPrefix(
+            "2 of 3 runs have checked outcomes: 1 good, 1 reopened; 1 still open"))
     #expect(view.sentence.contains("best evidence: label: resolved 2 of 2"))
 }
 

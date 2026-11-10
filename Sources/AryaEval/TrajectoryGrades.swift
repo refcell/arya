@@ -88,8 +88,8 @@ public enum TrajectoryGrades {
                 }
             case ActionEventType.executed:
                 guard let id = event.payload["action"]?.stringValue,
+                    // A draft (top-level dryRun) changed nothing, as runtime's follow-ups say.
                     event.payload["dryRun"] != true,
-                    event.payload["output"]?["dryRun"] != true,
                     actions[run]?[id] != nil
                 else { continue }
                 actions[run]?[id]?.executedAt = event.at.millis
@@ -189,9 +189,12 @@ public enum TrajectoryGrades {
                 : "\(pending) run\(pending == 1 ? "" : "s") acted; no follow-up check has "
                     + "settled yet."
         }
-        var text = "Graded \(graded) run\(graded == 1 ? "" : "s") on later outcomes: \(good) good"
-        text += ", \(bad) reopened"
-        if pending > 0 { text += ", \(pending) still open" }
+        // One definition for the text and the panel's tally: a run is graded once a follow-up
+        // check settled one of its actions; the rest acted and are still open.
+        let runs = graded + pending
+        var text = "\(graded) of \(runs) run\(runs == 1 ? "" : "s") have checked outcomes: "
+        text += "\(good) good, \(bad) reopened"
+        if pending > 0 { text += "; \(pending) still open" }
         if let best = credits.first(where: { $0.axis == "kind" && $0.rate != nil }) {
             text += "; best evidence: \(best.line)"
         }

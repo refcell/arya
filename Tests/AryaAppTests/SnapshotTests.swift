@@ -130,11 +130,11 @@ import Testing
             try write(
                 "improve-proposal-full", scheme: scheme, render(demo, dark: dark, size: tall))
         }
-        // What worked (eval): the real trajectory read, or a sample when the demo has no
-        // follow-up checks yet; and the go-live gate card onboarding embeds, from the real read.
-        if let store = model.featureStore {
-            let real = try? await store.workspace.trajectories(steward: steward.id)
-            let worked = real.flatMap { $0.credits.isEmpty ? nil : $0 } ?? WhatWorkedSample.value
+        // What worked (eval) from the seeded follow-up checks, and the go-live gate card
+        // onboarding embeds; both are the steward's real reads.
+        if let store = model.featureStore,
+            let worked = try? await store.workspace.trajectories(steward: steward.id)
+        {
             let wide = CGSize(width: Self.size.width, height: 420)
             try write(
                 "improve-trajectories", scheme: scheme,
@@ -723,35 +723,4 @@ final class SnapshotWatchdog: @unchecked Sendable {
     }
 
     func cancel() { item.cancel() }
-}
-
-/// A What worked sample for the snapshot while the demo has no follow-up checks: two kinds
-/// with enough outcomes, one sparse, and two choices.
-enum WhatWorkedSample {
-    static let value = FeatureTrajectories(
-        good: 14, bad: 3, pending: 5,
-        sentence: "Graded 17 runs on later outcomes: 14 good, 3 reopened, 5 still open; best "
-            + "evidence: label: resolved 12 of 13, checked a median 9 days later.",
-        credits: [
-            credit("kind", "label", 12, 1, 2, 0.67, 9),
-            credit("kind", "route", 9, 3, 1, 0.47, 11),
-            credit("kind", "reply", 1, 0, 2, 0.21, 4),
-            credit("choice", "billing", 8, 1, 1, 0.57, 9),
-            credit("choice", "bug", 4, 2, 2, 0.30, 12),
-            credit("choice", "spam", 2, 0, 2, 0.34, 2),
-        ])
-
-    static func credit(
-        _ axis: String, _ name: String, _ resolved: Int, _ reopened: Int, _ pending: Int,
-        _ confidence: Double, _ lag: Double
-    ) -> FeatureTrajectories.Credit {
-        let settled = resolved + reopened
-        return FeatureTrajectories.Credit(
-            id: axis + ":" + name, axis: axis, name: name, resolved: resolved,
-            reopened: reopened, pending: pending, rate: Double(resolved) / Double(settled),
-            confidence: confidence, medianLagDays: lag,
-            line: "\(name): resolved \(resolved) of \(settled), checked a median "
-                + "\(Int(lag)) days later"
-        )
-    }
 }

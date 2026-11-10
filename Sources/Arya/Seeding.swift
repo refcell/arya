@@ -9,8 +9,9 @@ import Foundation
 
 extension Workspace {
     /// Opens `home` with every charter's adapter served in process by the fake adapter, from
-    /// `scripts` by adapter name; a charter naming another adapter fails its run. Actions run
-    /// dry, as in `open(home:environment:ambient:keys:)`. For tools that seed demo homes.
+    /// `scripts` by adapter name; a charter naming another adapter fails its run. Actions
+    /// succeed without calling a binding (`SeededExecutor`), since seeded history stands for
+    /// work that happened. For tools that seed demo homes.
     public static func openForSeeding(
         home: URL, ambient: Ambient, scripts: [String: FakeScript]
     ) async throws -> Workspace {
@@ -20,7 +21,7 @@ extension Workspace {
             home: home,
             wiring: Wiring(
                 ambient: ambient, adapters: ScriptAdapterFactory(scripts: scripts),
-                executor: DryRunExecutor(), leases: leases))
+                executor: SeededExecutor(), leases: leases))
     }
 }
 
@@ -33,5 +34,13 @@ struct ScriptAdapterFactory: AdapterFactory {
             throw WorkspaceError.rejected("no seeding script for adapter \(charter.adapter)")
         }
         return FakeAdapter(script: script)
+    }
+}
+
+/// Seeded history stands for work that happened: each action succeeds (no binding is
+/// called), so runtime's follow-up checks and Impact see executed actions, not drafts.
+struct SeededExecutor: ActionExecutor {
+    func execute(_ request: ExecutionRequest) async -> ExecutionOutcome {
+        .succeeded(output: ["seeded": true])
     }
 }

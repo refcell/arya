@@ -23,6 +23,8 @@ enum DemoStep {
         steward: String, file: String, binding: String?, agree: [String], skip: [String])
     /// A proposal from `etc/examples/proposals.json`, by index, gated on the casebook (eval).
     case proposeExample(index: Int)
+    /// Runtime's follow-up checks due now, answered by `DemoOutcomes` (eval).
+    case checkOutcomes
 }
 
 struct DemoSeeder {
@@ -216,6 +218,9 @@ struct DemoSeeder {
                     agree: ["hist-ORDER-1140", "hist-ORDER-1141", "hist-ORDER-1142"],
                     skip: ["hist-ORDER-1143"])
             ))
+        // Follow-up checks every evening over the six weeks: each executed action is checked
+        // four days after it ran, and again four days later while it stays open (eval).
+        for day in 0...42 { steps.append((at(daysAgo: day, hour: 21), .checkOutcomes)) }
         steps.append((at(daysAgo: 1, hour: 8.5), .proposeExample(index: 1)))
         steps.append((at(daysAgo: 1, hour: 8.75), .proposeExample(index: 2)))
         guard fleet else { return sorted(steps + newest()) }
@@ -374,14 +379,16 @@ struct Context {
             func file(_ name: String) throws -> Data {
                 try Data(contentsOf: folder.appendingPathComponent(name))
             }
-            _ = try await workspace.createSteward(charter: try file("charter.json"))
+            _ = try await workspace.createSteward(
+                charter: try OutcomeReads.add(try file("charter.json")))
             _ = try await workspace.importCasebook(
                 steward: "st_triage", data: try file("casebook.jsonl"), name: "casebook")
             _ = try await workspace.rehearse(steward: "st_triage")
             // charter v2: case-0006 improves, case-0005 regresses.
             let titled = try ExampleProposal.load(examples, index: 0)
             let proposal = try await workspace.proposeCharter(
-                steward: "st_triage", charter: try file("charter-v2.json"), baseVersion: 1,
+                steward: "st_triage", charter: try OutcomeReads.add(try file("charter-v2.json")),
+                baseVersion: 1,
                 title: titled.title, reason: titled.reason)
             _ = try await workspace.checkProposal(proposal.id)
             let expected = try await workspace.expected(
@@ -410,7 +417,8 @@ struct Context {
         case .setupExample(let steward, let name):
             let folder = examples.appendingPathComponent(name)
             _ = try await workspace.createSteward(
-                charter: try Data(contentsOf: folder.appendingPathComponent("charter.json")))
+                charter: try OutcomeReads.add(
+                    try Data(contentsOf: folder.appendingPathComponent("charter.json"))))
             _ = try await workspace.importCasebook(
                 steward: steward,
                 data: try Data(contentsOf: folder.appendingPathComponent("casebook.jsonl")),
@@ -418,7 +426,7 @@ struct Context {
             _ = try await workspace.rehearse(steward: steward)
             _ = try await workspace.markReady(steward: steward)
         case .create(let steward):
-            _ = try await workspace.createSteward(charter: steward.charter)
+            _ = try await workspace.createSteward(charter: try OutcomeReads.add(steward.charter))
             _ = try await workspace.markReady(steward: steward.spec.id)
         case .run(let steward, let input):
             let run = try await workspace.startRun(steward: steward, input: input)
@@ -443,6 +451,10 @@ struct Context {
             _ = try await workspace.remember(text, steward: steward, by: person)
         case .report(let steward):
             _ = try await workspace.sendReport(steward: steward)
+        case .checkOutcomes:
+            _ = try await workspace.checkOutcomes(
+                delay: DemoOutcomes.delay,
+                answer: { DemoOutcomes.shared.answer(target: $0, kind: $1) })
         case .improve(let steward):
             _ = try await workspace.buildCasebook(steward: steward, limit: 40)
             _ = try await workspace.rehearse(steward: steward)
@@ -464,7 +476,8 @@ struct Context {
             let version = try await workspace.steward(example.steward)?.charterVersion ?? 1
             let proposal = try await workspace.proposeCharter(
                 steward: example.steward,
-                charter: try Data(contentsOf: root.appendingPathComponent(example.charter)),
+                charter: try OutcomeReads.add(
+                    try Data(contentsOf: root.appendingPathComponent(example.charter))),
                 baseVersion: version, title: example.title, reason: example.reason)
             _ = try? await workspace.checkProposal(proposal.id)
         }
@@ -576,5 +589,64 @@ enum EvalProposals {
                     reason: "A 300-seat account churned before anyone senior saw the signal.")
             ),
         ]
+    }
+}
+
+/// Demo charters read `outcome` on every binding that acts, so runtime follows up on what
+/// their actions did (decision 0053). Applied to every charter the seeder creates or proposes,
+/// so proposal diffs stay about what their titles say.
+enum OutcomeReads {
+    static func add(_ data: Data) throws -> Data {
+        guard var charter = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let bindings = charter["bindings"] as? [[String: Any]]
+        else { return data }
+        charter["bindings"] = bindings.map { binding in
+            guard binding["kind"] as? String == "mcp",
+                !(binding["actions"] as? [String] ?? []).isEmpty
+            else { return binding }
+            var binding = binding
+            let read = binding["read"] as? [String] ?? []
+            if !read.contains("outcome") { binding["read"] = read + ["outcome"] }
+            return binding
+        }
+        return try JSONSerialization.data(withJSONObject: charter, options: [.sortedKeys])
+    }
+}
+
+/// What the demo's bindings say when runtime follows up on an action, deterministic per target
+/// and kind: most resolve, some come back reopened, a few are still open at the first check
+/// (resolving at the next, four days later), and a few stay open.
+final class DemoOutcomes: @unchecked Sendable {
+    static let shared = DemoOutcomes()
+    static let delay: Int64 = 4 * 86_400_000
+    private let lock = NSLock()
+    private var asked: [String: Int] = [:]
+
+    func answer(target: String, kind: String) -> JSONValue {
+        let key = kind + "|" + target
+        let attempt = lock.withLock {
+            asked[key, default: 0] += 1
+            return asked[key] ?? 1
+        }
+        let roll = Self.hash(key) % 100
+        let status: String
+        let note: String
+        switch roll {
+        case ..<56:
+            (status, note) = ("resolved", "Closed; nothing came back.")
+        case ..<70:
+            (status, note) = ("reopened", "It came back and was reopened.")
+        case ..<90:
+            (status, note) =
+                attempt == 1 ? ("open", "Still open.") : ("resolved", "Closed after a follow-up.")
+        default:
+            (status, note) = ("open", "Still open.")
+        }
+        return ["status": .string(status), "note": .string(note)]
+    }
+
+    /// FNV-1a, so the same demo always gets the same outcomes.
+    static func hash(_ text: String) -> UInt64 {
+        text.utf8.reduce(14_695_981_039_346_656_037) { ($0 ^ UInt64($1)) &* 1_099_511_628_211 }
     }
 }

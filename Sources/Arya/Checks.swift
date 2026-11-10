@@ -33,6 +33,18 @@ extension Workspace {
         return TrajectoryGrades.view(steward: id, events: try facadeState().bySteward[id] ?? [])
     }
 
+    /// Runs runtime's follow-up checks (decision 0053) due now, answering each binding's
+    /// `outcome` call with `answer(target, kind)` instead of spawning the binding. For seeding
+    /// a demo home whose bindings are scripts; returns how many checks were recorded.
+    public func checkOutcomes(
+        delay: Int64, answer: @escaping @Sendable (String, String) -> JSONValue
+    ) async throws -> Int {
+        let checker = OutcomeChecker(sink: sink, delay: delay) { _ in
+            AnsweringUpstream(answer: answer)
+        }
+        return try await checker.check(now: ambient.now()).checked.count
+    }
+
     /// Records a new version of the steward's learned checks when its corrections or
     /// agreements changed them.
     func rebuildChecks(_ steward: StewardID, by person: String) async throws {
@@ -47,3 +59,18 @@ public typealias LearnedChecksSummary = LearnedChecksView
 public typealias LearnedCheckLine = LearnedCheckResult
 public typealias GoLiveSummary = GoLiveGateResult
 public typealias TrajectorySummary = TrajectoryGradesView
+
+/// A binding that answers only `outcome`, from a closure (`Workspace.checkOutcomes`).
+private struct AnsweringUpstream: ToolUpstream {
+    let answer: @Sendable (String, String) -> JSONValue
+
+    func listTools() async throws -> [JSONValue] { [] }
+
+    func call(_ tool: String, arguments: JSONValue) async throws -> JSONValue {
+        let body = answer(
+            arguments["target"]?.stringValue ?? "", arguments["action"]?.stringValue ?? "")
+        return ["structuredContent": body]
+    }
+
+    func close() async {}
+}
