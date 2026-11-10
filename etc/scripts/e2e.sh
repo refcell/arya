@@ -250,6 +250,13 @@ check_templates() {
 check_from_template() {
   expect id "$(get summary.id)" st_leads && expect state "$(get summary.state)" draft
 }
+# The seeded demo home's actions ran (not dry), and nightly follow-up checks settled them.
+check_graded() {
+  [ "$(get good)" -ge 1 ] && [ "$(get credits)" -ge 1 ] ||
+    { echo "    no good runs or no credit: $(get sentence)"; return 1; }
+  case "$(get sentence)" in *"checked outcomes"*) ;; *) echo "    $(get sentence)"; return 1 ;; esac
+  expect "credit line" "$(get credits.0.line | grep -c 'resolved')" 1
+}
 check_denied() { expect state "$(get state)" denied; }
 # Governance (ledger lane): policy and approvers, undo, retention, signed export and import.
 check_policy() {
@@ -519,6 +526,13 @@ step "import it into a fresh home" governance live check_steward_imported \
   import "$work/export"
 home=$source_home
 step "steward live: nothing running now" abort live check_live_idle steward live st_triage
+# Real homes run actions dry, so grading reads a seeded demo home (three examples, about 40 s).
+script_step "seed a demo home with weeks of outcomes" grading \
+  env ARYA_DEMO_FLEET=examples "$bin/arya-demo" "$work/demo" "$PWD/etc/examples"
+main_home=$home home=$work/demo
+step "trajectories: credit for what resolved" grading grading check_graded \
+  steward trajectories st_triage
+home=$main_home
 script_step "docs-only publish skips the build" publish etc/scripts/test-publish.sh docs-only
 step "sweep: a wake raises two findings" findings live check_swept \
   run st_triage --input "Sweep the inbox for patterns"
