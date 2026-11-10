@@ -104,7 +104,7 @@ public struct LiveReadinessGate: Sendable {
         return whatIf.diff.isEmpty ? .same : .regressed
     }
 
-    /// The steward's latest finished live runs, newest first.
+    /// The steward's latest finished top-level live runs, newest first; a crew is its parent.
     static func recentRuns(_ events: [RuntimeEvent], steward: StewardID, limit: Int) throws
         -> [RunID]
     {
@@ -112,10 +112,10 @@ public struct LiveReadinessGate: Sendable {
         var finished: [RunID] = []
         for event in events where event.draft.steward == steward {
             guard let run = event.draft.run else { continue }
-            if event.type == RunEventType.started,
-                try EvalPayload.decode(RunStarted.self, event.payload).rehearsal == nil
-            {
-                live.insert(run)
+            if event.type == RunEventType.started {
+                // A crew counts once, as its parent: children and join runs are not items.
+                let body = try EvalPayload.decode(RunStarted.self, event.payload)
+                if body.rehearsal == nil, !CrewTree.isMember(body) { live.insert(run) }
             } else if event.type == RunEventType.finished, live.contains(run) {
                 finished.append(run)
             }

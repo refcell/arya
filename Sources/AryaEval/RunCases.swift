@@ -27,7 +27,7 @@ public enum RunCases {
             // A rehearsal run is already a case; keep its id so a correction updates it.
             return Case(
                 id: caseID, input: CaseInput(text: body.input.text),
-                context: CaseContext(toolResults: try ToolRecordings.from(events, run: run)),
+                context: CaseContext(toolResults: try RunRecordings.from(events, run: run)),
                 expected: try expected ?? did(events, run: run), source: "run \(run.rawValue)")
         }
         // The plan the steward had when the run started, so rehearsing the case shows it again.
@@ -37,7 +37,7 @@ public enum RunCases {
             id: try caseID(for: run),
             input: CaseInput(text: body.input.text, attachments: body.input.attachments ?? []),
             context: CaseContext(
-                toolResults: try ToolRecordings.from(events, run: run),
+                toolResults: try RunRecordings.from(events, run: run),
                 plan: try plan.map { try CanonicalJSON.jsonValue($0) }),
             expected: try expected ?? did(events, run: run), source: "run \(run.rawValue)")
     }

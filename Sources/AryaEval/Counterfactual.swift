@@ -47,7 +47,13 @@ public struct Counterfactuals: Sendable {
         run: RunID, charter: Charter, proposal: ProposalID? = nil
     ) async throws -> RunCounterfactual {
         let events = try await sink.events(from: 1)
-        let item = try RunCases.makeCase(events, run: run)
+        var item = try RunCases.makeCase(events, run: run)
+        // A crew is asked about as one unit: the whole tree's effect and every member's reads.
+        let tree = try CrewTree.members(events, of: run)
+        if tree.count > 1 {
+            item.expected = try CrewTree.did(events, runs: tree)
+            item.context.toolResults = try CrewTree.recordings(events, runs: tree)
+        }
         guard let steward = events.first(where: { $0.draft.run == run })?.draft.steward else {
             throw EvalError.unknownRun(run)
         }
@@ -60,6 +66,11 @@ public struct Counterfactuals: Sendable {
             outcome = try await runner.run(request)
         } catch {
             failure = String(describing: error)
+        }
+        if tree.count > 1, let answered = outcome?.run {
+            let after = try await sink.events(from: 1)
+            let replayed = try CrewTree.members(after, of: answered)
+            outcome?.result = try CrewTree.did(after, runs: replayed)
         }
         let corrected = try Self.correction(events, run)
         return Self.build(
