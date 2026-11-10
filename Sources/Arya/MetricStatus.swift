@@ -28,20 +28,21 @@ public struct MetricStatus: Sendable, Hashable, Codable {
 
 extension Workspace {
     /// Every metric the charter names, primary first and then its guardrail metrics, each with
-    /// its latest value, target, trend over the last `windows` windows, and status.
+    /// its latest value, target, trend over the evaluation window (or the last `windows`
+    /// windows), and status.
     public func metricStatuses(
-        steward: String, windows: Int = 14, windowSeconds: Int = 86_400
+        steward: String, windows: Int? = nil, windowSeconds: Int = 86_400
     ) async throws -> [MetricStatus] {
         let record = try await existing(steward)
         let series = try await metrics(steward: steward, windowSeconds: windowSeconds)
-        let recent = series.windows.suffix(max(1, windows))
         let named =
             [(record.charter.metric, "primary")]
             + (record.charter.guardrailMetrics ?? []).map { ($0, "guardrail") }
         return named.map { metric, role in
-            let trend = recent.map {
-                OutcomeSummary.Point(start: $0.start, value: $0.means[metric.name])
-            }
+            // Every metric is judged over the primary metric's window.
+            let trend = Self.trend(
+                series, metric: record.charter.metric, name: metric.name, windows: windows,
+                now: now())
             let readings = trend.compactMap(\.value)
             let current = readings.last
             let previous = readings.count > 1 ? readings[readings.count - 2] : nil

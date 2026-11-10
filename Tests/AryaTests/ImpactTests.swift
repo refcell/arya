@@ -138,3 +138,44 @@ private func metric(_ direction: Metric.Direction = .up) throws -> Metric {
         !String(decoding: try CanonicalJSON.encode(charter), as: UTF8.self)
             .contains("guardrailMetrics"))
 }
+
+@Test func oneEvaluationWindowForHeaderFindingsAndTrends() async throws {
+    let opened = try await Opened([])
+    let workspace = opened.workspace
+    var charter = try Charter.load(from: try inboxCharterJSON())
+    charter.metric.target = 0.5
+    charter.metric.windowDays = 3
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    _ = try await workspace.sink.append(
+        RuntimeEventDraft(
+            type: MetricEventType.recorded, steward: StewardID(unchecked: "st_inbox"),
+            actor: .system,
+            payload: try CanonicalJSON.decode(
+                JSONValue.self,
+                from: try CanonicalJSON.encode(
+                    MetricRecorded(metric: charter.metric.name, value: 0.25)))))
+
+    let window = try await workspace.outcomeWindow(steward: "st_inbox")
+    #expect(window.days == 3 && window.fromCharter && window.text == "the last 3 days")
+    #expect(window.measured == 1 && window.missed == 1)
+    #expect(window.missedText == "missed its target on 1 of 1 measured day in the last 3 days")
+    let outcome = try await workspace.outcome(steward: "st_inbox")
+    #expect(outcome.trend.count == 3 && outcome.window?.missed == 1)
+    #expect(outcome.window?.start == window.start)
+    let metrics = try await workspace.metricStatuses(steward: "st_inbox")
+    #expect(metrics.first?.trend.map(\.start) == outcome.trend.map(\.start))
+    let findings = try await workspace.overviewFindings(steward: "st_inbox")
+    #expect(
+        findings.contains {
+            $0.kind == "negative" && $0.text == "\(charter.metric.name) \(window.missedText ?? "")"
+        })
+
+    // Every day measured reads as N of the last M days; no period means 7 days.
+    let full = Workspace.window(
+        steward: "st_inbox", metric: Metric(name: "m", unit: "", direction: .up, target: 1),
+        start: .now, end: .now, values: [0, 2, 0, 0, 2, 2, 0])
+    #expect(full.days == 7 && !full.fromCharter)
+    #expect(full.missedText == "missed its target on 4 of the last 7 days")
+    charter.metric.windowDays = 0
+    #expect(charter.validate().map(\.path) == ["metric.windowDays"])
+}

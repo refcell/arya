@@ -115,15 +115,22 @@ public struct Metric: Hashable, Sendable, Codable {
     public var unit: String
     public var direction: Direction
     public var target: Double?
+    /// The evaluation window in days: the period the outcome is judged over (header, findings,
+    /// impact, trends); nil means the default of 7.
+    public var windowDays: Int?
 
-    public init(name: String, unit: String, direction: Direction, target: Double? = nil) {
+    public init(
+        name: String, unit: String, direction: Direction, target: Double? = nil,
+        windowDays: Int? = nil
+    ) {
         self.name = name
         self.unit = unit
         self.direction = direction
         self.target = target
+        self.windowDays = windowDays
     }
 
-    private enum CodingKeys: String, CodingKey { case name, unit, direction, target }
+    private enum CodingKeys: String, CodingKey { case name, unit, direction, target, windowDays }
 }
 
 /// Effort level; each adapter maps it to a model and reasoning budget.

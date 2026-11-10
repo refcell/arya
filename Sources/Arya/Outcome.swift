@@ -46,6 +46,8 @@ public struct OutcomeSummary: Sendable, Hashable, Codable {
     public var trend: [Point]
     public var windowSeconds: Int
     public var status: Status
+    /// The evaluation window the trend and status cover; nil in summaries written before it.
+    public var window: OutcomeWindow?
 }
 
 /// A steward's current plan.
@@ -235,21 +237,44 @@ extension Workspace {
 
     /// Where a steward stands: its outcome, KPI, target, the last `windows` windows of
     /// `windowSeconds` (UTC days by default), and the status of the newest value.
-    public func outcome(steward: String, windows: Int = 14, windowSeconds: Int = 86_400)
+    /// With no `windows`, the trend is the steward's evaluation window (`outcomeWindow`), one
+    /// point per UTC day, nil where nothing was recorded; otherwise the last `windows` windows.
+    public func outcome(steward: String, windows: Int? = nil, windowSeconds: Int = 86_400)
         async throws -> OutcomeSummary
     {
         let record = try await existing(steward)
         let series = try await metrics(steward: steward, windowSeconds: windowSeconds)
         let metric = record.charter.metric
-        let trend = series.windows.suffix(max(1, windows)).map {
-            OutcomeSummary.Point(start: $0.start, value: $0.means[metric.name])
-        }
+        let trend = Self.trend(series, metric: metric, windows: windows, now: now())
         let current = trend.last { $0.value != nil }?.value
+        let window = Self.window(
+            steward: record.id.rawValue, metric: metric, start: trend.first?.start ?? now(),
+            end: now(), values: trend.compactMap(\.value))
         return OutcomeSummary(
             steward: record.id.rawValue, outcome: record.charter.outcome, metric: metric.name,
             unit: metric.unit, direction: metric.direction.rawValue, target: metric.target,
-            current: current, trend: Array(trend), windowSeconds: series.windowSeconds,
-            status: Self.status(current: current, metric: metric))
+            current: current, trend: trend, windowSeconds: series.windowSeconds,
+            status: Self.status(current: current, metric: metric),
+            window: windows == nil && windowSeconds == OutcomeWindow.day ? window : nil)
+    }
+
+    /// The points for `name` (default the primary metric): the evaluation window's days when
+    /// `windows` is nil and windows are days, else the last `windows` windows.
+    static func trend(
+        _ series: MetricSeriesSummary, metric: Metric, name: String? = nil, windows: Int?,
+        now: Date
+    ) -> [OutcomeSummary.Point] {
+        let key = name ?? metric.name
+        guard windows == nil, series.windowSeconds == OutcomeWindow.day else {
+            return series.windows.suffix(max(1, windows ?? 14)).map {
+                OutcomeSummary.Point(start: $0.start, value: $0.means[key])
+            }
+        }
+        let means = Dictionary(
+            series.windows.map { ($0.start, $0.means[key]) }, uniquingKeysWith: { a, _ in a })
+        return windowBounds(metric, now: now).days.map {
+            OutcomeSummary.Point(start: $0, value: means[$0] ?? nil)
+        }
     }
 
     static func status(current: Double?, metric: Metric) -> OutcomeSummary.Status {

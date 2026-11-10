@@ -265,3 +265,7 @@ M3:
   overlapping read and kept a verbatim `line` on follow-up `checks(steward:)` rows. #16
   templates were done in 618b1ce.
 - (from eval) Impact confidence: `trajectories(steward:).kind(k)?.confidence` (Wilson, n-aware)
+- 2026-11-10: one evaluation window (CEO): `Metric.windowDays` (default 7) and
+  `outcomeWindow(steward:)`; outcome trend, metric statuses, impact, and overview findings use
+  it and name it in their text; regression findings are `negative`. The large-home timing test
+  takes the best of three warm calls (a loaded publish re-check failed one at 26 ms).

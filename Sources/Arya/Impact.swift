@@ -46,6 +46,8 @@ public struct ImpactSummary: Sendable, Hashable, Codable {
     public var together: [String]
     /// One line for the section: the honest summary when nothing splits.
     public var summary: String
+    /// The evaluation window it covers, `the last 7 days`; nil in summaries written before.
+    public var period: String?
 }
 
 /// A line for the Overview's findings: a steward's own finding, or a change the ledger shows.
@@ -68,6 +70,10 @@ extension Workspace {
         let record = try await existing(steward)
         let metric = record.charter.metric
         let events = try facadeState().bySteward[record.id] ?? []
+        // Readings inside the evaluation window close windows; the reading just before it is
+        // the baseline.
+        let window = Self.windowBounds(metric, now: now())
+        let opens = window.days[0]
         var kinds: [String: String] = [:]
         var executed: [String] = []
         var windows: [(delta: Double, counts: [String: Int])] = []
@@ -91,6 +97,11 @@ extension Workspace {
                 guard event.payload["metric"]?.stringValue == metric.name,
                     let value = event.payload["value"]?.doubleValue, value.isFinite
                 else { continue }
+                guard event.at.date >= opens else {
+                    last = value
+                    executed = []
+                    continue
+                }
                 readings += 1
                 if let last, !executed.isEmpty {
                     windows.append(
@@ -102,13 +113,17 @@ extension Workspace {
                 continue
             }
         }
-        guard readings >= 2, !windows.isEmpty else { return nil }
+        guard readings >= 1, !windows.isEmpty else { return nil }
         let rates = Dictionary(
             try await effectiveness(steward: steward).map { ($0.kind, $0) },
             uniquingKeysWith: { a, _ in a })
-        return Self.attribute(
+        var summary = Self.attribute(
             windows, steward: steward, metric: metric, readings: readings, rates: rates,
             limit: limit)
+        let days = window.count
+        summary.period = days == 1 ? "today" : "the last \(days) days"
+        if let period = summary.period { summary.summary += " over \(period)" }
+        return summary
     }
 
     static func attribute(
@@ -196,17 +211,11 @@ extension Workspace {
         let outcome = try await self.outcome(steward: steward)
         let measured = outcome.trend.compactMap(\.value)
         let metric = record.charter.metric
-        let missed = measured.filter {
-            Self.status(current: $0, metric: metric) == .offTrack
-        }.count
-        if missed > 0 {
-            out.append(
-                OverviewFinding(
-                    kind: "negative",
-                    text: "\(metric.name) missed its target on \(missed) of the last "
-                        + "\(measured.count) measured days"))
+        let window = try await outcomeWindow(steward: steward)
+        if let missed = window.missedText {
+            out.append(OverviewFinding(kind: "negative", text: "\(metric.name) \(missed)"))
         }
-        let recent = measured.suffix(7)
+        let recent = measured
         if let first = recent.first, let last = recent.last, recent.count >= 2,
             abs(last - first) >= 0.01
         {
@@ -215,7 +224,7 @@ extension Workspace {
                 OverviewFinding(
                     kind: better ? "positive" : "negative",
                     text: "\(metric.name) \(last > first ? "rose" : "fell") from "
-                        + "\(Self.number(first)) to \(Self.number(last)) over those days"))
+                        + "\(Self.number(first)) to \(Self.number(last)) over \(window.text)"))
         }
         let waiting = try await approvals().filter { $0.steward == steward }
         if let oldest = waiting.min(by: { $0.requestedAt < $1.requestedAt }) {
@@ -250,7 +259,7 @@ extension Workspace {
             guard let worse = proposal.verdict?.regressions, !worse.isEmpty else { continue }
             out.append(
                 OverviewFinding(
-                    kind: "attention",
+                    kind: "negative",
                     text: "A proposed change made \(worse.joined(separator: ", ")) worse in "
                         + "rehearsal",
                     link: .init(kind: "proposal", id: proposal.id)))

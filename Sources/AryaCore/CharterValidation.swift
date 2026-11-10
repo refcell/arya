@@ -29,6 +29,9 @@ extension Charter {
         if name.trimmed.isEmpty { issues.append(.init("name", "must not be empty")) }
         if outcome.trimmed.isEmpty { issues.append(.init("outcome", "must not be empty")) }
         if metric.name.trimmed.isEmpty { issues.append(.init("metric.name", "must not be empty")) }
+        if let days = metric.windowDays, !(1...366).contains(days) {
+            issues.append(.init("metric.windowDays", "must be 1 to 366 days"))
+        }
         var names: Set<String> = [metric.name]
         for (i, extra) in (guardrailMetrics ?? []).enumerated() {
             let field = "guardrailMetrics[\(i)].name"
