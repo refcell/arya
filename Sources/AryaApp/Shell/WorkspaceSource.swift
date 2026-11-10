@@ -35,6 +35,8 @@ protocol WorkspaceSource: Sendable {
     func eventDetail(seq: Int) async throws -> FeatureEventDetail?
     /// The Improve screen's sentences.
     func improveSummary(steward: String) async throws -> FeatureImproveSummary
+    /// The review queue on the steward's newest casebook, or nil when it has none.
+    func reviewQueueSummary(steward: String) async throws -> FeatureReviewQueue?
     /// The Knowledge screen's notes and routines.
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge
     /// A run replayed under a proposal's charter, in one line.
@@ -77,6 +79,10 @@ extension WorkspaceSource {
 
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge {
         throw FeatureReadError.unavailable("knowledge")
+    }
+
+    func reviewQueueSummary(steward: String) async throws -> FeatureReviewQueue? {
+        throw FeatureReadError.unavailable("review queue")
     }
 
     func whatIfSummary(run: String, proposal: String) async throws -> String {
@@ -141,6 +147,8 @@ extension Workspace: WorkspaceSource {
                 expected: try correction.expected.map(Self.canonical),
                 note: correction.text.isEmpty ? nil : correction.text,
                 casebook: correction.casebook, by: person)
+        case .reviewCase(let steward, let caseID, let verdict):
+            _ = try await reviewCase(steward: steward, case: caseID, verdict: verdict, by: person)
         case .correctRun(_, let run, let choice, let note):
             _ = try await correct(
                 run: run, expected: try await expected(run: run, choice: choice),
@@ -234,6 +242,20 @@ extension Workspace: WorkspaceSource {
             },
             gates: Dictionary(
                 view.proposals.map { ($0.proposal.id, $0.gate) }, uniquingKeysWith: { a, _ in a }))
+    }
+
+    func reviewQueueSummary(steward: String) async throws -> FeatureReviewQueue? {
+        guard let queue = try await reviewQueue(steward: steward) else { return nil }
+        let item = { (item: ReviewQueueItem) in
+            FeatureReviewQueue.Item(
+                id: item.caseID, input: item.input, wouldHave: item.wouldHave,
+                personDid: item.personDid, matches: item.matches, difference: item.difference,
+                source: item.source, status: item.status.rawValue)
+        }
+        return FeatureReviewQueue(
+            casebookVersion: queue.casebookVersion, rehearsal: queue.rehearsal,
+            progressText: queue.progressText, total: queue.total, reviewed: queue.reviewed,
+            next: queue.next.map(item))
     }
 
     func whatIfSummary(run: String, proposal: String) async throws -> String {

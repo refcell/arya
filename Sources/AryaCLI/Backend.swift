@@ -53,7 +53,7 @@ enum ApprovalDecision: String, Sendable, Codable, Equatable {
 /// What the CLI needs from an arya home. The real implementation wraps `Arya.Workspace`; tests
 /// use an in-memory fake. Results are CLI view models, so `--json` output stays stable even when
 /// the facade's types change.
-protocol CLIBackend: ImprovementBackend {
+protocol CLIBackend: ImprovementBackend, HistoryBackend {
     func initHome() async throws(CLIError) -> InitReport
     func createSteward(charterPath: String) async throws(CLIError) -> StewardDetail
     func listStewards() async throws(CLIError) -> [StewardRow]

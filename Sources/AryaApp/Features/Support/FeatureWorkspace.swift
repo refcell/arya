@@ -21,6 +21,9 @@ enum FeatureWrite: Hashable, Sendable {
     /// Teaches a steward from a live run: the run becomes a case expecting `choice` as its
     /// first decision, with an optional memory note (`correct(run:expected:note:by:)`).
     case correctRun(steward: String, run: String, choice: String, note: String)
+    /// Records a person's review of a case in the review queue (`case.reviewed`): `agree` or
+    /// `skip`; corrections use `correctCase`.
+    case reviewCase(steward: String, caseID: String, verdict: String)
     /// Marks a steward ready for live triggers after reviewing a rehearsal (`steward.ready`).
     case markReady(steward: String, charterVersion: Int, rehearsal: String?)
     /// Proposes a new charter version (`proposal.created`); it goes live only through a gate.
@@ -64,6 +67,30 @@ struct FeatureImproveSummary: Hashable, Sendable {
     var cases: [Case]
     /// Gate text by proposal id.
     var gates: [String: String]
+}
+
+/// The review queue as the workspace writes it: what the steward would have done next to what
+/// the person did, case by case, with progress. Every string is shown verbatim.
+struct FeatureReviewQueue: Hashable, Sendable {
+    struct Item: Hashable, Sendable, Identifiable {
+        var id: String
+        var input: String
+        var wouldHave: String
+        var personDid: String
+        /// Whether the steward matched; nil before the case was rehearsed.
+        var matches: Bool?
+        var difference: String
+        var source: String
+        /// `pending`, `agreed`, `corrected`, or `skipped`.
+        var status: String
+    }
+
+    var casebookVersion: String
+    var rehearsal: String?
+    var progressText: String
+    var total: Int
+    var reviewed: Int
+    var next: Item?
 }
 
 /// One event as the inspector shows it.
@@ -166,6 +193,8 @@ protocol FeatureWorkspace: Sendable {
     func whatIf(run: String, proposal: String) async throws -> String
     /// The Improve screen's sentences for one steward, written by the workspace.
     func improveSummary(steward: String) async throws -> FeatureImproveSummary
+    /// The review queue for one steward, or nil when it has no casebook.
+    func reviewQueue(steward: String) async throws -> FeatureReviewQueue?
     /// One event's inspector detail (hash chain, run position, readable payload), or nil.
     func eventDetail(seq: Int) async throws -> FeatureEventDetail?
     /// The Knowledge screen for one steward, written by the workspace.
@@ -208,6 +237,11 @@ extension FeatureWorkspace {
     /// its gate.
     func liveReadiness(proposal: String) async throws -> FeatureLiveReadiness {
         throw FeatureReadError.unavailable("backtest")
+    }
+
+    /// Workspaces without a review queue report it unavailable; Improve then hides it.
+    func reviewQueue(steward: String) async throws -> FeatureReviewQueue? {
+        throw FeatureReadError.unavailable("review queue")
     }
 
     /// Workspaces without a Knowledge read report it unavailable.

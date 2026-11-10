@@ -107,6 +107,10 @@ actor PreviewWorkspace: FeatureWorkspace {
                     steward: steward, casebook: "corrections", caseID: "case-\(run)", text: note,
                     expected: ["decisions": [["choice": .string(choice)]]], rehearsal: nil,
                     run: run))
+        case .reviewCase(let steward, let caseID, let verdict):
+            emit(
+                steward: steward, run: nil, "case.reviewed", .localUser,
+                ["v": 1, "case": .string(caseID), "verdict": .string(verdict)])
         case .proposeCharter(let proposal): try propose(proposal)
         case .message(let steward, let text, let intent):
             emit(

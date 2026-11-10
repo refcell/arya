@@ -13,6 +13,8 @@ struct ImproveView: View {
     @AryaState private var expanded: String?
     /// The workspace's sentences for the newest rehearsal, when the workspace can write them.
     @AryaState private var summary: FeatureImproveSummary?
+    /// The review queue, when the workspace can build it.
+    @AryaState private var queue: FeatureReviewQueue?
 
     var body: some View {
         switch store.state {
@@ -27,6 +29,7 @@ struct ImproveView: View {
                 VStack(alignment: .leading, spacing: AryaSpace.s4) {
                     FeatureWriteErrorLine(store: store)
                     rehearsal(RehearsalList.build(events: events, steward: steward), events: events)
+                    if let queue { ReviewQueuePanel(store: store, steward: steward, queue: queue) }
                     AryaHairline()
                     // Proposal review (app-outcome): change and why, rehearsal case by case,
                     // and Reject or Accept by what the rehearsal found.
@@ -43,6 +46,7 @@ struct ImproveView: View {
             .background(AryaColor.canvas)
             .task(id: events.count) {
                 summary = try? await store.workspace.improveSummary(steward: steward)
+                queue = try? await store.workspace.reviewQueue(steward: steward)
             }
         }
     }

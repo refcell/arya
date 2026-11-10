@@ -80,6 +80,11 @@ seed "correct case-0006" correct st_triage case-0006 --choice billing \
   --note "A question about the card on file is a billing question."
 seed "rehearse it again" rehearse st_triage
 seed "mark it ready" ready st_triage
+# Past inbox items and what people did, imported as cases (newest first, MSG-101 is already
+# in the casebook); the review queue shows what the steward would have done next to each.
+seed "import inbox history" history import st_triage --file "$example/history-export.jsonl"
+seed "rehearse with history" rehearse st_triage
+seed "agree with MSG-110" review st_triage --case hist-MSG-110 --verdict agree
 # Then a merged timeline, sorted by time because ledger times never go backwards: the refund
 # follow-up and weekly digest stewards set up 29 days ago, weeks of runs for all three (history
 # files), the digest paused two days ago, the triage steward's runs yesterday, and one now.

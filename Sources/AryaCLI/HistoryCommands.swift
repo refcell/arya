@@ -1,0 +1,134 @@
+import Arya
+import Foundation
+
+/// What `arya history import` and `arya review` need from an arya home. The defaults keep
+/// backends without history (test doubles) compiling; they report "not available yet".
+protocol HistoryBackend: Sendable {
+    func importHistory(
+        steward: String, file: String?, binding: String?, tool: String?, limit: Int
+    ) async throws(CLIError) -> HistoryImportSummary
+    func reviewQueue(steward: String) async throws(CLIError) -> ReviewQueueSummary?
+    func reviewCase(steward: String, case: String, verdict: String) async throws(CLIError)
+        -> ReviewQueueSummary?
+}
+
+extension HistoryBackend {
+    func importHistory(
+        steward: String, file: String?, binding: String?, tool: String?, limit: Int
+    ) async throws(CLIError) -> HistoryImportSummary {
+        throw .unavailable("importHistory")
+    }
+
+    func reviewQueue(steward: String) async throws(CLIError) -> ReviewQueueSummary? {
+        throw .unavailable("reviewQueue")
+    }
+
+    func reviewCase(steward: String, case: String, verdict: String) async throws(CLIError)
+        -> ReviewQueueSummary?
+    {
+        throw .unavailable("reviewCase")
+    }
+}
+
+extension CommandTable {
+    /// History import and the review queue.
+    static let history: [CommandSpec] = [
+        CommandSpec(
+            id: .historyImport,
+            summary: "Import past items and what people did as cases (newest first, deduped)",
+            positionals: [PositionalSpec(name: "steward", help: "steward id")],
+            options: [
+                OptionSpec(
+                    name: "file", kind: .value(placeholder: "path"),
+                    help: "export file, one history item per line"),
+                OptionSpec(
+                    name: "binding", kind: .value(placeholder: "id"),
+                    help: "binding whose history tool lists past items"),
+                OptionSpec(
+                    name: "tool", kind: .value(placeholder: "name"),
+                    help: "the binding's history tool (default: history)"),
+                OptionSpec(
+                    name: "limit", kind: .value(placeholder: "n"),
+                    help: "most cases to add (default: 200)"),
+            ]),
+        CommandSpec(
+            id: .review,
+            summary: "Review cases: what the steward would do vs what the person did",
+            positionals: [PositionalSpec(name: "steward", help: "steward id")],
+            options: [
+                OptionSpec(
+                    name: "case", kind: .value(placeholder: "id"), help: "the case to review"),
+                OptionSpec(
+                    name: "verdict", kind: .value(placeholder: "agree|skip"),
+                    help: "agree or skip (correct a case with `arya correct`)"),
+            ]),
+    ]
+}
+
+extension CLI {
+    /// Runs `history import` or `review`.
+    static func dispatchHistory(
+        _ invocation: Invocation, backend: any CLIBackend, output: Output
+    ) async throws(CLIError) {
+        let json = invocation.global.isJSON
+        let values = invocation.values
+        let steward = try invocation.positional("steward")
+        switch invocation.command {
+        case .historyImport:
+            guard (values["file"] == nil) != (values["binding"] == nil) else {
+                throw .usage("give --file or --binding", command: .historyImport)
+            }
+            var limit = 200
+            if let raw = values["limit"] {
+                guard let parsed = Int(raw), parsed > 0 else {
+                    throw .usage("--limit must be a positive number", command: .historyImport)
+                }
+                limit = parsed
+            }
+            let summary = try await backend.importHistory(
+                steward: steward, file: values["file"], binding: values["binding"],
+                tool: values["tool"], limit: limit)
+            try output.emit(summary, json: json, text: HistoryText.imported)
+        case .review:
+            let queue: ReviewQueueSummary?
+            if let caseID = values["case"] {
+                guard let verdict = values["verdict"] else {
+                    throw .usage("give --verdict agree or skip with --case", command: .review)
+                }
+                queue = try await backend.reviewCase(
+                    steward: steward, case: caseID, verdict: verdict)
+            } else {
+                queue = try await backend.reviewQueue(steward: steward)
+            }
+            guard let queue else { throw .notFound("casebook for \(steward)") }
+            try output.emit(queue, json: json, text: HistoryText.queue)
+        default:
+            throw .usage("unknown command: \(invocation.command.rawValue)")
+        }
+    }
+}
+
+/// Plain-text renderings of history imports and the review queue.
+enum HistoryText {
+    static func imported(_ summary: HistoryImportSummary) -> [String] {
+        var lines = [summary.summary]
+        lines += summary.invalid.map { "  invalid: \($0)" }
+        return lines
+    }
+
+    static func queue(_ queue: ReviewQueueSummary) -> [String] {
+        var lines = ["\(queue.casebook) for \(queue.steward): \(queue.progressText)"]
+        guard let next = queue.next else {
+            return lines + ["every case is reviewed"]
+        }
+        lines += [
+            "next: \(next.caseID)",
+            "  input:        \(next.input)",
+            "  would have:   \(next.wouldHave)",
+            "  person did:   \(next.personDid)",
+        ]
+        if !next.difference.isEmpty { lines.append("  difference:   \(next.difference)") }
+        if !next.source.isEmpty { lines.append("  source:       \(next.source)") }
+        return lines
+    }
+}

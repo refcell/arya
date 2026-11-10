@@ -405,3 +405,42 @@ extension WorkspaceBackend {
         try LoginItems.user().uninstall()
     }
 }
+
+extension WorkspaceBackend {
+    func importHistory(
+        steward: String, file: String?, binding: String?, tool: String?, limit: Int
+    ) async throws(CLIError) -> HistoryImportSummary {
+        let workspace = try await open()
+        if let file {
+            let url = URL(fileURLWithPath: file)
+            let data: Data
+            do {
+                data = try Data(contentsOf: url)
+            } catch {
+                throw .notFound("history file \(file)")
+            }
+            return try await call("importHistory", rejection: { .invalidInput($0) }) {
+                try await workspace.importHistory(
+                    steward: steward, data: data, source: url.lastPathComponent, limit: limit)
+            }
+        }
+        return try await call("importHistory", rejection: { .invalidInput($0) }) {
+            try await workspace.importHistory(
+                steward: steward, binding: binding ?? "", tool: tool ?? "history", limit: limit)
+        }
+    }
+
+    func reviewQueue(steward: String) async throws(CLIError) -> ReviewQueueSummary? {
+        let workspace = try await open()
+        return try await call("reviewQueue") { try await workspace.reviewQueue(steward: steward) }
+    }
+
+    func reviewCase(steward: String, case caseID: String, verdict: String) async throws(CLIError)
+        -> ReviewQueueSummary?
+    {
+        let workspace = try await open()
+        return try await call("reviewCase", rejection: { .invalidInput($0) }) {
+            try await workspace.reviewCase(steward: steward, case: caseID, verdict: verdict)
+        }
+    }
+}

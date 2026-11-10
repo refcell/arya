@@ -31,6 +31,8 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case serve
     case serveInstall = "serve install"
     case serveUninstall = "serve uninstall"
+    case historyImport = "history import"
+    case review
 }
 
 /// A command's path, help text, and accepted arguments.
@@ -133,7 +135,7 @@ enum CommandTable {
                         help: "only this steward's events"),
                 ]),
             CommandSpec(id: .ledgerVerify, summary: "Check the ledger's hash chain and sequence"),
-        ] + improvement
+        ] + improvement + history
 
     /// M2 commands: the improvement loop.
     private static let improvement: [CommandSpec] = [
