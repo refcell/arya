@@ -75,10 +75,18 @@ preflight() {
     exit 1
   fi
   run "just fmt" "$just" fmt
+  # The tree was clean before `just fmt`, so changed Swift files are formatting; anything else
+  # changed meanwhile (an edit racing the publish) and is never committed here.
+  local other
+  other=$(git status --porcelain --untracked-files=no -- . ':!*.swift')
+  if [ -n "$other" ]; then
+    say "files changed during the publish; commit them, then publish again:"
+    printf '%s\n' "$other" | sed 's/^/    /'
+    exit 1
+  fi
   if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
-    # The tree was clean before `just fmt`, so every change is formatting.
     # shellcheck disable=SC2086 # $sign is empty or one flag
-    git commit -q -a $sign -m "style: apply swift format"
+    git commit -q $sign -m "style: apply swift format" -- '*.swift'
     say "committed formatting changes"
   fi
 }

@@ -4,7 +4,7 @@
 # "formats" by rewriting `fmt-me.swift`. Commits follow your git signing settings, so the
 # pushes pass the same hooks as real ones. Run with `just test-scripts`.
 #
-#   test-publish.sh [SCENARIO]   all scenarios, or one: code, docs-only, dirty, fmt, race,
+#   test-publish.sh [SCENARIO]   all scenarios, or one: code, docs-only, dirty, fmt, fmt-race, race,
 #                                conflict, lock (`just e2e` runs docs-only)
 set -euo pipefail
 publish="$(cd "$(dirname "$0")" && pwd)/publish.sh"
@@ -29,6 +29,8 @@ cat >"$root/just" <<'EOF'
 #!/usr/bin/env bash
 echo "$*" >>"$ARYA_TEST_JUST_LOG"
 if [ "${1:-}" = fmt ] && [ -f fmt-me.swift ]; then printf 'let formatted = 1\n' >fmt-me.swift; fi
+# An edit that lands while `just fmt` runs (the fmt-race scenario).
+if [ "${1:-}" = fmt ] && [ -n "${ARYA_TEST_FMT_RACE:-}" ]; then echo racing >>docs/x.md; fi
 exit 0
 EOF
 chmod +x "$root/just"
@@ -102,6 +104,19 @@ if want fmt; then
   check "pushed the change" origin_has "feat: add fmt-me"
   check "pushed a format commit" origin_has "style: apply swift format"
   check "tree is clean" clean
+
+fi
+
+if want fmt-race; then
+  echo "publish: an edit racing just fmt is never committed"
+  fresh
+  printf 'let   formatted=1\n' >"$root/lane/fmt-me.swift" && commit lane "feat: add fmt-me"
+  export ARYA_TEST_FMT_RACE=1
+  check "exits non-zero" fails
+  unset ARYA_TEST_FMT_RACE
+  check "says why" said "files changed during the publish"
+  check "keeps the edit uncommitted" grep -q racing "$root/lane/docs/x.md"
+  check "pushed nothing" origin_lacks "feat: add fmt-me"
 
 fi
 
