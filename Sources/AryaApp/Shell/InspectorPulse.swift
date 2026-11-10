@@ -43,13 +43,24 @@ struct StewardPulse: Equatable {
         // One source and one format with NOW and the status bar (app-outcome).
         let state = OutcomeState.build(
             events: events, steward: steward.id, now: now, serve: serve)
+        // The next wake from `stewardLive` when read, as NOW shows it (one source).
+        var wake = state.wake
+        var serving = state.serving
+        if let stewardLive, wake != .paused {
+            serving = stewardLive.serving
+            if stewardLive.schedule == "unscheduled" {
+                wake = .onDemand
+            } else if let date = stewardLive.nextWake?.date {
+                wake = .at(date)
+            }
+        }
         let next: String
-        switch state.wake {
+        switch wake {
         case .paused: next = "paused"
         case .onDemand: next = "on demand"
         case .at(let date):
             let time = AryaTime.upcoming(date, now: now, timeZone: timeZone)
-            next = state.serving == false ? "due \(time)" : time
+            next = serving == false ? "due \(time)" : time
         }
         return StewardPulse(
             metricName: series?.definition.name, metricValue: value,

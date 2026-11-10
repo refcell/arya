@@ -127,6 +127,12 @@ private func log() -> [FeatureEvent] {
     #expect(busy.live.first?.steps == "step 3 of ~7")
     #expect(busy.live.first?.elapsed == 35)
     #expect(busy.alsoRunning == 1)
+    // Read 5 s ago: NOW adds the seconds since, as the status bar does, so the two agree.
+    var earlier = running
+    earlier.readAt = now.addingTimeInterval(-5)
+    let ticking = OutcomeNow.build(
+        events: events, steward: steward, state: state, now: now, live: earlier)
+    #expect(ticking.live.first?.elapsed == 40)
     let idle = FeatureStewardLive(
         running: nil, alsoRunning: 0, schedule: "waiting",
         nextWake: now.addingTimeInterval(600), serving: false)

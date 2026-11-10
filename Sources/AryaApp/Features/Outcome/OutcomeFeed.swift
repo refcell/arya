@@ -353,6 +353,14 @@ enum OutcomePeople {
         return out + rest
     }
 
+    /// A human actor by name: the local user reads "You", "maya" or "person:maya" reads
+    /// "Maya" (or the charter's name for that person).
+    static func actor(_ id: String, names: [String: String]) -> String {
+        if id == "local" || id == "local-user" { return "You" }
+        let person = id.hasPrefix("person:") ? id : "person:" + id
+        return names[person] ?? name(person)
+    }
+
     /// "person:priya" → "Priya".
     static func name(_ id: String) -> String {
         id.hasPrefix("person:") ? String(id.dropFirst("person:".count)).capitalized : id

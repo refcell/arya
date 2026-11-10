@@ -163,9 +163,12 @@ struct OutcomeNow: Hashable, Sendable {
         let running = live.flatMap { live in
             live.running.map { facts in (facts, live.run ?? "", live.title, live.progress) }
         }.map { facts, run, title, progress in
-            Live(
+            // The status bar's arithmetic (`LiveLine.elapsed(at:)`): the workspace's elapsed
+            // plus the seconds since it was read, so both read `now - started`.
+            let since = live?.readAt.map { now.timeIntervalSince($0) } ?? 0
+            return Live(
                 run: run, title: title ?? "Run in progress", doing: ledger.status[run],
-                elapsed: facts.elapsedSeconds, progress: progress,
+                elapsed: max(0, facts.elapsedSeconds + since), progress: progress,
                 steps: "step \(facts.stepIndex)"
                     + (facts.estimatedSteps.map { " of ~\($0)" } ?? ""))
         }

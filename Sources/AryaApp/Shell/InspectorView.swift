@@ -67,15 +67,20 @@ struct StewardContext: Equatable {
         let connections = (charter?["bindings"]?.array ?? []).compactMap { binding -> String? in
             guard let id = binding["id"]?.string else { return nil }
             let scopes = ["read", "actions"].filter { !(binding[$0]?.strings.isEmpty ?? true) }
-            return ([id, binding["kind"]?.string ?? ""] + [scopes.joined(separator: ", ")])
+            let name = id.hasPrefix("person:") ? OutcomePeople.name(id) : id
+            return ([name, binding["kind"]?.string ?? ""] + [scopes.joined(separator: ", ")])
                 .filter { !$0.isEmpty }.joined(separator: " · ")
         }
         var counts: [String: Int] = [:]
         for event in events where event.steward == steward && event.actor.kind == .human {
             counts[event.actor.id, default: 0] += 1
         }
+        let names = OutcomePeople.names(events: events, steward: steward)
         let people = counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
-            .map { "\($0.key) · \($0.value) \($0.value == 1 ? "action" : "actions")" }
+            .map {
+                "\(OutcomePeople.actor($0.key, names: names)) · \($0.value) "
+                    + ($0.value == 1 ? "action" : "actions")
+            }
         let hasCharter = charter != nil
         return StewardContext(
             plan: OutcomePlan.build(events: events, steward: steward)?.steps ?? [],

@@ -185,6 +185,12 @@ is. Fix these five first; this lane owns its share:
   replaces the step 4 sentence when it lands.
 - Visual check: onboarding (dark): step 1 checked with four notes ("Ana  Support lead…",
   "inbox  Queue 'vip' routes to Ana first."), 2 checked, 3 open with the case, 4 waiting.
+- Review #15: the inspector's next wake reads `stewardLive` like NOW (17:00 both); NOW's
+  elapsed uses the status bar's arithmetic (workspace elapsed plus the seconds since its read,
+  `FeatureStewardLive.readAt`); human actors and person bindings read as names ("You · 133
+  actions", "Maya · person"). The header's missed window waits for workspace's outcomeWindow.
+- Visual check: overview-live: NOW "step 9 of ~9 · 5m 47s" equals the status bar; NEXT WAKE
+  17:00 equals SCHEDULE "Next run 17:00".
 - Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
   next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
   (live feel) and 2 (no dead space).

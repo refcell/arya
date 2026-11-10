@@ -17,6 +17,9 @@ struct FeatureStewardLive: Hashable, Sendable {
     var schedule: String
     var nextWake: Date?
     var serving: Bool
+    /// When the workspace answered; NOW adds the seconds since to the run's elapsed time, as
+    /// the status bar does.
+    var readAt: Date? = nil
 }
 
 /// A FINDINGS line (`Workspace.overviewFindings`).

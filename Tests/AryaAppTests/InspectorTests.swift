@@ -37,7 +37,7 @@ import Testing
     log.add("case.corrected", steward: "st_triage", actor: FeatureActor(kind: .human, id: "dana"))
     let context = StewardContext.build(events: log.events, steward: "st_triage", now: start)
     #expect(context.connections == ["inbox · mcp · read, actions"])
-    #expect(context.people == ["local · 2 actions", "dana · 1 action"])
+    #expect(context.people == ["You · 2 actions", "Dana · 1 action"])
     #expect(context.state != nil)
 }
 
