@@ -122,6 +122,7 @@ M4:
 - (from connect) Added `arya message <steward> <text> [--as person] [--intent ask|correct|handoff]`
   and `arya report show|send <steward>` in `Sources/AryaCLI/PeopleCommands.swift` (with
   `WorkspaceBackend` methods); `etc/scripts/demo.sh` seeds messages and reports with them.
+- (from runtime) Integration edits (decision 0051): `arya serve` now runs `Workspace.startServing` (was `missing`), with `--demo-pace`; `demo.sh --live` seeds, sets `ARYA_FAKE_PACE_MS=1500` on the demo's fake profiles, and execs `arya serve --demo-pace`. A busier fake script (tool calls with multi-line string output) makes the paced runs read better.
 
 - (from governance) CLI for the governance facade, still open: `arya steward policy <id>` (`policySummary`), `arya run abort <run> [--reason]` (`abortRun`), `arya undo <run> <action>` (`undoOptions`/`undoAction`), `arya retention [--steward <id>] [--days <n>|--clear]`, `arya home encryption [--enable]` (`encryption`/`enableEncryption`), `arya audit export <steward> --out <dir> [--reveal]` and `arya audit verify <dir>` (`exportAudit`, `Workspace.verifyAudit(at:)`, non-zero exit when issues). e2e: export the triage steward and verify it, then flip one byte in events.jsonl and expect verify to fail.
 ## Log

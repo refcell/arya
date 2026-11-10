@@ -113,7 +113,9 @@ enum CLI {
         case .message, .reportShow, .reportSend:
             try await dispatchPeople(invocation, backend: backend, output: output)
         case .serve:
-            try await backend.serve(every: try Self.every(invocation))
+            try await backend.serve(
+                every: try Self.every(invocation),
+                demoPace: invocation.flags.contains("demo-pace"))
         case .serveInstall:
             let report = try await backend.installLoginItem(every: try Self.every(invocation))
             try output.emit(report, json: json, text: TextRender.loginItem)

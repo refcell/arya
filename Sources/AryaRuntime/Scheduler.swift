@@ -114,11 +114,13 @@ public struct TriggerOutcome: Sendable, Hashable {
 /// Fires triggers: scheduled runs on `tick`, message runs on `deliver`. Runs go in the
 /// background; `settle()` waits for them. Hold `SchedulerLock` before creating one.
 public actor Scheduler {
-    private let engine: RunEngine
+    let engine: RunEngine
     private let finished: (@Sendable (RunOutcome) async -> Void)?
     private var scheduled: Set<StewardID> = []
     private var tasks: [Int: Task<Void, Never>] = [:]
     private var nextTask = 0
+    /// Demo pace, when on (decision 0051).
+    var demoPacer: DemoPacer?
 
     /// Creates a scheduler that starts runs through `engine`.
     /// `finished` sees every run the scheduler started once it ends (the facade records the
@@ -206,7 +208,7 @@ public actor Scheduler {
         }
     }
 
-    private func launch(
+    func launch(
         _ request: RunRequest, then done: @escaping @Sendable (Scheduler) async -> Void
     ) {
         let key = nextTask

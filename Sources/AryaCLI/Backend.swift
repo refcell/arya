@@ -70,6 +70,8 @@ protocol CLIBackend: ImprovementBackend, HistoryBackend, PeopleBackend {
     func abortRun(_ id: String, reason: String?) async throws(CLIError) -> RunReport
     /// Fires triggers every `every` seconds until the process stops.
     func serve(every: Int) async throws(CLIError)
+    /// `serve`, with paced demo runs when `demoPace` (runtime decision 0051).
+    func serve(every: Int, demoPace: Bool) async throws(CLIError)
     func installLoginItem(every: Int) async throws(CLIError) -> LoginItemReport
     func uninstallLoginItem() async throws(CLIError) -> LoginItemReport
     func listApprovals(steward: String?, scope: ApprovalScope) async throws(CLIError)
@@ -89,3 +91,9 @@ enum ApprovalScope: Sendable, Equatable {
 
 /// Opens the backend for a home directory.
 typealias BackendFactory = @Sendable (URL) -> any CLIBackend
+
+extension CLIBackend {
+    func serve(every: Int, demoPace: Bool) async throws(CLIError) {
+        try await serve(every: every)
+    }
+}

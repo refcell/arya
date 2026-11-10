@@ -230,3 +230,28 @@ func requestParams(_ message: RPCMessage) -> JSONValue? {
     #expect(!updates.contains(.timedOut))
     #expect(updates.compactMap(\.result).first?.status == .completed)
 }
+
+@Test func pacedFakeRunsStreamToolOutputBeforeTheResult() async throws {
+    let script = FakeScript(
+        runs: [
+            FakeScript.Run(
+                steps: [
+                    .event(RunEvent(.toolCall(id: "t1", tool: "shell", input: "make test"))),
+                    .event(RunEvent(.toolResult(id: "t1", output: "a\nb\nc", isError: false))),
+                ])
+        ])
+    let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts, pace: 2)
+    _ = try await adapter.initialize(InitializeParams(client: Sample.client))
+    _ = try await adapter.start(Sample.start("anything"))
+    let events = await collect(adapter, until: \.isResult).compactMap(\.event).map(\.event.body)
+    let chunks = events.compactMap { body -> String? in
+        guard case .other("tool_output", let fields) = body else { return nil }
+        return fields["text"]?.stringValue
+    }
+    #expect(chunks == ["a\n", "b\n", "c\n"])
+    guard case .toolResult? = events.last else {
+        Issue.record("the result comes last")
+        return
+    }
+    try await adapter.shutdown()
+}

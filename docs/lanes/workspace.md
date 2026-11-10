@@ -151,6 +151,7 @@ M3:
   `report.sent`).
 
 - (from eval) Added Sources/Arya/History.swift: importHistory, reviewQueue, reviewCase.
+- (from runtime) Integration edit (decision 0051): `startServing(every:demoPace:)` turns on `Scheduler.setDemoPace(DemoPacer())` and checks `scheduler.pace(now:)` every 2 s.
 
 ## Log
 

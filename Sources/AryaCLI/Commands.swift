@@ -262,7 +262,12 @@ enum CommandTable {
             ]),
         CommandSpec(
             id: .serve, summary: "Fire scheduled and message triggers until stopped",
-            options: [everyOption]),
+            options: [
+                everyOption,
+                OptionSpec(
+                    name: "demo-pace", kind: .flag,
+                    help: "also start a demo run every 20 to 40 seconds"),
+            ]),
         CommandSpec(
             id: .serveInstall, summary: "Run `arya serve` for this home at login (LaunchAgent)",
             options: [everyOption]),

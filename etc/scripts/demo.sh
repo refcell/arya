@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Seed a demo arya home from etc/examples/triage and open the app on it. Run with `just demo`.
 #
-#   demo.sh   reseed .build/demo-home; look at it with `just snapshot` (offscreen renders)
+#   demo.sh          reseed .build/demo-home; look at it with `just snapshot` (offscreen)
+#   demo.sh --live   reseed, then keep it busy: `arya serve --demo-pace` starts a paced run
+#                    every 20-40 s with the fake adapter pacing its steps (decision 0051),
+#                    until Ctrl-C; a running app on the home shows stewards at work
 #
 # It never opens the app window (decision 0038).
 #
@@ -12,9 +15,11 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
+live=""
 case "${1:-}" in
   --no-open | "") ;;
-  *) echo "usage: demo.sh" >&2; exit 64 ;;
+  --live) live=1 ;;
+  *) echo "usage: demo.sh [--live]" >&2; exit 64 ;;
 esac
 
 example=etc/examples/triage
@@ -171,3 +176,13 @@ entries=$("$bin/arya" --home "$home" --json steward list |
 printf '{"lastSeen":{%s},"v":1}\n' "$entries" >"$home/app/visits.json"
 
 echo "demo: seeded $home; render it with \`just snapshot\` (offscreen, no window)"
+
+if [ -n "$live" ]; then
+  # Pace the fake adapter like live work: about 1.5 s per event, tool output streamed.
+  BIN="$bin" perl -pi -e \
+    's|("command": "\Q$ENV{BIN}\E/arya-fake-adapter",)|$1 "env": {"ARYA_FAKE_PACE_MS": "1500"},|' \
+    "$home/adapters.json"
+  echo "demo: serving $home with demo pace (Ctrl-C to stop)"
+  exec "$bin/arya" --home "$home" serve --demo-pace --every 30
+fi
+

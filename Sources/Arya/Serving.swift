@@ -8,23 +8,29 @@ import Foundation
 extension Workspace {
     /// Starts firing interval triggers every `interval`. Returns false, and starts nothing,
     /// when another process already serves this home; true when this process now serves (or
-    /// already did).
+    /// already did). With `demoPace`, it also starts a paced demo run every 20 to 40 seconds
+    /// (runtime decision 0051), checking every 2 seconds.
     @discardableResult
-    public func startServing(every interval: Duration = .seconds(30)) throws -> Bool {
+    public func startServing(every interval: Duration = .seconds(30), demoPace: Bool = false)
+        throws -> Bool
+    {
         if serving != nil { return true }
         guard let lock = try SchedulerLock.acquire(home: home) else { return false }
         let scheduler = scheduler
         let heartbeat = Self.tickFile(home)
+        let pause = demoPace ? min(interval, .seconds(2)) : interval
         let task = Task {
+            if demoPace { await scheduler.setDemoPace(DemoPacer()) }
             // A tick fails only when the ledger cannot be read; keep trying at the next one.
             while !Task.isCancelled {
                 let now = ambient.now()
+                _ = try? await scheduler.pace(now: now)
                 if (try? await scheduler.tick(now: now)) != nil {
                     try? Data(String(now.millis).utf8).write(to: heartbeat, options: .atomic)
                 }
                 // Periodic reports that came due (connect lane, `Reports.swift`).
                 _ = try? await self.sendDueReports()
-                try? await Task.sleep(for: interval)
+                try? await Task.sleep(for: pause)
             }
         }
         serving = (lock, task)

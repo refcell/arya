@@ -521,3 +521,16 @@ runs; the digest is the facade's computed report, never model text. `report.sent
 run's id. A report run never re-plans. Why: reports reach people where they work without a
 special path around policy or approvals, and `ApprovalRecord.run` stays required.
 
+### 0051 — 2026-11-10 — Demo pace keeps a demo home busy with real runs
+
+Context: a demo home was a still picture; nothing moved while the app was open. Decision:
+`arya serve --demo-pace` (and `demo.sh --live`) adds `DemoPacer` to the serve loop: every 20
+to 40 seconds (seeded jitter) the next ready, active steward in turn starts a live run on one
+of its own earlier inputs, cycling through them (a scheduled check when it has none). The
+runs are real runs through the engine, policy, and the steward's adapter; the loop checks
+every 2 seconds. The fake adapter takes a pace (`ARYA_FAKE_PACE_MS`, 1500 in the live demo):
+each event waits about that long and tool output streams as `tool_output` chunks, which the
+runtime records as live steps (decision 0049). `arya serve` now runs the serve loop instead of
+reporting it missing. Why: the app's live feel needs agents working in front of the person,
+and paced real runs exercise the same paths a real home does.
+

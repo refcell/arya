@@ -33,5 +33,7 @@ do {
     FileHandle.standardError.write(Data("arya-fake-adapter: cannot read script: \(error)\n".utf8))
     exit(2)
 }
-await FakeAdapterServer(script: script, endpoint: endpoint).serve()
+// `ARYA_FAKE_PACE_MS` paces the run like live work (demo pace, decision 0051).
+let pace = ProcessInfo.processInfo.environment["ARYA_FAKE_PACE_MS"].flatMap { Int($0) } ?? 0
+await FakeAdapterServer(script: script, endpoint: endpoint, pace: pace).serve()
 exit(0)

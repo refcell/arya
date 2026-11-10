@@ -11,10 +11,10 @@ public final class FakeAdapter: Adapter {
 
     public init(
         script: FakeScript, timeouts: ConnectionTimeouts = .standard,
-        idleClock: any SleepClock = SystemSleepClock()
+        idleClock: any SleepClock = SystemSleepClock(), pace: Int = 0
     ) {
         let (transport, endpoint) = InMemoryPipe.make()
-        let server = FakeAdapterServer(script: script, endpoint: endpoint)
+        let server = FakeAdapterServer(script: script, endpoint: endpoint, pace: pace)
         Task { await server.serve() }
         connection = AdapterConnection(
             transport: transport, timeouts: timeouts, idleClock: idleClock)

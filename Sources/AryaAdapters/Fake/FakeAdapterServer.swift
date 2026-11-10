@@ -19,9 +19,15 @@ public actor FakeAdapterServer {
     private var asks: [RPCID: CheckedContinuation<JSONValue?, Never>] = [:]
     private var closed = false
 
-    public init(script: FakeScript, endpoint: any AdapterEndpoint) {
+    /// Demo pace in milliseconds (decision 0051): when above 0, each event waits about this
+    /// long, and a tool result's text streams first as `tool_output` chunks, one per line
+    /// group, so a run looks like work in progress. 0 (the default) keeps scripts exact.
+    private let pace: Int
+
+    public init(script: FakeScript, endpoint: any AdapterEndpoint, pace: Int = 0) {
         self.script = script
         self.endpoint = endpoint
+        self.pace = max(0, pace)
     }
 
     /// Serves until the host closes the connection or sends `shutdown`.
@@ -168,11 +174,30 @@ public actor FakeAdapterServer {
         runTask = Task { await self.perform(run) }
     }
 
+    /// Waits before `event` and streams a tool result's text as `tool_output` chunks first.
+    private func paced(_ event: RunEvent) async {
+        try? await Task.sleep(for: .milliseconds(pace / 2 + Int.random(in: 0...pace)))
+        guard case .toolResult(let id, .string(let text), _) = event.body else { return }
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        let group = max(1, (lines.count + 2) / 3)
+        for start in stride(from: 0, to: lines.count, by: group) {
+            if Task.isCancelled || closed { return }
+            let piece = lines[start..<min(lines.count, start + group)].joined(separator: "\n")
+            await emit(
+                RunEvent(
+                    .other(
+                        kind: "tool_output",
+                        fields: ["id": .string(id), "text": .string(piece + "\n")])))
+            try? await Task.sleep(for: .milliseconds(pace / 2))
+        }
+    }
+
     private func perform(_ run: FakeScript.Response) async {
         for step in run.allSteps {
             if Task.isCancelled || closed { return }
             switch step {
             case .event(let event):
+                if pace > 0 { await paced(event) }
                 await emit(event)
             case .sleep(let milliseconds):
                 try? await Task.sleep(for: .milliseconds(milliseconds))

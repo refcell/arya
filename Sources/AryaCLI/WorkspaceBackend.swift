@@ -407,7 +407,21 @@ extension WorkspaceBackend {
         throw missing("bindingProxy")
     }
 
-    func serve(every: Int) async throws(CLIError) { throw missing("serve") }
+    func serve(every: Int) async throws(CLIError) {
+        try await serve(every: every, demoPace: false)
+    }
+
+    /// Fires triggers (and, with `demoPace`, paced demo runs) until the process is stopped.
+    func serve(every: Int, demoPace: Bool) async throws(CLIError) {
+        let workspace = try await open()
+        let started = try await call("serve") {
+            try await workspace.startServing(every: .seconds(every), demoPace: demoPace)
+        }
+        guard started else { throw .failed("another process already serves \(home.path)") }
+        while true {
+            try? await Task.sleep(for: .seconds(3600))
+        }
+    }
 
     func installLoginItem(every: Int) async throws(CLIError) -> LoginItemReport {
         let binary =

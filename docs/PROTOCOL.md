@@ -422,7 +422,9 @@ output is kept for parsing, and `.arya-mcp.json` is deleted when the run ends.
 JSON script. `responses` maps the exact `run/start.input.text` to a response; other inputs get
 `default`; with neither, `run/start` fails with `-32004`. The session id is `fake-<run>`.
 A `default` response should report itself with a `status` or `error` event, never a `message`, so
-the app does not show the fallback as something the agent said.
+the app does not show the fallback as something the agent said. With `ARYA_FAKE_PACE_MS` set
+(the binary) or `pace:` (in process), each event waits about that long and a tool result's text
+streams first as `tool_output` events, one per third of its lines (demo pace, decision 0051).
 
 ```json
 {"v":1,
