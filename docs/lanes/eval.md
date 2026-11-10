@@ -315,3 +315,8 @@ Parity (CEO gap map):
   triage 9 of 34 reviewed, refunds 61 of 63 match, digest 32 cases. #9 learned checks.
   Visual check (point 5): Improve lists 34 triage cases (30 passed, 4 marked failing); the
   proposals show "Relax the routing window" with only the window and target in its diff.
+- 2026-11-10: Per-check one-line `result` on learned checks; structured backtest fields
+  (choice and action rows with matches and changed, both scores and runs) for the side-by-side
+  view; `CasebookBuilder.fromRuns` and `arya casebook build` grow a casebook from accepted live
+  runs (for the eleven-steward seed). Digest cases record every scripted tool so rehearsal does
+  not leak; two triage history items that now run routines were dropped (e2e 28 of 33).
