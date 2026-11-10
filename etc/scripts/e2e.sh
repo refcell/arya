@@ -8,7 +8,8 @@
 # correction that becomes a case and a memory, a retract, a charter editor proposal (one more
 # guardrail) that passes its gate and live readiness, a crew run whose child drafts the reply
 # and only proposes, approver rules (a refused approver is recorded), aborting a running run
-# from another process, the docs-only publish path
+# from another process, a person's message (ask, correct) and the progress report, the
+# docs-only publish path
 # (etc/scripts/test-publish.sh docs-only), and verify the ledger. Run with `just e2e`.
 #
 #   e2e.sh           run the scenario; the temporary home is deleted afterwards
@@ -16,7 +17,7 @@
 #
 # Each step prints ok, PENDING (the command or the piece behind it is not built yet: exit 69
 # or an unknown command), or FAIL. Steps belong to groups (setup, rehearsal, live, metrics,
-# replay, fleet, holds, improve, crew, abort, publish);
+# replay, fleet, holds, improve, crew, connect, abort, publish);
 # a step runs only while its own group and the groups it needs are ok, and is skipped
 # otherwise, so the live run is exercised even while rehearsal is pending.
 # Exit status: 0 all ok, 1 a step failed, 2 a step is pending.
@@ -218,6 +219,15 @@ check_child() {
   expect parent "$(get parent)" "${crew_parent:-}" &&
     expect "drafted reply" "$(get actions.0.disposition)" proposed
 }
+check_asked() {
+  [ -n "$(get event)" ] && [ -n "$(get run.id)" ] ||
+    { echo "    no answering run"; return 1; }
+}
+check_message_kept() { [ -n "$(get note)" ] || { echo "    the correction became no memory"; return 1; }; }
+check_report() {
+  [ "$(get lines)" -ge 1 ] && expect "goes to" "$(get to.0.person)" person:sam ||
+    { echo "    an empty report, or not to person:sam"; return 1; }
+}
 check_forgotten() { ! grep -q "\"${memory_id:-none}\"" "$out" || { echo "    $memory_id still recalled"; return 1; }; }
 
 # refused_step NAME GROUP NEEDS TEXT ARGS...: `arya ARGS...` must fail with TEXT on stderr.
@@ -367,6 +377,13 @@ step "a steward reading the inbox binding" history setup check_history_steward \
   steward create --charter "$work/history.json"
 step "import 40 past messages from it" history setup check_binding_history \
   history import st_history --binding inbox
+step "sam asks; a run answers" connect live check_asked \
+  message st_triage "Which refunds are still waiting?" --as person:sam
+step "sam's correction is kept as memory" connect live check_message_kept \
+  message st_triage "Refund questions about gift cards go to billing." --as person:sam \
+  --intent correct
+step "report: what it would send now" connect live check_report report show st_triage
+step "send the report" connect live check_report report send st_triage
 start_long_run
 step "abort a long run from another process" abort live check_abort_requested \
   run abort "${long_run:-unknown}" --reason "the customer withdrew the request"
