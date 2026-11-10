@@ -30,7 +30,10 @@ struct RailView: View {
             stewards: model.stewards, runs: model.runs, selected: model.navigation.steward)
         let current = RailOrder.current(model.navigation)
         if let next = RailOrder.step(from: current, by: offset, in: items) {
-            model.navigation.select(next)
+            // The selection glides with j/k; frozen in snapshots and under Reduce Motion.
+            withAnimation(AryaMotion.frozenByProcess ? nil : AryaMotion.quick) {
+                model.navigation.select(next)
+            }
         }
     }
 
