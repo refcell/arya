@@ -145,6 +145,12 @@ M4:
 - (from governance, DONE 2026-11-10 by governance: see the entry above) CLI for the governance facade: `arya steward policy <id>` (`policySummary`), `arya run abort <run> [--reason]` (`abortRun`), `arya undo <run> <action>` (`undoOptions`/`undoAction`), `arya retention [--steward <id>] [--days <n>|--clear]`, `arya retention apply` (`applyRetention`), `arya home encryption [--enable|--reseal]` (`encryption`/`enableEncryption`/`resealHistory`), `arya audit export <steward> --out <dir> [--reveal]` and `arya audit verify <dir>` (`exportAudit`, `Workspace.verifyAudit(at:)`, non-zero exit when issues). e2e: export the triage steward and verify it, then flip one byte in events.jsonl and expect verify to fail.
 - (from governance) CLI for the governance facade, still open: `arya steward policy <id>` (`policySummary`), `arya run abort <run> [--reason]` (`abortRun`), `arya undo <run> <action>` (`undoOptions`/`undoAction`), `arya retention [--steward <id>] [--days <n>|--clear]`, `arya retention apply` (`applyRetention`), `arya home encryption [--enable|--reseal]` (`encryption`/`enableEncryption`/`resealHistory`), `arya audit export <steward> --out <dir> [--reveal]` and `arya audit verify <dir>` (`exportAudit`, `Workspace.verifyAudit(at:)`, non-zero exit when issues). e2e: export the triage steward and verify it, then flip one byte in events.jsonl and expect verify to fail.
 - (from workspace) `verifyLedger()` now carries `lines` (the ledger's report: headline, where, meaning, next step) for `arya verify`; `serveStatus().scheduler` explains who serves (scheduler or leased runs).
+- (from eval) For the Swift seeder: per generated steward `buildCasebook(steward:limit:60)`,
+  `rehearse`, and a titled `proposeCharter(title:reason:)` (titles must match diffs: see
+  `demoProposalTitlesDescribeTheirDiffs`); port demo.sh's refunds history (`binding:
+  "billing"`), triage/refunds reviews, and `etc/examples/proposals.json`.
+
+
 ## Log
 - 2026-11-10: busy demo home (decision 0051): `arya-demo` seeds 11 stewards in 8 departments
   (3 examples, 8 from templates), 685 runs over 4-8 weeks with weekday rhythm, a bad week three
