@@ -4,27 +4,27 @@ import SwiftUI
 
 /// The Connections page: every system a steward can be bound to, what it reads and does (each
 /// action with its risk), which stewards use it, a connection test, and its secret, kept only in
-/// the credential store (the Keychain in the app). Test is the quiet default; Connect is the one
-/// primary action; Disconnect sits behind More with a confirmation. Connect and Disconnect
-/// propose a charter change that goes live through the gate on Improve. Selecting a row shows
-/// the connection in the inspector.
+/// the credential store (the Keychain in the app). It opens on All stewards; a steward scope
+/// lists that steward's connections with Disconnect and folds the rest under "Not used by this
+/// steward" with a quiet Add to steward…. Both propose a charter change that goes live through
+/// the gate on Improve. Selecting a row shows the connection in the inspector.
 struct ConnectionsView: View {
     @ObservedObject var store: FeatureStore
     @ObservedObject var tests: ConnectionTestStore
     let stewards: [StewardSummary]
-    /// The steward Connect and Disconnect act on.
+    /// The steward Connect and Disconnect act on; nil is All stewards.
     let steward: String?
     /// The connection the inspector shows.
     let selected: String?
     let credentials: any CredentialStore
-    let selectSteward: (String) -> Void
+    let selectSteward: (String?) -> Void
     let select: (String) -> Void
     /// Tests a connection with its secret.
     let probe: @Sendable (ConnectionsCatalog.Entry, String?) async throws -> ConnectionTest
 
     @AryaState private var stored: [String: Bool] = [:]
-    /// Every connection any steward binds, not just the selected steward's.
-    @AryaState private var showAll = false
+    /// The "Not used by this steward" group is open.
+    @AryaState private var unusedOpen = false
     @AryaState private var note: String?
     @AryaState private var confirming: String?
 
@@ -36,15 +36,8 @@ struct ConnectionsView: View {
                     title: "Connections",
                     subtitle: "Systems stewards read from and act in. Secrets stay in the Keychain."
                 )
-                if let steward {
-                    HStack(spacing: AryaSpace.s3) {
-                        StewardPicker(stewards: stewards, selected: steward, select: selectSteward)
-                        Spacer()
-                        AryaSegmented(
-                            [(false, "This steward"), (true, "Show all")], selection: showAll
-                        ) { showAll = $0 }
-                        .accessibilityLabel("Connections shown")
-                    }
+                if !stewards.isEmpty {
+                    StewardPicker(stewards: stewards, selected: steward, select: selectSteward)
                 }
                 if let note { Text(note).aryaText(AryaFont.caption, AryaColor.inkMuted) }
                 if let error = store.writeError {
@@ -55,14 +48,18 @@ struct ConnectionsView: View {
                         "No connections yet.",
                         guidance: "Connections a steward's charter binds appear here.")
                 } else {
+                    let activity = ConnectionActivity(events: store.events)
+                    let (used, unused) = split(catalog)
                     VStack(alignment: .leading, spacing: 0) {
-                        let activity = ConnectionActivity(events: store.events)
-                        ForEach(shown(catalog)) { entry in
+                        ForEach(used) { entry in
                             row(
                                 catalog.entry(entry, for: steward), catalog: catalog,
                                 activity: activity)
                             AryaHairline()
                         }
+                    }
+                    if !unused.isEmpty {
+                        unusedGroup(unused, catalog: catalog, activity: activity)
                     }
                 }
                 if !catalog.adapters.isEmpty { adapters(catalog.adapters) }
@@ -120,7 +117,7 @@ struct ConnectionsView: View {
                         .fixedSize()
                 }
                 if !entry.actions.isEmpty { actions(entry).fixedSize() }
-                Text("used by " + names(entry.connected))
+                Text("used by " + RosterText.names(entry.connected.map(name)))
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     .layoutPriority(-1)
                 Text(hasSecret(entry.id) ? "secret stored" : "no secret")
@@ -145,10 +142,41 @@ struct ConnectionsView: View {
         .accessibilityAddTraits(selected == entry.id ? .isSelected : [])
     }
 
-    /// The selected steward's connections, or all with Show all (or no steward).
-    private func shown(_ catalog: ConnectionsCatalog) -> [ConnectionsCatalog.Entry] {
-        guard let steward, !showAll else { return catalog.entries }
-        return catalog.entries.filter { catalog.isConnected($0, steward: steward) }
+    /// The scope's connections and, in a steward scope, the ones it does not use.
+    private func split(_ catalog: ConnectionsCatalog)
+        -> ([ConnectionsCatalog.Entry], [ConnectionsCatalog.Entry])
+    {
+        guard let steward else { return (catalog.entries, []) }
+        let used = catalog.entries.filter { catalog.isConnected($0, steward: steward) }
+        return (used, catalog.entries.filter { !catalog.isConnected($0, steward: steward) })
+    }
+
+    /// "Not used by this steward (7)", collapsed until opened.
+    private func unusedGroup(
+        _ entries: [ConnectionsCatalog.Entry], catalog: ConnectionsCatalog,
+        activity: ConnectionActivity
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(AryaMotion.quick) { unusedOpen.toggle() }
+            } label: {
+                HStack(spacing: AryaSpace.s1) {
+                    DisclosureChevron(isExpanded: unusedOpen)
+                    Text("NOT USED BY THIS STEWARD (\(entries.count))")
+                        .aryaText(AryaFont.label, AryaColor.inkFaint)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Not used by this steward, \(entries.count)")
+            .padding(.vertical, AryaSpace.s2)
+            if unusedOpen {
+                ForEach(entries) { entry in
+                    row(catalog.entry(entry, for: steward), catalog: catalog, activity: activity)
+                    AryaHairline()
+                }
+            }
+        }
     }
 
     /// "label low · reply high", each kind in its risk's color.
@@ -196,9 +224,11 @@ struct ConnectionsView: View {
                     .disabled(blocker != nil)
                     .help(blocker ?? "Propose removing it from the charter")
             } else {
-                Button("Connect") { propose(catalog.connectProposal(entry, steward: steward)) }
-                    .buttonStyle(.aryaSecondary)
-                    .help("Propose adding it to the charter; it goes live through the gate.")
+                Button("Add to steward…") {
+                    propose(catalog.connectProposal(entry, steward: steward))
+                }
+                .buttonStyle(.aryaTertiary)
+                .help("Propose adding it to the charter; it goes live through the gate.")
             }
         }
     }
@@ -254,17 +284,14 @@ struct ConnectionsView: View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
             Text("ADAPTERS").aryaText(AryaFont.label, AryaColor.inkFaint)
             ForEach(adapters, id: \.name) { adapter in
-                Text("\(adapter.name) · used by: \(names(adapter.stewards))")
+                let users = RosterText.names(adapter.stewards.map(name), shown: 3)
+                Text("\(adapter.name) · used by: \(users)")
                     .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
             }
         }
     }
 
-    private func names(_ ids: [String]) -> String {
-        guard !ids.isEmpty else { return "no steward" }
-        return ids.map { id in stewards.first { $0.id == id }?.name ?? id }
-            .joined(separator: ", ")
-    }
+    private func name(_ id: String) -> String { stewards.first { $0.id == id }?.name ?? id }
 
     static func color(_ test: ConnectionTest) -> Color {
         test.complete ? AryaColor.positive : test.ok ? AryaColor.warning : AryaColor.negative
@@ -301,31 +328,25 @@ struct ConnectionsView: View {
 /// segments at four), else "For steward: Support inbox triage ▾", a menu.
 struct StewardPicker: View {
     let stewards: [StewardSummary]
-    let selected: String
-    let select: (String) -> Void
+    /// nil is All stewards.
+    let selected: String?
+    let select: (String?) -> Void
 
     var body: some View {
-        if stewards.count <= 4 {
-            AryaSegmented(stewards.map { ($0.id, $0.name) }, selection: selected, choose: select)
-                .accessibilityLabel("Steward")
-        } else {
-            menu
-        }
-    }
-
-    private var menu: some View {
-        let name = stewards.first { $0.id == selected }?.name ?? selected
-        return Menu {
+        let name = selected.map { id in stewards.first { $0.id == id }?.name ?? id }
+        Menu {
+            Button("All stewards") { select(nil) }
+            Divider()
             ForEach(stewards, id: \.id) { steward in
                 Button(steward.name) { select(steward.id) }
             }
         } label: {
-            Text("For steward: \(name) ▾").aryaText(AryaFont.body, AryaColor.ink)
+            Text("\(name ?? "All stewards") ▾").aryaText(AryaFont.body, AryaColor.ink)
         }
         .aryaMenuButton()
         .menuIndicator(.hidden)
         .fixedSize()
-        .accessibilityLabel("For steward: \(name)")
+        .accessibilityLabel("Scope: \(name ?? "All stewards")")
     }
 }
 

@@ -113,7 +113,7 @@ private func events() -> [FeatureEvent] {
         state.select(steward: "st_a")
         state.showConnections()
         state.showPeople()
-        #expect(state.destination == .people(steward: "st_a"))
-        #expect(state.pageSteward == "st_a")
+        #expect(state.destination == .people(steward: nil))
+        #expect(state.pageSteward == nil)
     }
 }

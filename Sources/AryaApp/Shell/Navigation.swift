@@ -30,9 +30,9 @@ enum Destination: Hashable, Sendable {
     case approvals
     /// Every steward in one table: outcome, metric against target, state, next wake.
     case portfolio
-    /// The Connections page; Connect and Disconnect act on `steward`.
+    /// The Connections page; Connect and Disconnect act on `steward`; nil is All stewards.
     case connections(steward: String?)
-    /// The People page for `steward`.
+    /// The People page for `steward`; nil is All stewards.
     case people(steward: String?)
 }
 
@@ -96,22 +96,22 @@ struct NavigationState: Hashable, Sendable {
         run = nil
     }
 
-    /// Shows the Connections page for the selected steward (or the one it already shows).
+    /// Shows the Connections page for all stewards (or keeps the scope it already shows).
     mutating func showConnections() {
         if case .connections = destination { return }
-        destination = .connections(steward: steward ?? pageSteward)
+        destination = .connections(steward: nil)
         run = nil
     }
 
-    /// Shows the People page for the selected steward (or the one it already shows).
+    /// Shows the People page for all stewards (or keeps the scope it already shows).
     mutating func showPeople() {
         if case .people = destination { return }
-        destination = .people(steward: steward ?? pageSteward)
+        destination = .people(steward: nil)
         run = nil
     }
 
     /// Switches the steward the People page shows.
-    mutating func showPeople(steward id: String) {
+    mutating func showPeople(steward id: String?) {
         destination = .people(steward: id)
         person = nil
         run = nil
@@ -138,7 +138,7 @@ struct NavigationState: Hashable, Sendable {
     }
 
     /// Switches the steward the Connections page acts on.
-    mutating func showConnections(steward id: String) {
+    mutating func showConnections(steward id: String?) {
         destination = .connections(steward: id)
         run = nil
     }

@@ -205,7 +205,7 @@ enum FeatureRegistry {
         if let store = context.store {
             ConnectionsView(
                 store: store, tests: model.connectionTests, stewards: model.stewards,
-                steward: model.navigation.pageSteward ?? model.stewards.first?.id,
+                steward: model.navigation.pageSteward,
                 selected: model.navigation.connection, credentials: model.credentials,
                 selectSteward: { model.navigation.showConnections(steward: $0) },
                 select: { model.navigation.select(connection: $0) },
@@ -224,7 +224,7 @@ enum FeatureRegistry {
         if let store = context.store {
             ConnectionInspector(
                 store: store, tests: model.connectionTests, connection: connection,
-                steward: model.navigation.pageSteward ?? model.stewards.first?.id,
+                steward: model.navigation.pageSteward,
                 stewards: model.stewards, credentials: model.credentials,
                 probe: connectionProbe(model))
         }
@@ -249,13 +249,16 @@ enum FeatureRegistry {
         if let store = context.store {
             PeopleView(
                 store: store, stewards: model.stewards,
-                steward: model.navigation.pageSteward ?? model.stewards.first?.id,
+                steward: model.navigation.pageSteward,
                 selected: model.navigation.person
-                    ?? (model.navigation.pageSteward ?? model.stewards.first?.id).flatMap {
-                        PeopleDirectory(events: store.events, steward: $0).people.first?.id
-                    },
+                    ?? firstPerson(store, model, steward: model.navigation.pageSteward),
                 selectSteward: { model.navigation.showPeople(steward: $0) },
-                select: { model.navigation.select(person: $0) }, reports: model.reports,
+                select: { model.navigation.select(person: $0) },
+                open: { person, steward in
+                    model.navigation.showPeople(steward: steward)
+                    model.navigation.select(person: person)
+                },
+                reports: model.reports,
                 readReport: { [source = model.source] in try await source.reportDigest(steward: $0)
                 },
                 pane: model.navigation.peoplePane,
@@ -271,16 +274,29 @@ enum FeatureRegistry {
     @ViewBuilder
     static func personInspector(_ context: FeatureContext, person: String) -> some View {
         let model = context.model
-        if let store = context.store,
-            let steward = model.navigation.pageSteward
-                ?? model.stewards.first?.id
-        {
-            let id =
-                person.isEmpty
-                ? PeopleDirectory(events: store.events, steward: steward).people.first?.id ?? ""
-                : person
-            PersonInspector(store: store, steward: steward, person: id)
+        if let store = context.store {
+            let page = model.navigation.pageSteward
+            let id = person.isEmpty ? firstPerson(store, model, steward: page) ?? "" : person
+            // All stewards: the person as their first steward knows them.
+            let steward =
+                page
+                ?? PeopleRoster(events: store.events, stewards: model.stewards.map(\.id))
+                .people.first { $0.id == id }?.stewards.first
+            if let steward {
+                PersonInspector(store: store, steward: steward, person: id)
+            }
         }
+    }
+
+    /// The person People shows when none is chosen: the scope's first.
+    private static func firstPerson(_ store: FeatureStore, _ model: AppModel, steward: String?)
+        -> String?
+    {
+        guard let steward else {
+            return PeopleRoster(events: store.events, stewards: model.stewards.map(\.id))
+                .people.first?.id
+        }
+        return PeopleDirectory(events: store.events, steward: steward).people.first?.id
     }
 
     /// Questions to person bindings across all stewards, for the rail's inbox entry.

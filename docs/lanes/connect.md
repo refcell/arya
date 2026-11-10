@@ -132,6 +132,16 @@ and receive a periodic report from it.
   the selected steward's bindings, with This steward | Show all. Action kinds read through
   `ActionWords.kind` and person targets by name. Visual check pending: no snapshot state
   filter yet and the CEO bars full renders while load is over 30.
+- 2026-11-10: All stewards scope (CEO framing decision). Connections and People open on All
+  stewards; the picker reads "All stewards ▾". Connection rows say "used by A, B +2"; person
+  rows list the stewards and departments they work with (`PeopleRoster`; departments come
+  from the stewards' charters, a person has none of their own), and Message opens their
+  thread in their first steward's scope. A steward scope folds the rest under a collapsed
+  "Not used by this steward (N)" / "Not with this steward (N)" with a quiet Add to steward…
+  (no per-row orange). Add to steward… prefills the person form and drops a relay the steward
+  lacks. Report "(executed)" on drafted replies came from a demo home seeded before the
+  runtime's drafted flag (afc02209); a re-seed reads "(drafted, not sent)". Visual check
+  pending the snapshot state filter (load over 30).
 
 ## Questions
 

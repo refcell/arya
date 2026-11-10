@@ -2,17 +2,21 @@ import Arya
 import AryaDesign
 import SwiftUI
 
-/// The People page: who a steward works with, their role, how to reach them, what they may
-/// approve, and how often they have written. Add, edit, and remove propose a charter change
-/// that goes live through the gate on Improve.
+/// The People page: who stewards work with, their role, how to reach them, what they may
+/// approve, and how often they have written. It opens on All stewards (everyone once, with the
+/// stewards and departments they work with); a steward scope adds the thread, reports, and
+/// channels, and folds everyone else under "Not with this steward". Add, edit, and remove
+/// propose a charter change that goes live through the gate on Improve.
 struct PeopleView: View {
     @ObservedObject var store: FeatureStore
     let stewards: [StewardSummary]
     let steward: String?
     /// The selected person: their conversation opens under their row.
     let selected: String?
-    let selectSteward: (String) -> Void
+    let selectSteward: (String?) -> Void
     let select: (String) -> Void
+    /// Opens a person in a steward's scope (All stewards' Message).
+    var open: (String, String) -> Void = { _, _ in }
     @ObservedObject var reports: ReportDigestStore
     let readReport: @Sendable (String) async throws -> ReportDigest
     /// People or Channels.
@@ -27,6 +31,8 @@ struct PeopleView: View {
     @AryaState private var note: String?
     /// The person whose removal waits on confirmation.
     @AryaState private var removing: String?
+    /// The "Not with this steward" group is open.
+    @AryaState private var othersOpen = false
 
     var body: some View {
         ScrollView {
@@ -35,35 +41,41 @@ struct PeopleView: View {
                     title: "People",
                     subtitle: "Who a steward works with, how it reaches them, and what they "
                         + "may approve.")
-                if let steward {
+                if !stewards.isEmpty {
                     HStack(spacing: AryaSpace.s3) {
                         StewardPicker(stewards: stewards, selected: steward) {
                             editing = nil
                             selectSteward($0)
                         }
                         Spacer()
-                        AryaSegmented(
-                            PeoplePane.allCases.map { ($0, $0.title) }, selection: pane,
-                            choose: selectPane
-                        )
-                        .accessibilityLabel("Show")
+                        if steward != nil {
+                            AryaSegmented(
+                                PeoplePane.allCases.map { ($0, $0.title) }, selection: pane,
+                                choose: selectPane
+                            )
+                            .accessibilityLabel("Show")
+                        }
                     }
                 }
                 if let note { Text(note).aryaText(AryaFont.caption, AryaColor.inkMuted) }
                 if let error = store.writeError {
                     InlineError(error) { store.dismissWriteError() }
                 }
+                let roster = PeopleRoster(events: store.events, stewards: stewards.map(\.id))
                 if let steward {
                     let people = PeopleDirectory(events: store.events, steward: steward)
                     switch pane {
                     case .people:
                         directory(people, steward)
+                        others(roster.notWith(steward), directory: people)
                         PeopleReportSection(
                             store: store, reports: reports, directory: people, read: readReport,
                             propose: propose)
                     case .channels:
                         PeopleChannelsView(store: store, steward: steward, tests: tests)
                     }
+                } else {
+                    everyone(roster)
                 }
             }
             .padding(.horizontal, AryaSize.pagePadding)
@@ -121,6 +133,120 @@ struct PeopleView: View {
                 editing = "new"
             }
             .buttonStyle(.aryaSecondary)
+        }
+    }
+
+    /// All stewards: everyone once, with the stewards and departments they work with.
+    @ViewBuilder
+    private func everyone(_ roster: PeopleRoster) -> some View {
+        if roster.people.isEmpty {
+            EmptyState(
+                "No people yet.", guidance: "Pick a steward and add the people it works with.")
+        }
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(roster.people) { person in
+                rosterRow(person)
+                AryaHairline()
+            }
+        }
+    }
+
+    private func rosterRow(_ person: PeopleRoster.Person) -> some View {
+        let names = person.stewards.map { id in stewards.first { $0.id == id }?.name ?? id }
+        return VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            HStack(alignment: .center, spacing: AryaSpace.s3) {
+                Text(person.name).aryaText(AryaFont.bodyStrong, AryaColor.ink)
+                if let role = person.role {
+                    Text(role).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                }
+                Spacer()
+                Text(person.messages == 1 ? "1 message" : "\(person.messages) messages")
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                if let first = person.stewards.first {
+                    Button("Message") { open(person.id, first) }
+                        .buttonStyle(.aryaSecondary)
+                        .help("Open \(person.name)'s thread with \(names.first ?? first)")
+                }
+            }
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {
+                Text("works with " + RosterText.names(names))
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                if !person.departments.isEmpty {
+                    Text(person.departments.joined(separator: ", "))
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                }
+                Text(person.first.reach).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                Text(
+                    person.approves.isEmpty
+                        ? "approves nothing"
+                        : "approves "
+                            + person.approves.map {
+                                $0 == "*" ? "any action" : ActionWords.kind($0)
+                            }
+                            .joined(separator: ", ")
+                )
+                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            }
+            .lineLimit(1)
+        }
+        .padding(.vertical, AryaSpace.s2)
+        .padding(.horizontal, AryaSpace.s2)
+        .background(
+            selected == person.id ? AryaColor.selection : Color.clear,
+            in: RoundedRectangle(cornerRadius: AryaRadius.small)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { select(person.id) }
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(selected == person.id ? .isSelected : [])
+    }
+
+    /// "Not with this steward (3)": people other stewards work with, each with a quiet
+    /// Add to steward… that opens the add form filled in.
+    @ViewBuilder
+    private func others(_ people: [PeopleRoster.Person], directory: PeopleDirectory)
+        -> some View
+    {
+        if !people.isEmpty, directory.live != nil {
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    withAnimation(AryaMotion.quick) { othersOpen.toggle() }
+                } label: {
+                    HStack(spacing: AryaSpace.s1) {
+                        DisclosureChevron(isExpanded: othersOpen)
+                        Text("NOT WITH THIS STEWARD (\(people.count))")
+                            .aryaText(AryaFont.label, AryaColor.inkFaint)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Not with this steward, \(people.count)")
+                .padding(.vertical, AryaSpace.s2)
+                if othersOpen {
+                    ForEach(people) { person in
+                        HStack(spacing: AryaSpace.s3) {
+                            Text(person.name).aryaText(AryaFont.body, AryaColor.ink)
+                            if let role = person.role {
+                                Text(role).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                            }
+                            Spacer()
+                            Button("Add to steward…") {
+                                var filled = PersonDraft(person.first)
+                                // A relay this steward lacks would fail the gate; start local.
+                                if !filled.via.isEmpty, !directory.relays.contains(filled.via) {
+                                    filled.via = ""
+                                    filled.channel = "inbox"
+                                }
+                                draft = filled
+                                editing = "new"
+                            }
+                            .buttonStyle(.aryaTertiary)
+                        }
+                        .frame(minHeight: AryaSize.rowHeight)
+                        AryaHairline()
+                    }
+                }
+            }
         }
     }
 

@@ -162,7 +162,7 @@ private func events() -> [FeatureEvent] {
         var state = NavigationState()
         state.select(steward: "st_a")
         state.showConnections()
-        #expect(state.destination == .connections(steward: "st_a"))
+        #expect(state.destination == .connections(steward: nil))
         #expect(state.steward == nil)
         state.showConnections(steward: "st_b")
         state.reconcile(stewards: ["st_a"], runs: [])
@@ -250,5 +250,41 @@ private func events() -> [FeatureEvent] {
         #expect(mail.inbound == 1)
         #expect(mail.daily.last == 1)
         #expect(mail.last?.text == "Hi")
+    }
+}
+
+@Suite struct PeopleRosterTests {
+    @Test func everyoneOnceWithTheirStewardsAndDepartments() throws {
+        var log = FeatureEventBuilder(start: Date(timeIntervalSince1970: 1_800_000_000))
+        func steward(_ id: String, department: String, people: [FeatureJSON]) {
+            log.add(
+                "steward.created", steward: id, actor: .localUser,
+                [
+                    "charter": [
+                        "id": .string(id), "name": .string(id), "adapter": "fake",
+                        "department": .string(department), "bindings": .array(people),
+                    ],
+                    "version": 1,
+                ])
+        }
+        let sam: FeatureJSON = [
+            "id": "person:sam", "kind": "person", "channel": "inbox", "name": "Sam",
+            "role": "support lead", "actions": ["reply"],
+        ]
+        steward("st_a", department: "Support", people: [sam])
+        steward(
+            "st_b", department: "Billing",
+            people: [
+                sam,
+                ["id": "person:priya", "kind": "person", "channel": "inbox", "name": "Priya"],
+            ])
+        let roster = PeopleRoster(events: log.events, stewards: ["st_a", "st_b"])
+        #expect(roster.people.map(\.name) == ["Sam", "Priya"])
+        let first = try #require(roster.people.first)
+        #expect(first.stewards == ["st_a", "st_b"])
+        #expect(first.departments == ["Support", "Billing"])
+        #expect(roster.notWith("st_a").map(\.name) == ["Priya"])
+        #expect(RosterText.names(["A", "B", "C", "D"]) == "A, B +2")
+        #expect(RosterText.names(["A"]) == "A")
     }
 }
