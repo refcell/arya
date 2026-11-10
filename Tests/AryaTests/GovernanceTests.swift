@@ -233,3 +233,22 @@ private func undoableCharterJSON(allowUnlabel: Bool = true) throws -> Data {
         home: opened.home.url, ambient: .fixed(stepMillis: 1), keys: keys)
     #expect(try await reopened.approvals().count == 1)
 }
+
+@Test func anAuditExportIsRecordedSignedAndChecks() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let out = opened.home.url.appendingPathComponent("audit")
+    let summary = try await workspace.exportAudit(steward: "st_inbox", to: out)
+    #expect(summary.verified, "\(summary.issues)")
+    #expect(summary.count > 3)
+    #expect(summary.key.hasPrefix("key_"))
+    #expect(try await opened.types().last == "system.audit.exported")
+    #expect(Workspace.verifyAudit(at: out)?.verified == true)
+    await #expect(
+        throws: WorkspaceError.rejected("the export folder already exists; choose a new one")
+    ) {
+        _ = try await workspace.exportAudit(steward: "st_inbox", to: out)
+    }
+}

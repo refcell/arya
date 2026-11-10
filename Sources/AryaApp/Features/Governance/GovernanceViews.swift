@@ -1,3 +1,4 @@
+import AppKit
 import Arya
 import AryaDesign
 import SwiftUI
@@ -139,8 +140,11 @@ struct AbortConfirm: View {
                 Spacer()
                 Button("Keep running", action: cancel).buttonStyle(.aryaTertiary)
                     .keyboardShortcut(.cancelAction)
-                Button("Abort run", action: confirm).buttonStyle(.aryaPrimary)
-                    .keyboardShortcut(.defaultAction)
+                Button(action: confirm) {
+                    Text("Abort run").aryaText(AryaFont.caption, AryaColor.negative)
+                }
+                .buttonStyle(.aryaQuiet)
+                .keyboardShortcut(.defaultAction)
             }
         }
         .frame(width: 300)
@@ -189,7 +193,7 @@ struct StewardGovernanceSection: View {
     @AryaState private var cache = GovernanceCache.shared
 
     var body: some View {
-        Group {
+        VStack(alignment: .leading, spacing: AryaSpace.s3) {
             if let policy = cache.policies[steward] {
                 PolicyPanel(
                     policy: policy, retentionDays: cache.retentionDays(steward: steward),
@@ -198,10 +202,64 @@ struct StewardGovernanceSection: View {
                     guard let source = model.governance else { return }
                     Task { await cache.setRetention(steward: steward, days: days, from: source) }
                 }
+                AuditExportRow(last: cache.exports[steward]) {
+                    guard let source = model.governance, let parent = Self.chooseFolder() else {
+                        return
+                    }
+                    Task { await cache.export(steward: steward, into: parent, from: source) }
+                }
             }
         }
         .task(id: "\(steward)-\(model.nextSeq)") {
             if let source = model.governance { await cache.load(steward: steward, from: source) }
+        }
+    }
+}
+
+extension StewardGovernanceSection {
+    /// Asks where to put the export; nil when the person cancels.
+    @MainActor static func chooseFolder() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.prompt = "Export here"
+        panel.message = "A new folder with the signed export is created inside the one you pick."
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+}
+
+/// The audit export control and the last export's result.
+struct AuditExportRow: View {
+    var last: AuditExportSummary?
+    var export: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            HStack {
+                Text("Audit").aryaText(AryaFont.label, AryaColor.inkFaint)
+                Spacer()
+                Button("Export signed slice…", action: export).buttonStyle(.aryaQuiet)
+                    .help(
+                        "Write this steward's ledger lines and a manifest signed with the home's "
+                            + "checkpoint key; anyone can check it without the home")
+            }
+            if let last {
+                HStack(spacing: AryaSpace.s2) {
+                    Chip(
+                        last.verified ? "verified" : "check failed",
+                        textColor: last.verified ? AryaColor.positive : AryaColor.negative,
+                        borderColor: last.verified ? AryaColor.positive : AryaColor.negative)
+                    Text(GovernanceText.exportLine(last))
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted).lineLimit(1)
+                }
+                Text(URL(fileURLWithPath: last.directory).lastPathComponent)
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+                ForEach(last.issues, id: \.self) {
+                    Text($0).aryaText(AryaFont.caption, AryaColor.negative)
+                }
+            }
         }
     }
 }
@@ -231,8 +289,8 @@ struct PolicyPanel: View {
                             Text(GovernanceText.ruleScope(rule))
                                 .aryaText(AryaFont.monoSmall, AryaColor.ink)
                                 .frame(width: 96, alignment: .leading)
-                            Text(rule.people.joined(separator: ", "))
-                                .aryaText(AryaFont.monoSmall, AryaColor.accent)
+                            Text(GovernanceText.people(rule.people))
+                                .aryaText(AryaFont.caption, AryaColor.ink)
                         }
                         if let note = rule.note {
                             Text(note).aryaText(AryaFont.caption, AryaColor.inkFaint)
@@ -253,6 +311,22 @@ struct PolicyPanel: View {
 
     private func label(_ text: String) -> some View {
         Text(text).aryaText(AryaFont.label, AryaColor.inkFaint)
+    }
+}
+
+/// A policy decision chip: `ask` in neutral ink (orange stays for the one primary action),
+/// `deny` in the negative tone, `auto` muted.
+private struct DecisionChip: View {
+    var decision: String
+
+    var body: some View {
+        Chip(
+            decision,
+            textColor: decision == "deny"
+                ? AryaColor.negative : decision == "ask" ? AryaColor.ink : AryaColor.inkMuted,
+            borderColor: decision == "deny" ? AryaColor.negative : AryaColor.rule
+        )
+        .accessibilityLabel("Policy \(decision)")
     }
 }
 
@@ -280,13 +354,13 @@ private struct BindingPolicy: View {
                 HStack(spacing: AryaSpace.s2) {
                     Text(action.kind).aryaText(AryaFont.monoSmall, AryaColor.ink)
                         .frame(width: 72, alignment: .leading)
-                    PolicyChip(AryaPolicy(rawValue: action.decision) ?? .ask)
+                    DecisionChip(decision: action.decision)
                     Text(action.risk).aryaText(AryaFont.monoSmall, GovernanceText.riskColor(action))
                         .frame(width: 44, alignment: .leading)
-                    Text(action.approvers?.joined(separator: ", ") ?? "anyone")
+                    Text(action.approvers.map(GovernanceText.people) ?? "anyone")
                         .aryaText(
-                            AryaFont.monoSmall,
-                            action.approvers == nil ? AryaColor.inkFaint : AryaColor.accent
+                            AryaFont.caption,
+                            action.approvers == nil ? AryaColor.inkFaint : AryaColor.ink
                         )
                         .lineLimit(1)
                 }
@@ -406,14 +480,26 @@ enum GovernanceText {
         "A new key goes into your Keychain. New events, blobs, and caches are sealed with it; "
         + "without the key this home cannot be read. Events already written stay as written."
 
+    static func exportLine(_ summary: AuditExportSummary) -> String {
+        let sealed = summary.sealed > 0 ? " · \(summary.sealed) sealed" : ""
+        return "\(summary.count) events to seq \(summary.head)\(sealed) · \(summary.key)"
+    }
+
     static func undoLine(_ option: UndoOption) -> String {
         let target = option.target.map { " \($0)" } ?? ""
-        return "\(option.action)  \(option.kind)\(target) → \(option.with)"
+        return "\(option.kind)\(target) → \(option.with)"
     }
 
     static func autonomyLine(_ policy: PolicySummary) -> String {
         let autonomy = policy.autonomy.map { "autonomy \($0) · " } ?? ""
-        return "\(autonomy)kinds no rule names: \(policy.fallback)"
+        return "\(autonomy)Anything not listed: \(policy.fallback)"
+    }
+
+    /// Approver ids as names, people first and "you" (`local`) last: "Sam, you".
+    static func people(_ ids: [String]) -> String {
+        let named = ids.filter { $0 != "local" }.map(PeopleDirectory.displayName)
+        guard ids.contains("local") else { return named.joined(separator: ", ") }
+        return named.isEmpty ? "You" : (named + ["you"]).joined(separator: ", ")
     }
 
     static func ruleScope(_ rule: PolicySummary.ApproverLine) -> String {

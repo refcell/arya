@@ -65,6 +65,6 @@ private func sampleLine() throws -> (event: Event, line: [UInt8]) {
     #expect(try CanonicalJSON.string(Actor.local) == #"{"id":"local","kind":"human"}"#)
     #expect(Actor.steward(triage).description == "steward:st_triage")
     #expect(EventType.runAdapterEvent.namespace == "run")
-    #expect(EventType.all.count == 49)
+    #expect(EventType.all.count == 50)
     #expect(Set(EventType.all).count == EventType.all.count)
 }

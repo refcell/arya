@@ -76,6 +76,10 @@ let payloadSamples: [PayloadSample] = [
     PayloadSample(SystemRetentionSet(steward: StewardID(unchecked: "st_triage"), days: 90)),
     PayloadSample(SystemEncryptionEnabled(key: "hk_0123456789abcdef01234567")),
     PayloadSample(
+        SystemAuditExported(
+            steward: StewardID(unchecked: "st_triage"), count: 64, head: 2235,
+            manifest: String(repeating: "ab", count: 32), revealed: false)),
+    PayloadSample(
         SystemKeyAdded(
             key: "key_0123456789abcdef", publicKey: String(repeating: "A", count: 43) + "=",
             replaces: "key_fedcba9876543210", signature: String(repeating: "B", count: 86) + "==")),

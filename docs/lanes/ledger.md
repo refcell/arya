@@ -127,8 +127,9 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - [x] (G1-G4a in the app) Abort, Undo, policy and approvers, retention, and encryption
   shown in the app with snapshot states (`Features/Governance/`, hooks in StreamTab,
   InspectorView, AppSettingsView).
-- [ ] (G5) Signed audit export of a steward's ledger slice: JSON Lines plus a verification
-  manifest, from the app.
+- [x] (G5) Signed audit export: `AuditExport.write`/`verify`, `system.audit.exported`,
+  `exportAudit(steward:to:reveal:as:)`, `Workspace.verifyAudit(at:)`; "Export signed
+  slice…" in the steward inspector (snapshot `governance-inspector`). CLI asked.
 - [ ] (G6) Then (13) and (14) above.
 
 ## Decisions
@@ -185,6 +186,18 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   seeds in place and drops plaintext caches (delete-safe). Old events stay clear because
   their bytes are hashed and signed; re-sealing them is (G4b). Losing the key loses the
   sealed data: key export is a follow-up for the CLI.
+- (G5 audit export) A bundle is a new folder (never overwritten): `events.jsonl` (the
+  steward's lines byte for byte, so each line's own hash checks), `keys.jsonl` (every
+  `system.key.added` line), `payloads.jsonl` only with `reveal` (opened payloads of sealed
+  lines, `{payload, seq}`), and `manifest.json` (counts, first and last seq, the ledger head
+  at export, SHA-256 of each file, the signer's key id and public key) signed with the
+  checkpoint key over its canonical bytes without `signature`. `verify` needs nothing but the
+  folder: digests, line hashes, seq order, the steward, and a signature by a key that
+  `KeyRing` trusts from `keys.jsonl` (first key unsigned, rotations signed). The slice is
+  not a chain (other stewards' lines are left out), so the head hash ties it to the ledger:
+  anyone holding the ledger can compare it. Revealed payloads are vouched for only by the
+  signature, since their boxes need the home key. The export itself is recorded as
+  `system.audit.exported {steward, count, head, manifest, revealed}` (actor: the person).
 - (G3 retention) Settings are ledger facts: `system.retention.set {steward?, days?}` (nil
   steward = home default, nil days clears; latest wins; `RetentionPolicy`). `RetentionPlan`
   takes the longest prefix of closed segments whose every event is older than the days that
@@ -307,6 +320,16 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) New eval event `case.reviewed` {casebook, case, verdict agreed|skipped}; PROTOCOL?
 
 ## Log
+- 2026-11-10: reviewer VC24 fixes in the governance UI: the abort confirm is a quiet button
+  in the negative tone (no orange); `ask` chips are neutral ink, approvers plain names
+  ("Sam, you"), risk on the risk scale (low muted, medium amber, high red); "Anything not
+  listed: ask"; undo rows drop the action id; the run-controls fixture shows a run title.
+  Visual check: `governance-run-controls`, `governance-inspector`, `governance-policy`
+  PNGs read; moves point (3) real controls.
+- 2026-11-10: (G5) done: signed audit export (bundle, keyless verify, ledger record) and an
+  export control with its last result in the steward inspector. Visual check: snapshot
+  `governance-inspector` shows the Audit row with a verified export; moves point (3) real
+  controls.
 - 2026-11-10: governance visible in the app (governance-owned `Features/Governance/`):
   Abort (live runs, Command-period, with an abort question) and Undo (executed actions,
   undo list) in the run header; tools, actions with decision, risk, and approvers, the

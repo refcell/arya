@@ -123,6 +123,7 @@ M4:
   and `arya report show|send <steward>` in `Sources/AryaCLI/PeopleCommands.swift` (with
   `WorkspaceBackend` methods); `etc/scripts/demo.sh` seeds messages and reports with them.
 
+- (from governance) CLI for the governance facade, still open: `arya steward policy <id>` (`policySummary`), `arya run abort <run> [--reason]` (`abortRun`), `arya undo <run> <action>` (`undoOptions`/`undoAction`), `arya retention [--steward <id>] [--days <n>|--clear]`, `arya home encryption [--enable]` (`encryption`/`enableEncryption`), `arya audit export <steward> --out <dir> [--reveal]` and `arya audit verify <dir>` (`exportAudit`, `Workspace.verifyAudit(at:)`, non-zero exit when issues). e2e: export the triage steward and verify it, then flip one byte in events.jsonl and expect verify to fail.
 ## Log
 - 2026-11-10: Paused for the night after the approvers and abort batch. Next: an e2e step per
   new M3.6 item (undo through compensation, retention plan, connection probe without Keychain).

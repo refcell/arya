@@ -7,6 +7,7 @@ import Testing
 
 @testable import Arya
 @testable import AryaApp
+@testable import AryaLedger
 
 /// Governance states for `just snapshot` (decision 0038: offscreen, no window): the steward
 /// inspector with tools, actions, approvers, and retention; the run header's Abort and Undo
@@ -31,6 +32,7 @@ import Testing
             let steward = try #require(model.stewards.first { $0.id == "st_triage" })
             await cache.load(steward: steward.id, from: workspace)
             await cache.loadHome(from: workspace)
+            cache.exports[steward.id] = Self.fixtureExport
             var undoable: String?
             for run in model.runs[steward.id] ?? [] {
                 await cache.load(run: run.id, from: workspace)
@@ -82,7 +84,7 @@ import Testing
     static func runControls(_ options: [UndoOption]) -> some View {
         VStack(alignment: .leading, spacing: AryaSpace.s4) {
             HStack {
-                Text("run_01J… · manual · started 2 s ago").aryaText(
+                Text("Labeled MSG-9 as billing · manual · started 2 s ago").aryaText(
                     AryaFont.monoSmall, AryaColor.inkFaint)
                 Spacer()
                 RunGovernanceBar(
@@ -105,6 +107,16 @@ import Testing
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AryaColor.canvas)
     }
+
+    static let fixtureExport: AuditExportSummary = {
+        let manifest = AuditManifest(
+            v: 1, steward: "st_triage", count: 64, first: 3, last: 2231, head: 2235,
+            headHash: String(repeating: "0", count: 64), events: "", keys: "", payloads: nil,
+            sealed: 0, key: "key_3f9a0c1d2e4b5a6c", publicKey: "", signature: nil)
+        return AuditExportSummary(
+            directory: URL(fileURLWithPath: "/exports/st_triage-audit-20261110T090000Z"),
+            manifest: manifest, revealed: false, issues: [])
+    }()
 
     static let fixtureOptions = [
         UndoOption(

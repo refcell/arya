@@ -18,6 +18,8 @@ protocol GovernanceSource: Sendable {
         -> RetentionSummary
     func encryption() async throws -> EncryptionSummary
     func enableEncryption(as person: String) async throws -> EncryptionSummary
+    func exportAudit(steward: String?, to directory: URL, reveal: Bool, as person: String)
+        async throws -> AuditExportSummary
 }
 
 extension Workspace: GovernanceSource {}
@@ -45,6 +47,8 @@ final class GovernanceCache {
     private(set) var undo: [String: [UndoOption]] = [:]
     private(set) var retention: RetentionSummary?
     private(set) var encryption: EncryptionSummary?
+    /// The last audit export per steward in this session.
+    var exports: [String: AuditExportSummary] = [:]
     /// The last failed governance write or read, phrased by the facade.
     var problem: String?
 
@@ -97,6 +101,17 @@ final class GovernanceCache {
     func enableEncryption(from source: any GovernanceSource) async {
         if let state = await attempt({ try await source.enableEncryption(as: "local") }) {
             encryption = state
+        }
+    }
+
+    /// Exports `steward`'s signed slice into a new folder inside `parent`.
+    func export(steward: String, into parent: URL, from source: any GovernanceSource) async {
+        let stamp = Int(Date().timeIntervalSince1970)
+        let folder = parent.appendingPathComponent("\(steward)-audit-\(stamp)", isDirectory: true)
+        if let summary = await attempt({
+            try await source.exportAudit(steward: steward, to: folder, reveal: false, as: "local")
+        }) {
+            exports[steward] = summary
         }
     }
 

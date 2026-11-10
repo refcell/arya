@@ -410,3 +410,75 @@ extension Workspace {
         return try await encryption()
     }
 }
+
+// MARK: Signed audit export (G5)
+
+/// A written audit export: where, what it holds, and whether it checks.
+public struct AuditExportSummary: Sendable, Hashable, Codable {
+    public var directory: String
+    public var steward: String?
+    public var count: Int
+    /// Lines whose payload is sealed, and whether they were opened into `payloads.jsonl`.
+    public var sealed: Int
+    public var revealed: Bool
+    /// The checkpoint key that signed the manifest.
+    public var key: String
+    public var head: Int
+    /// Problems `verifyAudit` found; empty when the bundle checks.
+    public var issues: [String]
+
+    public var verified: Bool { issues.isEmpty }
+
+    init(directory: URL, manifest: AuditManifest, revealed: Bool, issues: [String]) {
+        self.directory = directory.path
+        steward = manifest.steward
+        count = manifest.count
+        sealed = manifest.sealed
+        self.revealed = revealed
+        key = manifest.key
+        head = Int(manifest.head)
+        self.issues = issues
+    }
+}
+
+extension Workspace {
+    /// Exports `steward`'s ledger slice (the whole ledger when nil) into the new folder
+    /// `directory`: its lines as written, the key events, opened payloads when `reveal`, and a
+    /// manifest signed with the home's checkpoint key. Records `system.audit.exported`
+    /// (actor: the person) and checks the bundle before returning.
+    public func exportAudit(
+        steward: String?, to directory: URL, reveal: Bool = false, as person: String = "local"
+    ) async throws -> AuditExportSummary {
+        var id: StewardID?
+        if let steward { id = try await existing(steward).id }
+        let manifest: AuditManifest
+        do {
+            let signer = try CheckpointKeys(home: home).ensure(store: sink.store)
+            manifest = try AuditExport.write(
+                home: home, steward: id, to: directory, signer: signer, reveal: reveal)
+        } catch let error as AuditExportError {
+            throw WorkspaceError.rejected(error.description)
+        }
+        let digest = LedgerLine.hexSHA256(try CanonicalJSON.encode(manifest))
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: SystemAuditExported.type.rawValue, steward: id, actor: .person(person),
+                payload: try Self.json(
+                    SystemAuditExported(
+                        steward: id, count: manifest.count, head: manifest.head,
+                        manifest: digest, revealed: manifest.payloads != nil))))
+        let check = AuditExport.verify(directory)
+        return AuditExportSummary(
+            directory: directory, manifest: manifest, revealed: manifest.payloads != nil,
+            issues: check.issues)
+    }
+
+    /// Checks an audit export folder on its own; nil when it holds no readable manifest.
+    public nonisolated static func verifyAudit(at directory: URL) -> AuditExportSummary? {
+        let check = AuditExport.verify(directory)
+        guard let manifest = check.manifest else { return nil }
+        return AuditExportSummary(
+            directory: directory, manifest: manifest, revealed: manifest.payloads != nil,
+            issues: check.issues)
+    }
+}
