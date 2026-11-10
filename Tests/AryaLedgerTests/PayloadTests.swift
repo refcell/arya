@@ -75,6 +75,10 @@ let payloadSamples: [PayloadSample] = [
     PayloadSample(SystemStarted(process: "test", version: "0.1.0")),
     PayloadSample(SystemRetentionSet(steward: StewardID(unchecked: "st_triage"), days: 90)),
     PayloadSample(
+        SystemAuditImported(
+            steward: StewardID(unchecked: "st_triage"), count: 64, head: 2235,
+            manifest: String(repeating: "cd", count: 32), key: "key_3f9a0c1d2e4b5a6c", notes: 3)),
+    PayloadSample(
         SystemRetentionApplied(
             segments: ["000001.jsonl", "000002.jsonl"], through: 812, checkpoint: 2240)),
     PayloadSample(SystemEncryptionEnabled(key: "hk_0123456789abcdef01234567")),

@@ -17,6 +17,7 @@ protocol GovernanceSource: Sendable {
     func setRetention(steward: String?, days: Int?, as person: String) async throws
         -> RetentionSummary
     func applyRetention(as person: String) async throws -> RetentionSummary
+    func importAudit(from directory: URL, as person: String) async throws -> AuditImportSummary
     func encryption() async throws -> EncryptionSummary
     func enableEncryption(as person: String) async throws -> EncryptionSummary
     func exportAudit(steward: String?, to directory: URL, reveal: Bool, as person: String)
@@ -50,6 +51,8 @@ final class GovernanceCache {
     private(set) var encryption: EncryptionSummary?
     /// The last audit export per steward in this session.
     var exports: [String: AuditExportSummary] = [:]
+    /// The last steward imported from an export in this session.
+    var imported: AuditImportSummary?
     /// The last failed governance write or read, phrased by the facade.
     var problem: String?
 
@@ -96,6 +99,14 @@ final class GovernanceCache {
             try await source.setRetention(steward: steward, days: days, as: "local")
         }) {
             retention = state
+        }
+    }
+
+    func importAudit(from directory: URL, source: any GovernanceSource) async {
+        if let summary = await attempt({
+            try await source.importAudit(from: directory, as: "local")
+        }) {
+            imported = summary
         }
     }
 

@@ -220,10 +220,64 @@ public enum AuditExport {
 public enum AuditExportError: Error, Hashable, Sendable, CustomStringConvertible {
     /// The target directory already exists; exports never overwrite.
     case exists
+    /// `payloads.jsonl` holds a line that is not `{"payload", "seq"}`.
+    case badPayloads
 
     public var description: String {
         switch self {
         case .exists: "the export folder already exists; choose a new one"
+        case .badPayloads: "payloads.jsonl is not readable"
+        }
+    }
+}
+
+/// `system.audit.imported`: a steward was recreated from a checked audit export (actor: the
+/// person). `head` and `manifest` name the export it came from; `key` is the key that signed it.
+public struct SystemAuditImported: EventPayload {
+    public static let type = EventType.systemAuditImported
+    public var steward: StewardID
+    public var count: Int
+    public var head: Int64
+    public var manifest: String
+    public var key: String
+    /// Memory notes carried over.
+    public var notes: Int
+
+    public init(
+        steward: StewardID, count: Int, head: Int64, manifest: String, key: String, notes: Int
+    ) {
+        self.steward = steward
+        self.count = count
+        self.head = head
+        self.manifest = manifest
+        self.key = key
+        self.notes = notes
+    }
+
+    enum CodingKeys: String, CodingKey { case steward, count, head, manifest, key, notes }
+}
+
+extension AuditExport {
+    /// The bundle's events in order, each sealed payload replaced by its opened copy from
+    /// `payloads.jsonl` when the export revealed it. Call `verify` first; this only parses.
+    public static func events(at directory: URL) throws -> [Event] {
+        func lines(_ name: String) -> [ArraySlice<UInt8>] {
+            let data = FileManager.default.contents(
+                atPath: directory.appendingPathComponent(name).path)
+            return data.map { Array($0).split(separator: 10) } ?? []
+        }
+        var opened: [Int64: JSONValue] = [:]
+        for line in lines(payloadsFile) {
+            let entry = try JSONParser.parse(Array(line))
+            guard case .int(let seq)? = entry.objectValue?["seq"],
+                let payload = entry.objectValue?["payload"]
+            else { throw AuditExportError.badPayloads }
+            opened[Int64(seq)] = payload
+        }
+        return try lines(eventsFile).map { line in
+            var event = try LedgerLine.open(line)
+            if let payload = opened[event.seq] { event.payload = payload }
+            return event
         }
     }
 }

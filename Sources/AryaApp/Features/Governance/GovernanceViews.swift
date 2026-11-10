@@ -382,7 +382,8 @@ struct HomeGovernanceSection: View {
 
     var body: some View {
         HomeGovernancePanel(
-            retention: cache.retention, encryption: cache.encryption, problem: cache.problem,
+            retention: cache.retention, encryption: cache.encryption, imported: cache.imported,
+            problem: cache.problem,
             setDefault: { days in
                 guard let source else { return }
                 Task { await cache.setRetention(steward: nil, days: days, from: source) }
@@ -394,9 +395,23 @@ struct HomeGovernanceSection: View {
             archive: {
                 guard let source else { return }
                 Task { await cache.applyRetention(from: source) }
+            },
+            importExport: {
+                guard let source, let folder = Self.chooseExport() else { return }
+                Task { await cache.importAudit(from: folder, source: source) }
             }
         )
         .task { if let source { await cache.loadHome(from: source) } }
+    }
+
+    /// Asks for an audit export folder; nil when the person cancels.
+    @MainActor static func chooseExport() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.prompt = "Import"
+        panel.message = "Pick a folder written by Export signed slice."
+        return panel.runModal() == .OK ? panel.url : nil
     }
 }
 
@@ -404,10 +419,12 @@ struct HomeGovernanceSection: View {
 struct HomeGovernancePanel: View {
     var retention: RetentionSummary?
     var encryption: EncryptionSummary?
+    var imported: AuditImportSummary? = nil
     var problem: String?
     var setDefault: (Int?) -> Void
     var encrypt: () -> Void
     var archive: () -> Void = {}
+    var importExport: () -> Void = {}
     @AryaState private var confirm = false
 
     var body: some View {
@@ -436,6 +453,20 @@ struct HomeGovernancePanel: View {
                     if let line = GovernanceText.archivedLine(retention) {
                         Text(line).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     }
+                }
+            }
+            VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                    Text("Steward from an export").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    Spacer()
+                    Button("Import…", action: importExport).buttonStyle(.aryaSecondary)
+                        .help(
+                            "Check a signed audit export, then recreate its steward here with "
+                                + "its latest charter and memory")
+                }
+                if let imported {
+                    Text(GovernanceText.importLine(imported))
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted).lineLimit(1)
                 }
             }
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -551,6 +582,11 @@ enum GovernanceText {
         let head =
             "\(retention.segments.count) segments · \(events) events · \(size) eligible"
         return retention.blocker.map { "\(head). \($0)" } ?? head
+    }
+
+    static func importLine(_ summary: AuditImportSummary) -> String {
+        "\(summary.name) · \(summary.notes) notes · export of \(summary.events) events, "
+            + "signed \(summary.key)"
     }
 
     static func archivedLine(_ retention: RetentionSummary) -> String? {

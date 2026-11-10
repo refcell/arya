@@ -1,5 +1,6 @@
 import AryaCore
 import AryaLedger
+import AryaMemory
 import AryaRuntime
 import Foundation
 
@@ -501,5 +502,74 @@ extension Workspace {
         return AuditExportSummary(
             directory: directory, manifest: manifest, revealed: manifest.payloads != nil,
             issues: check.issues)
+    }
+}
+
+// MARK: Import a steward from an audit export (14)
+
+/// A steward recreated from an audit export.
+public struct AuditImportSummary: Sendable, Hashable, Codable {
+    public var steward: String
+    public var name: String
+    /// Events in the export, memory notes carried over, and the signer and head it names.
+    public var events: Int
+    public var notes: Int
+    public var key: String
+    public var head: Int
+}
+
+extension Workspace {
+    /// Recreates a steward from an audit export after checking it (`verifyAudit`): its latest
+    /// charter becomes version 1 here and its live memory notes are re-recorded, then
+    /// `system.audit.imported` names the export (actor: the person). Its runs stay in the
+    /// export; this home starts the steward's own history. Refused when the bundle does not
+    /// check, its charter is sealed and was not revealed, or the steward already exists.
+    public func importAudit(from directory: URL, as person: String = "local") async throws
+        -> AuditImportSummary
+    {
+        let check = AuditExport.verify(directory)
+        guard let manifest = check.manifest, check.issues.isEmpty else {
+            let reason = check.issues.first ?? "it has no manifest"
+            throw WorkspaceError.rejected("the export does not check: \(reason)")
+        }
+        guard let stewardID = manifest.steward.flatMap(StewardID.init(rawValue:)) else {
+            throw WorkspaceError.rejected("only a one-steward export can be imported")
+        }
+        let events = try AuditExport.events(at: directory)
+        let charterTypes: Set<EventType> = [.stewardCreated, .stewardCharterUpdated]
+        guard let latest = events.last(where: { charterTypes.contains($0.type) }) else {
+            throw WorkspaceError.rejected("the export holds no charter for \(stewardID.rawValue)")
+        }
+        guard !SealedPayload.isSealed(latest), let body = latest.payload.objectValue?["charter"]
+        else {
+            throw WorkspaceError.rejected("the export's charter is sealed; export it revealed")
+        }
+        let charter: Charter
+        do {
+            charter = try Charter.load(from: try CanonicalJSON.encode(body))
+        } catch let error as CharterError {
+            throw WorkspaceError.rejected(Self.describe(error))
+        }
+        let created = try await mapped { try await lifecycle.create(charter) }
+        let notes = try MemoryProjection(ledger: events.filter { !SealedPayload.isSealed($0) })
+            .allNotes(steward: stewardID).filter { !$0.retracted }.map(\.note.note)
+        for note in notes {
+            _ = try await sink.append(
+                RuntimeEventDraft(
+                    type: MemoryEventType.added, steward: stewardID, actor: .person(person),
+                    payload: try Self.json(MemoryAddedPayload(note: note))))
+        }
+        let digest = LedgerLine.hexSHA256(try CanonicalJSON.encode(manifest))
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: SystemAuditImported.type.rawValue, steward: stewardID,
+                actor: .person(person),
+                payload: try Self.json(
+                    SystemAuditImported(
+                        steward: stewardID, count: manifest.count, head: manifest.head,
+                        manifest: digest, key: manifest.key, notes: notes.count))))
+        return AuditImportSummary(
+            steward: stewardID.rawValue, name: created.charter.name, events: manifest.count,
+            notes: notes.count, key: manifest.key, head: Int(manifest.head))
     }
 }

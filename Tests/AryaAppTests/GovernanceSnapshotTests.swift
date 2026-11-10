@@ -79,12 +79,16 @@ import Testing
             "governance-retention", scheme: scheme,
             render(
                 HomeGovernancePanel(
-                    retention: Self.fixtureRetention, encryption: nil, problem: nil,
+                    retention: Self.fixtureRetention, encryption: nil,
+                    imported: AuditImportSummary(
+                        steward: "st_refunds", name: "Refund follow-up", events: 212, notes: 4,
+                        key: "key_3f9a0c1d2e4b5a6c", head: 2235),
+                    problem: nil,
                     setDefault: { _ in }, encrypt: {}
                 )
                 .padding(AryaSpace.s4)
-                .frame(width: 460, height: 180, alignment: .topLeading)
-                .background(AryaColor.canvas), dark: dark, size: NSSize(width: 460, height: 180)))
+                .frame(width: 460, height: 230, alignment: .topLeading)
+                .background(AryaColor.canvas), dark: dark, size: NSSize(width: 460, height: 230)))
         try write(
             "governance-run-controls", scheme: scheme,
             render(Self.runControls(options), dark: dark, size: NSSize(width: 820, height: 300)))

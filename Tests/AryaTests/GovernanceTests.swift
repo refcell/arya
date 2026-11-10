@@ -265,3 +265,40 @@ private func undoableCharterJSON(allowUnlabel: Bool = true) throws -> Data {
     #expect(summary.lastApplied == nil)
     #expect(try await opened.types().filter { $0 != "system.key.added" } == before)
 }
+
+@Test func anAuditExportImportsAsTheSameStewardWithItsMemory() async throws {
+    let source = try await Opened([FakeScript.Run(result: liveResult)])
+    _ = try await source.workspace.createSteward(charter: try inboxCharterJSON())
+    _ = try await source.workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    _ = try await source.workspace.remember("Refunds go to billing.", steward: "st_inbox")
+    let bundle = source.home.url.appendingPathComponent("audit")
+    _ = try await source.workspace.exportAudit(steward: "st_inbox", to: bundle)
+
+    let target = try await Opened()
+    let imported = try await target.workspace.importAudit(from: bundle)
+    #expect(imported.steward == "st_inbox")
+    #expect(imported.notes == 1)
+    #expect(
+        try await target.workspace.memory(steward: "st_inbox").map(\.text) == [
+            "Refunds go to billing."
+        ])
+    #expect(
+        try await target.types().suffix(3) == [
+            "steward.created", "memory.added", "system.audit.imported",
+        ])
+    await #expect(throws: WorkspaceError.self) {
+        _ = try await target.workspace.importAudit(from: bundle)
+    }
+
+    let events = bundle.appendingPathComponent("events.jsonl")
+    var text = String(decoding: try Data(contentsOf: events), as: UTF8.self)
+    text = text.replacingOccurrences(of: "billing", with: "shipping")
+    try Data(text.utf8).write(to: events)
+    let other = try await Opened()
+    await #expect(
+        throws: WorkspaceError.rejected(
+            "the export does not check: events.jsonl does not match the manifest")
+    ) {
+        _ = try await other.workspace.importAudit(from: bundle)
+    }
+}

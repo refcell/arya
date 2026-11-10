@@ -128,7 +128,7 @@ Payload types are Swift `Codable` structs in `AryaLedger`, each with a golden-fi
 
 ### Signed checkpoints and compaction (M4 design)
 
-Not built yet; this is the plan the ledger lane works from. The ledger only grows: a full
+Built (M4). The ledger only grows: a full
 `verify` and a cold projection rebuild read every line, and an exported steward has nothing to
 prove where its history came from. A **checkpoint** pins the ledger's state at one `seq` under a
 local signing key, so older segments can be archived and history can travel.
@@ -175,7 +175,12 @@ local signing key, so older segments can be archived and history can travel.
 
 Order of work: `system.key.added` and key storage; `system.checkpoint` with sign and check;
 `verify` anchoring and the `unanchored` issue; projection seeding; `compact` and archive
-verify; export and import on top. Non-goals: remote timestamping, multi-party signing, and
+verify; export and import on top (all built). Retention archives through the same
+compaction, and `LedgerReader` reads archived segments before live ones, so history folds
+never lose events; the verifier, checkpoints, and the retention plan read `ledger/` alone.
+An audit export (`AuditExport`) is one steward's lines byte for byte plus the key events and
+a manifest signed with the checkpoint key; it checks without the home, and `importAudit`
+recreates the steward from it (latest charter, live memory) in another home. Non-goals: remote timestamping, multi-party signing, and
 checkpoints made automatically without a person asking (a later policy may schedule them).
 
 ## Charters and cases

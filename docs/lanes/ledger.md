@@ -98,8 +98,9 @@ Next (lane-extended toward M3.5 app parity, in order):
 - [x] (13) 50k probe (`perfVerifyAndColdIndexOf50000EventsScale`): verify 0.852 s and cold
   `index()` 0.941 s against 0.929 s for the 5k per-event cost times 50k (debug, CPU time);
   both linear, so segment-parallel verify is not needed.
-- [ ] (14) Export and import on top of checkpoints (ARCHITECTURE.md order of work): a steward's
-  events plus the anchoring checkpoint as one bundle, checked on import.
+- [x] (14) Export and import: the (G5) bundle is the export; `importAudit(from:as:)` checks
+  it, recreates the steward from its latest charter with its live memory, and records
+  `system.audit.imported`; "Import…" in app settings (snapshot `governance-retention`).
 
 Governance (restaffed 2026-11-09: trust, control, and audit, end to end; each item ships in
 the app through app-views or app-shell Questions, with a snapshot state, tests, and an e2e step):
@@ -200,6 +201,15 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   anyone holding the ledger can compare it. Revealed payloads are vouched for only by the
   signature, since their boxes need the home key. The export itself is recorded as
   `system.audit.exported {steward, count, head, manifest, revealed}` (actor: the person).
+- (14 import) Import builds on the signed export instead of a second bundle format: the
+  manifest's signature and `keys.jsonl` stand in for the anchoring checkpoint (the signer is
+  the home's checkpoint key either way). Importing re-records state, it does not splice
+  lines: the target ledger has its own chain, so the steward's latest charter becomes
+  version 1 here, its live memory notes are re-added (actor: the importing person), and
+  `system.audit.imported {steward, count, head, manifest, key, notes}` names the source.
+  Runs, approvals, and metrics stay in the export as evidence. A sealed charter needs a
+  revealed export; sealed notes are skipped. Refused when the bundle does not check or the
+  steward id already exists.
 - (G3 retention) Settings are ledger facts: `system.retention.set {steward?, days?}` (nil
   steward = home default, nil days clears; latest wins; `RetentionPolicy`). `RetentionPlan`
   takes the longest prefix of closed segments whose every event is older than the days that
@@ -330,6 +340,9 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) New eval event `case.reviewed` {casebook, case, verdict agreed|skipped}; PROTOCOL?
 
 ## Log
+- 2026-11-10: (14) done: import a steward from a checked audit export (charter, live
+  memory, provenance event) and "Import…" in app settings. Visual check:
+  `governance-retention` shows the import row with the last import; moves point (3).
 - 2026-11-10: (13) done: the 50k probe meets the 5k per-event target for verify and a cold
   index; no parallel verify. Committed locally (publish batched).
 - 2026-11-10: (G3b) done: retention archives for real. `LedgerReader` reads archived
