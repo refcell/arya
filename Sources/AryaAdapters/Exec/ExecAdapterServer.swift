@@ -115,7 +115,7 @@ public actor ExecAdapterServer {
             return try JSONValue(encoding: cost)
         case RPCMethod.runSend:
             throw RPCError(code: RPCErrorCode.capabilityNotSupported, message: "send unsupported")
-        case RPCMethod.shutdown:
+        case RPCMethod.shutdown, RPCMethod.ping:
             return .object([:])
         default:
             throw RPCError(

@@ -27,6 +27,15 @@ import Testing
         try await adapter.shutdown()
     }
 
+    /// `ping` needs no run; an adapter from before it answers `-32601`, which also passes.
+    @Test(arguments: AdapterUnderTest.conformanceTargets)
+    func pingIsAnsweredWithoutARun(_ target: ConformanceTarget) async throws {
+        let (adapter, _) = try await connect(target)
+        try await adapter.ping()
+        try await adapter.ping()
+        try await adapter.shutdown()
+    }
+
     @Test(arguments: AdapterUnderTest.conformanceTargets)
     func unsupportedVersionIsRejected(_ target: ConformanceTarget) async throws {
         let adapter = try AdapterUnderTest.launch(target.command)

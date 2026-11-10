@@ -123,6 +123,12 @@ missed notifications. Adapters without `transcript` return `-32002`.
 
 `{}` → `{}`, then the adapter exits with status 0.
 
+### `ping`
+
+`{}` → `{}`. Answered at any time after `initialize`, with or without a run, so arya can check that
+an adapter is alive (the "test connection" step uses it). An adapter from before `ping` answers
+`-32601`; arya counts that as alive too.
+
 ## Notifications (adapter → arya)
 
 ### `run/event`
@@ -445,6 +451,17 @@ binary:
 ARYA_ADAPTER_CMD="path/to/adapter args" just test AdapterConformance
 ```
 
-It checks the handshake, version negotiation, one-run-per-process, `seq` ordering, exactly one
+It checks the handshake, version negotiation, `ping`, one-run-per-process, `seq` ordering, exactly one
 `run/result`, `run/stop` within 10 seconds, error codes, and clean exit on `shutdown`. Without
 `ARYA_ADAPTER_CMD` it runs against `arya-fake-adapter`.
+
+## Connection testing
+
+`ConnectionProbe` in `AryaAdapters` backs a "test connection" step.
+`ConnectionProbe.adapter(command)` starts an adapter, sends `initialize` and `ping`, shuts it down,
+and returns the adapter's name, capabilities, and the `initialize` round trip.
+`ConnectionProbe.binding(command)` does the same for a binding's MCP server with `initialize`,
+`notifications/initialized`, `tools/list`, and `ping`, and reports its tools and whether it serves
+`history`. Neither throws: a failure comes back with one sentence for a person (could not start,
+exited before answering, did not answer in time, a different protocol version), followed by the last
+line the command wrote to stderr.

@@ -217,6 +217,7 @@ public enum RPCMethod {
     public static let runTranscript = "run/transcript"
     public static let runCost = "run/cost"
     public static let shutdown = "shutdown"
+    public static let ping = "ping"
     public static let runEvent = "run/event"
     public static let runResult = "run/result"
     public static let hostAsk = "host/ask"

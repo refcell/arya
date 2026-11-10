@@ -178,6 +178,34 @@ public actor AdapterConnection: Adapter {
         try await write(.response(RPCResponse(id: id, result: value)))
     }
 
+    /// Sends `ping`: answers `{}` from a live adapter. An adapter from before `ping` answers
+    /// `-32601`, which also proves it is alive, so that counts as success.
+    public func ping() async throws(AdapterError) {
+        do {
+            _ = try await request(RPCMethod.ping)
+        } catch .rpc(let error) where error.code == RPCErrorCode.methodNotFound {
+            return
+        }
+    }
+
+    /// Sends a notification (no reply), for peers such as MCP servers that need them.
+    public func notify(_ method: String, params: JSONValue? = nil) async throws(AdapterError) {
+        open()
+        try await write(.notification(RPCNotification(method: method, params: params)))
+    }
+
+    /// Closes stdin without a `shutdown` request and waits for the peer to exit, terminating
+    /// it after the exit grace. For peers that do not speak this protocol, such as bindings.
+    public func close() async {
+        supervisor?.cancel()
+        if exit != nil { return }
+        await transport.closeInput()
+        if await waitForExit(within: timeouts.exitGrace) == nil {
+            await transport.terminate(grace: timeouts.killGrace)
+            _ = await waitForExit(within: timeouts.killGrace + .seconds(1))
+        }
+    }
+
     /// Sends any request and returns its raw result. Used by the conformance suite and for
     /// methods this module does not type.
     public func request(_ method: String, params: JSONValue? = nil) async throws(AdapterError)

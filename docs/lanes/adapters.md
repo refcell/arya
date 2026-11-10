@@ -62,6 +62,8 @@ M4:
 - [x] History import convention: binding tool `history` (past records with what a person did,
   paged oldest first), `BindingHistory.page`, the fake MCP binding
   (`arya-fake-adapter --binding`), and `etc/examples/triage/inbox-history.json` (40 messages).
+- [x] Connection testing: protocol `ping`, `ConnectionProbe.adapter` / `.binding` reports with
+  a one-sentence `problem`, and a conformance check, for the connect lane's "test connection".
 
 ## Decisions
 
@@ -136,6 +138,9 @@ M4:
   bindings reach, and the importer reaches them the same way runs do. Items carry the person's
   actions in proposed-action terms plus `choice` and `outcome`, so a case's expectation and a
   correction (`reopened`) need no binding-specific parsing.
+- `ping` is optional for adapters: `-32601` also proves the process is alive. Probes never
+  throw; their `problem` sentence ends with the command's last stderr line, which is usually
+  the actionable part (a missing key or flag).
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -171,3 +176,4 @@ M4:
 - 2026-11-09: idle-timer test on a manual clock (41dc71a); `host/delegate` for in-run crews,
   the fake `delegate` step, and the triage refund-reply delegation.
 - 2026-11-09: binding `history` convention, fake MCP binding, triage inbox history (40 items).
+- 2026-11-09: `ping` and `ConnectionProbe` (adapter and binding test connection).

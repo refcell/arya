@@ -78,7 +78,7 @@ public actor FakeAdapterServer {
             case RPCMethod.runCost:
                 try require(true, params)
                 return try encode(run?.cost ?? CostResult())
-            case RPCMethod.shutdown: return .success(.object([:]))
+            case RPCMethod.shutdown, RPCMethod.ping: return .success(.object([:]))
             default:
                 throw RPCError(
                     code: RPCErrorCode.methodNotFound, message: "unknown method \(request.method)")
