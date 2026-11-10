@@ -131,6 +131,7 @@ M3:
   target and on-track status, pending approvals, last run, next wake. The demo home now seeds
   three stewards (on track, behind, paused); `arya steward list` would show it too.
 - (from eval) Added `liveReadiness(proposal:recent:)`; case runner scores crews on the join result.
+- (from governance) Integration edits: `ApprovalSummary.approvers`/`approverNote` (filled in `detailed`), `approve(_:note:as:)` with an approver check before the grant (`approve(_:note:)` unchanged); new `Governance.swift` (`policySummary`, `checkApprover`) is governance-owned.
 
 
 ## Log

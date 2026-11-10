@@ -206,6 +206,10 @@ public struct ApprovalSummary: Sendable, Hashable, Codable, Identifiable {
     public var risk: String?
     /// The steward's one-line why for the action, when it gave one.
     public var why: String?
+    /// Who may grant it under the charter's `policy.approvers`; nil when anyone may.
+    public var approvers: [String]?
+    /// The deciding approver rule's note, for example "Refunds need the billing lead".
+    public var approverNote: String?
 
     /// Creates a summary.
     public init(

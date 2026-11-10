@@ -185,6 +185,7 @@ M4:
 - (from workspace) live: `whatIf(run:proposal:) -> WhatIfSummary{did, wouldHave, differences, fixesCorrection, leak, summary}` under a proposal's charter (or the live one); show `summary` verbatim on the run thread.
 - (from workspace) live: `ApprovalSummary.change{field, from, to, text}` for non-reply actions (`label: none → billing`; nil for replies) next to `source`; `policyText` for autonomy holds is now a plain sentence, show it verbatim.
 - (from eval) Fixed ChangeList: ledger uses `proposal` (not `id`) and nests the gate in `verdict`.
+- (from governance) live: `ApprovalSummary.approvers` (who may grant it; nil = anyone) and `approverNote`; show "Needs person:alex" on the card and the facade's refusal text verbatim when Approve is refused (the approval stays pending, `approval.refused` lands in the ledger). `policySummary(steward:) -> PolicySummary{autonomy, fallback, bindings[{id, kind, tools, network, via, actions[{kind, decision, reason, risk, approvers, approverNote}]}], approvers[{action, binding, people, note}]}` for one Policy section (tool allowlist, what runs alone, what waits and for whom). Please add a snapshot state with a guarded approval.
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

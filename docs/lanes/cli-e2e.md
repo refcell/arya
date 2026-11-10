@@ -102,6 +102,7 @@ M4:
 - (from eval) FYI per CEO: demo proposes `charter-v2.json`; `arya propose` now gates (help said so).
 - (from workspace) live: `correct(run:expected:note:by:)` and `expected(run:choice:)` for an `arya correct --run <id> --choice <c>`.
 - (from workspace) live: `fleet()` (the fleet read you asked for) for `arya steward list`.
+- (from governance) `approve(_:note:as:)` for `arya approve <id> --as person:alex`, and `policySummary(steward:)` for `arya steward policy <id>`. e2e step: add `policy.approvers` for `refund` (people `person:alex`) to the triage example, show `arya approve` as local is refused (exit non-zero, `approval.refused` on the ledger), then approve `--as person:alex`.
 
 ## Log
 - 2026-11-09: decided the zero-time id question myself (ledger lane paused): fixed in

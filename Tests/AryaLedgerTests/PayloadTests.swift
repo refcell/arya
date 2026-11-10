@@ -60,6 +60,10 @@ let payloadSamples: [PayloadSample] = [
     PayloadSample(ApprovalGranted(approval: ap1, note: "Go ahead.")),
     PayloadSample(ApprovalDenied(approval: ap1, note: "Not this one.")),
     PayloadSample(ApprovalExpired(approval: ap1)),
+    PayloadSample(
+        ApprovalRefused(
+            approval: ap1, by: "local", people: ["person:alex"], rule: "refund",
+            note: "Refunds need the billing lead.")),
     PayloadSample(EnvRead(readings: [.time(Timestamp(millis: 0)), .random(42)])),
     PayloadSample(
         SystemRepair(

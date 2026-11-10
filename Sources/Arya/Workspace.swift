@@ -242,6 +242,9 @@ public actor Workspace {
                     risks["\(approval.run):\(action.id)"]?.rawValue ?? wire?.risk?.rawValue
                 out.why = wire?.why
                 out.change = Self.change(action, after: executed.map(\.action))
+                let rule = charters[approval.steward]?.policy.approverRule(for: action)
+                out.approvers = rule?.people
+                out.approverNote = rule?.note
             }
             return out
         }
@@ -324,10 +327,21 @@ public actor Workspace {
     }
 
     /// Grants a pending approval; an action then executes with the steward's live charter and
-    /// its output is recorded. For a question, `note` is the answer.
+    /// its output is recorded. For a question, `note` is the answer. `person` is who grants it
+    /// (`local`, or a person binding id); the charter's `policy.approvers` must allow them, or
+    /// `approval.refused` is recorded and the approval stays pending.
     public func approve(_ id: String, note: String? = nil) async throws -> ApprovalSummary {
+        try await approve(id, note: note, as: RuntimeActor.localUser.id)
+    }
+
+    /// Grants a pending approval on behalf of `person` (see `approve(_:note:)`).
+    public func approve(_ id: String, note: String? = nil, as person: String)
+        async throws -> ApprovalSummary
+    {
+        try await checkApprover(id, person: person)
         let record = try await mapped {
-            try await approvalQueue.grant(ApprovalID(unchecked: id), by: .localUser, note: note)
+            try await approvalQueue.grant(
+                ApprovalID(unchecked: id), by: .person(person), note: note)
         }
         guard record.status == .granted else {
             throw WorkspaceError.rejected("\(id) is already \(record.status.rawValue)")

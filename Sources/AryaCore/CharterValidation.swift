@@ -96,6 +96,24 @@ extension Charter {
                 issues.append(.init("policy.rules[\(i)].binding", "unknown binding \(id)"))
             }
         }
+        return issues + validateApprovers()
+    }
+
+    private func validateApprovers() -> [CharterIssue] {
+        var issues: [CharterIssue] = []
+        for (i, rule) in policy.approvers.enumerated() {
+            let path = "policy.approvers[\(i)]"
+            if rule.action.trimmed.isEmpty {
+                issues.append(.init("\(path).action", "must not be empty"))
+            }
+            if let id = rule.binding, binding(id) == nil {
+                issues.append(.init("\(path).binding", "unknown binding \(id)"))
+            }
+            if rule.people.isEmpty { issues.append(.init("\(path).people", "must not be empty")) }
+            for person in rule.people where person != "local" && binding(person)?.kind != .person {
+                issues.append(.init("\(path).people", "unknown person \(person)"))
+            }
+        }
         return issues
     }
 

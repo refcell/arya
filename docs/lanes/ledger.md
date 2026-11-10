@@ -1,7 +1,8 @@
-# Lane: ledger
+# Lane: ledger and governance
 
 Owns `Sources/AryaCore`, `Sources/AryaLedger`, `Tests/AryaCoreTests`, and
-`Tests/AryaLedgerTests`.
+`Tests/AryaLedgerTests`, plus the governance read models in `Sources/Arya/Governance.swift`
+(`Tests/AryaTests/GovernanceTests.swift`), coordinated with the workspace lane.
 
 Goal: **the foundation every other lane writes to.** Shared value types, the `Ambient` source of
 time, ids, and randomness, and an append-only, hash-chained ledger that survives crashes,
@@ -99,7 +100,33 @@ Next (lane-extended toward M3.5 app parity, in order):
 - [ ] (14) Export and import on top of checkpoints (ARCHITECTURE.md order of work): a steward's
   events plus the anchoring checkpoint as one bundle, checked on import.
 
+Governance (restaffed 2026-11-09: trust, control, and audit, end to end; each item ships in
+the app through app-views or app-shell Questions, with a snapshot state, tests, and an e2e step):
+- [x] (G1) Roles and permissions: `policy.approvers` (who may approve which action kinds,
+  per binding), enforced when an approval is granted and recorded as `approval.refused`;
+  `Workspace.policySummary(steward:)` lists each binding's tool allowlist and actions with
+  disposition, risk, and approvers. Approvers are `local` or person bindings until a people
+  directory lands. UI and e2e asked in app-views.md and cli-e2e.md.
+- [ ] (G2) Abort and undo: abort a running run from the app (recorded, safe); undo or
+  compensate an approved action where its kind supports it, with the audit trail.
+- [ ] (G3) Data retention: per-steward retention (archive or compact older than N days, on
+  top of compaction), shown in settings.
+- [ ] (G4) Encryption at rest for the home (ledger, memory, credential references) with a
+  Keychain-held key or file data protection, plus a migration.
+- [ ] (G5) Signed audit export of a steward's ledger slice: JSON Lines plus a verification
+  manifest, from the app.
+- [ ] (G6) Then (13) and (14) above.
+
 ## Decisions
+
+- (G1) Approver rules match like risk rules: kind and binding, then kind, then `*` and
+  binding, then `*`; first listed among equals; `routine:<name>` matches a routine action.
+  No rule means anyone who can see the approval may decide (existing charters keep working;
+  the list is omitted from the charter JSON when empty). Denying is never role-gated: holding
+  an action back is always safe. Questions are not role-gated. A refused grant appends
+  `approval.refused` (`{approval, by, people, rule, note}`, actor the person) and leaves the
+  approval pending; the runtime's `ApprovalBook` ignores the type. The facade keeps
+  `approve(_:note:)` (the local user) and adds `approve(_:note:as:)`.
 
 - Ids are `PrefixedID` structs (`st_`, `run_`, `ev_`, `ap_`, `prop_`, `reh_`, `mem_`); generated
   bodies are 26-character ULIDs (48-bit ms time, 80 random bits, Crockford base32). `CaseID`
@@ -206,6 +233,9 @@ Next (lane-extended toward M3.5 app parity, in order):
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
+- 2026-11-09: lane restaffed as ledger and governance. (G1) done: `policy.approvers`,
+  `approval.refused`, `approve(_:note:as:)`, `policySummary(steward:)`, decision 0045. App
+  section and e2e step asked in app-views.md and cli-e2e.md.
 - HANDOFF 2026-11-09 (third session, ended near auto-compaction): backlog (5a)-(12) done and on
   main. Next: (13), then (14). Notes: filtered reads go through `LineSieve` (needles are
   necessary, never sufficient; skipped lines are not hash-checked). `newest(_:before:limit:)`

@@ -443,3 +443,14 @@ event's payload and hash, a run's facts and cost, else the steward's context (pl
 policy, connections, people, effort), with Settings as its last section. A command palette
 and a status bar follow. Why: the larger, column-bound layout left most of the window empty
 and hid function behind navigation.
+
+### 0045 — 2026-11-09 — Charters name who may approve which actions
+
+`policy.approvers` lists `{action, binding?, people, note?}` rules: `action` is a kind,
+`routine:<name>`, or `*`; `people` are `local` (the person at this home) or person binding ids.
+The most specific rule decides (kind and binding, kind, `*` and binding, `*`). With no rule,
+anyone who can see an approval may decide it, so existing charters are unchanged. Only
+granting is gated: denying is always allowed, and questions are not gated. A grant the rule
+refuses records `approval.refused {approval, by, people, rule, note}` (actor: that person) and
+leaves the approval pending. Why: a steward that can act on money or customers needs a record
+of who was allowed to say yes, not only who did.

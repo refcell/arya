@@ -55,6 +55,7 @@ extension EventType {
     public static let approvalGranted: EventType = "approval.granted"
     public static let approvalDenied: EventType = "approval.denied"
     public static let approvalExpired: EventType = "approval.expired"
+    public static let approvalRefused: EventType = "approval.refused"
 
     public static let memoryAdded: EventType = "memory.added"
     public static let memoryRetracted: EventType = "memory.retracted"
@@ -90,10 +91,10 @@ extension EventType {
         stewardRetired, stewardEffortSet,
         runStarted, runInput, runAdapterEvent, runToolCall, runToolResult, runDecision,
         runFinished, runFailed, actionProposed, actionExecuted, actionFailed, actionRejected,
-        approvalRequested, approvalGranted, approvalDenied, approvalExpired, memoryAdded,
-        memoryRetracted, routineProposed, routinePromoted, routineRetired, casebookImported,
-        caseCorrected, rehearsalStarted, rehearsalCaseScored, rehearsalFinished, proposalCreated,
-        proposalGated, proposalAccepted, proposalRejected, proposalOverridden, metricRecorded,
-        envRead, systemRepair, systemStarted, systemKeyAdded, systemCheckpoint,
+        approvalRequested, approvalGranted, approvalDenied, approvalExpired, approvalRefused,
+        memoryAdded, memoryRetracted, routineProposed, routinePromoted, routineRetired,
+        casebookImported, caseCorrected, rehearsalStarted, rehearsalCaseScored, rehearsalFinished,
+        proposalCreated, proposalGated, proposalAccepted, proposalRejected, proposalOverridden,
+        metricRecorded, envRead, systemRepair, systemStarted, systemKeyAdded, systemCheckpoint,
     ]
 }

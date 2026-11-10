@@ -83,3 +83,32 @@ public struct ApprovalExpired: EventPayload {
 
     enum CodingKeys: String, CodingKey { case approval, note }
 }
+
+/// `approval.refused`: a person tried to grant an approval that the steward's
+/// `policy.approvers` does not let them grant. The approval stays pending.
+/// `{approval, by, people, rule?, note?}`: `people` lists who may grant it.
+public struct ApprovalRefused: EventPayload {
+    public static let type = EventType.approvalRefused
+    public var approval: ApprovalID
+    /// The person who tried, for example `local` or `person:alex`.
+    public var by: String
+    /// The people the deciding rule lists.
+    public var people: [String]
+    /// The deciding rule's action and binding, for example `refund` or `refund@billing`.
+    public var rule: String?
+    /// The rule's note in a person's words.
+    public var note: String?
+
+    public init(
+        approval: ApprovalID, by: String, people: [String], rule: String? = nil,
+        note: String? = nil
+    ) {
+        self.approval = approval
+        self.by = by
+        self.people = people
+        self.rule = rule
+        self.note = note
+    }
+
+    enum CodingKeys: String, CodingKey { case approval, by, people, rule, note }
+}

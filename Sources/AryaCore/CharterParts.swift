@@ -162,11 +162,18 @@ public struct Policy: Hashable, Sendable, Codable {
     public var rules: [Rule]
     /// Risk levels by action kind, routine, or binding (decision 0037); omitted when empty.
     public var risk: [RiskRule]
+    /// Who may approve which held actions (`ApproverRule`); omitted when empty, which lets
+    /// anyone who can see an approval decide it.
+    public var approvers: [ApproverRule]
 
-    public init(default: PolicyDecision = .ask, rules: [Rule] = [], risk: [RiskRule] = []) {
+    public init(
+        default: PolicyDecision = .ask, rules: [Rule] = [], risk: [RiskRule] = [],
+        approvers: [ApproverRule] = []
+    ) {
         self.default = `default`
         self.rules = rules
         self.risk = risk
+        self.approvers = approvers
     }
 
     /// The decision for an action of `kind` through `binding`. A binding-specific rule beats
@@ -179,13 +186,14 @@ public struct Policy: Hashable, Sendable, Codable {
         return matching.first(where: { $0.binding == nil })?.decision ?? self.default
     }
 
-    private enum CodingKeys: String, CodingKey { case `default`, rules, risk }
+    private enum CodingKeys: String, CodingKey { case `default`, rules, risk, approvers }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.default = try c.decodeIfPresent(PolicyDecision.self, forKey: .default) ?? .ask
         rules = try c.decodeIfPresent([Rule].self, forKey: .rules) ?? []
         risk = try c.decodeIfPresent([RiskRule].self, forKey: .risk) ?? []
+        approvers = try c.decodeIfPresent([ApproverRule].self, forKey: .approvers) ?? []
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -193,6 +201,7 @@ public struct Policy: Hashable, Sendable, Codable {
         try c.encode(self.default, forKey: .default)
         try c.encode(rules, forKey: .rules)
         if !risk.isEmpty { try c.encode(risk, forKey: .risk) }
+        if !approvers.isEmpty { try c.encode(approvers, forKey: .approvers) }
     }
 }
 

@@ -9,7 +9,7 @@ lanes read it to find interfaces. `Tests/<Module>Tests` belongs to the lane that
 
 | Lane | File | Owns |
 | --- | --- | --- |
-| ledger | [ledger.md](ledger.md) | `Sources/AryaCore`, `Sources/AryaLedger`, `Tests/AryaCoreTests`, `Tests/AryaLedgerTests` |
+| ledger and governance | [ledger.md](ledger.md) | `Sources/AryaCore`, `Sources/AryaLedger`, `Tests/AryaCoreTests`, `Tests/AryaLedgerTests`, `Sources/Arya/Governance.swift` (with workspace) |
 | adapters | [adapters.md](adapters.md) | `Sources/AryaAdapters`, `Sources/AryaFakeAdapter`, `Sources/AryaExecAdapter`, `Tests/AryaAdaptersTests`, `docs/PROTOCOL.md` |
 | runtime | [runtime.md](runtime.md) | `Sources/AryaRuntime`, `Tests/AryaRuntimeTests` |
 | workspace | [workspace.md](workspace.md) | `Sources/Arya`, `Tests/AryaTests` |
