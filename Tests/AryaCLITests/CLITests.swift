@@ -227,3 +227,15 @@ import Testing
     let (bad, _) = await runCLI(["steward", "gate", "st_triage", "--agreed", "zero"])
     #expect(bad == .usage)
 }
+
+@Test func findingsAndTemplatesAreUnavailableWithoutAFacade() async {
+    for args in [
+        ["findings"], ["finding", "resolve", "run_1/f1", "acted"], ["template", "list"],
+        ["template", "use", "support_triage"],
+    ] {
+        let (status, _) = await runCLI(args)
+        #expect(status == .unavailable, "\(args)")
+    }
+    let (bad, _) = await runCLI(["finding", "resolve", "run_1/f1", "maybe"])
+    #expect(bad == .usage)
+}

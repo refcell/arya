@@ -655,3 +655,40 @@ extension WorkspaceBackend {
         }
     }
 }
+
+extension WorkspaceBackend {
+    func findings(steward: String?, all: Bool) async throws(CLIError) -> [FindingSummary] {
+        let workspace = try await open()
+        return try await call("findings") {
+            try await workspace.findings(steward: steward, all: all)
+        }
+    }
+
+    func resolveFinding(_ id: String, resolution: String, note: String?, by person: String)
+        async throws(CLIError) -> FindingSummary
+    {
+        let workspace = try await open()
+        return try await call("resolveFinding", rejection: { .invalidInput($0) }) {
+            try await workspace.resolveFinding(id, resolution: resolution, note: note, by: person)
+            guard let found = try await workspace.findings(all: true).first(where: { $0.id == id })
+            else { throw WorkspaceError.notFound(id) }
+            return found
+        }
+    }
+
+    func templates() async throws(CLIError) -> [StewardTemplate] {
+        try await open().templates()
+    }
+
+    func useTemplate(_ template: String, id: String?, name: String?, owner: String?)
+        async throws(CLIError) -> StewardDetail
+    {
+        let workspace = try await open()
+        let summary = try await call("createFromTemplate", rejection: { .invalidInput($0) }) {
+            try await workspace.createFromTemplate(template, id: id, name: name, owner: owner)
+        }
+        return Mapping.detail(
+            Mapping.steward(summary, pendingApprovals: 0, lastRun: nil),
+            outcome: summary.outcome, charter: nil)
+    }
+}
