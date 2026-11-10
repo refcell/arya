@@ -34,7 +34,7 @@ import Testing
                 policy: "ask", outcome: .proposed,
                 params: ["text": .string("Line one\nLine two")])))
     let diff = try #require(RunWork.actionDiff(step))
-    #expect(diff.text.hasPrefix("--- inbox:MSG-1\n+++ inbox:MSG-1\n@@ reply @@"))
+    #expect(diff.text.hasPrefix("--- MSG-1\n+++ MSG-1\n@@ reply @@"))
     #expect(diff.added == 3)
     #expect(diff.countText == "+3 −0")
 }
@@ -57,8 +57,8 @@ import Testing
     let assign = ProposedActionStep(
         actionID: "a2", kind: "assign", target: "tracker:ISSUE-7", summary: "", rationale: "",
         policy: "ask", outcome: .proposed, params: ["to": "person:alex"])
-    #expect(ActionSummary.sentence(label) == "Label tracker:ISSUE-7 as bug")
-    #expect(ActionSummary.sentence(assign) == "Assign tracker:ISSUE-7 to person:alex")
+    #expect(ActionSummary.sentence(label) == "Label ISSUE-7 as bug")
+    #expect(ActionSummary.sentence(assign) == "Assign ISSUE-7 to Alex")
     let step = StreamStep(id: "e", number: 1, at: FeatureTestClock.now, kind: .action(label))
     #expect(RunWork.actionDiff(step)?.text.hasSuffix("\n+bug") == true)
 }

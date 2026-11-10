@@ -215,7 +215,8 @@ struct RunWork: Hashable, Sendable {
                     added += value.prettyText.split(separator: "\n").map { "\(key) \($0)" }
                 case .string(let text):
                     // The value itself when the key names the action: "+bug" for a label.
-                    added.append(key == action.kind ? text : "\(key): \(text)")
+                    let value = EntityName.humanize(text)
+                    added.append(key == action.kind ? value : "\(key): \(value)")
                 default:
                     added.append(
                         key == action.kind ? value.compactText : "\(key): \(value.compactText)")
@@ -223,10 +224,11 @@ struct RunWork: Hashable, Sendable {
             }
         }
         if added.isEmpty { added = [action.kind] }
+        let target = EntityName.plain(action.target)
         let text =
-            (["--- \(action.target)", "+++ \(action.target)", "@@ \(action.kind) @@"]
+            (["--- \(target)", "+++ \(target)", "@@ \(action.kind) @@"]
             + added.map { "+\($0)" }).joined(separator: "\n")
-        return WorkDiff(id: step.id, title: "\(action.kind) \(action.target)", text: text)
+        return WorkDiff(id: step.id, title: "\(action.kind) \(target)", text: text)
     }
 
     /// An edit the harness reported (`diff` event: `path`, `patch`), as it reported it.

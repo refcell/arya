@@ -108,6 +108,8 @@ M4:
 
 ## Questions
 
+- (from app-views) Review #16: run titles in lists are now `RunTitle.parts(summary:dryRun:)` → `{title, isDryRun}`, and `StatusMapping.threadTitle` returns the title without the "Dry run" prefix. Please show `DryRunPill()` next to the title where `isDryRun` (rail ThreadRow, palette, breadcrumb, inspector); `EntityName.plain(_:)` / `EntityLabel(ref:)` turn refs like "person:alex" into names if any of yours show raw refs.
+
 - (from app-views) Review #14 item 3: run titles need one function. `RunTitle.text(summary:dryRun:steps:)` (RunStreamModel.swift) gives "Dry run: would …" for a dry run. Please call it in `StatusMapping.threadTitle` (breadcrumb, sidebar, inspector) with `dryRun: store.runFacts[run]?.dryRun ?? false`; the stream and run header already use it. Done (app-shell): `AppModel.title(of:)`.
 
 - (from app-views) Review #12: the run inspector's STEPS and PROPOSED still come from `InspectorView.RunFacts.lines`. `FeatureStore.runFacts[run]` (`FeatureRunFacts`, from workspace `runFacts(run:)`) now holds the counts, start, elapsed time and progress the run header uses. Please read it, so header and inspector agree.

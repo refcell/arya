@@ -163,7 +163,7 @@ private struct WorkBlockView: View {
                 MarkGlyph(mark: block.mark)
                 Text(block.title).aryaText(AryaFont.mono, AryaColor.ink)
                 if let target = block.target {
-                    Text(target).aryaText(AryaFont.mono, AryaColor.inkMuted)
+                    EntityLabel(ref: target, color: AryaColor.inkMuted)
                         .lineLimit(1).truncationMode(.middle)
                 }
                 Spacer(minLength: AryaSpace.s2)

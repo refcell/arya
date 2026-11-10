@@ -102,7 +102,8 @@ enum StatusMapping {
         let summary =
             run.summary?.split(separator: "\n").first
             .map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
-        if !summary.isEmpty { return RunTitle.text(summary: summary, dryRun: dryRun) }
+        // Lists show a DRY RUN pill (`RunTitle.parts`); the sentence is for the run itself.
+        if !summary.isEmpty { return RunTitle.parts(summary: summary, dryRun: dryRun).title }
         let trigger = run.trigger.trimmingCharacters(in: .whitespaces)
         return trigger.isEmpty ? "run" : "\(trigger) run"
     }

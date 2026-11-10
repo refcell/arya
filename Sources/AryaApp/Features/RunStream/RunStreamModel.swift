@@ -890,6 +890,28 @@ extension ActionWords {
 /// One run title for every surface: the summary as written, or for a dry run (drafted, applied
 /// nothing) what it would have done, from each drafted action's own verb phrase.
 enum RunTitle {
+    /// A run's title for lists: the summary without a dry-run prefix, refs as names, and
+    /// whether it was a dry run, which lists show as a DRY RUN pill. The full "Dry run: would
+    /// have …" sentence is only for the run itself.
+    struct Parts: Hashable, Sendable {
+        var title: String
+        var isDryRun: Bool
+    }
+
+    static func parts(summary: String, dryRun: Bool) -> Parts {
+        var title = summary
+        var isDryRun = dryRun
+        for prefix in ["Dry run, nothing applied: ", "Dry run: "] where title.hasPrefix(prefix) {
+            title = String(title.dropFirst(prefix.count))
+            isDryRun = true
+        }
+        if isDryRun, title.hasPrefix("would have ") { title = String(title.dropFirst(11)) }
+        if title != summary, let first = title.first {
+            title = first.uppercased() + title.dropFirst()
+        }
+        return Parts(title: EntityName.humanize(title), isDryRun: isDryRun)
+    }
+
     /// The title for `summary`; `dryRun` comes from `runFacts(run:)`. A dry run without
     /// steps to read reads "Dry run, nothing applied: <summary>".
     static func text(summary: String, dryRun: Bool, steps: [StreamStep] = []) -> String {
@@ -916,7 +938,8 @@ enum RunTitle {
     static func phrase(_ action: ProposedActionStep) -> String {
         let sentence =
             ActionSummary.sentence(action)
-            ?? ([verb(action.kind), action.target].filter { !$0.isEmpty }.joined(separator: " "))
+            ?? ([verb(action.kind), EntityName.plain(action.target)].filter { !$0.isEmpty }
+                .joined(separator: " "))
         let trimmed = sentence.hasSuffix(".") ? String(sentence.dropLast()) : sentence
         let words = trimmed.split(separator: " ", maxSplits: 1).map(String.init)
         guard let first = words.first else { return trimmed }

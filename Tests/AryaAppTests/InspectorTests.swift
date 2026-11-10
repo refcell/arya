@@ -122,5 +122,6 @@ import Testing
     #expect(StatusMapping.threadTitle(of: run) == "Labeled MSG-1 as spam.")
     #expect(
         StatusMapping.threadTitle(of: run, dryRun: true)
-            == "Dry run, nothing applied: Labeled MSG-1 as spam.")
+            == "Labeled MSG-1 as spam.")
+    #expect(RunTitle.parts(summary: "Labeled MSG-1 as spam.", dryRun: true).isDryRun)
 }

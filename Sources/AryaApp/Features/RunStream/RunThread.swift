@@ -177,9 +177,9 @@ private struct ThreadLine: View {
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
         case .action(let action):
             MarkGlyph(mark: StreamStepText.mark(step.kind))
-            Text("\(action.kind) \(action.target)").aryaText(AryaFont.mono, AryaColor.ink)
-                .lineLimit(1).truncationMode(.middle)
-            if let result = RunThreadText.arrow(action.params) {
+            Text(action.kind).aryaText(AryaFont.mono, AryaColor.ink)
+            if !action.target.isEmpty { EntityLabel(ref: action.target) }
+            if let result = RunThreadText.arrow(action.params).map(EntityName.humanize) {
                 Text("→ \(result)").aryaText(AryaFont.mono, AryaColor.inkMuted).lineLimit(1)
             }
             if let note = RunThreadText.actionNote(action) {
@@ -483,7 +483,8 @@ enum RunThreadText {
     /// "Reply to inbox:MSG-201".
     static func approvalTitle(_ action: ProposedActionStep) -> String {
         let verb = action.kind.prefix(1).uppercased() + action.kind.dropFirst()
-        return action.target.isEmpty ? verb : "\(verb) \(preposition(action.kind)) \(action.target)"
+        let target = EntityName.plain(action.target)
+        return action.target.isEmpty ? verb : "\(verb) \(preposition(action.kind)) \(target)"
     }
 
     /// "via inbox · risk medium"; why it was held is the workspace's sentence.
@@ -556,7 +557,8 @@ enum ActionSummary {
             let amount = money(params[key])
         {
             let currency = scalar(params["currency"]).map { " \($0)" } ?? ""
-            return "\(verb) \(amount)\(currency)" + (place.map { " on \($0)" } ?? "")
+            return EntityName.humanize(
+                "\(verb) \(amount)\(currency)" + (place.map { " on \($0)" } ?? ""))
         }
         let used = Set(referenceKeys + ["currency"]).union(contentKeys)
         var phrases: [String] = []
@@ -577,7 +579,7 @@ enum ActionSummary {
         var sentence = verb + (place.map { " \($0)" } ?? "")
         if !phrases.isEmpty { sentence += " " + phrases.joined(separator: " ") }
         if !rest.isEmpty { sentence += " with " + rest.joined(separator: ", ") }
-        return sentence
+        return EntityName.humanize(sentence)
     }
 
     private static func money(_ value: FeatureJSON?) -> String? {

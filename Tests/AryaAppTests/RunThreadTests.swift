@@ -17,7 +17,7 @@ private func reply() -> ProposedActionStep {
     let action = reply()
     #expect(action.content == "Thanks for writing in.")
     #expect(action.paramLines.isEmpty)
-    #expect(RunThreadText.approvalTitle(action) == "Reply to inbox:MSG-201")
+    #expect(RunThreadText.approvalTitle(action) == "Reply to MSG-201")
     #expect(RunThreadText.approvalMeta(action) == "via inbox · risk medium")
     #expect(ActionRisk(kind: "label") == .low)
     #expect(ActionRisk(kind: "close") == .high)
@@ -26,7 +26,7 @@ private func reply() -> ProposedActionStep {
     route.params = ["queue": "billing"]
     #expect(route.content == nil)
     #expect(route.paramLines == ["queue: billing"])
-    #expect(RunThreadText.approvalTitle(route) == "Route on inbox:MSG-201")
+    #expect(RunThreadText.approvalTitle(route) == "Route on MSG-201")
     #expect(RunThreadText.sourceLabel(action) == "In reply to")
     #expect(RunThreadText.sourceLabel(route) == "From message")
 }

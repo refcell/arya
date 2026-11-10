@@ -97,7 +97,8 @@ struct RunBrief: Hashable, Sendable {
                     .joined(separator: " ")
                 return Item(mark: call.finished ? .done : .current, text: text)
             case .action(let action):
-                return Item(mark: .done, text: RunTitle.verb(action.kind) + " " + action.target)
+                let target = EntityName.plain(action.target)
+                return Item(mark: .done, text: RunTitle.verb(action.kind) + " " + target)
             case .delegated(let delegation):
                 return Item(
                     mark: delegation.childStatus == .running ? .current : .done,

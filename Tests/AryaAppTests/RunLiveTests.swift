@@ -139,19 +139,19 @@ import Testing
         return StreamStep(id: kind, number: 1, at: FeatureTestClock.now, kind: .action(action))
     }
     let cases: [(StreamStep, String)] = [
-        (step("label", "inbox:MSG-1", ["label": "spam"]), "labeled inbox:MSG-1 as spam"),
+        (step("label", "inbox:MSG-1", ["label": "spam"]), "labeled MSG-1 as spam"),
         (
             step("assign", "tracker:ISSUE-7", ["to": "person:alex"]),
-            "assigned tracker:ISSUE-7 to person:alex"
+            "assigned ISSUE-7 to Alex"
         ),
         (
             step("mark", "crm:LEAD-1095", ["mark": "disqualified"]),
-            "marked crm:LEAD-1095 as disqualified"
+            "marked LEAD-1095 as disqualified"
         ),
-        (step("send_email", "lead:LEAD-1095", .null), "sent email lead:LEAD-1095"),
+        (step("send_email", "lead:LEAD-1095", .null), "sent email LEAD-1095"),
         (
             step("refund", "billing:ORDER-1", ["amount": 12, "currency": "USD"]),
-            "refunded 12.00 USD on billing:ORDER-1"
+            "refunded 12.00 USD on ORDER-1"
         ),
     ]
     for (step, phrase) in cases {
@@ -163,8 +163,8 @@ import Testing
         steps: [cases[2].0, cases[3].0])
     #expect(
         title
-            == "Dry run: would have marked crm:LEAD-1095 as disqualified"
-            + " and sent email lead:LEAD-1095."
+            == "Dry run: would have marked LEAD-1095 as disqualified"
+            + " and sent email LEAD-1095."
     )
     #expect(RunTitle.text(summary: "Closed it.", dryRun: false) == "Closed it.")
     #expect(
@@ -244,4 +244,18 @@ import Testing
     #expect(brief.trigger == "Priya handed this off")
     #expect(brief.plan.map(\.mark) == [.done, .current, .next])
     #expect(brief.planSource == "the run's plan")
+}
+
+@Test func refsReadAsNamesAndDryRunsSplitIntoTitleAndPill() {
+    #expect(EntityName.split("person:alex").name == "Alex")
+    #expect(EntityName.split("person:alex").system == nil)
+    #expect(EntityName.split("tracker:ISSUE-7").name == "ISSUE-7")
+    #expect(EntityName.split("tracker:ISSUE-7").system == "tracker")
+    #expect(EntityName.split("refund").system == nil)
+    #expect(
+        EntityName.humanize("Assign tracker:ISSUE-7 to person:sam-lee at 09:01, see https://x.io")
+            == "Assign ISSUE-7 to Sam Lee at 09:01, see https://x.io")
+    let parts = RunTitle.parts(
+        summary: "Dry run: would have labeled inbox:MSG-9 as spam.", dryRun: false)
+    #expect(parts == RunTitle.Parts(title: "Labeled MSG-9 as spam.", isDryRun: true))
 }

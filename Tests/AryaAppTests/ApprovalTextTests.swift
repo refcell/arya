@@ -67,7 +67,7 @@ private func step(_ kind: String, target: String, _ params: FeatureJSON) -> Prop
     #expect(ActionSummary.sentence(refund) == "Refund 24.00 USD on ORDER-1043")
     let priority = step("set_priority", target: "inbox:MSG-9", ["level": "high", "notify": true])
     #expect(
-        ActionSummary.sentence(priority) == "Set priority inbox:MSG-9 with level high, notify true")
+        ActionSummary.sentence(priority) == "Set priority MSG-9 with level high, notify true")
     #expect(ActionSummary.sentence(step("archive", target: "inbox:MSG-9", [:])) == nil)
 }
 
