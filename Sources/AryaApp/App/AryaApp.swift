@@ -174,6 +174,8 @@ struct AryaCommands: Commands {
                 .keyboardShortcut("i", modifiers: [.command, .option])
             Button("Connections") { session.model?.navigation.showConnections() }
                 .keyboardShortcut("k", modifiers: [.command, .shift])
+            Button("People") { session.model?.navigation.showPeople() }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
             Divider()
             ForEach(Array(StewardTab.allCases.enumerated()), id: \.element) { index, tab in
                 Button(tab.title) { session.model?.navigation.tab = tab }

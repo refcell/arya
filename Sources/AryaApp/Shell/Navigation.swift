@@ -30,6 +30,8 @@ enum Destination: Hashable, Sendable {
     case approvals
     /// The Connections page; Connect and Disconnect act on `steward`.
     case connections(steward: String?)
+    /// The People page for `steward`.
+    case people(steward: String?)
 }
 
 /// Where the person is in the app. Selection rules live here so they are testable.
@@ -84,8 +86,29 @@ struct NavigationState: Hashable, Sendable {
     /// Shows the Connections page for the selected steward (or the one it already shows).
     mutating func showConnections() {
         if case .connections = destination { return }
-        destination = .connections(steward: steward)
+        destination = .connections(steward: steward ?? pageSteward)
         run = nil
+    }
+
+    /// Shows the People page for the selected steward (or the one it already shows).
+    mutating func showPeople() {
+        if case .people = destination { return }
+        destination = .people(steward: steward ?? pageSteward)
+        run = nil
+    }
+
+    /// Switches the steward the People page shows.
+    mutating func showPeople(steward id: String) {
+        destination = .people(steward: id)
+        run = nil
+    }
+
+    /// The steward a Connections or People page acts on.
+    var pageSteward: String? {
+        switch destination {
+        case .connections(let id), .people(let id): id
+        default: nil
+        }
     }
 
     /// Switches the steward the Connections page acts on.
@@ -100,6 +123,10 @@ struct NavigationState: Hashable, Sendable {
         if destination == .approvals { return }
         if case .connections(let id) = destination {
             if let id, !ids.contains(id) { destination = .connections(steward: ids.first) }
+            return
+        }
+        if case .people(let id) = destination {
+            if let id, !ids.contains(id) { destination = .people(steward: ids.first) }
             return
         }
         guard let current = steward, ids.contains(current) else {

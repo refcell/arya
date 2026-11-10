@@ -113,6 +113,7 @@ import Testing
         // Connections: secrets come from memory, never the Keychain, in tests (connect lane).
         model.credentials = MemoryCredentialStore(["inbox": "demo-secret"])
         try page("connections") { $0.showConnections() }
+        try page("people") { $0.showPeople() }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()
         model.navigation.select(steward: steward.id)

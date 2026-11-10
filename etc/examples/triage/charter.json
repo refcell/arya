@@ -45,7 +45,9 @@
     {
       "id": "person:sam",
       "kind": "person",
-      "channel": "inbox"
+      "channel": "inbox",
+      "name": "Sam",
+      "role": "support lead"
     }
   ],
   "triggers": [
@@ -59,6 +61,13 @@
   ],
   "policy": {
     "default": "ask",
+    "approvers": [
+      {
+        "action": "reply",
+        "people": ["local", "person:sam"],
+        "note": "Sam or you sign off customer replies."
+      }
+    ],
     "rules": [
       {
         "action": "label",

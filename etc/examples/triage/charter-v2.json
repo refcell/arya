@@ -31,7 +31,9 @@
     {
       "channel": "inbox",
       "id": "person:sam",
-      "kind": "person"
+      "kind": "person",
+      "name": "Sam",
+      "role": "support lead"
     }
   ],
   "crew": {
@@ -62,6 +64,13 @@
   "name": "Support inbox triage",
   "outcome": "Every new message in the support inbox is labeled and routed to the right queue within one hour.",
   "policy": {
+    "approvers": [
+      {
+        "action": "reply",
+        "note": "Sam or you sign off customer replies.",
+        "people": ["local", "person:sam"]
+      }
+    ],
     "default": "ask",
     "rules": [
       {

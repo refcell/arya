@@ -76,6 +76,9 @@ struct ApprovalQueueView: View {
             action: detail.action, approval: current.id, source: detail.source,
             texts: store.approvalTexts[current.id], primary: true,
             decide: decide)
+        if current.kind != "question" {
+            ApproversLine(events: events, steward: current.steward, kind: current.kind)
+        }
         if current.kind == "routine",
             let subject = RoutineApprovalSubject.find(events: events, approval: current.id)
         {

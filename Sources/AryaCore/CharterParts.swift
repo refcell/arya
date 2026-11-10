@@ -20,6 +20,10 @@ public struct CharterBinding: Hashable, Sendable, Codable {
     /// `person`: the MCP binding that relays messages to and from them (email, chat); nil
     /// means the local inbox (decision 0042).
     public var via: String?
+    /// `person`: how people see them, for example `Alex Kim`; nil shows the id.
+    public var name: String?
+    /// `person`: what they do, for example `support lead`.
+    public var role: String?
 
     /// An MCP server binding.
     public static func mcp(
@@ -38,7 +42,7 @@ public struct CharterBinding: Hashable, Sendable, Codable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, kind, command, args, read, actions, channel, network, via
+        case id, kind, command, args, read, actions, channel, network, via, name, role
     }
 
     public init(from decoder: any Decoder) throws {
@@ -52,6 +56,8 @@ public struct CharterBinding: Hashable, Sendable, Codable {
         channel = try c.decodeIfPresent(String.self, forKey: .channel)
         network = try c.decodeIfPresent(Bool.self, forKey: .network) ?? false
         via = try c.decodeIfPresent(String.self, forKey: .via)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        role = try c.decodeIfPresent(String.self, forKey: .role)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -70,6 +76,8 @@ public struct CharterBinding: Hashable, Sendable, Codable {
         try c.encodeIfPresent(channel, forKey: .channel)
         if network { try c.encode(network, forKey: .network) }
         try c.encodeIfPresent(via, forKey: .via)
+        try c.encodeIfPresent(name, forKey: .name)
+        try c.encodeIfPresent(role, forKey: .role)
     }
 
     init(

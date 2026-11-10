@@ -246,6 +246,9 @@ struct InspectorView: View {
             ForEach(context.people, id: \.self) {
                 Text($0).aryaText(AryaFont.monoSmall, AryaColor.ink)
             }
+            Button("People…") { model.navigation.showPeople() }
+                .buttonStyle(.aryaQuiet)
+                .help("Who it works with and what they may approve (Shift-Command-P)")
         }
         section("Effort") {
             let effort = effortBinding(steward.id)

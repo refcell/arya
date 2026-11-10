@@ -177,10 +177,7 @@ enum FeatureRegistry {
     static func connections(_ context: FeatureContext) -> some View {
         let model = context.model
         if let store = context.store {
-            let steward: String? = {
-                if case .connections(let id) = model.navigation.destination { return id }
-                return nil
-            }()
+            let steward = model.navigation.pageSteward
             let source = model.source
             ConnectionsView(
                 store: store, stewards: model.stewards,
@@ -195,6 +192,21 @@ enum FeatureRegistry {
             EmptyState(
                 "No connections yet.",
                 guidance: "Connections a steward's charter binds appear here.")
+        }
+    }
+
+    /// The People page (Settings, Go menu): who a steward works with, how it reaches them, and
+    /// what they may approve; edits are gated proposals.
+    @ViewBuilder
+    static func people(_ context: FeatureContext) -> some View {
+        let model = context.model
+        if let store = context.store {
+            PeopleView(
+                store: store, stewards: model.stewards,
+                steward: model.navigation.pageSteward ?? model.stewards.first?.id,
+                selectSteward: { model.navigation.showPeople(steward: $0) })
+        } else {
+            EmptyState("No people yet.", guidance: "The people stewards work with appear here.")
         }
     }
 

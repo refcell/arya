@@ -32,7 +32,7 @@ enum RailOrder {
     static func current(_ navigation: NavigationState) -> RailItem? {
         switch navigation.destination {
         case .approvals: return .approvals
-        case .connections: return nil
+        case .connections, .people: return nil
         case .steward(let id): return navigation.run.map { .run($0, steward: id) } ?? .steward(id)
         case nil: return nil
         }

@@ -22,8 +22,10 @@ and receive a periodic report from it.
   the ledger. Snapshot `connections-*`.
 - [ ] Credentials reach live binding servers: the runtime passes `ARYA_CREDENTIAL` from a
   `CredentialStore` when it starts a binding's server (asked of runtime and workspace).
-- [ ] People directory: the people a steward works with (name, role, channels, what they may
-  approve), editable as a gated charter proposal, used by approvals and channels.
+- [x] People page (Settings → People…, Go → People, Shift-Command-P): each person's name,
+  role, reach (local inbox or an address on a relay), what they may approve, and their
+  messages; add, edit, and remove as gated charter proposals; approval cards name who may
+  approve the action. Snapshot `people-*`.
 - [ ] Channels: conversations with people (local inbox and email/chat relays, decision 0042)
   as threads on the steward, with the steward's replies; send a message from the app.
 - [ ] Hand off work: a person assigns a task ("take this ticket") that becomes a run trigger
@@ -48,6 +50,14 @@ and receive a periodic report from it.
 - 2026-11-10: The Connections page is a main-pane destination (`Destination.connections`)
   rather than a steward tab, since connections span stewards; it keeps the steward it acts on.
 
+- 2026-11-10: Person bindings carry optional `name` and `role` in `AryaCore.CharterBinding`,
+  omitted when unset so existing charters encode byte for byte as before. What a person may
+  approve is the governance lane's `policy.approvers` (already enforced): the page lists the
+  unscoped rules naming them, and an edit sets exactly those rules. A rule left with no one
+  names `local`, never opening it to anyone; a new rule lists `local` and the person. Editing keeps the binding id stable (message triggers name it) and
+  every field the page does not manage (reply actions); removing a person also drops message
+  triggers from them.
+
 ## Questions
 
 ## Log
@@ -57,3 +67,8 @@ and receive a periodic report from it.
 - 2026-11-10: Visual check: `connections` and `connections-light` snapshots on the demo home
   show triage's inbox (search, get; label low, route low, reply medium; secret stored) and
   billing (refund high; secret field), the steward choice, and the three adapters.
+- 2026-11-10: Connections page pushed (025e13d).
+- 2026-11-10: People page, person `name`/`role`, approvals through `policy.approvers`, and
+  approvers on approval cards.
+  Visual check: `people` snapshot on the demo home shows Sam (support lead, inbox, approves
+  reply, no messages yet), Edit, Remove, and Add person.
