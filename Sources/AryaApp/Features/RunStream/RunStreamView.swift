@@ -6,6 +6,9 @@ struct RunStreamView: View {
     @ObservedObject var store: FeatureStore
     var run: String
     var accessory = AnyView(EmptyView())
+    /// Opens another run's thread (a crew child, a join's parent); nil where navigation is
+    /// not available.
+    var openRun: ((String) -> Void)? = nil
 
     var body: some View {
         switch store.state {
@@ -45,7 +48,9 @@ struct RunStreamView: View {
     }
 
     private func context(_ stream: RunStream) -> StepContext {
-        StepContext(steward: stream.steward, run: stream.run, store: store) { write in
+        StepContext(
+            steward: stream.steward, run: stream.run, store: store, openRun: openRun
+        ) { write in
             Task { await store.perform(write) }
         }
     }
@@ -56,6 +61,7 @@ struct StepContext {
     var steward: String?
     var run: String
     var store: FeatureStore? = nil
+    var openRun: ((String) -> Void)? = nil
     var decide: (FeatureWrite) -> Void
 }
 

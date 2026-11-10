@@ -15,11 +15,8 @@ struct RunThread: View {
         VStack(alignment: .leading, spacing: AryaSpace.s4) {
             header
             if let store = context.store { FeatureWriteErrorLine(store: store) }
-            if let input = stream.input {
-                VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                    Text("Input").aryaText(AryaFont.overline, AryaColor.inkFaint)
-                    Text(input).aryaText(AryaFont.body, AryaColor.inkMuted).textSelection(.enabled)
-                }
+            if let reading = stream.reading {
+                RunInputView(reading: reading, openRun: context.openRun)
             }
             LazyVStack(alignment: .leading, spacing: AryaSpace.s1) {
                 ForEach(RunThreadText.visible(stream.steps)) { step in
@@ -275,9 +272,9 @@ struct InlineApproval: View {
     }
 
     @ViewBuilder private var deny: some View {
-        let button = Button("Deny") { decide(.deny(approval: approval, reason: "")) }
+        // Esc closes things; it never denies. Needs you denies on D.
+        Button("Deny") { decide(.deny(approval: approval, reason: "")) }
             .buttonStyle(.aryaTertiary)
-        if primary { button.keyboardShortcut(.cancelAction) } else { button }
     }
 
     @ViewBuilder private var approve: some View {
@@ -308,13 +305,16 @@ enum RunThreadText {
         case "interval", "schedule": "started on schedule"
         case "message": "started by a message"
         case "case": "started by a rehearsal case"
+        case "join": "checks delegated work"
         default: "started by \(trigger)"
         }
     }
 
     static func meta(_ stream: RunStream, timeZone: TimeZone = .current) -> String {
         var parts: [String] = []
-        if case .started(let trigger) = stream.steps.first?.kind {
+        if let parent = stream.reading?.parent {
+            parts.append("checks the delegated work from \(parent.title)")
+        } else if case .started(let trigger) = stream.steps.first?.kind {
             parts.append(started(trigger))
         }
         if let first = stream.steps.first {
@@ -514,5 +514,48 @@ extension EnvironmentValues {
     var crewOpenByDefault: Bool {
         get { self[CrewOpenByDefault.self] }
         set { self[CrewOpenByDefault.self] = newValue }
+    }
+}
+
+/// The run's input in plain words, with any raw text collapsed behind "Show raw".
+struct RunInputView: View {
+    var reading: RunInput
+    var openRun: ((String) -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            Text(label).aryaText(AryaFont.overline, AryaColor.inkFaint)
+            switch reading.body {
+            case .text(let text):
+                Text(text).aryaText(AryaFont.prose, AryaColor.inkMuted).textSelection(.enabled)
+            case .structured(let summary):
+                Text(summary).aryaText(AryaFont.prose, AryaColor.inkMuted)
+            case .crew(let children):
+                ForEach(children, id: \.self) { child in
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(child.sentence).aryaText(AryaFont.prose, AryaColor.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let run = child.run, let openRun {
+                            Button("Open child run · \(child.title)") { openRun(run) }
+                                .buttonStyle(.plain)
+                                .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                                .help("Open the child run's thread")
+                        }
+                    }
+                }
+            }
+            if let raw = reading.raw {
+                DisclosureGroup {
+                    MachineText(raw)
+                } label: {
+                    Text("Show raw").aryaText(AryaFont.caption, AryaColor.inkFaint)
+                }
+            }
+        }
+    }
+
+    private var label: String {
+        if case .crew = reading.body { return "From the crew" }
+        return "Input"
     }
 }

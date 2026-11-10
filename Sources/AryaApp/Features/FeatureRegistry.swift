@@ -79,7 +79,27 @@ enum FeatureRegistry {
     /// Add one `PaletteCommand` per action, with its keycap when it has a shortcut.
     @MainActor
     static func commands(_ model: AppModel) -> [PaletteCommand] {
-        []
+        guard let store = model.featureStore, case .loaded(let events) = store.state else {
+            return []
+        }
+        var out: [PaletteCommand] = []
+        let pending = ApprovalQueue.build(events: events).pending
+        if let item = NeedsYouKeys(pending: pending, selected: model.navigation.approval).current {
+            let title = item.kind == "question" ? item.summary : "\(item.kind) \(item.target)"
+            let risk = NeedsYouKeys.needsConfirm(item) ? " (high risk)" : ""
+            out.append(
+                PaletteCommand(
+                    id: "approve-\(item.id)", title: "Approve \(title)\(risk)", group: "Needs you",
+                    keys: "A"
+                ) { _ in Task { await store.perform(.approve(approval: item.id)) } })
+            out.append(
+                PaletteCommand(
+                    id: "deny-\(item.id)", title: "Deny \(title)", group: "Needs you", keys: "D"
+                ) {
+                    _ in Task { await store.perform(.deny(approval: item.id, reason: "")) }
+                })
+        }
+        return out
     }
 
     /// A ledger event's detail (payload, hash, its run) for the shell's inspector.
@@ -116,7 +136,8 @@ enum FeatureRegistry {
         if let store = context.store, let steward = context.steward?.id {
             StreamTab(
                 store: store, steward: steward, run: context.run?.id ?? context.runs.first?.id,
-                paused: context.steward?.status == .paused)
+                paused: context.steward?.status == .paused,
+                openRun: { run in context.model.navigation.select(run: run, steward: steward) })
         } else {
             EmptyState(
                 "No runs yet.",

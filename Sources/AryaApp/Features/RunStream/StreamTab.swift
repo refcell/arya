@@ -8,13 +8,15 @@ struct StreamTab: View {
     var run: String?
     /// The steward is paused: manual runs still start, scheduled ones do not.
     var paused = false
+    var openRun: ((String) -> Void)? = nil
 
     var body: some View {
         if let run {
             RunStreamView(
                 store: store, run: run,
                 accessory: AnyView(
-                    RunControls(store: store, steward: steward, run: run, paused: paused).id(run)))
+                    RunControls(store: store, steward: steward, run: run, paused: paused).id(run)),
+                openRun: openRun)
         } else {
             VStack(alignment: .leading, spacing: AryaSpace.s3) {
                 RunControls(store: store, steward: steward, run: nil, paused: paused)

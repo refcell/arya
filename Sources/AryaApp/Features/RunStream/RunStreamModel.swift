@@ -164,6 +164,8 @@ struct RunStream: Hashable, Sendable {
     var input: String? = nil
     /// Adapter, effort, duration, tokens, and cost, for the run header.
     var facts = RunMetrics()
+    /// The input read in plain words: a crew report, structured data, or text.
+    var reading: RunInput? = nil
 
     /// The run in one line: its summary once finished, else its input, else its id.
     var title: String {
@@ -196,9 +198,12 @@ struct RunStream: Hashable, Sendable {
         if projector.status != .running, let first = times.min(), let last = times.max() {
             facts.seconds = last.timeIntervalSince(first)
         }
+        let reading = projector.input.map {
+            RunInput.build(kind: projector.inputKind, text: $0, events: events)
+        }
         return RunStream(
             run: run, steward: projector.steward, steps: steps,
-            status: projector.status, input: projector.input, facts: facts)
+            status: projector.status, input: projector.input, facts: facts, reading: reading)
     }
 
     /// The approval ids in this run still waiting for a person.
@@ -221,6 +226,7 @@ private struct RunStreamProjector {
     var status: RunStatus = .running
     var steward: String?
     var input: String?
+    var inputKind: String?
     var facts = RunMetrics()
     private var toolIndex: [String: Int] = [:]
     private var actionIndex: [String: Int] = [:]
@@ -234,6 +240,7 @@ private struct RunStreamProjector {
         case "run.started":
             // `trigger` is a string; newer runs record `input: {kind, text}` instead.
             input = p["input"]?["text"]?.string ?? p["input"]?.string
+            inputKind = p["input"]?["kind"]?.string
             facts.adapter = p["adapter"]?.string
             facts.effort = p["effort"]?.string
             let trigger = p["trigger"]?.string ?? p["input"]?["kind"]?.string ?? "manual"
@@ -572,5 +579,94 @@ struct RunMetrics: Hashable, Sendable {
         let value = Double(micros) / 1_000_000
         return value > 0 && value < 0.01
             ? String(format: "$%.4f", value) : String(format: "$%.2f", value)
+    }
+}
+
+/// A run's input in plain words. A crew report (`join`) reads as one sentence per child with a
+/// link to its run; other structured input reads as a one-line summary; raw text stays behind
+/// "Show raw".
+struct RunInput: Hashable, Sendable {
+    struct Child: Hashable, Sendable {
+        var run: String?
+        var title: String
+        /// "Drafted the refund reply for MSG-203. 1 action proposed for approval."
+        var sentence: String
+    }
+
+    enum Body: Hashable, Sendable {
+        case text(String)
+        case crew([Child])
+        case structured(String)
+    }
+
+    var body: Body
+    /// The run that delegated the work this run checks, for "checks the delegated work from".
+    var parent: (run: String, title: String)? {
+        guard let parentRun else { return nil }
+        return (parentRun, parentTitle ?? parentRun)
+    }
+    var parentRun: String?
+    var parentTitle: String?
+    /// The raw input, shown only behind "Show raw"; nil for plain text.
+    var raw: String?
+
+    static func build(kind: String?, text: String, events: [FeatureEvent]) -> RunInput {
+        let json = text.data(using: .utf8).flatMap {
+            try? JSONDecoder().decode(FeatureJSON.self, from: $0)
+        }
+        guard let json, case .object(let members) = json else {
+            return RunInput(body: .text(text))
+        }
+        if kind == "join" || members["children"] != nil,
+            case .array(let list)? = members["children"]
+        {
+            let children = list.map(child)
+            let parentRun = children.lazy.compactMap(\.run).compactMap {
+                RunInput.delegator(of: $0, events: events)
+            }.first
+            let parentTitle = parentRun.map {
+                RunStream.build(events: events, run: $0).title
+            }
+            return RunInput(
+                body: .crew(children), parentRun: parentRun, parentTitle: parentTitle,
+                raw: RunInput.pretty(text))
+        }
+        return RunInput(body: .structured(summary(members)), raw: RunInput.pretty(text))
+    }
+
+    private static func child(_ value: FeatureJSON) -> Child {
+        let title = value["title"]?.string ?? value["delegation"]?.string ?? "Child run"
+        var sentence = value["summary"]?.string ?? title
+        if case .array(let actions)? = value["actions"], !actions.isEmpty {
+            let count = RunMetrics.count(actions.count, "action")
+            sentence += " \(count) proposed for approval."
+        } else if let status = value["status"]?.string, status != "completed" {
+            sentence += " Ended \(status)."
+        }
+        return Child(run: value["run"]?.string, title: title, sentence: sentence)
+    }
+
+    /// "Structured input: 3 fields (customer, order, reason)".
+    private static func summary(_ members: [String: FeatureJSON]) -> String {
+        let keys = members.keys.sorted()
+        let shown = keys.prefix(4).joined(separator: ", ")
+        let more = keys.count > 4 ? ", …" : ""
+        return "Structured input: \(RunMetrics.count(keys.count, "field")) (\(shown)\(more))"
+    }
+
+    /// The raw input indented for reading; unchanged when it is not JSON.
+    static func pretty(_ text: String) -> String {
+        guard let data = text.data(using: .utf8),
+            let object = try? JSONSerialization.jsonObject(with: data),
+            let out = try? JSONSerialization.data(
+                withJSONObject: object, options: [.prettyPrinted, .sortedKeys]),
+            let string = String(data: out, encoding: .utf8)
+        else { return text }
+        return string
+    }
+
+    /// The run whose `run.delegated` started `child`.
+    static func delegator(of child: String, events: [FeatureEvent]) -> String? {
+        events.first { $0.type == "run.delegated" && $0.payload["child"]?.string == child }?.run
     }
 }

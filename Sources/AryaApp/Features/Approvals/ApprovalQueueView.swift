@@ -34,8 +34,13 @@ struct ApprovalQueueView: View {
         }
     }
 
+    /// The high-risk approval waiting on "Approve anyway" after A.
+    @AryaState private var confirming: ApprovalItem?
+    @FocusState private var focused: Bool
+
     @ViewBuilder
     private func content(_ queue: ApprovalQueue, events: [FeatureEvent]) -> some View {
+        let keys = NeedsYouKeys(pending: queue.pending, selected: selected)
         ScrollView {
             VStack(alignment: .leading, spacing: AryaSpace.s4) {
                 FeatureWriteErrorLine(store: store)
@@ -44,6 +49,7 @@ struct ApprovalQueueView: View {
                 } else {
                     pending(queue.pending, events: events)
                 }
+                if !queue.pending.isEmpty { NeedsYouHints() }
                 if !queue.decided.isEmpty { decided(queue.decided) }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -52,6 +58,50 @@ struct ApprovalQueueView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(AryaColor.canvas)
+        .focusable()
+        .focusEffectDisabled()
+        .focused($focused)
+        .onAppear { focused = true }
+        .onKeyPress(characters: NeedsYouKeys.handled) { press in
+            switch NeedsYouKeys.action(for: press.characters) {
+            case .next?: selected = keys.step(1)
+            case .previous?: selected = keys.step(-1)
+            case .approve?: if let item = keys.current { approve(item) }
+            case .deny?: if let item = keys.current { decide(.deny(approval: item.id, reason: "")) }
+            case nil: return .ignored
+            }
+            return .handled
+        }
+        .onKeyPress(.downArrow) {
+            selected = keys.step(1); return .handled
+        }
+        .onKeyPress(.upArrow) {
+            selected = keys.step(-1); return .handled
+        }
+        .confirmationDialog(
+            confirming.map(NeedsYouKeys.confirmTitle) ?? "", isPresented: confirmBinding
+        ) {
+            Button("Approve") {
+                if let item = confirming { decide(.approve(approval: item.id)) }
+                confirming = nil
+            }
+            Button("Cancel", role: .cancel) { confirming = nil }
+        } message: {
+            Text("This action is high risk and may not be reversible.")
+        }
+    }
+
+    private var confirmBinding: Binding<Bool> {
+        Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } })
+    }
+
+    /// A approves at once, except high-risk actions, which ask first.
+    private func approve(_ item: ApprovalItem) {
+        if NeedsYouKeys.needsConfirm(item) {
+            confirming = item
+        } else {
+            decide(.approve(approval: item.id))
+        }
     }
 
     @ViewBuilder
@@ -203,5 +253,63 @@ enum StewardNames {
             names[steward] = name
         }
         return names
+    }
+}
+
+/// Keyboard rules for Needs you: j/k (or the arrows) move, A approves, D denies.
+struct NeedsYouKeys {
+    enum Action: Equatable { case next, previous, approve, deny }
+
+    var pending: [ApprovalItem]
+    var selected: String?
+
+    static let handled = CharacterSet(charactersIn: "jkadJKAD")
+
+    static func action(for characters: String) -> Action? {
+        switch characters.lowercased() {
+        case "j": .next
+        case "k": .previous
+        case "a": .approve
+        case "d": .deny
+        default: nil
+        }
+    }
+
+    /// The selected item, else the oldest.
+    var current: ApprovalItem? { pending.first { $0.id == selected } ?? pending.first }
+
+    /// The id one step away from the current item, clamped to the list.
+    func step(_ delta: Int) -> String? {
+        guard !pending.isEmpty else { return nil }
+        let index = pending.firstIndex { $0.id == current?.id } ?? 0
+        return pending[min(max(index + delta, 0), pending.count - 1)].id
+    }
+
+    static func needsConfirm(_ item: ApprovalItem) -> Bool {
+        item.kind != "question" && ActionRisk(kind: item.kind) == .high
+    }
+
+    /// "Approve refund ORDER-1043?".
+    static func confirmTitle(_ item: ApprovalItem) -> String {
+        "Approve \(item.kind) \(item.target)?"
+    }
+}
+
+/// Keycap hints under the queue.
+private struct NeedsYouHints: View {
+    var body: some View {
+        HStack(spacing: AryaSpace.s2) {
+            hint("j/k", "move")
+            hint("↩", "approve")
+            hint("A", "approve")
+            hint("D", "deny")
+        }
+    }
+
+    private func hint(_ keys: String, _ label: String) -> some View {
+        HStack(spacing: AryaSpace.s1) {
+            Keycap(keys)
+            Text(label).aryaText(AryaFont.caption, AryaColor.inkFaint)
+        }
     }
 }
