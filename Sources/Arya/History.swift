@@ -1,3 +1,4 @@
+import AryaAdapters
 import AryaCore
 import AryaEval
 import AryaRuntime
@@ -19,23 +20,30 @@ public struct HistoryImportSummary: Sendable, Hashable, Codable {
 }
 
 extension Workspace {
-    /// Adds past items from an export file (one history item per line) to the steward's newest
-    /// casebook, or a new casebook named `history`, as cases with provenance. At most `limit`
-    /// new cases, newest first; items already in the casebook are skipped.
+    /// Adds past items from an export file in the binding `history` shape
+    /// (`{"v":1,"history":[…]}`) to the steward's newest casebook, or a new casebook named
+    /// `history`, as cases with provenance. At most `limit` new cases, newest first; items
+    /// already in the casebook are skipped. `binding` names the binding the records came from
+    /// (default: the charter's first binding that reads `get`), so rehearsal serves each record.
     public func importHistory(
-        steward: String, data: Data, source: String, limit: Int = 200, by person: String = "local"
+        steward: String, data: Data, source: String, binding: String? = nil, limit: Int = 200,
+        by person: String = "local"
     ) async throws -> HistoryImportSummary {
-        let read = HistorySource.items(jsonLines: data)
+        let record = try await existing(steward)
+        let read = HistorySource.items(export: data)
+        let named =
+            binding
+            ?? record.charter.bindings.first { $0.kind == .mcp && $0.read.contains("get") }?.id
         return try await importHistory(
             steward: steward, items: read.items, invalid: read.invalid, source: source,
-            limit: limit, person: person)
+            binding: named, limit: limit, person: person)
     }
 
-    /// Asks a binding's history tool for past items (`{limit}` in, `{items}` out) and imports
-    /// them as `importHistory(steward:data:source:limit:)` does. The tool must be one of the
-    /// binding's `read` tools.
+    /// Pages through a binding's `history` tool (`{limit, cursor}` in, `{items, next}` out) and
+    /// imports the items as `importHistory(steward:data:source:binding:limit:)` does. The tool
+    /// must be one of the binding's `read` tools.
     public func importHistory(
-        steward: String, binding: String, tool: String = "history", limit: Int = 200,
+        steward: String, binding: String, tool: String = BindingHistory.tool, limit: Int = 200,
         by person: String = "local"
     ) async throws -> HistoryImportSummary {
         let record = try await existing(steward)
@@ -51,23 +59,36 @@ extension Workspace {
         } catch {
             throw WorkspaceError.unavailable("binding \(binding) (\(command))")
         }
-        let result: JSONValue
+        var items: [HistoryItem] = []
+        var invalid: [String] = []
+        var cursor: String?
         do {
-            result = try await upstream.call(tool, arguments: ["limit": .int(Int64(limit))])
+            // Every page, oldest first, so the newest `limit` can be kept; at most 20 pages.
+            for _ in 0..<20 {
+                var arguments: [String: JSONValue] = [
+                    "limit": .int(Int64(BindingHistory.maxLimit))
+                ]
+                if let cursor { arguments["cursor"] = .string(cursor) }
+                let page = HistorySource.page(
+                    toolResult: try await upstream.call(tool, arguments: .object(arguments)))
+                items += page.items
+                invalid += page.invalid
+                guard let next = page.next, next != cursor else { break }
+                cursor = next
+            }
             await upstream.close()
         } catch {
             await upstream.close()
             throw WorkspaceError.rejected("\(binding).\(tool) failed: \(error)")
         }
-        let read = HistorySource.items(toolResult: result)
         return try await importHistory(
-            steward: steward, items: read.items, invalid: read.invalid,
-            source: "\(binding).\(tool)", limit: limit, person: person)
+            steward: steward, items: items, invalid: invalid, source: "\(binding).\(tool)",
+            binding: binding, limit: limit, person: person)
     }
 
     private func importHistory(
-        steward: String, items: [HistoryItem], invalid: [String], source: String, limit: Int,
-        person: String
+        steward: String, items: [HistoryItem], invalid: [String], source: String,
+        binding: String?, limit: Int, person: String
     ) async throws -> HistoryImportSummary {
         let id = try await existing(steward).id
         let newest = try await casebookIndex().last { $0.steward == steward }
@@ -77,7 +98,8 @@ extension Workspace {
         do {
             result = try await HistoryImporter(sink: sink, blobs: blobs).importHistory(
                 items, invalid: invalid, into: book, name: book?.name ?? "history",
-                steward: id, source: source, limit: limit, actor: .person(person))
+                steward: id, source: source, binding: binding, limit: limit,
+                actor: .person(person))
         } catch let error as CaseError {
             throw WorkspaceError.rejected("history: \(error)")
         }

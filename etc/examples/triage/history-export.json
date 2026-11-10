@@ -1,0 +1,384 @@
+{
+  "v": 1,
+  "history": [
+    {
+      "id": "MSG-101",
+      "at": "2026-10-01T09:00:00Z",
+      "input": "New message MSG-101: Charged twice",
+      "record": {
+        "id": "MSG-101",
+        "from": "customer:c-101",
+        "subject": "Charged twice",
+        "body": "I was billed twice for my March plan. Please refund one charge."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-101",
+          "by": "person:sam",
+          "at": "2026-10-01T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-101",
+          "by": "person:sam",
+          "at": "2026-10-01T09:20:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-110",
+      "at": "2026-10-02T09:00:00Z",
+      "input": "New message MSG-110: Invoice shows the wrong company name",
+      "record": {
+        "id": "MSG-110",
+        "from": "customer:c-110",
+        "subject": "Invoice shows the wrong company name",
+        "body": "Invoice shows the wrong company name."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-110",
+          "by": "person:sam",
+          "at": "2026-10-02T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-110",
+          "by": "person:sam",
+          "at": "2026-10-02T09:20:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-111",
+      "at": "2026-10-03T09:00:00Z",
+      "input": "New message MSG-111: Dark mode resets after update",
+      "record": {
+        "id": "MSG-111",
+        "from": "customer:c-111",
+        "subject": "Dark mode resets after update",
+        "body": "Dark mode resets after update."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-111",
+          "by": "person:sam",
+          "at": "2026-10-03T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-111",
+          "by": "person:sam",
+          "at": "2026-10-03T09:20:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-112",
+      "at": "2026-10-04T09:00:00Z",
+      "input": "New message MSG-112: Locked out after password reset",
+      "record": {
+        "id": "MSG-112",
+        "from": "customer:c-112",
+        "subject": "Locked out after password reset",
+        "body": "Locked out after password reset."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-112",
+          "by": "person:sam",
+          "at": "2026-10-04T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-112",
+          "by": "person:sam",
+          "at": "2026-10-04T09:20:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-113",
+      "at": "2026-10-05T09:00:00Z",
+      "input": "New message MSG-113: Where is the usage report?",
+      "record": {
+        "id": "MSG-113",
+        "from": "customer:c-113",
+        "subject": "Where is the usage report?",
+        "body": "Where is the usage report?."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-113",
+          "by": "person:sam",
+          "at": "2026-10-05T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-113",
+          "by": "person:sam",
+          "at": "2026-10-05T09:20:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-114",
+      "at": "2026-10-06T09:00:00Z",
+      "input": "New message MSG-114: Charged after I cancelled",
+      "record": {
+        "id": "MSG-114",
+        "from": "customer:c-114",
+        "subject": "Charged after I cancelled",
+        "body": "Charged after I cancelled."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-114",
+          "by": "person:sam",
+          "at": "2026-10-06T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-114",
+          "by": "person:sam",
+          "at": "2026-10-06T09:20:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-115",
+      "at": "2026-10-07T09:00:00Z",
+      "input": "New message MSG-115: Search returns nothing for old items",
+      "record": {
+        "id": "MSG-115",
+        "from": "customer:c-115",
+        "subject": "Search returns nothing for old items",
+        "body": "Search returns nothing for old items."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-115",
+          "by": "person:sam",
+          "at": "2026-10-07T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-115",
+          "by": "person:sam",
+          "at": "2026-10-07T09:20:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-116",
+      "at": "2026-10-08T09:00:00Z",
+      "input": "New message MSG-116: Change the email on my account",
+      "record": {
+        "id": "MSG-116",
+        "from": "customer:c-116",
+        "subject": "Change the email on my account",
+        "body": "Change the email on my account."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-116",
+          "by": "person:sam",
+          "at": "2026-10-08T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-116",
+          "by": "person:sam",
+          "at": "2026-10-08T09:20:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-120",
+      "at": "2026-10-09T09:00:00Z",
+      "input": "New message MSG-120: Two-factor codes never arrive",
+      "record": {
+        "id": "MSG-120",
+        "from": "customer:c-120",
+        "subject": "Two-factor codes never arrive",
+        "body": "Two-factor codes never arrive."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-120",
+          "by": "person:sam",
+          "at": "2026-10-09T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-120",
+          "by": "person:sam",
+          "at": "2026-10-09T09:20:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "reopened",
+        "at": "2026-10-09T15:00:00Z",
+        "note": "Rerouted from security to account."
+      }
+    },
+    {
+      "id": "MSG-121",
+      "at": "2026-10-10T09:00:00Z",
+      "input": "New message MSG-121: Need a receipt for March",
+      "record": {
+        "id": "MSG-121",
+        "from": "customer:c-121",
+        "subject": "Need a receipt for March",
+        "body": "Need a receipt for March."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-121",
+          "by": "person:sam",
+          "at": "2026-10-10T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-121",
+          "by": "person:sam",
+          "at": "2026-10-10T09:20:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-122",
+      "at": "2026-10-11T09:00:00Z",
+      "input": "New message MSG-122: Sync stops on large folders",
+      "record": {
+        "id": "MSG-122",
+        "from": "customer:c-122",
+        "subject": "Sync stops on large folders",
+        "body": "Sync stops on large folders."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-122",
+          "by": "person:sam",
+          "at": "2026-10-11T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-122",
+          "by": "person:sam",
+          "at": "2026-10-11T09:20:00Z"
+        }
+      ],
+      "choice": "bug",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-123",
+      "at": "2026-10-12T09:00:00Z",
+      "input": "New message MSG-123: How do I export to CSV?",
+      "record": {
+        "id": "MSG-123",
+        "from": "customer:c-123",
+        "subject": "How do I export to CSV?",
+        "body": "How do I export to CSV?."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-123",
+          "by": "person:sam",
+          "at": "2026-10-12T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-123",
+          "by": "person:sam",
+          "at": "2026-10-12T09:20:00Z"
+        }
+      ],
+      "choice": "how-to",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "MSG-124",
+      "at": "2026-10-13T09:00:00Z",
+      "input": "New message MSG-124: Refund for an annual plan",
+      "record": {
+        "id": "MSG-124",
+        "from": "customer:c-124",
+        "subject": "Refund for an annual plan",
+        "body": "Refund for an annual plan."
+      },
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-124",
+          "by": "person:sam",
+          "at": "2026-10-13T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-124",
+          "by": "person:sam",
+          "at": "2026-10-13T09:20:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved"
+      }
+    }
+  ]
+}

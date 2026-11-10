@@ -18,9 +18,11 @@ import Testing
     _ = try await workspace.rehearse(steward: "st_inbox")
 
     let export = """
-        {"id":"MSG-1","input":"New message MSG-1","did":{"decisions":[{"choice":"billing"}]}}
-        {"id":"MSG-9","input":"New message MSG-9","did":{"decisions":[{"choice":"bug"}]},"by":"p:s"}
-        {"id":"MSG-10","input":"","did":{"decisions":[{"choice":"bug"}]}}
+        {"v":1,"history":[
+        {"id":"MSG-1","at":"2026-09-01T08:00:00Z","input":"New message MSG-1","choice":"billing"},
+        {"id":"MSG-9","at":"2026-09-02T08:00:00Z","input":"New message MSG-9","choice":"bug",
+         "record":{"id":"MSG-9"},"actions":[{"kind":"route","target":"inbox:MSG-9","by":"p:s"}]},
+        {"id":"MSG-10","at":"2026-09-03T08:00:00Z","input":"","choice":"bug"}]}
         """
     let summary = try await workspace.importHistory(
         steward: "st_inbox", data: Data(export.utf8), source: "export.jsonl")
@@ -36,7 +38,8 @@ import Testing
     let queue = try #require(try await workspace.reviewQueue(steward: "st_inbox"))
     #expect(queue.items.map(\.caseID) == ["case-3", "hist-MSG-9", "case-1", "case-2"])
     #expect(queue.items[1].wouldHave == "Not rehearsed yet.")
-    #expect(queue.items[1].source == "history export.jsonl item MSG-9 by p:s")
+    #expect(
+        queue.items[1].source == "history export.jsonl item MSG-9 by p:s at 2026-09-02T08:00:00Z")
     #expect(queue.progressText == "0 of 4 reviewed · 2 of 4 match what people did")
 
     let after = try #require(

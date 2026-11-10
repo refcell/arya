@@ -129,12 +129,17 @@ check_metric_event() {
 check_metrics() { expect metric "$(get 0.metric)" routed_within_1h && expect points "$(get 0.points)" 1; }
 check_replay() { expect divergences "$(get divergences)" 0; }
 check_history() { expect added "$(get added)" 12 && expect duplicate "$(get duplicates.0)" MSG-101; }
-check_history_rehearsal() { expect passed "$(get passed)" 18 && expect total "$(get total)" 20; }
+check_history_rehearsal() { expect passed "$(get passed)" 18 && expect total "$(get total)" 21; }
 check_review_queue() {
-  expect "next case" "$(get next.caseID)" hist-MSG-113 && expect total "$(get total)" 20 &&
-    expect reviewed "$(get reviewed)" 1
+  expect "next case" "$(get next.caseID)" hist-MSG-113 && expect total "$(get total)" 21 &&
+    expect reviewed "$(get reviewed)" 2
 }
-check_reviewed() { expect reviewed "$(get reviewed)" 2 && expect agreed "$(get agreed)" 1; }
+check_history_steward() { expect id "$(get summary.id)" st_history; }
+check_binding_history() {
+  expect added "$(get added)" 40 && expect casebook "$(get casebook)" history &&
+    expect "first case" "$(get added.0)" hist-MSG-040
+}
+check_reviewed() { expect reviewed "$(get reviewed)" 3 && expect agreed "$(get agreed)" 1; }
 check_verify() { expect ok "$(get ok)" true; }
 check_refunds() { expect id "$(get summary.id)" st_refunds; }
 check_digest() { expect id "$(get summary.id)" st_digest; }
@@ -212,6 +217,14 @@ install_profile() {
   # What the charter editor proposes: the live triage charter with one more guardrail.
   cp "$example/charter.json" "$work/edited.json"
   plutil -insert guardrails.3 -string "Never promise a delivery date." "$work/edited.json"
+  # A triage steward whose inbox binding is the fake binding serving 40 past messages, read
+  # through its `history` tool (docs/PROTOCOL.md, "Binding conventions").
+  cp "$example/charter.json" "$work/history.json"
+  plutil -replace id -string st_history "$work/history.json"
+  plutil -replace bindings.0.command -string "$bin/arya-fake-adapter" "$work/history.json"
+  plutil -replace bindings.0.args -json "[\"--binding\", \"$PWD/$example/inbox-history.json\"]" \
+    "$work/history.json"
+  plutil -insert bindings.0.read.2 -string history "$work/history.json"
 }
 
 echo "e2e: scenario (home: temporary)"
@@ -268,12 +281,16 @@ step "MSG-203: a crew drafts the reply" crew live check_crew \
   run st_triage --input "New message MSG-203: Damaged order, please refund"
 step "the crew child only proposes" crew live check_child run show "${crew_child:-unknown}"
 step "import inbox history: 12 new cases" history rehearsal check_history \
-  history import st_triage --file "$example/history-export.jsonl"
-step "rehearse with history: 18 of 20" history rehearsal check_history_rehearsal \
+  history import st_triage --file "$example/history-export.json"
+step "rehearse with history: 18 of 21" history rehearsal check_history_rehearsal \
   rehearse st_triage
 step "review queue: MSG-113 disagrees" history rehearsal check_review_queue review st_triage
 step "agree with MSG-110" history rehearsal check_reviewed \
   review st_triage --case hist-MSG-110 --verdict agree
+step "a steward reading the inbox binding" history setup check_history_steward \
+  steward create --charter "$work/history.json"
+step "import 40 past messages from it" history setup check_binding_history \
+  history import st_history --binding inbox
 script_step "docs-only publish skips the build" publish etc/scripts/test-publish.sh docs-only
 step "verify the ledger" setup - check_verify ledger verify
 

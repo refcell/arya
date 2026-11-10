@@ -40,10 +40,11 @@ extension CommandTable {
             options: [
                 OptionSpec(
                     name: "file", kind: .value(placeholder: "path"),
-                    help: "export file, one history item per line"),
+                    help: "export file in the binding history shape ({\"history\": [...]})"),
                 OptionSpec(
                     name: "binding", kind: .value(placeholder: "id"),
-                    help: "binding whose history tool lists past items"),
+                    help: "binding to page through; with --file, the binding the records are from"
+                ),
                 OptionSpec(
                     name: "tool", kind: .value(placeholder: "name"),
                     help: "the binding's history tool (default: history)"),
@@ -75,7 +76,7 @@ extension CLI {
         let steward = try invocation.positional("steward")
         switch invocation.command {
         case .historyImport:
-            guard (values["file"] == nil) != (values["binding"] == nil) else {
+            guard values["file"] != nil || values["binding"] != nil else {
                 throw .usage("give --file or --binding", command: .historyImport)
             }
             var limit = 200

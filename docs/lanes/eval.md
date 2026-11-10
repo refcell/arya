@@ -217,9 +217,12 @@ Parity (CEO gap map):
 - Readiness: `Readiness.markReady` records `steward.ready` (the runtime's event type, which its
   projection reads) with a person as actor and the reviewed rehearsal, casebook version, and
   mean score as evidence. It does not require a rehearsal: the person decides.
-- History import: an item is `{id, input, did, by?, at?, context?}`; a binding's history tool
-  must be one of its `read` tools, takes `{limit}`, and returns `{items}` (or MCP
-  `structuredContent.items`, or text JSON). Bad items are reported one by one and skipped;
+- History import reads the binding `history` convention (adapters, `AryaAdapters.HistoryItem`):
+  `choice` becomes the decision, the person's distinct action kinds and targets the actions,
+  `record` a recorded `<binding>.get` read, and a non-resolved `outcome` goes into provenance.
+  The binding path pages `{limit, cursor}` until `next` is absent (at most 20 pages); export
+  files use the same shape (`{"v":1,"history":[…]}`). The tool must be one of the binding's
+  reads. Items nobody acted on are skipped as invalid. Bad items are reported one by one and skipped;
   duplicates (same case id or same normalized input) are skipped; at most `limit` (200) new
   cases per import, newest first. Nothing is recorded when nothing is added.
 - Review queue: on the steward's newest casebook, answers from its newest finished live
@@ -283,3 +286,9 @@ Parity (CEO gap map):
 - 2026-11-10: Visual check (just snapshot, demo home): Improve lists hist-MSG-110..124 (18/20),
   then REVIEW "2 of 20 reviewed · 18 of 20 match what people did" with hist-MSG-113 side by
   side (how-to vs bug), its difference and provenance, and Agree, Skip, Correct.
+- 2026-11-10: history import adopts the binding `history` convention; e2e pages 40 items from
+  `arya-fake-adapter --binding` through a scratch steward
+- 2026-11-10: Paused for the night. Done: history import (#3) on the binding `history`
+  convention, review queue (CLI, app, e2e), crew-aware live readiness. Next: fix the demo
+  proposal whose title ("Relax the routing window") contradicts its diff, with a test that the
+  title's change kind matches the diff; then #9 auto-built evaluations.

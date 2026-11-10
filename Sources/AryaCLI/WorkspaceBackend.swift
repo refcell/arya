@@ -421,7 +421,8 @@ extension WorkspaceBackend {
             }
             return try await call("importHistory", rejection: { .invalidInput($0) }) {
                 try await workspace.importHistory(
-                    steward: steward, data: data, source: url.lastPathComponent, limit: limit)
+                    steward: steward, data: data, source: url.lastPathComponent,
+                    binding: binding, limit: limit)
             }
         }
         return try await call("importHistory", rejection: { .invalidInput($0) }) {

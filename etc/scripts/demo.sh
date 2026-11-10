@@ -82,7 +82,7 @@ seed "rehearse it again" rehearse st_triage
 seed "mark it ready" ready st_triage
 # Past inbox items and what people did, imported as cases (newest first, MSG-101 is already
 # in the casebook); the review queue shows what the steward would have done next to each.
-seed "import inbox history" history import st_triage --file "$example/history-export.jsonl"
+seed "import inbox history" history import st_triage --file "$example/history-export.json"
 seed "rehearse with history" rehearse st_triage
 seed "agree with MSG-110" review st_triage --case hist-MSG-110 --verdict agree
 # Then a merged timeline, sorted by time because ledger times never go backwards: the refund

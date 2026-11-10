@@ -1,75 +1,36 @@
+import AryaAdapters
 import AryaCore
 import AryaRuntime
 import Foundation
 
-/// One past item from a connected system and what a person did with it. A binding's history
-/// tool returns `{items: [...]}`; an export file holds one item per line.
-///
-///     {"id":"MSG-110","input":"New message MSG-110: Invoice shows the wrong company name",
-///      "did":{"decisions":[{"choice":"billing"}],"actions":[{"kind":"route","target":"…"}]},
-///      "by":"person:sam","at":"2026-10-12T09:00:00Z","context":{"toolResults":[…]}}
-public struct HistoryItem: Hashable, Sendable, Codable {
-    /// The item's id in its system, for example a message or ticket id.
-    public var id: String
-    /// The input the steward would have seen.
-    public var input: String
-    /// What the person did, in the shape of a case's expected result.
-    public var did: JSONValue
-    /// Who did it, for example `person:sam`.
-    public var by: String?
-    /// When, as the system recorded it (ISO 8601); newest items are kept first.
-    public var at: String?
-    /// Tool results the steward would have read, served back in rehearsal.
-    public var context: CaseContext?
-
-    public init(
-        id: String, input: String, did: JSONValue, by: String? = nil, at: String? = nil,
-        context: CaseContext? = nil
-    ) {
-        self.id = id
-        self.input = input
-        self.did = did
-        self.by = by
-        self.at = at
-        self.context = context
-    }
-}
-
-/// Reads history items from an export file or a binding tool's result.
+/// Reads history items in the binding `history` convention (docs/PROTOCOL.md, "Binding
+/// conventions"; `AryaAdapters.HistoryItem`) from an export file or a tool result. Items are
+/// decoded one by one, so a bad item is reported in `invalid` instead of failing the read.
 public enum HistorySource {
-    /// One item per line; blank lines are ignored. A line that is not an item is reported in
-    /// `invalid` with its line number instead of failing the read.
-    public static func items(jsonLines data: Data) -> (items: [HistoryItem], invalid: [String]) {
-        var items: [HistoryItem] = []
-        var invalid: [String] = []
-        let text = String(decoding: data, as: UTF8.self)
-        for (index, line) in text.split(separator: "\n", omittingEmptySubsequences: false)
-            .enumerated()
-        {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { continue }
-            if let item = try? JSONDecoder().decode(HistoryItem.self, from: Data(trimmed.utf8)) {
-                items.append(item)
-            } else {
-                invalid.append("line \(index + 1): not a history item")
-            }
-        }
-        return (items, invalid)
+    /// An export file: `{"v":1,"history":[…]}` (what `arya-fake-adapter --binding` serves) or
+    /// one page, `{"items":[…]}`.
+    public static func items(export data: Data) -> (items: [HistoryItem], invalid: [String]) {
+        guard let value = try? CanonicalJSON.decode(JSONValue.self, from: data),
+            let list = value["history"] ?? value["items"]
+        else { return ([], ["not a history export: expected {\"history\": [...]}"]) }
+        return decode(list)
     }
 
-    /// A tool result: `{items}`, MCP `structuredContent.items`, or the first text content
-    /// holding either as JSON.
-    public static func items(toolResult: JSONValue) -> (items: [HistoryItem], invalid: [String]) {
-        if let list = toolResult["structuredContent"]?["items"] ?? toolResult["items"] {
-            return decode(list)
+    /// One page of the `history` tool: `structuredContent`, or the first text content holding
+    /// it as JSON. `next` is the cursor of the following page, absent on the last.
+    public static func page(toolResult: JSONValue)
+        -> (items: [HistoryItem], invalid: [String], next: String?)
+    {
+        var page = toolResult["structuredContent"]
+        if page?["items"] == nil, let text = toolResult["content"]?[0]?["text"]?.stringValue {
+            page = try? CanonicalJSON.decode(JSONValue.self, from: Data(text.utf8))
         }
-        if let text = toolResult["content"]?[0]?["text"]?.stringValue,
-            let value = try? CanonicalJSON.decode(JSONValue.self, from: Data(text.utf8)),
-            let list = value["items"]
-        {
-            return decode(list)
+        if page?["items"] == nil, toolResult["items"] != nil { page = toolResult }
+        guard let page, let list = page["items"] else {
+            return ([], ["the history tool returned no items"], nil)
         }
-        return ([], ["the history tool returned no items list"])
+        let read = decode(list)
+        return (read.items, read.invalid, page["next"]?.stringValue)
     }
 
     static func decode(_ list: JSONValue) -> (items: [HistoryItem], invalid: [String]) {
@@ -81,7 +42,8 @@ public enum HistorySource {
             {
                 items.append(item)
             } else {
-                invalid.append("item \(index + 1): not a history item")
+                let id = value["id"]?.stringValue ?? "item \(index + 1)"
+                invalid.append("\(id): not a history item (needs id, at, input)")
             }
         }
         return (items, invalid)
@@ -118,14 +80,17 @@ public struct HistoryImporter: Sendable {
     }
 
     /// Adds at most `limit` new cases, newest first by `at`, to `book` (or a new casebook
-    /// named `name`). `source` names where the items came from (`inbox.history`, a file name).
+    /// named `name`). `source` names where the items came from (`inbox.history`, a file name);
+    /// `binding` names the binding the records belong to, so each item's `record` is served
+    /// back as a recorded `<binding>.get` read.
     public func importHistory(
         _ items: [HistoryItem], invalid alreadyInvalid: [String] = [], into book: Casebook?,
-        name: String, steward: StewardID, source: String, limit: Int = 200,
-        actor: RuntimeActor = .localUser
+        name: String, steward: StewardID, source: String, binding: String? = nil,
+        limit: Int = 200, actor: RuntimeActor = .localUser
     ) async throws -> HistoryImportResult {
         let plan = try Self.plan(
-            items, into: book, source: source, limit: limit, invalid: alreadyInvalid)
+            items, into: book, source: source, binding: binding, limit: limit,
+            invalid: alreadyInvalid)
         guard !plan.cases.isEmpty else {
             return HistoryImportResult(
                 casebook: nil, added: [], duplicates: plan.duplicates, invalid: plan.invalid,
@@ -161,26 +126,22 @@ public struct HistoryImporter: Sendable {
 
     /// Validates, dedupes, orders, and caps the items, without recording anything.
     static func plan(
-        _ items: [HistoryItem], into book: Casebook?, source: String, limit: Int,
-        invalid: [String]
+        _ items: [HistoryItem], into book: Casebook?, source: String, binding: String? = nil,
+        limit: Int, invalid: [String]
     ) throws -> Plan {
         var plan = Plan(invalid: invalid)
         var ids = Set(book?.cases.map(\.id) ?? [])
         var inputs = Set(book?.cases.map { normalized($0.input.text) } ?? [])
-        // Newest first; items without a time keep their order after timed ones.
+        // Newest first; ties keep the binding's order.
         let ordered = items.enumerated().sorted { a, b in
-            switch (a.element.at, b.element.at) {
-            case (let x?, let y?) where x != y: return x > y
-            case (.some, .none): return true
-            case (.none, .some): return false
-            default: return a.offset < b.offset
-            }
+            a.element.at != b.element.at ? a.element.at > b.element.at : a.offset < b.offset
         }.map(\.element)
         var fresh: [Case] = []
         for item in ordered {
             let id = item.id.trimmingCharacters(in: .whitespacesAndNewlines)
             let input = item.input.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let reason = problem(id: id, input: input, did: item.did) {
+            let did = expected(item)
+            if let reason = problem(id: id, input: input, did: did) {
                 plan.invalid.append("\(id.isEmpty ? "?" : id): \(reason)")
                 continue
             }
@@ -194,13 +155,17 @@ public struct HistoryImporter: Sendable {
             }
             ids.insert(caseID)
             inputs.insert(normalized(input))
-            let who = item.by.map { " by \($0)" } ?? ""
-            let when = item.at.map { " at \($0)" } ?? ""
+            var reads: [RecordedToolResult] = []
+            if let binding, let record = item.record {
+                reads.append(
+                    RecordedToolResult(
+                        tool: "\(binding).get", input: ["id": .string(id)], output: record))
+            }
             fresh.append(
                 Case(
                     id: caseID, input: CaseInput(text: input),
-                    context: item.context ?? CaseContext(), expected: item.did,
-                    source: "history \(source) item \(id)\(who)\(when)"))
+                    context: CaseContext(toolResults: reads), expected: did,
+                    source: provenance(item, id: id, source: source)))
         }
         let cap = max(0, limit)
         plan.cases = Array(fresh.prefix(cap))
@@ -208,12 +173,42 @@ public struct HistoryImporter: Sendable {
         return plan
     }
 
+    /// What the person did, as a case's expected result: their `choice` as the decision and
+    /// each distinct action kind and target, in order (a rerouted record keeps both routes).
+    static func expected(_ item: HistoryItem) -> JSONValue {
+        var fields: [String: JSONValue] = [:]
+        if let choice = item.choice?.trimmingCharacters(in: .whitespaces), !choice.isEmpty {
+            fields["decisions"] = [["choice": .string(choice)]]
+        }
+        var actions: [JSONValue] = []
+        for action in item.actions {
+            var entry: [String: JSONValue] = ["kind": .string(action.kind)]
+            if let target = action.target { entry["target"] = .string(target) }
+            if !actions.contains(.object(entry)) { actions.append(.object(entry)) }
+        }
+        if !actions.isEmpty { fields["actions"] = .array(actions) }
+        return .object(fields)
+    }
+
+    /// `history inbox.history item MSG-004 by person:sam at 2026-09-03T11:00:00Z, reopened:
+    /// Rerouted.`
+    static func provenance(_ item: HistoryItem, id: String, source: String) -> String {
+        var text = "history \(source) item \(id)"
+        if let by = item.actions.compactMap(\.by).first { text += " by \(by)" }
+        text += " at \(item.at)"
+        if let outcome = item.outcome, outcome.status != "resolved" {
+            text += ", \(outcome.status)"
+            if let note = outcome.note, !note.isEmpty { text += ": \(note)" }
+        }
+        return text
+    }
+
     static func problem(id: String, input: String, did: JSONValue) -> String? {
         if id.isEmpty { return "missing id" }
         if input.isEmpty { return "empty input" }
         if input.count > maxInput { return "input longer than \(maxInput) characters" }
         guard case .object(let fields) = did, !fields.isEmpty else {
-            return "no record of what the person did"
+            return "nobody acted on it"
         }
         return nil
     }

@@ -12,36 +12,71 @@ private let histCharter = Charter(
     id: historySteward, name: "History triage", outcome: "Every issue is triaged.",
     metric: Metric(name: "triaged", unit: "ratio", direction: .up), adapter: "fake")
 
-private func item(_ id: String, _ input: String, _ choice: String, at: String? = nil)
-    -> HistoryItem
-{
+private func item(_ id: String, _ input: String, _ choice: String, at: String) -> HistoryItem {
     HistoryItem(
-        id: id, input: input, did: ["decisions": [["choice": .string(choice)]]],
-        by: "person:sam", at: at)
+        id: id, at: at, input: input, record: ["id": .string(id), "subject": .string(input)],
+        actions: [HistoryAction(kind: "route", target: "inbox:\(id)", by: "person:sam")],
+        choice: choice)
 }
 
-@Test func historyItemsReadFromFilesAndToolResults() throws {
-    let lines = """
-        {"id":"MSG-1","input":"Charged twice","did":{"decisions":[{"choice":"billing"}]}}
-
-        not json
-        {"id":"MSG-2","input":"App crashes","did":{"decisions":[{"choice":"bug"}]},"by":"p:s"}
+@Test func historyItemsReadFromExportsAndToolPages() throws {
+    let export = """
+        {"v":1,"history":[
+          {"id":"MSG-1","at":"2026-09-01T08:00:00Z","input":"Charged twice","choice":"billing"},
+          {"id":"MSG-2","input":"no time"},
+          {"id":"MSG-3","at":"2026-09-02T08:00:00Z","input":"App crashes",
+           "actions":[{"kind":"label","target":"inbox:MSG-3","by":"person:sam"}]}]}
         """
-    let file = HistorySource.items(jsonLines: Data(lines.utf8))
-    #expect(file.items.map(\.id) == ["MSG-1", "MSG-2"])
-    #expect(file.invalid == ["line 3: not a history item"])
+    let file = HistorySource.items(export: Data(export.utf8))
+    #expect(file.items.map(\.id) == ["MSG-1", "MSG-3"])
+    #expect(file.invalid == ["MSG-2: not a history item (needs id, at, input)"])
+    #expect(HistorySource.items(export: Data("[]".utf8)).invalid.count == 1)
 
-    let structured: JSONValue = [
-        "structuredContent": ["items": [["id": "A", "input": "x", "did": ["k": 1]], ["id": 3]]]
-    ]
-    let tool = HistorySource.items(toolResult: structured)
-    #expect(tool.items.map(\.id) == ["A"])
-    #expect(tool.invalid == ["item 2: not a history item"])
+    let page = HistoryListResult(
+        items: [item("A", "x", "bug", at: "2026-09-01T00:00:00Z")], next: "50")
+    let structured: JSONValue = ["structuredContent": try CanonicalJSON.jsonValue(page)]
+    let read = HistorySource.page(toolResult: structured)
+    #expect(read.items.map(\.id) == ["A"])
+    #expect(read.next == "50")
     let text: JSONValue = [
-        "content": [["type": "text", "text": #"{"items":[{"id":"B","input":"y","did":{"k":1}}]}"#]]
+        "content": [["type": "text", "text": .string(try CanonicalJSON.string(page))]]
     ]
-    #expect(HistorySource.items(toolResult: text).items.map(\.id) == ["B"])
-    #expect(HistorySource.items(toolResult: ["nothing": true]).invalid.count == 1)
+    #expect(HistorySource.page(toolResult: text).items.map(\.id) == ["A"])
+    #expect(HistorySource.page(toolResult: ["nothing": true]).invalid.count == 1)
+}
+
+@Test func historyCaseCarriesWhatThePersonDidAndTheRecord() throws {
+    let rerouted = HistoryItem(
+        id: "MSG-4", at: "2026-09-03T11:00:00Z", input: "New message MSG-4: Not shipped",
+        record: ["id": "MSG-4", "subject": "Not shipped"],
+        actions: [
+            HistoryAction(kind: "route", target: "inbox:MSG-4", by: "person:sam"),
+            HistoryAction(kind: "route", target: "inbox:MSG-4", by: "person:alex"),
+            HistoryAction(kind: "label", target: "inbox:MSG-4", by: "person:alex"),
+        ],
+        choice: "shipping", outcome: HistoryOutcome(status: "reopened", note: "Rerouted."))
+    let plan = try HistoryImporter.plan(
+        [rerouted], into: nil, source: "inbox.history", binding: "inbox", limit: 10, invalid: [])
+    let made = try #require(plan.cases.first)
+    #expect(made.id.rawValue == "hist-MSG-4")
+    #expect(
+        made.expected == [
+            "decisions": [["choice": "shipping"]],
+            "actions": [
+                ["kind": "route", "target": "inbox:MSG-4"],
+                ["kind": "label", "target": "inbox:MSG-4"],
+            ],
+        ])
+    #expect(made.context.toolResults.map(\.tool) == ["inbox.get"])
+    #expect(made.context.toolResults.first?.input == ["id": "MSG-4"])
+    #expect(
+        made.source
+            == "history inbox.history item MSG-4 by person:sam at 2026-09-03T11:00:00Z, "
+            + "reopened: Rerouted.")
+    let nobody = HistoryItem(id: "MSG-5", at: "2026-09-04T00:00:00Z", input: "Hello")
+    #expect(
+        try HistoryImporter.plan([nobody], into: nil, source: "f", limit: 10, invalid: []).invalid
+            == ["MSG-5: nobody acted on it"])
 }
 
 @Test func historyImportDedupesCapsAndRecordsProvenance() async throws {
@@ -60,23 +95,24 @@ private func item(_ id: String, _ input: String, _ choice: String, at: String? =
         item("MSG-1", "charged twice", "billing", at: "2026-10-01T00:00:00Z"),
         item("MSG-2", "App crashes", "bug", at: "2026-10-03T00:00:00Z"),
         item("MSG-3", "Where is the report?", "how-to", at: "2026-10-02T00:00:00Z"),
-        item("MSG-4", "Old one", "bug"),
-        item("", "no id", "bug"),
-        HistoryItem(id: "MSG-5", input: "Nothing done", did: [:]),
-        item("MSG 6", "bad id", "bug"),
+        item("MSG-4", "Old one", "bug", at: "2026-09-01T00:00:00Z"),
+        item("", "no id", "bug", at: "2026-10-04T00:00:00Z"),
+        HistoryItem(id: "MSG-5", at: "2026-10-05T00:00:00Z", input: "Nothing done"),
+        item("MSG 6", "bad id", "bug", at: "2026-10-06T00:00:00Z"),
     ]
     let result = try await importer.importHistory(
-        items, invalid: ["line 9: not a history item"], into: existing, name: "triage",
-        steward: historySteward, source: "inbox.history", limit: 2)
+        items, invalid: ["MSG-9: not a history item (needs id, at, input)"], into: existing,
+        name: "triage", steward: historySteward, source: "inbox.history", binding: "inbox",
+        limit: 2)
     // Newest first, capped at 2: MSG-2 then MSG-3; MSG-4 is over the cap.
     #expect(result.added.map(\.rawValue) == ["hist-MSG-2", "hist-MSG-3"])
     #expect(result.duplicates == ["MSG-1"])
     #expect(result.overCap == 1)
     #expect(
         result.invalid == [
-            "line 9: not a history item", "?: missing id",
-            "MSG-5: no record of what the person did",
-            "MSG 6: id has characters a case id cannot hold",
+            "MSG-9: not a history item (needs id, at, input)",
+            "MSG 6: id has characters a case id cannot hold", "MSG-5: nobody acted on it",
+            "?: missing id",
         ])
     #expect(
         result.summary
@@ -85,7 +121,12 @@ private func item(_ id: String, _ input: String, _ choice: String, at: String? =
     let grown = try #require(result.casebook)
     #expect(grown.cases.count == 3)
     let added = try #require(grown.cases.first { $0.id.rawValue == "hist-MSG-2" })
-    #expect(added.expected == ["decisions": [["choice": "bug"]]])
+    #expect(
+        added.expected
+            == [
+                "decisions": [["choice": "bug"]],
+                "actions": [["kind": "route", "target": "inbox:MSG-2"]],
+            ])
     #expect(
         added.source == "history inbox.history item MSG-2 by person:sam at 2026-10-03T00:00:00Z")
     let stored = try await StoredCasebooks(sink: sink, blobs: blobs).latest(name: "triage")
@@ -101,7 +142,8 @@ private func item(_ id: String, _ input: String, _ choice: String, at: String? =
         source: "inbox.history", limit: 2)
     #expect(third.casebook == nil)
     #expect(
-        third.summary == "Added 0 cases from inbox.history; 4 already in the casebook, 3 invalid.")
+        third.summary
+            == "Added 0 cases from inbox.history; 4 already in the casebook, 3 invalid.")
 }
 
 @Test func reviewQueueOrdersCasesAndCountsProgress() async throws {

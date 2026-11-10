@@ -6,10 +6,6 @@ import Testing
     let cases: [([String], String)] = [
         (["history", "import", "st_triage"], "arya: give --file or --binding"),
         (
-            ["history", "import", "st_triage", "--file", "a", "--binding", "inbox"],
-            "arya: give --file or --binding"
-        ),
-        (
             ["history", "import", "st_triage", "--file", "a", "--limit", "0"],
             "arya: --limit must be a positive number"
         ),
