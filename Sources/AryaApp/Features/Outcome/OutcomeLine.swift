@@ -14,11 +14,13 @@ struct OutcomeLine: View {
 
     var body: some View {
         if case .loaded(let events) = store.state,
-            LiveCharter.find(events: events, steward: steward) != nil
+            let live = LiveCharter.find(events: events, steward: steward)
         {
             let state = OutcomeState.build(events: events, steward: steward, now: store.now)
             let waiting = StewardOverview.build(events: events, steward: steward).waitingApprovals
-            OutcomeLineContent(state: state, waiting: waiting, review: review, runNow: runNow)
+            OutcomeLineContent(
+                state: state, waiting: waiting, review: review, runNow: runNow,
+                owner: OutcomeLineContent.owner(live.charter, events: events, steward: steward))
         }
     }
 }
@@ -29,6 +31,15 @@ struct OutcomeLineContent: View {
     let waiting: Int
     let review: () -> Void
     let runNow: () -> Void
+    /// "Maya": who answers for the outcome, by name; nil when the charter names no one.
+    var owner: String? = nil
+
+    /// The charter's owner by name: "person:maya" reads "Maya".
+    static func owner(_ charter: FeatureJSON, events: [FeatureEvent], steward: String) -> String? {
+        guard let owner = charter["owner"]?.string, !owner.isEmpty else { return nil }
+        let names = OutcomePeople.names(events: events, steward: steward)
+        return owner.hasPrefix("person:") ? names[owner] ?? OutcomePeople.name(owner) : owner
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: AryaSpace.s4) {
@@ -51,6 +62,11 @@ struct OutcomeLineContent: View {
             OutcomeStatusPill(status: state.status)
             if let missed = state.missedText, state.status != .paused {
                 Text(missed).aryaText(AryaFont.monoSmall, AryaColor.inkMuted).fixedSize()
+            }
+            if let owner {
+                Text("owned by \(owner)").aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    .lineLimit(1)
+                    .help("\(owner) answers for this outcome.")
             }
             Spacer(minLength: AryaSpace.s4)
             if waiting > 0 {

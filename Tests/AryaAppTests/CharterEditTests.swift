@@ -145,3 +145,14 @@ private let live = LiveCharter(steward: "st_triage", version: 3, charter: liveCh
     answers.owner = ""
     #expect(answers.stewardDraft().owner == nil)
 }
+
+/// The header names who answers for the outcome, by name.
+@Test func theHeaderNamesTheOwner() {
+    var charter = liveCharter
+    #expect(OutcomeLineContent.owner(charter, events: [], steward: "st_triage") == nil)
+    if case .object(var members) = charter {
+        members["owner"] = "person:sam"
+        charter = .object(members)
+    }
+    #expect(OutcomeLineContent.owner(charter, events: [], steward: "st_triage") == "Sam")
+}
