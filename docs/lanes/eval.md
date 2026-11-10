@@ -332,4 +332,9 @@ Parity (CEO gap map):
   reviews (default 10, or every case of a smaller queue), a passing live rehearsal, and every
   learned check rehearsed and green; one sentence names what is missing. Next: trajectory
   grading (credit actions with outcome checks weeks later) for Impact confidence.
+- 2026-11-10: Trajectory grading (`TrajectoryGrades`, facade `trajectories`): each run graded on
+  its executed actions' latest follow-up checks (good, bad when any reopened, pending); credit
+  to action kinds (own actions) and decision choices (the run's outcome), median lag in days,
+  and a Wilson lower-bound confidence so little evidence stays low. Workspace asked to feed it
+  into Impact confidence.
 

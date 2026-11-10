@@ -183,3 +183,13 @@ private final class ProductsMarker {}
         try await workspace.goLiveGate(steward: "nope")
     }
 }
+
+/// Trajectory grading reads the steward's own events; a steward that has not acted has
+/// nothing to grade.
+@Test func trajectoriesReadTheStewardsRuns() async throws {
+    let opened = try await Opened(improvementScript())
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(inboxCharter()))
+    let view = try await workspace.trajectories(steward: "st_inbox")
+    #expect(view.runs.isEmpty && view.sentence == "No executed actions to grade yet.")
+}

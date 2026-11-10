@@ -264,3 +264,4 @@ M3:
 - 2026-11-10: M3.6 #9: eval shipped `learnedChecks(steward:)` (fff15ee0); I dropped my
   overlapping read and kept a verbatim `line` on follow-up `checks(steward:)` rows. #16
   templates were done in 618b1ce.
+- (from eval) Impact confidence: `trajectories(steward:).kind(k)?.confidence` (Wilson, n-aware)

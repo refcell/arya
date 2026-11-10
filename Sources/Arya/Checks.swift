@@ -25,6 +25,14 @@ extension Workspace {
             checks: try await learnedChecks(steward: steward), agreed: agreed)
     }
 
+    /// Trajectory grading: each of the steward's runs graded on the follow-up checks that came
+    /// after it, with credit for its action kinds and decision choices and a confidence that
+    /// weighs how much evidence there is (for Impact).
+    public func trajectories(steward: String) async throws -> TrajectorySummary {
+        let id = try await existing(steward).id
+        return TrajectoryGrades.view(steward: id, events: try facadeState().bySteward[id] ?? [])
+    }
+
     /// Records a new version of the steward's learned checks when its corrections or
     /// agreements changed them.
     func rebuildChecks(_ steward: StewardID, by person: String) async throws {
@@ -38,3 +46,4 @@ public typealias LearnedChecksSummary = LearnedChecksView
 /// One learned check and whether the newest live rehearsal passes it.
 public typealias LearnedCheckLine = LearnedCheckResult
 public typealias GoLiveSummary = GoLiveGateResult
+public typealias TrajectorySummary = TrajectoryGradesView
