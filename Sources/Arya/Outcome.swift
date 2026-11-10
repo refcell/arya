@@ -297,7 +297,7 @@ extension Workspace {
         let live = Set(
             try await runBook().all.filter { $0.steward == id && $0.trigger != "case" }
                 .map(\.id))
-        guard let latest = RecordedResults(try facadeState().events).latestPlan(among: live) else {
+        guard let latest = try facadeState().actions.results.latestPlan(among: live) else {
             return Plan(steward: id.rawValue, items: [], updatedAt: nil, reason: nil, run: nil)
         }
         let summary = latest.result.summary

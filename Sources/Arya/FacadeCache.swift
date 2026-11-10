@@ -1,6 +1,7 @@
 import AryaCore
 import AryaEval
 import AryaLedger
+import AryaMemory
 import AryaRuntime
 import Foundation
 
@@ -25,6 +26,8 @@ struct FacadeState: Sendable {
     var bySteward: [StewardID: [RuntimeEvent]] = [:]
     var rehearsals = RehearsalBook()
     var proposals = ProposalBook()
+    var memory = MemoryProjection()
+    var routines = RoutineLibrary()
     /// Each steward's charter by version, from the versions folded here (a book seeded from
     /// the disk cache has no older versions; readers fall back to the live charter).
     var charterVersions: [StewardID: [Int: Charter]] = [:]
@@ -61,6 +64,13 @@ struct FacadeState: Sendable {
         return min(events.count, max(0, Int(seq - first)))
     }
 
+    /// When the event at `seq` happened, if it is live.
+    func date(seq: Int) -> Date? {
+        let index = index(from: Int64(seq))
+        guard index < events.count, events[index].seq == Int64(seq) else { return nil }
+        return events[index].at.date
+    }
+
     /// Folds an event into everything but the seeded books.
     mutating func fold(_ event: Event) {
         let runtimeEvent = RuntimeEvent(event)
@@ -71,6 +81,8 @@ struct FacadeState: Sendable {
         if let run = event.run { byRun[run, default: []].append(event) }
         try? rehearsals.apply(runtimeEvent)
         try? proposals.apply(runtimeEvent)
+        try? memory.apply(event)
+        try? routines.apply(event)
         live.add(event)
         if let casebook = Workspace.casebookSummary(event) { casebooks.append(casebook) }
         let type = event.type.rawValue

@@ -119,13 +119,12 @@ extension Workspace {
         -> KnowledgeView
     {
         let id = try await existing(steward).id
-        let events = try facadeState().events
-        let times = Dictionary(
-            events.map { (Int($0.seq), $0.at.date) }, uniquingKeysWith: { first, _ in first })
+        let state = try facadeState()
         let now = now()
         func time(_ seq: Int) -> TimeText {
             TimeText(
-                times[seq] ?? Date(timeIntervalSince1970: 0), now: now, timeZone: timeZone)
+                state.date(seq: seq) ?? Date(timeIntervalSince1970: 0), now: now, timeZone: timeZone
+            )
         }
         let titles = try await runBook().records.mapValues { RunSummary($0).title }
         func entry(_ note: MemorySummary) -> KnowledgeView.Note {

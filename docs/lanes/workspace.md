@@ -237,3 +237,6 @@ M3:
   ledger segments; unchanged means no work, otherwise only new events fold; a broken chain or
   shorter ledger rebuilds. On a 50k-event home warm `approvals()`, `fleet()`, and `needsYou()`
   each run under 20 ms (tested); a second read after N events folds exactly N (tested).
+- 2026-11-10: published the cache (d9fadbbf). Then memory, routines, and plan reads on the
+  cached state, and seq times by direct lookup: warm on 50k events memory 0.2 ms, knowledge
+  0.6 ms, proposals 0.2 ms, plan 8 ms, improve 49 ms (eval reports through `CachedReadSink`).
