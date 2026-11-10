@@ -218,3 +218,13 @@ M3:
   preferences, `sharedMemory`, `preferences`; shared notes reach every steward's recall),
   `serveStatus()`, `message(steward:text:intent:by:)` with `conversation(steward:)`, and
   `runNow(steward:note:)`; 65 tests.
+- 2026-11-10: Paused for the night after 618b1ce (parity batch). Next: `ProposalSummary.impact`
+  and `removed` moved from app-outcome's ProposalImpact into the facade, then
+  `conversation(steward:person:)` for the connect lane, then the backlog (binding proxy,
+  `LedgerCheck` lines, cached `runBook()`).
+- 2026-11-10: resumed. Live reads for the work pane (points 1 and 4): `observe(run:)` and
+  `observe(steward:)` stream `LiveUpdate{steps, status, stepCount, progress}` from a file watch
+  on the ledger (DispatchSource, 1 s fallback poll); `liveRuns()` for the sidebar and status bar.
+  `ProposalSummary.impact`, `removed`, and `detail` (ProposalImpact moved from the app, plus
+  autonomy raised), measured against the proposal's base version. `conversation(steward:
+  person:)`. Next: incremental cached projections (CEO priority).

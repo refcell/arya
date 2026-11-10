@@ -34,6 +34,13 @@ public struct ProposalSummary: Sendable, Hashable, Codable {
     public var verdict: GateVerdictSummary?
     /// True when `acceptProposal` would make it live (passed or overridden).
     public var acceptable: Bool
+    /// What it changes against the live charter, as a set: `outcome`, `metric`, `guardrails`,
+    /// `signoff`, `adapter`. Empty when it changes none of these (or the steward is gone).
+    public var impact: [String] = []
+    /// Guardrails and sign-offs it removes or loosens, in plain words.
+    public var removed: [String] = []
+    /// The full impact, with the sentences an approver reads and `needsConfirm`.
+    public var detail: ProposalImpact?
 }
 
 /// The outcome of gating a routine version.
@@ -75,20 +82,44 @@ extension Workspace {
         let record = try await proposing {
             try await desk.propose(parsed, reason: text.isEmpty ? nil : text, by: .person(person))
         }
-        return ProposalSummary(record)
+        return try await measured([record])[0]
     }
 
     /// A steward's charter proposals, newest first.
     public func proposals(steward: String) async throws -> [ProposalSummary] {
         let id = try await existing(steward).id
-        return try ProposalBook(try await sink.events(from: 1)).all(steward: id).reversed()
-            .map(ProposalSummary.init)
+        return try await measured(
+            ProposalBook(try await sink.events(from: 1)).all(steward: id).reversed())
     }
 
     /// One proposal, or `nil`.
     public func proposal(_ id: String) async throws -> ProposalSummary? {
-        try ProposalBook(try await sink.events(from: 1)).records[ProposalID(unchecked: id)]
-            .map(ProposalSummary.init)
+        guard
+            let record = try ProposalBook(try await sink.events(from: 1))
+                .records[ProposalID(unchecked: id)]
+        else { return nil }
+        return try await measured([record]).first
+    }
+
+    /// Summaries with their impact against the charter each was written against (its base
+    /// version), so a decided proposal keeps showing what it changed.
+    func measured(_ records: [ProposalRecord]) async throws -> [ProposalSummary] {
+        var book = StewardBook()
+        var versions: [StewardID: [Int: Charter]] = [:]
+        for event in try await sink.events(from: 1) {
+            try book.apply(event)
+            guard let steward = event.draft.steward, let record = book.records[steward]
+            else { continue }
+            versions[steward, default: [:]][record.version] = record.charter
+        }
+        return records.map { record in
+            var summary = ProposalSummary(record)
+            let base =
+                versions[record.steward]?[record.baseVersion]
+                ?? book.records[record.steward]?.charter
+            summary.measure(record.charter, against: base)
+            return summary
+        }
     }
 
     /// Runs the rehearsal gate on a casebook version (default: the steward's newest), which

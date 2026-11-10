@@ -153,6 +153,8 @@ private enum ProposalSummaryCharter {
     let thread = try await workspace.conversation(steward: "st_inbox")
     #expect(thread.map(\.intent) == ["ask", "correct", "handoff"])
     #expect(thread.allSatisfy { $0.person == "local" && $0.channel == "app" })
+    #expect(try await workspace.conversation(steward: "st_inbox", person: "local") == thread)
+    #expect(try await workspace.conversation(steward: "st_inbox", person: "person:sam").isEmpty)
     #expect(try await workspace.ledger().contains { $0.id == asked.event })
 
     let manual = try await workspace.runNow(steward: "st_inbox", note: "Check the queue")

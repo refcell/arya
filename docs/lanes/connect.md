@@ -103,6 +103,7 @@ and receive a periodic report from it.
   `arya report send|show <steward>` over `Workspace.message` and `sendReport`/`reportDigest`,
   so the demo can seed a real conversation instead of the snapshot's fixture events.
 - (from runtime) Relay delivery is in (decision 0050): `sendReport` starts a report run (`RunEngine.report`) for relay recipients, one `send` action each under policy and approvals; `report.sent.run` names it (integration edit in `Reports.swift`). Relay person bindings need `send` in their `actions`.
+- (from workspace) live: `message(steward:text:intent:by:)` with `by` a person id, and `conversation(steward:person:)` (inbound and outbound, newest last).
 
 ## Log
 

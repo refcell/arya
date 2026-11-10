@@ -191,14 +191,15 @@ public struct ConversationEntry: Sendable, Hashable, Codable {
 }
 
 extension Workspace {
-    /// A steward's conversation with people, oldest first: messages to it and what it sent
-    /// back through person bindings.
-    public func conversation(steward: String, timeZone: TimeZone = .current) async throws
-        -> [ConversationEntry]
-    {
+    /// A steward's conversation with people, newest last: messages to it and what it sent back
+    /// through person bindings; with `person`, only that person's thread.
+    public func conversation(
+        steward: String, person: String? = nil, timeZone: TimeZone = .current
+    ) async throws -> [ConversationEntry] {
         let id = try await existing(steward).id
         let now = now()
-        return try InboxBook(try await sink.events(from: 1)).threads[id, default: []].map {
+        let thread = try InboxBook(try await sink.events(from: 1)).threads[id, default: []]
+        return thread.filter { person == nil || $0.person == person }.map {
             ConversationEntry(
                 direction: $0.direction.rawValue, person: $0.person, channel: $0.channel,
                 intent: $0.intent?.rawValue, text: $0.text, run: $0.run?.rawValue, seq: $0.seq,
