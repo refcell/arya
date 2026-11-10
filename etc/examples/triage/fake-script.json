@@ -4952,6 +4952,28 @@
               "11 password-reset questions this week, all answered the same way"
             ]
           }
+        ],
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Count this week's messages by category",
+            "status": "done",
+            "rationale": "Patterns show up in counts before they show up in single messages."
+          },
+          {
+            "id": "p2",
+            "text": "Raise what changed since last week",
+            "status": "done",
+            "rationale": "A person decides what to do about a trend."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "raise",
+            "rationale": "Two patterns changed since last week.",
+            "why": "Duplicate-charge messages doubled; password resets repeat one answer."
+          }
         ]
       }
     }
