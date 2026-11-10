@@ -454,7 +454,7 @@ public actor Workspace {
     var lifecycle: StewardLifecycle { StewardLifecycle(sink: sink) }
 
     func runBook() async throws -> RunBook {
-        try RunBook(try await sink.events(from: 1))
+        try await sink.book(RunBook.self)
     }
 
     func record(_ id: String) async throws -> StewardRecord? {

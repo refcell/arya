@@ -59,6 +59,12 @@ public final class Ambient: Sendable {
         return Int.random(in: range, using: &generator)
     }
 
+    /// Moves a `fixed` ambient's clock forward to `time` (never back), so one process can
+    /// write events that read as hours or weeks apart. Other ambients ignore it.
+    public func advance(to time: Timestamp) {
+        state.withLock { $0.advance(to: time.millis) }
+    }
+
     /// Readings made since the last call, in order.
     public func drainReadings() -> [AmbientReading] {
         state.withLock { state in
@@ -226,6 +232,12 @@ private struct State: Sendable {
         lastMillis = value.millis
         log.append(.time(value))
         return value
+    }
+
+    mutating func advance(to millis: Int64) {
+        guard case .fixed(var fixed) = source, millis > fixed.now else { return }
+        fixed.now = millis
+        source = .fixed(fixed)
     }
 
     mutating func newID<ID: PrefixedID>(_ type: ID.Type) -> ID {
