@@ -254,7 +254,10 @@ enum FeatureRegistry {
                 selectSteward: { model.navigation.showPeople(steward: $0) },
                 select: { model.navigation.select(person: $0) }, reports: model.reports,
                 readReport: { [source = model.source] in try await source.reportDigest(steward: $0)
-                })
+                },
+                pane: model.navigation.peoplePane,
+                selectPane: { model.navigation.peoplePane = $0 },
+                tests: model.connectionTests.results)
         } else {
             EmptyState("No people yet.", guidance: "The people stewards work with appear here.")
         }

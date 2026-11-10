@@ -44,12 +44,26 @@
       ]
     },
     {
+      "id": "chat",
+      "kind": "mcp",
+      "command": "chat-mcp",
+      "args": [],
+      "read": [
+        "receive"
+      ],
+      "actions": [
+        "send"
+      ]
+    },
+    {
       "id": "person:sam",
       "kind": "person",
       "channel": "inbox",
       "name": "Sam",
       "role": "support lead",
-      "actions": ["reply"]
+      "actions": [
+        "reply"
+      ]
     },
     {
       "id": "person:priya",
@@ -57,7 +71,20 @@
       "channel": "inbox",
       "name": "Priya",
       "role": "billing lead",
-      "actions": ["reply"]
+      "actions": [
+        "reply"
+      ]
+    },
+    {
+      "id": "person:lee",
+      "kind": "person",
+      "channel": "@lee",
+      "via": "chat",
+      "name": "Lee",
+      "role": "on-call engineer",
+      "actions": [
+        "reply"
+      ]
     }
   ],
   "triggers": [
@@ -74,7 +101,10 @@
     "approvers": [
       {
         "action": "reply",
-        "people": ["local", "person:sam"],
+        "people": [
+          "local",
+          "person:sam"
+        ],
         "note": "Sam or you sign off customer replies."
       }
     ],
@@ -90,6 +120,12 @@
         "binding": "person:priya",
         "decision": "auto",
         "note": "Answers to Priya stay inside the team, so they go out on their own."
+      },
+      {
+        "action": "reply",
+        "binding": "person:lee",
+        "decision": "auto",
+        "note": "Answers to Lee stay inside the team, so they go out on their own."
       },
       {
         "action": "label",
@@ -149,6 +185,9 @@
   },
   "report": {
     "cadence": "weekly",
-    "to": ["person:sam", "person:priya"]
+    "to": [
+      "person:sam",
+      "person:priya"
+    ]
   }
 }

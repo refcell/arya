@@ -22,7 +22,6 @@ struct ConnectionsView: View {
     /// Tests a connection with its secret.
     let probe: @Sendable (ConnectionsCatalog.Entry, String?) async throws -> ConnectionTest
 
-    @AryaState private var secrets: [String: String] = [:]
     @AryaState private var stored: [String: Bool] = [:]
     @AryaState private var note: String?
     @AryaState private var confirming: String?
@@ -48,13 +47,21 @@ struct ConnectionsView: View {
                         guidance: "Connections a steward's charter binds appear here.")
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
+                        let activity = ConnectionActivity(events: store.events)
                         ForEach(catalog.entries) { entry in
-                            row(catalog.entry(entry, for: steward), catalog: catalog)
+                            row(
+                                catalog.entry(entry, for: steward), catalog: catalog,
+                                activity: activity)
                             AryaHairline()
                         }
                     }
                 }
                 if !catalog.adapters.isEmpty { adapters(catalog.adapters) }
+                if !catalog.entries.isEmpty {
+                    recentCalls(
+                        ConnectionActivity(events: store.events),
+                        connections: Set(catalog.entries.map(\.id)))
+                }
             }
             .padding(.horizontal, AryaSize.pagePadding)
             .padding(.top, AryaSize.titleBarInset)
@@ -77,32 +84,47 @@ struct ConnectionsView: View {
         }
     }
 
-    private func row(_ entry: ConnectionsCatalog.Entry, catalog: ConnectionsCatalog) -> some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s1) {
-            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
+    private func row(
+        _ entry: ConnectionsCatalog.Entry, catalog: ConnectionsCatalog,
+        activity: ConnectionActivity
+    ) -> some View {
+        let calls = activity.count(entry.id, now: store.now)
+        return VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            HStack(alignment: .center, spacing: AryaSpace.s3) {
                 Text(entry.id).aryaText(AryaFont.monoStrong, AryaColor.ink)
-                Text(entry.commandLine).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                    .lineLimit(1)
-                if entry.network {
-                    Text("network").aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                }
-                Spacer()
+                    .frame(minWidth: 72, alignment: .leading)
+                testStatus(entry)
+                Spacer(minLength: AryaSpace.s3)
+                Sparkline(activity.daily(entry.id, now: store.now))
+                    .accessibilityLabel("Calls per day this week")
+                Text(calls == 1 ? "1 call · 7d" : "\(calls) calls · 7d")
+                    .aryaText(
+                        AryaFont.monoSmall, calls == 0 ? AryaColor.inkFaint : AryaColor.inkMuted
+                    )
+                    .frame(width: 88, alignment: .trailing)
                 controls(entry, catalog: catalog)
             }
-            Text(ConnectionsText.capabilities(entry))
-                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
-                Text("used by: " + names(entry.connected))
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {
+                if !entry.read.isEmpty {
+                    Text("reads " + entry.read.joined(separator: ", "))
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                        .fixedSize()
+                }
+                if !entry.actions.isEmpty { actions(entry).fixedSize() }
+                Text("used by " + names(entry.connected))
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                credential(entry)
+                    .layoutPriority(-1)
+                Text(hasSecret(entry.id) ? "secret stored" : "no secret")
+                    .aryaText(
+                        AryaFont.monoSmall,
+                        hasSecret(entry.id) ? AryaColor.positive : AryaColor.inkFaint)
+                if entry.network {
+                    Text("network").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
             }
-            if let test = tests.results[entry.id] {
-                Text(ConnectionsText.lastTest(test))
-                    .aryaText(AryaFont.monoSmall, Self.color(test))
-            }
+            .lineLimit(1)
         }
-        .padding(.vertical, AryaSpace.s3)
+        .padding(.vertical, AryaSpace.s2)
         .padding(.horizontal, AryaSpace.s2)
         .background(
             selected == entry.id ? AryaColor.selection : Color.clear,
@@ -110,7 +132,36 @@ struct ConnectionsView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture { select(entry.id) }
+        .accessibilityElement(children: .contain)
         .accessibilityAddTraits(selected == entry.id ? .isSelected : [])
+    }
+
+    /// "label low · reply high", each kind in its risk's color.
+    private func actions(_ entry: ConnectionsCatalog.Entry) -> some View {
+        HStack(spacing: AryaSpace.s2) {
+            Text("does").aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+            ForEach(entry.actions, id: \.kind) { action in
+                Text("\(action.kind) \(action.risk)")
+                    .aryaText(AryaFont.monoSmall, Self.riskColor(action.risk))
+            }
+        }
+    }
+
+    /// The last test in one line, or "not tested", with a status dot.
+    private func testStatus(_ entry: ConnectionsCatalog.Entry) -> some View {
+        let test = tests.results[entry.id]
+        return HStack(spacing: AryaSpace.s1) {
+            if tests.testing.contains(entry.id) {
+                StatusDot(.running)
+                Text("testing…").aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+            } else if let test {
+                StatusDot(test.complete ? .passed : test.ok ? .waiting : .failed)
+                Text(ConnectionsText.lastTest(test)).aryaText(AryaFont.monoSmall, Self.color(test))
+                    .lineLimit(1)
+            } else {
+                Text("not tested").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            }
+        }
     }
 
     @ViewBuilder
@@ -118,44 +169,69 @@ struct ConnectionsView: View {
         -> some View
     {
         let running = tests.testing.contains(entry.id)
-        Button(running ? "Testing…" : "Test") { test(entry) }
+        Button("Test") { test(entry) }
             .buttonStyle(.aryaTertiary)
             .disabled(running)
+            .help("Start \(entry.id) and list its tools")
         if let steward {
             if catalog.isConnected(entry, steward: steward) {
-                Text("connected").aryaText(AryaFont.monoSmall, AryaColor.positive)
                 let blocker = catalog.disconnectBlocker(entry, steward: steward)
-                Menu("More") {
-                    Button("Disconnect…") { confirming = entry.id }
-                        .disabled(blocker != nil)
-                    if let blocker { Text(blocker) }
-                }
-                .aryaMenuButton()
-                .fixedSize()
-                .help("More actions for \(entry.id)")
+                Button("Disconnect") { confirming = entry.id }
+                    .buttonStyle(.aryaSecondary)
+                    .disabled(blocker != nil)
+                    .help(blocker ?? "Propose removing it from the charter")
             } else {
                 Button("Connect") { propose(catalog.connectProposal(entry, steward: steward)) }
-                    .buttonStyle(.aryaPrimary)
+                    .buttonStyle(.aryaSecondary)
                     .help("Propose adding it to the charter; it goes live through the gate.")
             }
         }
     }
 
-    @ViewBuilder
-    private func credential(_ entry: ConnectionsCatalog.Entry) -> some View {
-        if stored[entry.id] ?? credentials.hasCredential(for: entry.id) {
-            Text("secret: in Keychain").aryaText(AryaFont.monoSmall, AryaColor.positive)
-            Button("Remove") { removeSecret(entry.id) }.buttonStyle(.aryaTertiary)
-        } else {
-            SecureField("secret (token or password)", text: secretBinding(entry.id))
-                .textFieldStyle(.plain)
-                .aryaText(AryaFont.monoSmall, AryaColor.ink)
-                .padding(AryaSpace.s1)
-                .background(AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small))
-                .frame(maxWidth: 240)
-            Button("Save") { saveSecret(entry.id) }
-                .buttonStyle(.aryaTertiary)
-                .disabled((secrets[entry.id] ?? "").isEmpty)
+    private func hasSecret(_ id: String) -> Bool {
+        stored[id] ?? credentials.hasCredential(for: id)
+    }
+
+    static func riskColor(_ risk: String) -> Color {
+        switch risk {
+        case "high": AryaColor.negative
+        case "medium": AryaColor.warning
+        default: AryaColor.inkMuted
+        }
+    }
+
+    /// The newest calls through any connection, so the page shows what stewards do with them.
+    /// Person bindings are not connections, so replies to people stay on People.
+    private func recentCalls(_ activity: ConnectionActivity, connections: Set<String>)
+        -> some View
+    {
+        let calls = activity.calls.filter { connections.contains($0.key) }
+            .flatMap { id, calls in calls.map { (id, $0) } }
+            .sorted { $0.1.at > $1.1.at }.prefix(16)
+        let names = StewardNames.build(events: store.events)
+        return VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            Text("RECENT CALLS").aryaText(AryaFont.label, AryaColor.inkFaint)
+            if calls.isEmpty {
+                Text("No calls yet.").aryaText(AryaFont.caption, AryaColor.inkFaint)
+            }
+            ForEach(Array(calls), id: \.1.id) { connection, call in
+                HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
+                    Text(call.kind.rawValue)
+                        .aryaText(AryaFont.monoSmall, ConnectionInspector.color(call.kind))
+                        .frame(width: 64, alignment: .leading)
+                    Text(connection).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                        .frame(width: 64, alignment: .leading)
+                    Text(call.what).aryaText(AryaFont.monoSmall, AryaColor.ink).lineLimit(1)
+                    Spacer(minLength: AryaSpace.s3)
+                    Text(call.steward.map { names[$0] ?? $0 } ?? "")
+                        .aryaText(AryaFont.caption, AryaColor.inkFaint).lineLimit(1)
+                    Text(FeatureTime.relative(call.at, now: store.now))
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        .frame(width: 44, alignment: .trailing)
+                }
+                .frame(height: 20)
+                .accessibilityElement(children: .combine)
+            }
         }
     }
 
@@ -188,31 +264,6 @@ struct ConnectionsView: View {
         Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } })
     }
 
-    private func secretBinding(_ id: String) -> Binding<String> {
-        Binding(get: { secrets[id] ?? "" }, set: { secrets[id] = $0 })
-    }
-
-    private func saveSecret(_ id: String) {
-        do {
-            try credentials.setCredential(secrets[id] ?? "", for: id)
-            secrets[id] = nil
-            stored[id] = true
-            note = "Saved the secret for \(id) in the Keychain."
-        } catch {
-            note = "Could not save the secret for \(id) (\(error))."
-        }
-    }
-
-    private func removeSecret(_ id: String) {
-        do {
-            try credentials.removeCredential(for: id)
-            stored[id] = false
-            note = "Removed the secret for \(id)."
-        } catch {
-            note = "Could not remove the secret for \(id) (\(error))."
-        }
-    }
-
     private func test(_ entry: ConnectionsCatalog.Entry) {
         select(entry.id)
         tests.run(entry, secret: (try? credentials.credential(for: entry.id)) ?? nil, probe: probe)
@@ -231,15 +282,25 @@ struct ConnectionsView: View {
     }
 }
 
-/// "For steward: Support inbox triage ▾", a menu of the stewards.
+/// The steward a page acts on: a segmented control for up to four stewards (STYLE.md caps
+/// segments at four), else "For steward: Support inbox triage ▾", a menu.
 struct StewardPicker: View {
     let stewards: [StewardSummary]
     let selected: String
     let select: (String) -> Void
 
     var body: some View {
+        if stewards.count <= 4 {
+            AryaSegmented(stewards.map { ($0.id, $0.name) }, selection: selected, choose: select)
+                .accessibilityLabel("Steward")
+        } else {
+            menu
+        }
+    }
+
+    private var menu: some View {
         let name = stewards.first { $0.id == selected }?.name ?? selected
-        Menu {
+        return Menu {
             ForEach(stewards, id: \.id) { steward in
                 Button(steward.name) { select(steward.id) }
             }
@@ -264,6 +325,9 @@ struct ConnectionInspector: View {
     let credentials: any CredentialStore
     let probe: @Sendable (ConnectionsCatalog.Entry, String?) async throws -> ConnectionTest
 
+    @AryaState private var draft = ""
+    @AryaState private var stored: [String: Bool] = [:]
+
     var body: some View {
         let catalog = ConnectionsCatalog(events: store.events)
         if let found = catalog.entries.first(where: { $0.id == connection }) {
@@ -278,7 +342,7 @@ struct ConnectionInspector: View {
                     "Does",
                     entry.actions.isEmpty
                         ? "nothing"
-                        : entry.actions.map { "\($0.kind) (\($0.risk))" }.joined(separator: ", "))
+                        : entry.actions.map { "\($0.kind) \($0.risk)" }.joined(separator: ", "))
                 fact("Network", entry.network ? "allowed when sandboxed" : "none")
                 fact(
                     "Used by",
@@ -291,32 +355,37 @@ struct ConnectionInspector: View {
                 {
                     fact("Carries", carries)
                 }
-                fact(
-                    "Secret",
-                    credentials.hasCredential(for: entry.id) ? "in Keychain" : "none stored")
                 let relayed = ConnectionsText.relayed(entry.id, events: store.events)
                 if !relayed.isEmpty {
-                    VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                        Text("LAST MESSAGES").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    section("Last messages") {
                         ForEach(relayed, id: \.id) { event in
-                            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                                Text(
-                                    PeopleDirectory.displayName(event.payload["from"]?.string ?? "")
-                                )
-                                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                                .frame(width: 56, alignment: .leading)
-                                Text(event.payload["text"]?.string ?? "")
-                                    .aryaText(AryaFont.caption, AryaColor.ink).lineLimit(2)
-                                Spacer(minLength: 0)
-                                Text(FeatureTime.relative(event.at, now: store.now))
-                                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                            }
-                            .accessibilityElement(children: .combine)
+                            line(
+                                PeopleDirectory.displayName(event.payload["from"]?.string ?? ""),
+                                event.payload["text"]?.string ?? "", at: event.at)
                         }
                     }
                 }
-                VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                    Text("LAST TEST").aryaText(AryaFont.label, AryaColor.inkFaint)
+                let activity = ConnectionActivity(events: store.events)
+                section("Recent calls") {
+                    let calls = activity.recent(entry.id)
+                    if calls.isEmpty {
+                        Text("No calls yet.").aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    }
+                    ForEach(calls) { call in
+                        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                            Text(call.kind.rawValue)
+                                .aryaText(AryaFont.monoSmall, Self.color(call.kind))
+                                .frame(width: 56, alignment: .leading)
+                            Text(call.what).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                                .lineLimit(1)
+                            Spacer(minLength: 0)
+                            Text(FeatureTime.relative(call.at, now: store.now))
+                                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                section("Last test") {
                     Text(ConnectionsText.lastTest(tests.results[entry.id]))
                         .aryaText(
                             AryaFont.monoSmall,
@@ -329,15 +398,81 @@ struct ConnectionInspector: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                section("Secret") { secret(entry.id) }
                 let running = tests.testing.contains(entry.id)
-                Button(running ? "Testing…" : "Test connection") {
-                    tests.run(
-                        entry, secret: (try? credentials.credential(for: entry.id)) ?? nil,
-                        probe: probe)
+                HStack {
+                    Spacer()
+                    Button(running ? "Testing…" : "Test connection") {
+                        tests.run(
+                            entry, secret: (try? credentials.credential(for: entry.id)) ?? nil,
+                            probe: probe)
+                    }
+                    .buttonStyle(.aryaPrimary)
+                    .disabled(running)
                 }
-                .buttonStyle(.aryaQuiet)
-                .disabled(running)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func secret(_ id: String) -> some View {
+        if stored[id] ?? credentials.hasCredential(for: id) {
+            HStack(spacing: AryaSpace.s2) {
+                Text("in Keychain").aryaText(AryaFont.monoSmall, AryaColor.positive)
+                Spacer()
+                Button("Remove") {
+                    stored[id] = (try? credentials.removeCredential(for: id)) == nil
+                }
+                .buttonStyle(.aryaTertiary)
+            }
+        } else {
+            HStack(spacing: AryaSpace.s2) {
+                SecureField("token or password", text: $draft)
+                    .textFieldStyle(.plain)
+                    .aryaText(AryaFont.monoSmall, AryaColor.ink)
+                    .padding(.horizontal, AryaSpace.s2)
+                    .frame(height: AryaSize.buttonHeight)
+                    .background(
+                        AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small))
+                Button("Save") {
+                    if (try? credentials.setCredential(draft, for: id)) != nil {
+                        draft = ""
+                        stored[id] = true
+                    }
+                }
+                .buttonStyle(.aryaSecondary)
+                .disabled(draft.isEmpty)
+            }
+        }
+    }
+
+    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content)
+        -> some View
+    {
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            Text(title.uppercased()).aryaText(AryaFont.label, AryaColor.inkFaint)
+            content()
+        }
+    }
+
+    private func line(_ who: String, _ text: String, at: Date) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+            Text(who).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                .frame(width: 56, alignment: .leading)
+            Text(text).aryaText(AryaFont.caption, AryaColor.ink).lineLimit(2)
+            Spacer(minLength: 0)
+            Text(FeatureTime.relative(at, now: store.now))
+                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    static func color(_ kind: ConnectionActivity.Call.Kind) -> Color {
+        switch kind {
+        case .did: AryaColor.positive
+        case .failed: AryaColor.negative
+        case .proposed: AryaColor.warning
+        case .read: AryaColor.inkMuted
         }
     }
 

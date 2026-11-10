@@ -169,6 +169,12 @@ import Testing
             $0.showConnections()
             $0.select(connection: "inbox")
         }
+        // The catalog at density with a tested connection's detail: reads, actions by risk,
+        // stewards, recent calls, and the secret (connect lane).
+        try page("connections-detail") {
+            $0.showConnections(steward: steward.id)
+            $0.select(connection: "inbox")
+        }
         // Offscreen renders run no tasks, so load the Report section's digest first.
         model.reports.digests[steward.id] = try? await model.source.reportDigest(
             steward: steward.id)
@@ -178,6 +184,13 @@ import Testing
         try page("people-thread") {
             $0.showPeople(steward: steward.id)
             $0.select(person: "person:sam")
+        }
+        // The channels people use: the local inbox and the chat relay, with volume.
+        model.connectionTests.results["chat"] = ConnectionTest(
+            ok: true, server: "chat-mcp", tools: ["receive", "send"], latencyMilliseconds: 9)
+        try page("people-channels") {
+            $0.showPeople(steward: steward.id)
+            $0.peoplePane = .channels
         }
         // The same thread while a new hand-off's run is still going: only that message and run
         // are added, so every count and report stays the workspace's own.

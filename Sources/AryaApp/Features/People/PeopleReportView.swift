@@ -77,13 +77,14 @@ struct PeopleReportSection: View {
     private func form(_ report: PeopleReport) -> some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             row("Cadence") {
-                ChoiceRow([("weekly", "Weekly"), ("daily", "Daily")], selection: draft.cadence) {
+                AryaSegmented([("weekly", "Weekly"), ("daily", "Daily")], selection: draft.cadence)
+                {
                     draft.cadence = $0
                 }
             }
             if draft.cadence == "weekly" {
                 row("Day") {
-                    ChoiceRow(
+                    AryaSegmented(
                         PeopleReport.days.enumerated().map {
                             ($0.offset + 1, String($0.element.prefix(3)))
                         },
@@ -102,7 +103,7 @@ struct PeopleReportSection: View {
                     Button((on ? "✓ " : "") + person.name) {
                         draft.toggle(person.id, order: directory.people.map(\.id))
                     }
-                    .buttonStyle(on ? .aryaSecondary : .aryaQuiet)
+                    .buttonStyle(.aryaSecondary)
                     .accessibilityAddTraits(on ? .isSelected : [])
                 }
             }
@@ -122,7 +123,7 @@ struct PeopleReportSection: View {
                         propose(report.stopProposal())
                         editing = false
                     }
-                    .buttonStyle(.aryaQuiet)
+                    .buttonStyle(.aryaTertiary)
                 }
             }
         }

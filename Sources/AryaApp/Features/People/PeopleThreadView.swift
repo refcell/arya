@@ -95,7 +95,7 @@ struct PersonThreadView: View {
 
     private var composer: some View {
         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-            ChoiceRow(
+            AryaSegmented(
                 MessageIntent.allCases.map { ($0, $0.label) }, selection: intent
             ) { intent = $0 }
             TextField(PeopleThreadText.placeholder(person.name), text: $text)

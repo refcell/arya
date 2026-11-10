@@ -148,6 +148,19 @@ struct DemoSeeder {
                 at(daysAgo: 1, hour: 16), "st_triage", "person:priya", "handoff",
                 "Check that every duplicate-charge refund went out."
             ),
+            // Lee is on call and reaches the triage steward through the chat relay.
+            (
+                at(daysAgo: 2, hour: 9), "st_triage", "person:lee", "ask",
+                "How many export crash reports came in since the release?"
+            ),
+            (
+                at(daysAgo: 1, hour: 10), "st_triage", "person:lee", "correct",
+                "Export crashes are engineering bugs; label them bug, not billing."
+            ),
+            (
+                at(daysAgo: 1, hour: 15), "st_triage", "person:lee", "handoff",
+                "Tell the customers who reported the export crash that a fix ships tomorrow."
+            ),
         ] {
             steps.append(
                 (when, .message(steward: steward, person: person, intent: intent, text: text)))

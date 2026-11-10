@@ -107,6 +107,25 @@ and receive a periodic report from it.
   the needs-approval hand-off, and the last three messages; the weekly report reads "Reply Sam".
   Moves (5) busy demo and (2) no dead space in the inspector. The demo has no relay, so the
   connection inspector's Carries line is covered by tests only.
+- 2026-11-10: Connections and People at the new density with the shared control set. A
+  connection row is two lines: id, last test with a status dot, a 7-day call sparkline and
+  count, Test and Connect or Disconnect (secondary, Disconnect confirms); then reads, actions
+  colored by risk, stewards, secret, network. Calls come from the ledger
+  (`ConnectionActivity`: adapter tool calls named `binding.tool`, and actions proposed on the
+  binding with how they settled). Secret entry moved to the inspector, which also lists recent
+  calls; its one primary is Test connection. A steward picker is a segmented control for up to
+  four stewards. People rows show open hand-offs, last activity, reach, approvals, counts, and
+  reports, with Message and an ellipsis menu (Edit, Remove with confirm).
+- 2026-11-10: Channels are a pane on People (People | Channels, `NavigationState.peoplePane`):
+  the local inbox and each relay someone is reached through, with status (local; bound and
+  the last test; not in the charter), people, in and out over 7 days with a sparkline, and the
+  last message (`PeopleChannels`, built from each person's thread). The demo's triage steward
+  gains a `chat` relay and Lee (on-call engineer) reached through it, so the pane has a relay.
+  Visual check: `connections-detail` (rows with test, sparkline, risk-colored actions; recent
+  calls below; inspector with recent calls, secret, Test connection), `people-channels` (inbox
+  and chat with volume, recent messages across channels), and `people-thread` (dense rows,
+  segmented steward picker and composer, ellipsis menus). Moves (2) no dead space, (3) real
+  controls, and (5) busy demo.
 
 ## Questions
 

@@ -129,7 +129,8 @@ private func entry(_ seq: Int, _ type: String, _ payload: String) -> LedgerEntry
         .appendingPathComponent("etc/examples/triage/charter.json")
     let digest = try #require(CharterDigest(json: Data(contentsOf: url)))
     #expect(digest.metric == "routed_within_1h (ratio, up, target 0.95)")
-    #expect(digest.bindings == ["inbox", "billing", "person:sam", "person:priya"])
+    #expect(
+        digest.bindings == ["inbox", "billing", "chat", "person:sam", "person:priya", "person:lee"])
     #expect(digest.triggers == ["every 900s", "manual"])
     #expect(digest.adapter == "fake-triage")
     #expect(digest.effort == "medium")

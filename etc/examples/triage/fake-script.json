@@ -4766,6 +4766,162 @@
           }
         ]
       }
+    },
+    "person:lee asks: How many export crash reports came in since the release?": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "counting export crash reports"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.search",
+          "input": {
+            "query": "export crash newer_than:2d"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "messages": [
+              {
+                "id": "MSG-102"
+              },
+              {
+                "id": "MSG-141"
+              },
+              {
+                "id": "MSG-142"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "Three export crash reports since the release."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Counted three export crash reports and answered Lee.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Search the inbox for export crash reports",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Answer Lee",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "answered",
+            "rationale": "Three export crash reports since the release.",
+            "why": "Three export crash reports since the release."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "reply",
+            "binding": "person:lee",
+            "target": "person:lee",
+            "params": {
+              "text": "Three since the release: MSG-102, MSG-141, and MSG-142. All on the desktop app, all on export to CSV."
+            },
+            "rationale": "answer the person",
+            "risk": "low",
+            "why": "They asked, so they hear back in the same thread."
+          }
+        ]
+      }
+    },
+    "person:lee hands this to you: Tell the customers who reported the export crash that a fix ships tomorrow.": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "finding the customers who reported the crash"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.search",
+          "input": {
+            "query": "export crash newer_than:3d"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "messages": [
+              {
+                "id": "MSG-102"
+              },
+              {
+                "id": "MSG-141"
+              },
+              {
+                "id": "MSG-142"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "Three customers reported it; drafting replies."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Found three customers and told Lee the replies wait on sign-off.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Search the inbox for export crash reports",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Answer Lee",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "answered",
+            "rationale": "Three customers reported it; drafting replies.",
+            "why": "Three customers reported it; drafting replies."
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "reply",
+            "binding": "person:lee",
+            "target": "person:lee",
+            "params": {
+              "text": "Three customers reported it (MSG-102, MSG-141, MSG-142). The replies are drafted and wait on sign-off in Needs you."
+            },
+            "rationale": "answer the person",
+            "risk": "low",
+            "why": "They asked, so they hear back in the same thread."
+          }
+        ]
+      }
     }
   },
   "default": {

@@ -52,6 +52,8 @@ struct NavigationState: Hashable, Sendable {
     var connection: String?
     /// The person selected on the People page; the inspector shows them.
     var person: String?
+    /// People or Channels on the People page.
+    var peoplePane = PeoplePane.people
     /// The ledger event whose inspector is open on the Ledger tab.
     var ledgerEvent: String?
 

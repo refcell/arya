@@ -15,6 +15,11 @@ struct PeopleView: View {
     let select: (String) -> Void
     @ObservedObject var reports: ReportDigestStore
     let readReport: @Sendable (String) async throws -> ReportDigest
+    /// People or Channels.
+    var pane: PeoplePane = .people
+    var selectPane: (PeoplePane) -> Void = { _ in }
+    /// Connection tests, for a relay channel's status.
+    var tests: [String: ConnectionTest] = [:]
 
     /// `"new"`, a person id being edited, or nil.
     @AryaState private var editing: String?
@@ -31,9 +36,17 @@ struct PeopleView: View {
                     subtitle: "Who a steward works with, how it reaches them, and what they "
                         + "may approve.")
                 if let steward {
-                    StewardPicker(stewards: stewards, selected: steward) {
-                        editing = nil
-                        selectSteward($0)
+                    HStack(spacing: AryaSpace.s3) {
+                        StewardPicker(stewards: stewards, selected: steward) {
+                            editing = nil
+                            selectSteward($0)
+                        }
+                        Spacer()
+                        AryaSegmented(
+                            PeoplePane.allCases.map { ($0, $0.title) }, selection: pane,
+                            choose: selectPane
+                        )
+                        .accessibilityLabel("Show")
                     }
                 }
                 if let note { Text(note).aryaText(AryaFont.caption, AryaColor.inkMuted) }
@@ -42,10 +55,15 @@ struct PeopleView: View {
                 }
                 if let steward {
                     let people = PeopleDirectory(events: store.events, steward: steward)
-                    directory(people, steward)
-                    PeopleReportSection(
-                        store: store, reports: reports, directory: people, read: readReport,
-                        propose: propose)
+                    switch pane {
+                    case .people:
+                        directory(people, steward)
+                        PeopleReportSection(
+                            store: store, reports: reports, directory: people, read: readReport,
+                            propose: propose)
+                    case .channels:
+                        PeopleChannelsView(store: store, steward: steward, tests: tests)
+                    }
                 }
             }
             .padding(.horizontal, AryaSize.pagePadding)
@@ -107,45 +125,58 @@ struct PeopleView: View {
     }
 
     private func row(_ person: PeopleDirectory.Person, directory: PeopleDirectory) -> some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s2) {
-            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
+        let thread = PeopleThread(
+            events: store.events, steward: directory.steward, person: person.id,
+            conversation: store.conversations["\(directory.steward)/\(person.id)"])
+        let last = thread.entries.last
+        return VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            HStack(alignment: .center, spacing: AryaSpace.s3) {
                 Text(person.name).aryaText(AryaFont.bodyStrong, AryaColor.ink)
                 if let role = person.role {
                     Text(role).aryaText(AryaFont.caption, AryaColor.inkMuted)
                 }
                 Spacer()
+                if thread.open > 0 {
+                    Text(thread.open == 1 ? "1 open hand-off" : "\(thread.open) open hand-offs")
+                        .aryaText(AryaFont.monoSmall, AryaColor.accent)
+                }
+                if let last {
+                    Text(FeatureTime.relative(last.at, now: store.now))
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
                 if selected != person.id {
                     Button("Message") { select(person.id) }
-                        .buttonStyle(.aryaPrimary)
+                        .buttonStyle(.aryaSecondary)
                         .help("Open the conversation and write as \(person.name)")
                 }
-                Menu("More") {
+                MoreMenu(label: "More for \(person.name)") {
                     Button("Edit…") {
                         draft = PersonDraft(person)
                         editing = person.id
                     }
                     Button("Remove…", role: .destructive) { removing = person.id }
                 }
-                .aryaMenuButton()
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .aryaText(AryaFont.caption, AryaColor.inkMuted)
-                .accessibilityLabel("More for \(person.name)")
             }
-            field("Reach") { Text(person.reach).aryaText(AryaFont.monoSmall, AryaColor.ink) }
-            field("Approves") {
-                if person.approves.isEmpty {
-                    Text("Nothing").aryaText(AryaFont.caption, AryaColor.inkFaint)
-                } else {
-                    Text(
-                        person.approves.map { $0 == "*" ? "any action" : $0 }.joined(
-                            separator: ", ")
-                    )
-                    .aryaText(AryaFont.monoSmall, AryaColor.ink)
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {
+                Text(person.reach).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                Text(
+                    person.approves.isEmpty
+                        ? "approves nothing"
+                        : "approves "
+                            + person.approves.map { $0 == "*" ? "any action" : $0 }.joined(
+                                separator: ", ")
+                )
+                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                Text(PeopleThreadText.counts(thread)).aryaText(
+                    AryaFont.monoSmall, AryaColor.inkFaint)
+                if let reports = PeopleThreadText.reports(thread, now: store.now) {
+                    Text("reports " + reports).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 }
             }
-            field("Messages") {
-                Text(messages(person)).aryaText(AryaFont.caption, AryaColor.inkMuted)
+            .lineLimit(1)
+            if selected != person.id, let last {
+                Text((last.inbound ? person.name : "Steward") + ": " + last.text)
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
                     .lineLimit(1)
             }
         }
@@ -157,7 +188,7 @@ struct PeopleView: View {
             field("Name") { CharterTextField(placeholder: "Alex Kim", text: $draft.name) }
             field("Role") { CharterTextField(placeholder: "support lead", text: $draft.role) }
             field("Through") {
-                ChoiceRow(
+                AryaSegmented(
                     [("", "Local inbox")] + directory.relays.map { ($0, $0) },
                     selection: draft.via
                 ) { draft.via = $0 }
@@ -209,12 +240,6 @@ struct PeopleView: View {
         }
     }
 
-    private func messages(_ person: PeopleDirectory.Person) -> String {
-        guard person.messages > 0 else { return "None yet" }
-        let count = person.messages == 1 ? "1 message" : "\(person.messages) messages"
-        return person.lastMessage.map { "\(count) · last: \($0)" } ?? count
-    }
-
     private func propose(_ proposal: CharterProposal?) {
         guard let proposal else { return }
         Task {
@@ -248,5 +273,39 @@ enum ApproversText {
     /// "May approve: You, Sam (support lead)".
     static func line(_ names: [String]) -> String {
         "May approve: " + names.joined(separator: ", ")
+    }
+}
+
+/// What the People page shows: the directory with threads, or the channels people use.
+enum PeoplePane: String, CaseIterable, Hashable, Sendable {
+    case people, channels
+
+    var title: String {
+        switch self {
+        case .people: "People"
+        case .channels: "Channels"
+        }
+    }
+}
+
+/// A 24 pt ellipsis that opens a menu of less-used actions (Edit, Remove), so a row keeps one
+/// visible button.
+struct MoreMenu<Content: View>: View {
+    let label: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        Menu(content: content) {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(AryaColor.inkMuted)
+                .frame(width: AryaSize.buttonHeight, height: AryaSize.buttonHeight)
+                .contentShape(Rectangle())
+        }
+        .aryaMenuButton()
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(label)
+        .accessibilityLabel(label)
     }
 }

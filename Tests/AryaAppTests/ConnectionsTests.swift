@@ -170,3 +170,85 @@ private func events() -> [FeatureEvent] {
         #expect(RailOrder.current(state) == nil)
     }
 }
+
+@Suite struct ConnectionActivityTests {
+    private let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func events() -> [FeatureEvent] {
+        var log = FeatureEventBuilder(start: start)
+        func tool(_ name: String, run: String) {
+            log.add(
+                "run.adapter.event", run: run,
+                [
+                    "message": [
+                        "method": "run/event",
+                        "params": [
+                            "event": ["kind": "tool_call", "id": "t", "tool": .string(name)]
+                        ],
+                    ]
+                ])
+        }
+        tool("inbox.search", run: "run_1")
+        tool("nodot", run: "run_1")
+        log.add(
+            "action.proposed", run: "run_1",
+            ["action": ["id": "a1", "kind": "label", "binding": "inbox", "target": "inbox:MSG-1"]])
+        log.add("action.executed", run: "run_1", ["action": "a1"])
+        log.add(
+            "action.proposed", run: "run_2", after: 86400,
+            ["action": ["id": "a1", "kind": "refund", "binding": "billing", "target": "ORDER-9"]])
+        log.add("action.failed", run: "run_2", ["action": "a1"])
+        log.add(
+            "action.proposed", run: "run_3",
+            ["action": ["id": "a1", "kind": "reply", "binding": "inbox", "target": "inbox:MSG-2"]])
+        return log.events
+    }
+
+    @Test func readsAndActionsAreCallsThroughTheirConnection() {
+        let activity = ConnectionActivity(events: events())
+        #expect(
+            activity.recent("inbox").map(\.what) == [
+                "reply inbox:MSG-2", "label inbox:MSG-1", "search",
+            ])
+        #expect(activity.recent("inbox").map(\.kind) == [.proposed, .did, .read])
+        #expect(activity.recent("billing").map(\.kind) == [.failed])
+        #expect(activity.calls["nodot"] == nil)
+    }
+
+    @Test func dailyCountsEndToday() {
+        let activity = ConnectionActivity(events: events())
+        let now = start.addingTimeInterval(86400 + 600)
+        let daily = activity.daily("inbox", now: now)
+        #expect(daily.count == 7)
+        #expect(daily.reduce(0, +) == 3)
+        #expect(activity.count("billing", now: now) == 1)
+        #expect(activity.count("billing", now: now.addingTimeInterval(8 * 86400)) == 0)
+    }
+}
+
+@Suite struct PeopleChannelsTests {
+    @Test func theInboxAndEachRelayPeopleUseAreChannels() throws {
+        var log = events()
+        var builder = FeatureEventBuilder(start: Date(timeIntervalSince1970: 1_800_000_100))
+        builder.add(
+            "inbox.message", actor: FeatureActor(kind: .human, id: "person:sam"),
+            ["from": "person:sam", "channel": "sam", "via": "mail", "intent": "ask", "text": "Hi"])
+        let base = log.map(\.seq).max() ?? 0
+        log += builder.events.map {
+            var event = $0
+            event.seq += base
+            return event
+        }
+        let channels = PeopleChannels(
+            events: log, steward: PreviewFixtures.steward,
+            now: Date(timeIntervalSince1970: 1_800_000_200)
+        ).channels
+        #expect(channels.map(\.id) == ["inbox", "mail"])
+        let mail = try #require(channels.last)
+        #expect(mail.relay && mail.bound)
+        #expect(mail.people.count == 1)
+        #expect(mail.inbound == 1)
+        #expect(mail.daily.last == 1)
+        #expect(mail.last?.text == "Hi")
+    }
+}
