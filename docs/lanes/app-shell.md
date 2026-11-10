@@ -226,3 +226,7 @@ M4:
   still waits on workspace's `fleet()`.
 - Visual check (`just snapshot` details, settings): Schedule reads "Next run 19:16 · last 5"
   with five positive checks; Edit charter… is a quiet button under the steward id; R1-R5 pass.
+- 2026-11-09 (R6): dense type scale in `AryaFont`: title 15, metric 16, body 12/16, new prose
+  12/17.5, mono 11, monoSmall 10.5, label 9.5, caption 11/15.
+- Visual check (`just snapshot` overview): every view picks up the smaller scale; feature list
+  rows still carry their own vertical padding (R7 next); R1-R5 pass.

@@ -8,13 +8,14 @@ import Testing
         let sizes = AryaFont.all.map { "\($0.name) \($0.size)/\(Int($0.lineHeight))" }
         #expect(
             sizes == [
-                "title 20.0/26", "heading 13.0/19", "body 13.0/19", "bodyStrong 13.0/19",
-                "caption 11.0/16", "label 10.5/14", "mono 12.0/17", "monoStrong 12.0/17",
-                "monoSmall 11.0/15", "metric 20.0/24",
+                "title 15.0/20", "heading 12.0/16", "body 12.0/16", "prose 12.0/17",
+                "bodyStrong 12.0/16", "caption 11.0/15", "label 9.5/12", "mono 11.0/15",
+                "monoStrong 11.0/15", "monoSmall 10.5/14", "metric 16.0/20",
             ])
         #expect(AryaFont.label.uppercase && AryaFont.label.tracking == 0.6)
-        // Prose breathes at about 1.45 line height.
-        #expect(abs(AryaFont.body.lineHeight / AryaFont.body.size - 1.46) < 0.02)
+        // Lists sit at about 1.35 line height; prose breathes at about 1.45.
+        #expect(abs(AryaFont.body.lineHeight / AryaFont.body.size - 1.35) < 0.02)
+        #expect(abs(AryaFont.prose.lineHeight / AryaFont.prose.size - 1.46) < 0.02)
         #expect(
             AryaFont.all.filter { $0.face == .mono }.map(\.name) == [
                 "mono", "monoStrong", "monoSmall", "metric",
@@ -31,7 +32,7 @@ import Testing
 
     @Test func tokensScaleTogether() {
         let style = AryaFont.body
-        #expect(style.nsFont(scale: 1.5).pointSize == 19.5)
+        #expect(style.nsFont(scale: 1.5).pointSize == 18)
         #expect(style.naturalLineHeight(scale: 2) > style.naturalLineHeight())
     }
 

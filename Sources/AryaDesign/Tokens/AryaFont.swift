@@ -85,39 +85,43 @@ extension Font.Weight {
 }
 
 /// The type scale in `docs/STYLE.md`: system sans for prose and labels, system monospace for
-/// machine text. No serif or display faces (decision 0036).
+/// machine text. No serif or display faces (decision 0036). A dense scale: 12 pt UI text at
+/// about 1.35 line height in lists, 1.45 in prose.
 public enum AryaFont {
     /// The page title: the steward name.
     public static let title = AryaTextStyle(
-        name: "title", face: .sans, size: 20, lineHeight: 26, weight: .semibold)
+        name: "title", face: .sans, size: 15, lineHeight: 20, weight: .semibold)
     /// Section and card titles, empty-state line.
     public static let heading = AryaTextStyle(
-        name: "heading", face: .sans, size: 13, lineHeight: 19, weight: .semibold)
-    /// Prose, conversation, sidebar names.
+        name: "heading", face: .sans, size: 12, lineHeight: 16, weight: .semibold)
+    /// UI text: list rows, sidebar names, controls.
     public static let body = AryaTextStyle(
-        name: "body", face: .sans, size: 13, lineHeight: 19)
+        name: "body", face: .sans, size: 12, lineHeight: 16)
+    /// Reading text: messages, summaries, charter prose.
+    public static let prose = AryaTextStyle(
+        name: "prose", face: .sans, size: 12, lineHeight: 17.5)
     /// Emphasis, selected tab, button labels.
     public static let bodyStrong = AryaTextStyle(
-        name: "bodyStrong", face: .sans, size: 13, lineHeight: 19, weight: .semibold)
+        name: "bodyStrong", face: .sans, size: 12, lineHeight: 16, weight: .semibold)
     /// Secondary prose and guidance.
     public static let caption = AryaTextStyle(
-        name: "caption", face: .sans, size: 11, lineHeight: 16)
+        name: "caption", face: .sans, size: 11, lineHeight: 15)
     /// Uppercase metadata labels, pills, and group names.
     public static let label = AryaTextStyle(
-        name: "label", face: .sans, size: 10.5, lineHeight: 14, weight: .semibold,
+        name: "label", face: .sans, size: 9.5, lineHeight: 12, weight: .semibold,
         tracking: 0.6, uppercase: true)
     /// Commands, code, diffs, logs, ids.
     public static let mono = AryaTextStyle(
-        name: "mono", face: .mono, size: 12, lineHeight: 17)
+        name: "mono", face: .mono, size: 11, lineHeight: 15)
     /// The command in a tool call, a diff stat.
     public static let monoStrong = AryaTextStyle(
-        name: "monoStrong", face: .mono, size: 12, lineHeight: 17, weight: .semibold)
+        name: "monoStrong", face: .mono, size: 11, lineHeight: 15, weight: .semibold)
     /// Timestamps, counts, gutters, table cells.
     public static let monoSmall = AryaTextStyle(
-        name: "monoSmall", face: .mono, size: 11, lineHeight: 15)
+        name: "monoSmall", face: .mono, size: 10.5, lineHeight: 14)
     /// KPI values on the outcome line.
     public static let metric = AryaTextStyle(
-        name: "metric", face: .mono, size: 20, lineHeight: 24, weight: .medium)
+        name: "metric", face: .mono, size: 16, lineHeight: 20, weight: .medium)
 
     /// Older names, kept so views compile while they move over: the uppercase label and the
     /// page title (there is no display face any more).
@@ -125,7 +129,8 @@ public enum AryaFont {
     public static let display = title
 
     public static let all: [AryaTextStyle] = [
-        title, heading, body, bodyStrong, caption, label, mono, monoStrong, monoSmall, metric,
+        title, heading, body, prose, bodyStrong, caption, label, mono, monoStrong, monoSmall,
+        metric,
     ]
 }
 
