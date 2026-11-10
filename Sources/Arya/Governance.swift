@@ -114,3 +114,40 @@ extension Workspace {
             "\(person) may not approve \(action.kind) actions; only \(who) may\(why)")
     }
 }
+
+extension Workspace {
+    /// Asks arya to stop a running run on behalf of `person` (`run.abort.requested`). The
+    /// process running it stops the adapter and executes nothing the run proposes; the run
+    /// ends `stopped` (or fails `aborted`). When no live process holds the run, it is failed
+    /// `aborted` here. Returns the run as the ledger now says; a run that was already handed
+    /// to its process may still be running, so read it again for the end.
+    public func abortRun(_ id: String, reason: String? = nil, as person: String = "local")
+        async throws -> RunSummary
+    {
+        let run = RunID(unchecked: id)
+        guard let record = try await runBook().records[run] else {
+            throw WorkspaceError.notFound(id)
+        }
+        guard record.status == .running else {
+            throw WorkspaceError.rejected("\(id) is already \(record.status.rawValue)")
+        }
+        let text = reason.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: RunAbortRequested.type.rawValue, steward: record.steward, run: run,
+                actor: .person(person), payload: try Self.json(RunAbortRequested(reason: text))))
+        if !leases.isHeld(run) {
+            let failed = RunFailed(reason: "aborted", detail: "no process was running it")
+            _ = try await sink.append(
+                RuntimeEventDraft(
+                    type: RunFailed.type.rawValue, steward: record.steward, run: run,
+                    actor: .system, payload: try Self.json(failed)))
+        }
+        guard let now = try await runBook().records[run] else { throw WorkspaceError.notFound(id) }
+        return RunSummary(now)
+    }
+
+    static func json(_ payload: some Encodable) throws -> JSONValue {
+        try CanonicalJSON.decode(JSONValue.self, from: try CanonicalJSON.encode(payload))
+    }
+}

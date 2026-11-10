@@ -107,8 +107,11 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   `Workspace.policySummary(steward:)` lists each binding's tool allowlist and actions with
   disposition, risk, and approvers. Approvers are `local` or person bindings until a people
   directory lands. UI and e2e asked in app-views.md and cli-e2e.md.
-- [ ] (G2) Abort and undo: abort a running run from the app (recorded, safe); undo or
-  compensate an approved action where its kind supports it, with the audit trail.
+- [x] (G2a) Abort a running run (recorded, safe): `run.abort.requested`, the run driver stops
+  the adapter and executes nothing, `Workspace.abortRun(_:reason:as:)`. App button and e2e
+  asked in app-views.md and cli-e2e.md.
+- [ ] (G2b) Undo or compensate an approved action where its kind supports it, with the audit
+  trail.
 - [ ] (G3) Data retention: per-steward retention (archive or compact older than N days, on
   top of compaction), shown in settings.
 - [ ] (G4) Encryption at rest for the home (ledger, memory, credential references) with a
@@ -127,6 +130,15 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   `approval.refused` (`{approval, by, people, rule, note}`, actor the person) and leaves the
   approval pending; the runtime's `ApprovalBook` ignores the type. The facade keeps
   `approve(_:note:)` (the local user) and adds `approve(_:note:as:)`.
+- (G2 abort) Abort is a ledger request, so any process (app, CLI) can abort a run another
+  process (`arya serve`) is running: `run.abort.requested {reason?}` (actor: the person). The
+  running `RunDriver` polls the ledger from a cursor every `questionPoll` (live runs only),
+  sends `run/stop` (`user`), and shuts the adapter down 10 seconds later if it has not ended.
+  An aborted run disposes and executes nothing it proposed (its wire lines are still
+  recorded) and ends `run.finished` `stopped` ("Aborted: a person aborted the run."), or
+  `run.failed` `aborted` when the adapter exits or times out first; a pending `host/ask`
+  question is denied by `system`. When no live process holds the run's lease, the facade
+  records `run.failed` `aborted` ("no process was running it") itself.
 
 - Ids are `PrefixedID` structs (`st_`, `run_`, `ev_`, `ap_`, `prop_`, `reh_`, `mem_`); generated
   bodies are 26-character ULIDs (48-bit ms time, 80 random bits, Crockford base32). `CaseID`
@@ -233,6 +245,8 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
+- 2026-11-09: (G2a) done: abort a running run from any process (`run.abort.requested`,
+  `RunFailureReason.aborted`, `abortRun`); runtime integration noted in runtime.md.
 - 2026-11-09: lane restaffed as ledger and governance. (G1) done: `policy.approvers`,
   `approval.refused`, `approve(_:note:as:)`, `policySummary(steward:)`, decision 0045. App
   section and e2e step asked in app-views.md and cli-e2e.md.

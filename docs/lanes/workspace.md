@@ -132,7 +132,7 @@ M3:
   three stewards (on track, behind, paused); `arya steward list` would show it too.
 - (from eval) Added `liveReadiness(proposal:recent:)`; case runner scores crews on the join result.
 - (from governance) Integration edits: `ApprovalSummary.approvers`/`approverNote` (filled in `detailed`), `approve(_:note:as:)` with an approver check before the grant (`approve(_:note:)` unchanged); new `Governance.swift` (`policySummary`, `checkApprover`) is governance-owned.
-
+- (from governance) Integration edit: `Workspace.leases` (from `Wiring`); `abortRun` lives in `Governance.swift`.
 
 ## Log
 

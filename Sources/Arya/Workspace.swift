@@ -26,12 +26,15 @@ public actor Workspace {
     let engine: RunEngine
     let routineRecorder: RoutineRecorder
     let scheduler: Scheduler
+    /// Which runs a live process holds (shared with the engine and recovery).
+    let leases: any RunLeases
     /// The trigger loop and the home's scheduler lock while this process serves.
     var serving: (lock: SchedulerLock, task: Task<Void, Never>)?
 
     private init(home: URL, wiring: Wiring) throws {
         self.home = home
         ambient = wiring.ambient
+        leases = wiring.leases
         sink = try LedgerEventSink(home: home, ambient: wiring.ambient)
         reader = LedgerReader(home: home)
         approvalQueue = ApprovalQueue(sink: sink, ambient: wiring.ambient)

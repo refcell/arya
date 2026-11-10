@@ -50,6 +50,7 @@ let payloadSamples: [PayloadSample] = [
             cost: RunCost(inputTokens: 1200, outputTokens: 300, costMicros: 4500),
             counts: RunCounts(decisions: 1, actions: 1))),
     PayloadSample(RunFailed(reason: "interrupted", detail: "adapter process gone")),
+    PayloadSample(RunAbortRequested(reason: "Wrong customer.")),
     PayloadSample(ActionProposed(action: label, disposition: .ask, reason: "default")),
     PayloadSample(ActionExecuted(action: "a1", approval: ap1, output: ["ok": true])),
     PayloadSample(ActionFailed(action: "a1", error: "tracker returned 503")),

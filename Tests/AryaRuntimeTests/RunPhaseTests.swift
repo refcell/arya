@@ -60,6 +60,6 @@ func anyLivePhaseCanFail(_ reason: RunFailureReason) throws {
     #expect(
         RunFailureReason.allCases.map(\.rawValue) == [
             "adapter_exited", "timeout", "invalid_result", "budget", "interrupted",
-            "adapter_failed",
+            "adapter_failed", "aborted",
         ])
 }

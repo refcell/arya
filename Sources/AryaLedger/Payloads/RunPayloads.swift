@@ -266,6 +266,20 @@ public struct RunFinished: EventPayload {
     enum CodingKeys: String, CodingKey { case status, summary, cost, counts }
 }
 
+/// `run.abort.requested`: a person asked arya to stop a running run (actor: that person). The
+/// process running it sends `run/stop` (`user`), executes nothing the run proposes, and ends it
+/// `run.finished` with status `stopped`, or `run.failed` with reason `aborted` when the adapter
+/// exits without a result or no process holds the run.
+public struct RunAbortRequested: EventPayload {
+    public static let type = EventType.runAbortRequested
+    /// Why, in the person's words.
+    public var reason: String?
+
+    public init(reason: String? = nil) { self.reason = reason }
+
+    enum CodingKeys: String, CodingKey { case reason }
+}
+
 /// `run.failed`: the run ended without a usable result.
 public struct RunFailed: EventPayload {
     public static let type = EventType.runFailed

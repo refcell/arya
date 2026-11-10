@@ -18,6 +18,8 @@ final class RunDriver: @unchecked Sendable {
     private var leak = false
     private var turns = 0
     private let overdue = Flag()
+    /// Set once a person asks to abort the run (`run.abort.requested`).
+    private let aborted = Flag()
 
     init(
         loop: RunEngine, request: RunRequest, charter: Charter, run: RunID, instructions: String,
@@ -46,7 +48,11 @@ final class RunDriver: @unchecked Sendable {
         }
         try transition(.adapterStarted)
         let deadline = startDeadline(adapter)
-        defer { deadline.cancel() }
+        let abortWatch = startAbortWatch(adapter)
+        defer {
+            deadline.cancel()
+            abortWatch.cancel()
+        }
         return try await stream(adapter, &updates)
     }
 
@@ -63,6 +69,34 @@ final class RunDriver: @unchecked Sendable {
             if let session {
                 try? await adapter.stop(RunStopParams(session: session, reason: .timeout))
             }
+        }
+    }
+
+    /// Polls the ledger for `run.abort.requested` on this run. On the first one it marks the
+    /// run aborted and sends `run/stop` (`user`); if the adapter has not ended 10 seconds later
+    /// (PROTOCOL.md), it shuts the adapter down. Live runs only: rehearsals touch nothing.
+    private func startAbortWatch(_ adapter: any Adapter) -> Task<Void, Never> {
+        guard request.mode == .live else { return Task {} }
+        let (loop, run, aborted, session) = (loop, run, aborted, session)
+        return Task {
+            var cursor = 1
+            while !Task.isCancelled {
+                if let events = try? await loop.sink.events(from: cursor) {
+                    cursor = (events.last?.seq ?? cursor - 1) + 1
+                    let asked = events.contains {
+                        $0.type == RunAbortRequested.type.rawValue && $0.draft.run == run
+                    }
+                    if asked { break }
+                }
+                guard (try? await Task.sleep(for: loop.questionPoll)) != nil else { return }
+            }
+            guard !Task.isCancelled else { return }
+            aborted.set()
+            if let session {
+                try? await adapter.stop(RunStopParams(session: session, reason: .user))
+            }
+            guard (try? await Task.sleep(for: loop.secondsUnit * 10)) != nil else { return }
+            try? await adapter.shutdown()
         }
     }
 
@@ -182,6 +216,7 @@ final class RunDriver: @unchecked Sendable {
                 let refusal = HostDelegateResult.refused("use run/result delegations")
                 try? await adapter.answerDelegation(id, refusal)
             case .result(let params):
+                if aborted.isSet { return try await finishAborted(adapter, &updates) }
                 if overdue.isSet {
                     let cost = await closeAdapter(adapter, &updates)
                     return try await fail(.timeout, detail: overdueDetail, cost: cost)
@@ -190,8 +225,12 @@ final class RunDriver: @unchecked Sendable {
             case .protocolError:
                 continue
             case .timedOut:
+                if aborted.isSet {
+                    return try await abandon(adapter, &updates, .aborted, abortDetail)
+                }
                 return try await abandon(adapter, &updates, .timeout, "no message in time")
             case .exited(let exit):
+                if aborted.isSet { return try await fail(.aborted, detail: abortDetail, cost: nil) }
                 if overdue.isSet {
                     return try await fail(.timeout, detail: overdueDetail, cost: nil)
                 }
@@ -220,6 +259,10 @@ final class RunDriver: @unchecked Sendable {
             if try await !loop.approvals.expireDue(now: loop.ambient.now()).isEmpty {
                 return nil
             }
+            if aborted.isSet {
+                try? await loop.approvals.deny(record.id, by: .system, note: abortDetail)
+                return nil
+            }
             try await Task.sleep(for: loop.questionPoll)
         }
     }
@@ -246,6 +289,22 @@ final class RunDriver: @unchecked Sendable {
         for draft in intake.drafts {
             _ = try await loop.sink.append(RuntimeEventDraft(draft))
         }
+    }
+
+    private var abortDetail: String { "a person aborted the run" }
+
+    /// Ends an aborted run that answered `run/stop`: nothing it proposed is disposed or
+    /// executed, and it finishes `stopped`.
+    private func finishAborted(
+        _ adapter: any Adapter, _ updates: inout AsyncStream<AdapterUpdate>.Iterator
+    ) async throws -> RunOutcome {
+        let cost = await closeAdapter(adapter, &updates)
+        try transition(.resultReceived(.stopped))
+        try transition(.dispositionsRecorded)
+        let payload = RunFinished(
+            status: .stopped, summary: "Aborted: \(abortDetail).", cost: cost ?? RunCost())
+        try await append(RunEventType.finished, .system, try Payload.encode(payload))
+        return RunOutcome(run: run, phase: phase, result: nil, disposals: [], leak: leak)
     }
 
     private var overdueDetail: String {

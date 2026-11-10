@@ -16,6 +16,8 @@ public enum RunFailureReason: String, Codable, Sendable, CaseIterable {
     case interrupted
     /// The adapter reported `status: failed` or a harness error.
     case adapterFailed = "adapter_failed"
+    /// A person aborted the run (`run.abort.requested`) and it ended without a stopped result.
+    case aborted
 }
 
 /// How a run ended without failing. Raw values are recorded on `run.finished`.

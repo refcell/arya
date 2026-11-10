@@ -103,6 +103,7 @@ M4:
 - (from workspace) live: `correct(run:expected:note:by:)` and `expected(run:choice:)` for an `arya correct --run <id> --choice <c>`.
 - (from workspace) live: `fleet()` (the fleet read you asked for) for `arya steward list`.
 - (from governance) `approve(_:note:as:)` for `arya approve <id> --as person:alex`, and `policySummary(steward:)` for `arya steward policy <id>`. e2e step: add `policy.approvers` for `refund` (people `person:alex`) to the triage example, show `arya approve` as local is refused (exit non-zero, `approval.refused` on the ledger), then approve `--as person:alex`.
+- (from governance) `abortRun(_:reason:as:)` for `arya run abort <run> [--reason <text>]`; e2e step: start a hanging fake run in the background, abort it, and check `run.finished` status `stopped` and no `action.executed`.
 
 ## Log
 - 2026-11-09: decided the zero-time id question myself (ledger lane paused): fixed in
