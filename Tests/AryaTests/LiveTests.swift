@@ -102,3 +102,47 @@ private func first(
     #expect(run.progress == 1 / Double(finished.stepCount))
     #expect(run.stewardName == (try await workspace.stewards().first?.name))
 }
+
+@Test func observingShowsRuntimeToolStepsOnceWithStreamedOutput() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let done = try await workspace.startRun(steward: "st_inbox", input: "First")
+    var started: Event?
+    try workspace.reader.forEach { event in
+        if event.run?.rawValue == done.id, event.type.rawValue == RunEventType.started {
+            started = event
+        }
+    }
+    let start = try #require(started)
+    let run = RunID(unchecked: "run_steps")
+    func add(_ type: String, _ payload: JSONValue) async throws {
+        _ = try await workspace.sink.append(
+            RuntimeEventDraft(
+                type: type, steward: start.steward, run: run, actor: .localUser,
+                payload: payload))
+    }
+    try await add(RunEventType.started, start.payload)
+    try await add(
+        StepEventType.started.rawValue, ["step": "c1", "tool": "search", "input": "MSG-9"])
+    for (index, chunk) in ["first part, ", "second part"].enumerated() {
+        try await add(
+            StepEventType.output.rawValue,
+            [
+                "step": "c1", "seq": .string(String(index + 1)), "text": .string(chunk),
+                "bytes": "11",
+            ])
+    }
+    try await add(
+        StepEventType.finished.rawValue,
+        ["step": "c1", "ok": true, "bytes": "23", "chunks": "2", "millis": 42])
+
+    var updates = workspace.observe(run: "run_steps").makeAsyncIterator()
+    let update = try #require(await updates.next())
+    #expect(update.status == .running)
+    #expect(
+        update.steps.map(\.kind) == ["started", "tool_call", "output", "output", "tool_result"])
+    #expect(update.steps[1].title == "Called search")
+    #expect(update.steps[2...3].compactMap(\.text).joined() == "first part, second part")
+    #expect(update.steps[4].title == "Tool done in 42 ms")
+}

@@ -10,7 +10,8 @@ public struct LiveStep: Sendable, Hashable, Codable {
     /// Ledger `seq` of the event the step came from.
     public var seq: Int
     public var run: String
-    /// `started`, `message`, `thinking`, `tool_call`, `tool_result`, `status`, `error`,
+    /// `started`, `message`, `thinking`, `tool_call`, `output` (a chunk of a tool's output, as
+    /// it streams), `tool_result`, `status`, `error`,
     /// `decision`, `action`, `approval`, `finished`, `failed`, or an adapter's own kind.
     public var kind: String
     /// One line: "Called search", "Proposed label on MSG-9", "Finished".
@@ -138,6 +139,10 @@ struct LiveTally {
     private(set) var status: [RunID: RunSummary.Status] = [:]
     /// Step counts of ended runs, per steward, oldest first.
     private(set) var ended: [StewardID: [Int]] = [:]
+    /// Tool calls and results already shown, by "run:call": the adapter's wire record and the
+    /// runtime's `run.step.*` events describe the same call, and only the first is shown.
+    private var calls: Set<String> = []
+    private var results: Set<String> = []
 
     /// Steps so far against the median of the steward's last five ended runs.
     func progress(run: RunID, steward: StewardID) -> Double? {
@@ -153,7 +158,15 @@ struct LiveTally {
     mutating func add(_ event: Event) -> [LiveStep] {
         guard let run = event.run else { return [] }
         if let steward = event.steward { stewards[run] = steward }
-        let made = Self.steps(event, run: run)
+        let made = Self.steps(event, run: run).filter { step in
+            guard let call = step.callID.map({ "\(run.rawValue):\($0)" }) else { return true }
+            switch step.kind {
+            case "tool_call": return calls.insert(call).inserted
+            case "output": return !results.contains(call)
+            case "tool_result": return results.insert(call).inserted
+            default: return true
+            }
+        }
         guard !made.isEmpty else { return [] }
         steps[run, default: []] += made
         let type = event.type.rawValue
@@ -213,6 +226,22 @@ struct LiveTally {
                 isError: event.type.rawValue == ActionEventType.failed)
         case RunEventType.adapterEvent:
             return adapterSteps(event, step: step)
+        case StepEventType.started.rawValue:
+            let tool = payload["tool"]?.stringValue ?? "tool"
+            return step(
+                "tool_call", "Called \(tool)", text: payload["input"]?.stringValue, tool: tool,
+                callID: payload["step"]?.stringValue)
+        case StepEventType.output.rawValue:
+            let blob = payload["blob"]?.stringValue
+            return step(
+                "output", blob == nil ? "Output" : "Output (preview; full output kept)",
+                text: payload["text"]?.stringValue, callID: payload["step"]?.stringValue)
+        case StepEventType.finished.rawValue:
+            let ok = payload["ok"]?.boolValue ?? true
+            let millis = payload["millis"]?.intValue.map { " in \($0) ms" } ?? ""
+            return step(
+                "tool_result", (ok ? "Tool done" : "Tool failed") + millis,
+                callID: payload["step"]?.stringValue, isError: !ok)
         default:
             return []
         }
