@@ -32,7 +32,10 @@ import Testing
             } ?? runs.first { run in !model.approvals.contains { $0.run == run.id } }
 
         func page(_ name: String, _ arrange: (inout NavigationState) -> Void) throws {
-            if let wanted = Self.wanted, !wanted.contains(name) { return }
+            guard
+                Self.wanted(name, file: "\(name).png")
+                    || Self.wanted(name, file: "\(name)-light.png")
+            else { return }
             var navigation = NavigationState()
             navigation.select(steward: steward.id)
             arrange(&navigation)
@@ -52,10 +55,16 @@ import Testing
             try page("run-approval") { $0.select(run: waiting.id, steward: steward.id) }
         }
         try page("needs-you") { $0.showApprovals() }
+        // The sidebar by department, one group folded to its header (counts, waiting, behind).
+        if let folded = Set(model.departments.values).sorted().last {
+            model.collapsedDepartments = [folded]
+            try page("sidebar-folded") { $0.tab = .overview }
+            model.collapsedDepartments = []
+        }
         // Every steward in one table, sorted by need; the fleet pulse in the inspector.
         try page("portfolio") { $0.showPortfolio() }
-        // Live: the real lease-held run the snapshot script started, no fixture.
-        try page("overview-live") { $0.tab = .overview }
+        // Live: the real lease-held run the snapshot script started (workspace `liveRuns()`),
+        // no fixture. Rail, status bar, inspector, and portfolio all read `liveLines`.
         try page("portfolio-live") { $0.showPortfolio() }
         // Command-K over the Overview: the search line, commands, groups, and keycaps.
         model.paletteOpen = true
@@ -73,9 +82,11 @@ import Testing
         {
             try page("stewards") { $0.select(steward: other.id) }
         }
-        try write(
-            "needs-you-autonomy", scheme: scheme,
-            render(RootView(model: await autonomyModel()), dark: dark))
+        if Self.wanted("needs-you-autonomy", file: "") {
+            let autonomy = await autonomyModel()
+            try write(
+                "needs-you-autonomy", scheme: scheme, render(RootView(model: autonomy), dark: dark))
+        }
         if let store = model.featureStore {
             // The review queue is an async read; load it before drawing Improve.
             store.reviewQueues[steward.id] = try? await store.workspace.reviewQueue(
@@ -438,28 +449,27 @@ import Testing
         return (model, home)
     }
 
-    /// Page states to render when `ARYA_SNAPSHOT_STATES` lists some (comma-separated), so a
-    /// lane can render only what it changed under load: `ARYA_SNAPSHOT_STATES=people just
-    /// snapshot`. Unset renders every state.
-    static let wanted: Set<String>? = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_STATES"]
-        .map { Set($0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }) }
-
-    /// Writes `<name>.png` (dark) or `<name>-light.png` when `ARYA_SNAPSHOT_DIR` is set.
-    private func write(_ name: String, scheme: String, _ png: Data?) throws {
-        let png = try #require(png)
-        let environment = ProcessInfo.processInfo.environment
-        guard let dir = environment["ARYA_SNAPSHOT_DIR"] else { return }
-        // ARYA_SNAPSHOT_STATES="run-live run-diff" writes only those states.
-        if let only = environment["ARYA_SNAPSHOT_STATES"]?.split(separator: " "), !only.isEmpty,
-            !only.contains(Substring(name))
-        {
-            return
-        }
+    /// Writes `<name>.png` (dark) or `<name>-light.png` when `ARYA_SNAPSHOT_DIR` is set. With
+    /// `ARYA_SNAPSHOT_STATES` (comma or space separated names, `just snapshot <state>...`) only
+    /// those states render: a bare name renders both schemes, `<name>-light` only the light one.
+    private func write(_ name: String, scheme: String, _ png: @autoclosure () -> Data?) throws {
         let file = scheme == "dark" ? "\(name).png" : "\(name)-light.png"
+        guard Self.wanted(name, file: file) else { return }
+        let png = try #require(png())
+        guard let dir = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_DIR"] else { return }
         let url = URL(fileURLWithPath: dir, isDirectory: true).appendingPathComponent(file)
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try png.write(to: url)
+    }
+
+    /// True when no state filter is set, or the filter names this state or file.
+    static func wanted(_ name: String, file: String) -> Bool {
+        let raw = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_STATES"] ?? ""
+        let names = raw.split { $0 == "," || $0 == " " }.map(String.init)
+        guard !names.isEmpty else { return true }
+        let stem = String(file.dropLast(4))
+        return names.contains(name) || names.contains(stem)
     }
 
     /// PNG bytes of the view inside a real window frame with the app's chrome (transparent

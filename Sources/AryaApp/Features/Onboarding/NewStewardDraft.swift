@@ -105,6 +105,9 @@ struct NewStewardDraft: Hashable, Sendable {
     var wakesOnMessage = true
     var effort = "medium"
     var adapter = "default"
+    /// Carried from a template: the department it serves and its autonomy level.
+    var department = ""
+    var level: String?
     /// Set when the flow edits a live charter (`CharterEdit.swift`); it then ends in a
     /// proposal, never a direct save.
     var editing: CharterEditing?
@@ -253,7 +256,8 @@ struct NewStewardDraft: Hashable, Sendable {
             id: stewardID, name: name.trimmed, outcome: outcome.trimmed, metric: metric.trimmed,
             unit: unit.trimmed, direction: direction, target: Double(target.trimmed),
             guardrails: Self.lines(guardrails), autonomy: autonomy.rawValue, rules: rules,
-            bindings: bindings, effort: effort, triggers: triggers, adapter: adapter.trimmed)
+            bindings: bindings, effort: effort, triggers: triggers, adapter: adapter.trimmed,
+            level: level, department: department.trimmed.isEmpty ? nil : department.trimmed)
     }
 
     /// A filled-in example: the generic support-inbox steward the demo home uses.

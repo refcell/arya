@@ -26,8 +26,9 @@ struct RailView: View {
     }
 
     private func move(by offset: Int) {
+        let shown = RailGroup.visible(groups, collapsed: model.collapsedDepartments)
         let items = RailOrder.items(
-            stewards: model.stewards, runs: model.runs, selected: model.navigation.steward)
+            stewards: shown, runs: model.runs, selected: model.navigation.steward)
         let current = RailOrder.current(model.navigation)
         if let next = RailOrder.step(from: current, by: offset, in: items) {
             // The selection glides with j/k; frozen in snapshots and under Reduce Motion.
@@ -71,12 +72,19 @@ struct RailView: View {
                 .help("Every steward in one table (Command-9)")
             }
             needsYouRow
-            if !model.stewards.isEmpty {
+            if !model.stewards.isEmpty, model.departments.isEmpty {
                 RailGroupLabel("Stewards")
                     .padding(.bottom, AryaSpace.s1)
             }
-            ForEach(sortedStewards) { steward in
-                stewardRows(steward)
+            ForEach(groups) { group in
+                if let department = group.department {
+                    departmentHeader(department, group.stewards)
+                }
+                if !(group.department.map(model.collapsedDepartments.contains) ?? false) {
+                    ForEach(group.stewards) { steward in
+                        stewardRows(steward)
+                    }
+                }
             }
         }
         .padding(.horizontal, AryaSpace.s2)
@@ -92,9 +100,7 @@ struct RailView: View {
 
     /// The runs going now (workspace `liveRuns`, else projected from the ledger).
     private var liveLines: [LiveLine] {
-        guard case .loaded(let events) = model.featureStore?.state else { return model.liveLines }
-        return StatusBarLine.lines(
-            live: model.liveLines, stewards: model.stewards, runs: model.runs, events: events)
+        StatusBarLine.lines(live: model.liveLines)
     }
 
     private func sidebarRow(_ steward: StewardSummary) -> StatusMapping.SidebarRow {
@@ -108,6 +114,35 @@ struct RailView: View {
 
     private var sortedStewards: [StewardSummary] {
         StatusMapping.sorted(model.stewards.map { ($0, sidebarRow($0)) })
+    }
+
+    private var groups: [RailGroup] {
+        RailGroup.build(sorted: sortedStewards, departments: model.departments)
+    }
+
+    /// A department's fold row: chevron, name, count, and what needs a look inside it (waiting
+    /// approvals, stewards behind target, a live dot while one runs).
+    private func departmentHeader(_ name: String, _ stewards: [StewardSummary]) -> some View {
+        let collapsed = model.collapsedDepartments.contains(name)
+        let rows = stewards.map(sidebarRow)
+        let waiting = stewards.map { model.pendingApprovals(steward: $0.id) }.reduce(0, +)
+        let behind = rows.filter { $0.health == .behind }.count
+        let running = stewards.contains { id in liveLines.contains { $0.steward == id.id } }
+        return Button {
+            withAnimation(AryaMotion.frozenByProcess ? nil : AryaMotion.quick) {
+                if collapsed {
+                    model.collapsedDepartments.remove(name)
+                } else {
+                    model.collapsedDepartments.insert(name)
+                }
+            }
+        } label: {
+            RailDepartmentHeader(
+                name, count: stewards.count, collapsed: collapsed, waiting: waiting,
+                behind: behind, running: running)
+        }
+        .buttonStyle(.plain)
+        .help(collapsed ? "Show \(name)" : "Hide \(name)")
     }
 
     @ViewBuilder private func stewardRows(_ steward: StewardSummary) -> some View {
@@ -197,4 +232,51 @@ struct StoreApprovalsRow: View {
         ApprovalQueue.build(events: store.events).pending.count
     }
 
+}
+
+/// A sidebar department group's header: a fold chevron, the name as a label, the steward
+/// count, then "2 waiting" in ink and "1 behind" in red when any, and a live dot while running.
+struct RailDepartmentHeader: View {
+    let name: String
+    let count: Int
+    let collapsed: Bool
+    let waiting: Int
+    let behind: Int
+    let running: Bool
+
+    init(
+        _ name: String, count: Int, collapsed: Bool, waiting: Int, behind: Int, running: Bool
+    ) {
+        self.name = name
+        self.count = count
+        self.collapsed = collapsed
+        self.waiting = waiting
+        self.behind = behind
+        self.running = running
+    }
+
+    var body: some View {
+        HStack(spacing: AryaSpace.s1) {
+            Image(systemName: collapsed ? "chevron.right" : "chevron.down")
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(AryaColor.inkFaint)
+                .frame(width: AryaSpace.s3)
+            Text(name.uppercased()).aryaText(AryaFont.label, AryaColor.inkMuted).lineLimit(1)
+            Text("\(count)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            Spacer(minLength: AryaSpace.s1)
+            if running { AryaLiveDot() }
+            if waiting > 0 {
+                Text("\(waiting) waiting").aryaText(AryaFont.monoSmall, AryaColor.ink)
+            }
+            if behind > 0 {
+                Text("\(behind) behind").aryaText(AryaFont.monoSmall, AryaColor.negative)
+            }
+        }
+        .padding(.horizontal, AryaSpace.s1)
+        .frame(height: AryaSize.rowHeight - AryaSpace.s1)
+        .padding(.top, AryaSpace.s2)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
 }

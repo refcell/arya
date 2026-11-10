@@ -59,17 +59,15 @@ import Testing
             "st_triage": [run("r1", "st_triage", hoursAgo: 0.1, status: .running)],
             "st_refund": [run("r2", "st_refund", hoursAgo: 0.05, status: .running)],
         ]
-        let lines = StatusBarLine.lines(live: [], stewards: stewards, runs: runs, events: [])
-        let text = StatusBarLine.live(lines, now: now) ?? ""
-        #expect(text.hasPrefix("Refund follow-up running · step 1"))
-        #expect(text.hasSuffix("· +1 more"))
+        // A run's recorded status never counts: only workspace live runs do.
+        #expect(!runs.isEmpty && !stewards.isEmpty)
+        #expect(StatusBarLine.lines(live: []).isEmpty)
         #expect(StatusBarLine.live([], now: now) == nil)
         let reported = LiveLine(
             run: "r9", steward: "st_triage", name: "Support inbox triage", steps: 3,
             lastStep: "Called search", progress: 0.4, started: now.addingTimeInterval(-4))
         #expect(
-            StatusBarLine.lines(live: [reported], stewards: stewards, runs: runs, events: [])
-                == [reported])
+            StatusBarLine.lines(live: [reported]) == [reported])
         #expect(
             StatusBarLine.live([reported], now: now)
                 == "Support inbox triage running · step 3 · 4.0 s")
@@ -93,7 +91,15 @@ import Testing
     #expect(ActionWords.line(kind: "reply", target: "inbox:ORDER-1043") == "Reply inbox:ORDER-1043")
 }
 
-@Test func liveRunsMeanServing() {
-    #expect(StatusBarLine.scheduler(false, live: true) == "serving")
-    #expect(StatusBarLine.scheduler(false) == "scheduler stopped")
+@Test func liveElapsedTicksFromTheWorkspaceReading() {
+    let read = Date(timeIntervalSince1970: 1_762_700_000)
+    let line = LiveLine(
+        run: "r", steward: "s", name: "Lead follow-up", steps: 3, lastStep: nil, progress: 0.4,
+        started: read.addingTimeInterval(-100), elapsedSeconds: 8, readAt: read,
+        estimatedSteps: 7)
+    // The workspace's elapsed wins over the start time; it ticks from when it was read.
+    #expect(line.elapsed(at: read.addingTimeInterval(2)) == 10)
+    #expect(
+        StatusBarLine.live([line], now: read.addingTimeInterval(2))
+            == "Lead follow-up running · step 3 of ~7 · 10.0 s")
 }

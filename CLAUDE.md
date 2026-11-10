@@ -95,6 +95,7 @@ byte-identical copy of this file; edit both together (`cp AGENTS.md CLAUDE.md`).
 - `just e2e` runs the end-to-end scenario ([docs/ROADMAP.md](docs/ROADMAP.md), milestone M3).
 - Visual check = `just snapshot` PNGs: every key app state rendered offscreen on the demo home
   to `.build/snapshots`. Never launch the app window on the user's machine (decision 0038).
+  Render only the states you changed with `just snapshot <state>...`; others are kept.
 
 ## Layout
 

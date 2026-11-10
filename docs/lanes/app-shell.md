@@ -325,3 +325,23 @@ M4:
 - Visual check (`just snapshot` needs-you, run, portfolio-live, overview-live): moves (2) and
   (3) — no duplicate rows, menus boxed, run pane wider; (4) status bar "serving · running ·
   step 1 · 11.3 s".
+- 2026-11-10 (review 11 and CEO point 5): one source for "running": workspace `liveRuns()`
+  via `AppModel.liveLines` feeds the rail, status bar, inspector pulse, and portfolio; the
+  ledger-status fallback is gone and the snapshot's fake running runs fixture is removed (the
+  snapshot home holds a real leased run). Test: every surface agrees on who is running.
+  Sidebar grouped by department from workspace `portfolio()` (fold rows with count, waiting,
+  behind, live dot; flat when no departments). Portfolio grouped by department (fold headers
+  ordered by need, ties by most waiting), counts in the subtitle, short relative Last run, and
+  a Fleet activity stream under the table. Templates (#16): step 0 of New steward lists the
+  workspace templates as dense rows (name, outcome, department, metric and target, policy)
+  plus Blank; picking one prefills every step. `just snapshot <state>...` renders only the
+  named states (load rule).
+- Visual check (`just snapshot` portfolio, portfolio-live, overview-live, sidebar-folded,
+  new-steward): moves (2) portfolio no longer 70% empty, (4) one running steward everywhere,
+  (5) the 11-steward fleet grouped by department in rail and portfolio.
+- 2026-11-10 (CEO, one source per fact): fixture removal published alone (f489c020). On
+  workspace ef524307/7e6a22fd: `LiveLine` carries `liveRuns().elapsedSeconds` (ticking from
+  when it was read) and `estimatedSteps` ("step 3 of ~7"); the scheduler cell reads only
+  `serveState().reason`; the pulse's running count reads `stewardLive`; the verified cell's
+  tooltip is `verifyLedger().lines`. Merged with app-outcome's `serve:` pulse parameter and
+  the upstream state filter (kept the lazy one: unlisted states never render).

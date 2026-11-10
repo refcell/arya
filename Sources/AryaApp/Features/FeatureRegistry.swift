@@ -32,9 +32,7 @@ enum FeatureRegistry {
                     openApprovals: { context.model.navigation.showApprovals() },
                     rehearse: { context.model.navigation.tab = .improve },
                     startServing: { Task { await context.model.startServing() } },
-                    running: StatusBarLine.lines(
-                        live: context.model.liveLines, stewards: context.model.stewards,
-                        runs: context.model.runs, events: store.events))
+                    running: StatusBarLine.lines(live: context.model.liveLines))
             } else {
                 EmptyState(
                     "No overview yet.", guidance: "A steward's plan and activity appear here.")
@@ -168,6 +166,7 @@ enum FeatureRegistry {
         if let store = context.store {
             NewStewardSheet(
                 store: store, draft: model.stewardSheet ?? NewStewardDraft(),
+                startsWithTemplates: (model.stewardSheet ?? NewStewardDraft()).name.isEmpty,
                 created: { id in
                     let proposed = model.stewardSheet?.editing != nil
                     model.stewardSheet = nil

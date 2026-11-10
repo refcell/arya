@@ -61,10 +61,11 @@ import Testing
     #expect(line.waiting == 2)
 }
 
-@Test func schedulerCellReadsTheLock() {
-    #expect(StatusBarLine.scheduler(true) == "serving")
-    #expect(StatusBarLine.scheduler(false) == "scheduler stopped")
-    #expect(StatusBarLine.scheduler(nil) == "scheduler —")
+@Test func schedulerCellReadsServeState() {
+    #expect(StatusBarLine.scheduler(reason: "scheduler") == "scheduler")
+    #expect(StatusBarLine.scheduler(reason: "runs") == "serving · runs")
+    #expect(StatusBarLine.scheduler(reason: "off") == "stopped")
+    #expect(StatusBarLine.scheduler(reason: nil) == "scheduler —")
 }
 
 @MainActor @Test func paletteShowsShortcutsAndActsOnTheSelectedApproval() async {

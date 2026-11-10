@@ -169,6 +169,21 @@ selected on-track steward's value muted, the word `paused`; sorted needs you, be
 track, paused,
 then the name in `body`. Counts are `monoSmall`; the "Needs you" count is `accent`.
 
+With departments (workspace `portfolio()`), stewards sit under a fold row per department:
+chevron, the name as a `label`, the count, then "2 waiting" in ink, "1 behind" in `negative`,
+and a live dot while one runs. Groups are alphabetical with `Unassigned` last and keep the
+need order inside; with no departments the rail is one flat list under "Stewards".
+
+### Running
+
+"Running" has one source: workspace `liveRuns()` (lease-held runs), carried as
+`AppModel.liveLines`. The rail, status bar, inspector pulse, and portfolio read it; none reads
+a run's recorded status, which stays `running` on runs a stopped process left behind.
+Step, elapsed ("step 3 of ~7 · 10.0 s"), and the estimate come from `liveRuns()`; elapsed
+ticks from the workspace's reading. The scheduler cell reads only `serveState().reason`:
+`scheduler`, `serving · runs`, or `stopped` in `negative`. The verified cell's tooltip is
+`verifyLedger().lines`.
+
 ### Thread row
 
 A run under its steward, indented 18 pt. Title in `caption`/`inkMuted`, one line (two when selected), the full title on hover: the

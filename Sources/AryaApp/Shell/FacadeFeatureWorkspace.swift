@@ -30,6 +30,8 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         source.observeRun(run)
     }
 
+    func templates() -> [StewardTemplate] { source.templates() }
+
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON? {
         try await source.expectedResult(casebook: casebook, caseID: caseID)
     }

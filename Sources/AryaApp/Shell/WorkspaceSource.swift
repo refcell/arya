@@ -57,6 +57,14 @@ protocol WorkspaceSource: Sendable {
     func schedulerServing() async -> Bool?
     /// Runs in progress with their step counts, oldest first; empty when none or unknown.
     func liveLines() async -> [LiveLine]
+    /// Why the home is served (workspace `serveState().reason`): scheduler, runs, or off.
+    func serveReason() async -> String?
+    /// Each steward's live state (workspace `stewardLive(steward:)`), by id.
+    func stewardLives(_ ids: [String]) async -> [String: StewardLive]
+    /// Example stewards to start from (workspace `templates()`).
+    func templates() -> [StewardTemplate]
+    /// Each steward's department, by id, from workspace `portfolio()`; empty when unknown.
+    func departments() async -> [String: String]
     /// Who serves the home and each steward's next wake (`Workspace.serveStatus`).
     func serveSchedule() async -> FeatureServe?
     /// Starts firing the home's triggers from this process; false when another one serves.
@@ -80,6 +88,14 @@ extension WorkspaceSource {
     }
 
     func liveLines() async -> [LiveLine] { [] }
+
+    func serveReason() async -> String? { nil }
+
+    func stewardLives(_ ids: [String]) async -> [String: StewardLive] { [:] }
+
+    func templates() -> [StewardTemplate] { [] }
+
+    func departments() async -> [String: String] { [:] }
 
     func reportDigest(steward: String) async throws -> ReportDigest {
         throw FeatureReadError.unavailable("reports")
@@ -163,12 +179,35 @@ extension Workspace: WorkspaceSource {
 
     nonisolated var label: String { home.lastPathComponent }
 
+    func departments() async -> [String: String] {
+        guard let portfolio = try? await portfolio() else { return [:] }
+        var out: [String: String] = [:]
+        for group in portfolio.groups {
+            for item in group.items where item.department != nil {
+                out[item.fleet.steward] = group.department
+            }
+        }
+        return out
+    }
+
     func liveLines() async -> [LiveLine] {
         ((try? await liveRuns()) ?? []).map {
             LiveLine(
                 run: $0.run.id, steward: $0.run.steward, name: $0.stewardName, steps: $0.stepCount,
-                lastStep: $0.lastStep, progress: $0.progress, started: $0.run.startedAt)
+                lastStep: $0.lastStep, progress: $0.progress, started: $0.run.startedAt,
+                elapsedSeconds: $0.elapsedSeconds, readAt: Date(),
+                estimatedSteps: $0.estimatedSteps)
         }
+    }
+
+    func serveReason() async -> String? { (try? await serveState())?.reason }
+
+    func stewardLives(_ ids: [String]) async -> [String: StewardLive] {
+        var out: [String: StewardLive] = [:]
+        for id in ids {
+            if let live = try? await stewardLive(steward: id) { out[id] = live }
+        }
+        return out
     }
 
     func serveSchedule() async -> FeatureServe? {

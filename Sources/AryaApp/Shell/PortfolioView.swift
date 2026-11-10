@@ -31,12 +31,18 @@ struct PortfolioRow: Identifiable, Equatable {
     var costToday: String = "—"
     /// A run is going right now.
     var running: Bool = false
+    /// The department it serves, or "" when none is set.
+    var department: String = ""
+    /// The portfolio group it sits in: the department, or `Unassigned`.
+    var group: String { department.isEmpty ? RailGroup.unassigned : department }
 
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], approvals: [ApprovalSummary],
         events: [FeatureEvent], now: Date, serve: FeatureServe? = nil,
+        departments: [String: String] = [:], live: [LiveLine] = [],
         timeZone: TimeZone = .current
     ) -> [PortfolioRow] {
+        let going = StatusBarLine.running(live)
         let rows = stewards.map { steward -> PortfolioRow in
             let state = OutcomeState.build(
                 events: events, steward: steward.id, now: now, serve: serve)
@@ -70,16 +76,29 @@ struct PortfolioRow: Identifiable, Equatable {
                 id: steward.id, name: steward.name, outcome: steward.outcome, metric: metric,
                 trend: state.trend, behind: series?.meetsTarget == false, state: stateWord(steward),
                 waiting: waiting,
-                lastRun: last.map { AryaTime.label($0, now: now, timeZone: timeZone) } ?? "never",
+                lastRun: last.map { ThreadRow.shortTime($0, now: now) } ?? "never",
                 nextWake: wake, health: sidebar.health, runsPerDay: totals, failedPerDay: failed,
                 costToday: cost.replacingOccurrences(of: " today", with: ""),
-                running: mine.contains { $0.status == .running })
+                running: going.contains(steward.id),
+                department: departments[steward.id] ?? "")
         }
+        // Need first: health, then the most waiting on a person, then by name.
         return rows.sorted {
-            $0.health != $1.health
-                ? $0.health < $1.health
-                : $0.name.localizedStandardCompare($1.name) == .orderedAscending
+            if $0.health != $1.health { return $0.health < $1.health }
+            if $0.waiting != $1.waiting { return $0.waiting > $1.waiting }
+            return $0.name.localizedStandardCompare($1.name) == .orderedAscending
         }
+    }
+
+    /// "3 need you · 2 behind · 1 running", skipping zeros; nil when all are zero.
+    static func counts(_ rows: [PortfolioRow]) -> String? {
+        let parts = [
+            (rows.filter { $0.waiting > 0 }.count, "need you"),
+            (rows.filter(\.behind).count, "behind"),
+            (rows.filter(\.running).count, "running"),
+        ]
+        .filter { $0.0 > 0 }.map { "\($0.0) \($0.1)" }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private static func stateWord(_ steward: StewardSummary) -> String {
@@ -107,25 +126,38 @@ struct PortfolioView: View {
     var body: some View {
         let rows = PortfolioRow.build(
             stewards: model.stewards, runs: model.runs, approvals: model.approvals,
-            events: events, now: now, serve: model.featureStore?.serve)
+            events: events, now: now, serve: model.featureStore?.serve,
+            departments: model.departments, live: model.liveLines)
+        let grouped = rows.contains { !$0.department.isEmpty }
+        let total = rows.count == 1 ? "1 steward" : "\(rows.count) stewards"
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
             PageTitle(
                 title: "Stewards",
-                subtitle: rows.count == 1 ? "1 steward" : "\(rows.count) stewards, sorted by need."
+                subtitle: ([total + ", sorted by need"]
+                    + [PortfolioRow.counts(rows)].compactMap { $0 })
+                    .joined(separator: " · ")
             )
             .padding(.horizontal, AryaSize.pagePadding)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     header
-                    ForEach(rows) { row in
-                        Button {
-                            model.navigation.select(steward: row.id)
-                        } label: {
-                            line(row)
+                    if grouped {
+                        ForEach(PortfolioDepartments.lines(rows)) { group in
+                            groupHeader(group)
+                            if !model.collapsedPortfolioGroups.contains(group.id) {
+                                ForEach(rows.filter { $0.group == group.id }) { row in
+                                    rowButton(row)
+                                }
+                            }
                         }
-                        .buttonStyle(.plain)
-                        AryaHairline()
+                    } else {
+                        ForEach(rows) { row in rowButton(row) }
                     }
+                    FleetActivity(
+                        lines: FleetActivity.lines(
+                            events: events, stewards: model.stewards, now: now)
+                    ) { model.navigation.select(steward: $0) }
+                    .padding(.top, AryaSpace.s6)
                 }
                 .padding(.horizontal, AryaSize.pagePadding)
             }
@@ -136,6 +168,38 @@ struct PortfolioView: View {
     private var events: [FeatureEvent] {
         guard case .loaded(let events) = model.featureStore?.state else { return [] }
         return events
+    }
+
+    @ViewBuilder private func rowButton(_ row: PortfolioRow) -> some View {
+        Button {
+            model.navigation.select(steward: row.id)
+        } label: {
+            line(row)
+        }
+        .buttonStyle(.plain)
+        AryaHairline()
+    }
+
+    /// A department's fold row: the sidebar's header (count, waiting, behind, live) plus its
+    /// runs over 7 days in the Runs column's place.
+    private func groupHeader(_ group: PortfolioDepartments.Line) -> some View {
+        let collapsed = model.collapsedPortfolioGroups.contains(group.id)
+        return Button {
+            withAnimation(AryaMotion.frozenByProcess ? nil : AryaMotion.quick) {
+                if collapsed {
+                    model.collapsedPortfolioGroups.remove(group.id)
+                } else {
+                    model.collapsedPortfolioGroups.insert(group.id)
+                }
+            }
+        } label: {
+            RailDepartmentHeader(
+                group.id, count: group.stewards, collapsed: collapsed, waiting: group.waiting,
+                behind: group.behind, running: group.running > 0)
+        }
+        .buttonStyle(.plain)
+        .help(collapsed ? "Show \(group.id)" : "Hide \(group.id)")
+        .aryaHairline(edge: .bottom)
     }
 
     private var header: some View {
@@ -205,6 +269,129 @@ struct PortfolioView: View {
             content().frame(width: width, alignment: .leading)
         } else {
             content().frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// The portfolio's department groups: stewards, behind, waiting, running, and runs over 7 days.
+enum PortfolioDepartments {
+    struct Line: Equatable, Identifiable {
+        var id: String
+        var stewards: Int
+        var behind: Int
+        var waiting: Int
+        var running: Int
+        var runsPerDay: [Int]
+        var failedPerDay: [Int]
+    }
+
+    /// One line per department, most waiting first, then most behind, then by name.
+    static func lines(_ rows: [PortfolioRow]) -> [Line] {
+        let grouped = Dictionary(grouping: rows) {
+            $0.department.isEmpty ? RailGroup.unassigned : $0.department
+        }
+        func sum(_ arrays: [[Int]]) -> [Int] {
+            let width = arrays.map(\.count).max() ?? 0
+            return (0..<width).map { day in
+                arrays.reduce(0) { $0 + (day < $1.count ? $1[day] : 0) }
+            }
+        }
+        return grouped.map { name, members in
+            Line(
+                id: name, stewards: members.count, behind: members.filter(\.behind).count,
+                waiting: members.map(\.waiting).reduce(0, +),
+                running: members.filter(\.running).count,
+                runsPerDay: sum(members.map(\.runsPerDay)),
+                failedPerDay: sum(members.map(\.failedPerDay)))
+        }
+        .sorted {
+            if $0.waiting != $1.waiting { return $0.waiting > $1.waiting }
+            if $0.behind != $1.behind { return $0.behind > $1.behind }
+            return $0.id < $1.id
+        }
+    }
+}
+
+/// The fleet's recent activity under the portfolio table: who did what, newest first, skipping
+/// step-level and adapter noise. A line opens its steward.
+struct FleetActivity: View {
+    struct Line: Equatable, Identifiable {
+        var id: String
+        var time: String
+        var steward: String
+        var name: String
+        var text: String
+        var failed: Bool
+    }
+
+    let lines: [Line]
+    let open: (String) -> Void
+
+    /// What each event type reads as; types not listed are skipped.
+    static let words: [String: String] = [
+        "run.started": "started a run", "run.finished": "finished a run",
+        "action.executed": "took an action", "approval.requested": "asked for sign-off",
+        "approval.decided": "got a decision", "plan.updated": "updated its plan",
+        "report.sent": "sent a report", "inbox.message": "got a message",
+        "steward.paused": "was paused", "steward.resumed": "was resumed",
+        "steward.ready": "went live", "routine.proposed": "proposed a routine",
+        "proposal.gated": "had a change gated", "rehearsal.finished": "finished a rehearsal",
+        "run.delegated": "handed work to a crew", "memory.added": "learned something",
+    ]
+
+    static func lines(
+        events: [FeatureEvent], stewards: [StewardSummary], now: Date, limit: Int = 12
+    ) -> [Line] {
+        let names = Dictionary(
+            stewards.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        var out: [Line] = []
+        for event in events.reversed() {
+            guard out.count < limit else { break }
+            guard let steward = event.steward, let name = names[steward],
+                var text = words[event.type]
+            else { continue }
+            let failed =
+                event.type == "run.finished"
+                && ["failed", "error"].contains(event.payload["status"]?.string ?? "")
+            if failed { text = "had a run fail" }
+            out.append(
+                Line(
+                    id: event.id, time: ThreadRow.shortTime(event.at, now: now),
+                    steward: steward, name: name, text: text, failed: failed))
+        }
+        return out
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Fleet activity").aryaText(AryaFont.label, AryaColor.inkFaint)
+                .frame(height: AryaSize.rowHeight)
+            AryaHairline()
+            if lines.isEmpty {
+                Text("Nothing yet.").aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    .frame(height: AryaSize.rowHeight)
+            }
+            ForEach(lines) { line in
+                Button {
+                    open(line.steward)
+                } label: {
+                    HStack(spacing: AryaSpace.s2) {
+                        Text(line.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                            .frame(width: 56, alignment: .leading)
+                        Text(line.name).aryaText(AryaFont.body, AryaColor.ink).lineLimit(1)
+                        Text(line.text)
+                            .aryaText(
+                                AryaFont.caption,
+                                line.failed ? AryaColor.negative : AryaColor.inkMuted
+                            )
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(height: AryaSize.rowHeight)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }

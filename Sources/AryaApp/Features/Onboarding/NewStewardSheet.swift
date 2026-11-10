@@ -1,3 +1,4 @@
+import Arya
 import AryaDesign
 import SwiftUI
 
@@ -14,10 +15,12 @@ struct NewStewardSheet: View {
     @AryaState private var tried = false
     @AryaState private var advanced = false
     @AryaState private var saving = false
+    /// Step 0 (app-shell, Templates): start blank or from a template, before the steps.
+    @AryaState private var starting: Bool
 
     init(
         store: FeatureStore, draft: NewStewardDraft = NewStewardDraft(),
-        step: NewStewardDraft.Step = .outcome,
+        step: NewStewardDraft.Step = .outcome, startsWithTemplates: Bool = false,
         created: @escaping (String) -> Void, cancel: @escaping () -> Void
     ) {
         self.store = store
@@ -27,6 +30,9 @@ struct NewStewardSheet: View {
         draft.adopt(NewStewardCatalog(events: store.events))
         _draft = AryaState(initialValue: draft)
         _step = AryaState(initialValue: step)
+        _starting = AryaState(
+            initialValue: startsWithTemplates && draft.editing == nil
+                && !store.workspace.templates().isEmpty)
     }
 
     private static let stepCount = NewStewardDraft.Step.allCases.count
@@ -39,8 +45,47 @@ struct NewStewardSheet: View {
 
     private var finalTitle: String { draft.editing == nil ? "Create steward" : "Propose change" }
 
-    /// Two columns: the steps on the left, the current step on the right.
     var body: some View {
+        if starting { start } else { steps }
+    }
+
+    /// Step 0: the template rows and Blank; picking one prefills the steps.
+    private var start: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s4) {
+            VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                Text("New steward · start").aryaText(AryaFont.label, AryaColor.inkFaint)
+                Text("Start from").aryaText(AryaFont.heading, AryaColor.ink)
+                Text("Pick a template to prefill every step, or start blank.")
+                    .aryaText(AryaFont.body, AryaColor.inkMuted)
+            }
+            ScrollView {
+                NewStewardTemplatePicker(templates: store.workspace.templates(), choose: begin)
+            }
+            HStack(spacing: AryaSpace.s2) {
+                Button("Cancel", action: cancel).buttonStyle(.aryaTertiary)
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
+                Text("j/k move, ↩ pick").aryaText(AryaFont.caption, AryaColor.inkFaint)
+            }
+        }
+        .padding(AryaSpace.s5)
+        .frame(width: AryaSize.newStewardWidth)
+        .frame(minHeight: AryaSize.newStewardHeight, alignment: .top)
+        .background(AryaColor.canvas)
+    }
+
+    private func begin(_ template: StewardTemplate?) {
+        if let template {
+            var next = NewStewardDraft.template(template.draft)
+            next.adopt(NewStewardCatalog(events: store.events))
+            draft = next
+        }
+        step = .outcome
+        starting = false
+    }
+
+    /// Two columns: the steps on the left, the current step on the right.
+    private var steps: some View {
         HStack(alignment: .top, spacing: 0) {
             rail
                 .frame(width: AryaSize.newStewardRail, alignment: .topLeading)

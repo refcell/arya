@@ -28,6 +28,16 @@ final class AppModel {
     private(set) var serving: Bool?
     /// Runs in progress (workspace `liveRuns`), re-read on every ledger change.
     var liveLines: [LiveLine] = []
+    /// Why the home is served (workspace `serveState().reason`); the scheduler cell's text.
+    var serveReason: String?
+    /// Each steward's live state (workspace `stewardLive`): next wake, schedule, running.
+    var stewardLive: [String: StewardLive] = [:]
+    /// Each steward's department by id (workspace `portfolio()`); empty when none is set.
+    var departments: [String: String] = [:]
+    /// Sidebar department groups folded shut.
+    var collapsedDepartments: Set<String> = []
+    /// Portfolio department groups folded shut.
+    var collapsedPortfolioGroups: Set<String> = []
     /// The New steward flow's starting answers while its sheet is open.
     var stewardSheet: NewStewardDraft?
     private(set) var stewards: [StewardSummary] = []
@@ -111,6 +121,9 @@ final class AppModel {
                 serving = await source.schedulerServing()
             }
             liveLines = await source.liveLines()
+            serveReason = await source.serveReason()
+            stewardLive = await source.stewardLives(stewards.map(\.id))
+            departments = await source.departments()
             problem = nil
             announce(approvals, stewards: stewards)
         } catch {

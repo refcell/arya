@@ -29,7 +29,7 @@ struct StewardPulse: Equatable {
     static func build(
         steward: StewardSummary, runs: [RunSummary], approvals: [ApprovalSummary],
         events: [FeatureEvent], now: Date, serve: FeatureServe? = nil, live: [LiveLine] = [],
-        timeZone: TimeZone = .current
+        stewardLive: StewardLive? = nil, timeZone: TimeZone = .current
     ) -> StewardPulse {
         let series = MetricSeries.build(events: events, steward: steward.id)
         var value = "—"
@@ -57,9 +57,9 @@ struct StewardPulse: Equatable {
             runsPerDay: totals, failedPerDay: failed,
             costToday: costToday(runs, now: now, timeZone: timeZone),
             nextWake: steward.status == .paused ? "paused" : next,
-            running: max(
-                runs.filter { $0.status == .running }.count,
-                live.filter { $0.steward == steward.id }.count),
+            // Workspace `stewardLive` when read, else its `liveRuns()` (the same tally).
+            running: stewardLive.map { ($0.running == nil ? 0 : 1) + $0.alsoRunning }
+                ?? live.filter { $0.steward == steward.id }.count,
             approvals: approvals.filter { $0.steward == steward.id },
             decisions: OutcomeContext.build(events: events, steward: steward.id).decisions)
     }
@@ -127,7 +127,7 @@ struct FleetPulse: Equatable {
 
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], approvals: [ApprovalSummary],
-        events: [FeatureEvent], now: Date, timeZone: TimeZone = .current
+        events: [FeatureEvent], live: [LiveLine] = [], now: Date, timeZone: TimeZone = .current
     ) -> FleetPulse {
         var onTrack = 0
         var behind = 0
@@ -165,7 +165,7 @@ struct FleetPulse: Equatable {
             onTrack: onTrack, behind: behind, paused: paused, waiting: approvals.count,
             runsPerDay: totals, failedPerDay: failed, runsToday: totals.last ?? 0,
             costToday: StewardPulse.costToday(all, now: now, timeZone: timeZone),
-            running: all.filter { $0.status == .running }.count,
+            running: StatusBarLine.running(live).count,
             movers: movers.sorted { $0.1 > $1.1 }.prefix(3).map(\.0))
     }
 }

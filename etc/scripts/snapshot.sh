@@ -5,12 +5,16 @@
 # keeps .build/demo-home pristine, since the stopped live run is recorded as interrupted.
 #
 #   snapshot.sh SWIFT-TEST-ARGS...   (the Justfile passes the swift flags and job count)
+#
+# ARYA_SNAPSHOT_STATES (set by `just snapshot <state>...`) renders only the named states and
+# keeps the other PNGs already in .build/snapshots.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 etc/scripts/demo-current.sh
 home="$PWD/.build/snapshot-home"
-rm -rf "$home" .build/snapshots
+rm -rf "$home"
+[ -n "${ARYA_SNAPSHOT_STATES:-}" ] || rm -rf .build/snapshots
 cp -cR .build/demo-home "$home" 2>/dev/null || cp -R .build/demo-home "$home"
 bin=$(swift build --show-bin-path)
 "$bin/arya" --home "$home" run st_lead_follow_up \
@@ -19,4 +23,8 @@ live=$!
 trap 'kill "$live" 2>/dev/null || true; wait "$live" 2>/dev/null || true' EXIT
 ARYA_SNAPSHOT_DIR="$PWD/.build/snapshots" ARYA_SNAPSHOT_HOME="$home" \
   etc/scripts/slot.sh swift test "$@" --filter SnapshotTests
-ls .build/snapshots
+if [ -n "${ARYA_SNAPSHOT_STATES:-}" ]; then
+  ls -t .build/snapshots | head -n 8
+else
+  ls .build/snapshots
+fi

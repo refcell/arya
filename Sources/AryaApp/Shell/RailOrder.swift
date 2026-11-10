@@ -7,6 +7,36 @@ enum RailItem: Hashable, Sendable {
     case approvals
 }
 
+/// Stewards grouped by department for the sidebar.
+struct RailGroup: Equatable, Identifiable {
+    /// The department; nil when no steward has one (the rail shows one flat list).
+    var department: String?
+    var stewards: [StewardSummary]
+    var id: String { department ?? "" }
+
+    /// The label for stewards without a department when others have one.
+    static let unassigned = "Unassigned"
+
+    /// `sorted` (need first) split by department: groups alphabetical, `Unassigned` last, each
+    /// keeping the need order. One nil group when `departments` names none of them.
+    static func build(sorted: [StewardSummary], departments: [String: String]) -> [RailGroup] {
+        guard sorted.contains(where: { departments[$0.id] != nil }) else {
+            return sorted.isEmpty ? [] : [RailGroup(department: nil, stewards: sorted)]
+        }
+        let grouped = Dictionary(grouping: sorted) { departments[$0.id] ?? unassigned }
+        let names = grouped.keys.sorted {
+            ($0 == unassigned ? 1 : 0, $0) < ($1 == unassigned ? 1 : 0, $1)
+        }
+        return names.map { RailGroup(department: $0, stewards: grouped[$0] ?? []) }
+    }
+
+    /// The stewards the rail shows, in order, skipping folded groups.
+    static func visible(_ groups: [RailGroup], collapsed: Set<String>) -> [StewardSummary] {
+        groups.filter { $0.department.map { !collapsed.contains($0) } ?? true }
+            .flatMap(\.stewards)
+    }
+}
+
 /// The rail's rows in reading order and arrow-key movement through them.
 enum RailOrder {
     /// The rows the rail shows: every steward, the selected steward's recent runs beneath it,

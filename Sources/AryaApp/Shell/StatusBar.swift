@@ -24,30 +24,23 @@ struct StatusBarLine: Equatable {
     /// Ledger noise the ticker skips: raw adapter lines and bookkeeping.
     static let quiet: Set<String> = ["run.adapter.event", "metric.recorded"]
 
-    /// The runs going now: the workspace's live runs when it reports them, else the running
-    /// summaries with step counts projected from the ledger.
-    static func lines(
-        live: [LiveLine], stewards: [StewardSummary], runs: [String: [RunSummary]],
-        events: [FeatureEvent]
-    ) -> [LiveLine] {
-        if !live.isEmpty { return live }
-        return stewards.flatMap { steward in
-            (runs[steward.id] ?? []).filter { $0.status == .running }.map { run in
-                LiveLine(
-                    run: run.id, steward: steward.id, name: steward.name,
-                    steps: RunStream.build(events: events, run: run.id).steps.count,
-                    lastStep: nil, progress: nil, started: run.startedAt)
-            }
-        }
-        .sorted { $0.started < $1.started }
+    /// The runs going now, oldest first: only what workspace `liveRuns()` reports.
+    static func lines(live: [LiveLine]) -> [LiveLine] {
+        live.sorted { $0.started < $1.started }
     }
+
+    /// The stewards with a run going now. The one source of "running" for the rail, status
+    /// bar, inspector, and portfolio: workspace `liveRuns()` (lease-held runs only), never a
+    /// run's recorded status, which stays `running` on runs a stopped process left behind.
+    static func running(_ live: [LiveLine]) -> Set<String> { Set(live.map(\.steward)) }
 
     /// "Support inbox triage running · step 3 · 4.0 s · +1 more" for the newest live run.
     static func live(_ lines: [LiveLine], now: Date) -> String? {
         guard let line = lines.last else { return nil }
         let more = lines.count > 1 ? " · +\(lines.count - 1) more" : ""
-        let seconds = max(0, now.timeIntervalSince(line.started))
-        let steps = "step \(max(line.steps, 1))"
+        let seconds = line.elapsed(at: now)
+        let estimate = line.estimatedSteps.map { " of ~\($0)" } ?? ""
+        let steps = "step \(max(line.steps, 1))\(estimate)"
         return "\(line.name) running · \(steps) · \(FeatureTime.duration(seconds))\(more)"
     }
 
@@ -99,19 +92,19 @@ struct StatusBarLine: Equatable {
             stewards: fleet.joined(separator: " · "), waiting: waiting, ledger: ledger,
             ledgerOK: check?.ok ?? true,
             cost: today > 0 ? "\(RunMetrics.dollars(today)) today" : "spend — today",
-            live: lines(live: liveRuns, stewards: stewards, runs: runs, events: events),
+            live: lines(live: liveRuns),
             ticker: ticker(stewards: stewards, events: events, now: now))
     }
 
-    /// "serving" while a process fires this home's triggers, "scheduler stopped" when none
-    /// does, "scheduler —" when the source cannot tell.
-    /// Live runs mean something is serving (the demo pacer or `arya serve`).
-    static func scheduler(_ serving: Bool?, live: Bool = false) -> String {
-        if live { return "serving" }
-        switch serving {
-        case true?: return "serving"
-        case false?: return "scheduler stopped"
-        case nil: return "scheduler —"
+    /// The scheduler cell, from workspace `serveState().reason` only: "scheduler" while a
+    /// scheduler holds the home's lock, "serving · runs" while only leased runs drive it,
+    /// "stopped" when nothing serves, "scheduler —" when the source cannot tell.
+    static func scheduler(reason: String?) -> String {
+        switch reason {
+        case "scheduler": "scheduler"
+        case "runs": "serving · runs"
+        case "off": "stopped"
+        default: "scheduler —"
         }
     }
 }
@@ -128,7 +121,13 @@ struct StatusBar: View {
             events: events, check: model.ledgerCheck, now: now,
             serve: model.featureStore?.serve, liveRuns: model.liveLines)
         HStack(spacing: AryaSpace.s4) {
-            item(StatusBarLine.scheduler(model.serving, live: !line.live.isEmpty))
+            Text(StatusBarLine.scheduler(reason: model.serveReason))
+                .aryaText(
+                    AryaFont.monoSmall,
+                    model.serveReason == "off" ? AryaColor.negative : AryaColor.inkMuted
+                )
+                .fixedSize()
+                .help("Who serves this home's triggers")
             if !line.live.isEmpty {
                 // Elapsed seconds tick once a second while a run goes.
                 Group {
@@ -167,7 +166,10 @@ struct StatusBar: View {
             }
             Text(line.ledger)
                 .aryaText(
-                    AryaFont.monoSmall, line.ledgerOK ? AryaColor.inkFaint : AryaColor.negative)
+                    AryaFont.monoSmall, line.ledgerOK ? AryaColor.inkFaint : AryaColor.negative
+                )
+                .fixedSize()
+                .help(model.ledgerCheck?.lines?.joined(separator: "\n") ?? "Ledger chain check")
             item(line.cost)
             Button {
                 model.paletteOpen = true
@@ -220,4 +222,15 @@ struct LiveLine: Equatable, Sendable {
     var lastStep: String?
     var progress: Double?
     var started: Date
+    /// `liveRuns().elapsedSeconds` as read at `readAt`; the cell adds the seconds since.
+    var elapsedSeconds: Double? = nil
+    var readAt: Date? = nil
+    /// The steward's usual steps per run, when known.
+    var estimatedSteps: Int? = nil
+
+    /// Seconds running at `now`: the workspace's elapsed plus the time since it was read.
+    func elapsed(at now: Date) -> Double {
+        guard let elapsedSeconds, let readAt else { return max(0, now.timeIntervalSince(started)) }
+        return max(0, elapsedSeconds + now.timeIntervalSince(readAt))
+    }
 }

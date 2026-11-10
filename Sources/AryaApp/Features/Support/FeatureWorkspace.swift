@@ -192,6 +192,8 @@ protocol FeatureWorkspace: Sendable {
     func replay(run: String) async throws -> FeatureReplayResult
     /// The workspace's words for each pending approval, by approval id.
     func approvalTexts() async throws -> [String: FeatureApprovalText]
+    /// Example stewards to start a New steward from (app-shell, Templates).
+    func templates() -> [StewardTemplate]
     /// Yields each time a live run's ledger grows, and finishes when the run ends.
     func observeRun(_ run: String) -> AsyncStream<Void>
     /// What `run` would have done under a proposal's charter, in one line.
@@ -246,6 +248,8 @@ struct FeatureConversationEntry: Hashable, Sendable {
 extension FeatureWorkspace {
     /// Workspaces without run facts leave the numbers to the ledger projection.
     func runFacts(run: String) async throws -> FeatureRunFacts? { nil }
+
+    func templates() -> [StewardTemplate] { [] }
 
     /// Workspaces without a ledger watch never yield; the run shows as of its last reload.
     func observeRun(_ run: String) -> AsyncStream<Void> {

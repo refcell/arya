@@ -167,11 +167,6 @@ struct InspectorView: View {
     private var focus: InspectorFocus { InspectorFocus.of(model.navigation) }
 
     /// The runs going now, the list the rail, status bar, and NOW show.
-    private func liveLines(_ events: [FeatureEvent]) -> [LiveLine] {
-        StatusBarLine.lines(
-            live: model.liveLines, stewards: model.stewards, runs: model.runs, events: events)
-    }
-
     private var heading: String {
         switch focus {
         case .approval: "Steward"
@@ -204,7 +199,8 @@ struct InspectorView: View {
                         steward: steward, runs: model.runs[steward.id] ?? [],
                         approvals: model.approvals, events: events, now: now,
                         serve: model.featureStore?.serve,
-                        live: liveLines(events))
+                        live: model.liveLines,
+                        stewardLive: model.stewardLive[steward.id])
                 ) { model.navigation.approval = $0 }
             } else if let id = id ?? model.approvals.first?.id {
                 FeatureRegistry.approvalInspector(model.featureContext(), approval: id)
@@ -225,7 +221,7 @@ struct InspectorView: View {
             FleetPulseView(
                 pulse: FleetPulse.build(
                     stewards: model.stewards, runs: model.runs, approvals: model.approvals,
-                    events: events, now: now)
+                    events: events, live: model.liveLines, now: now)
             ) { model.navigation.select(steward: $0) }
         case .none:
             Text("Select a steward to see its schedule, policy, connections, and people.")
@@ -272,7 +268,8 @@ struct InspectorView: View {
             pulse: StewardPulse.build(
                 steward: steward, runs: model.runs[steward.id] ?? [], approvals: model.approvals,
                 events: events, now: now, serve: model.featureStore?.serve,
-                live: liveLines(events))
+                live: model.liveLines,
+                stewardLive: model.stewardLive[steward.id])
         ) { id in
             model.navigation.showApprovals()
             model.navigation.approval = id
