@@ -79,7 +79,7 @@ struct PeopleChannelsView: View {
                     .accessibilityLabel("Messages per day this week")
                 Text("\(channel.inbound) in · \(channel.outbound) out · 7d")
                     .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                    .frame(width: 136, alignment: .trailing)
+                    .frame(minWidth: 136, alignment: .trailing)
             }
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {
                 Text(channel.people.isEmpty ? "no one yet" : channel.people.joined(separator: ", "))

@@ -297,8 +297,7 @@ struct MoreMenu<Content: View>: View {
     var body: some View {
         Menu(content: content) {
             Image(systemName: "ellipsis")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(AryaColor.inkMuted)
+                .aryaText(AryaFont.bodyStrong, AryaColor.inkMuted)
                 .frame(width: AryaSize.buttonHeight, height: AryaSize.buttonHeight)
                 .contentShape(Rectangle())
         }
