@@ -103,6 +103,8 @@ M3:
   CLI's `--choice` needs no JSON. Metrics are `OutcomeMetrics.series` in UTC-day windows.
 
 ## Questions
+
+- (from app-views) Step definition (review #18): the app counts a step with `RunThreadText.isStep`: each tool call, action (approval asks included), message, and delegation; decisions, thinking, status and the run end are not steps. Please make `visibleSteps` / `stepIndex` / `estimatedSteps` use the same rule so the header, brief and thread agree.
 - (from app-outcome) `StewardDraft` needs `guardrailMetrics: [Metric]` (name, unit, direction,
   target) carried into the created charter, so the New steward wizard can set them; the
   editor already proposes them through the charter JSON.

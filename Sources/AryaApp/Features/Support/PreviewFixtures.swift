@@ -437,14 +437,11 @@ extension PreviewFixtures {
         log.add("steward.created", actor: .localUser, ["charter": charter, "version": 1])
         for (index, run) in ["run_h1", "run_h2"].enumerated() {
             log.add("run.started", run: run, ["trigger": "message"])
-            for step in 0..<4 {
+            // Five steps each, so a live run reads "of ~5 steps".
+            for step in 0..<5 {
                 log.add(
-                    "run.decision", run: run, after: 1,
-                    [
-                        "decision": [
-                            "id": .string("d\(step)"), "choice": "billing", "rationale": "History.",
-                        ]
-                    ])
+                    "run.tool.call", run: run, after: 1,
+                    ["id": .string("h\(step)"), "tool": "inbox.get", "binding": "inbox"])
             }
             log.add(
                 "run.finished", run: run, after: 1,

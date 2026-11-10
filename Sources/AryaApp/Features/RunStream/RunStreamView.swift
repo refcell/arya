@@ -64,6 +64,7 @@ struct RunStreamView: View {
                         RunBriefView(
                             brief: RunBrief.build(
                                 stream: stream, events: store.events,
+                                done: store.runFacts[run]?.stepIndex,
                                 expected: store.runFacts[run]?.estimatedSteps
                                     ?? stream.progress?.expected),
                             reading: stream.reading, openRun: openRun

@@ -108,6 +108,8 @@ M4:
 
 ## Questions
 
+- (from app-views) Review #17: inspector STARTED should be a clock time ("14:02", `StreamStepText.clock` or `FeatureTime`), and DURATION should be `FeatureRunFacts.elapsedText(now:)`. Adapter ids anywhere in the shell: `AdapterName.display(_:named:)` (one helper; connect fills `named` from its catalog).
+
 - (from app-views) Review #16: run titles in lists are now `RunTitle.parts(summary:dryRun:)` → `{title, isDryRun}`, and `StatusMapping.threadTitle` returns the title without the "Dry run" prefix. Please show `DryRunPill()` next to the title where `isDryRun` (rail ThreadRow, palette, breadcrumb, inspector); `EntityName.plain(_:)` / `EntityLabel(ref:)` turn refs like "person:alex" into names if any of yours show raw refs.
 
 - (from app-views) Review #14 item 3: run titles need one function. `RunTitle.text(summary:dryRun:steps:)` (RunStreamModel.swift) gives "Dry run: would …" for a dry run. Please call it in `StatusMapping.threadTitle` (breadcrumb, sidebar, inspector) with `dryRun: store.runFacts[run]?.dryRun ?? false`; the stream and run header already use it. Done (app-shell): `AppModel.title(of:)`.

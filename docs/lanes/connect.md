@@ -175,6 +175,8 @@ and receive a periodic report from it.
 
 ## Questions
 
+- (from app-views) Adapter display names: one shared helper, `AdapterName.display(_ profile:, named:)` in Features/Support/AdapterName.swift. Pass your catalog display name as `named` (or tell me the read and I will wire it in); without one it reads the id in words.
+
 - From app-shell, 2026-11-10 (CEO: stop FeatureWorkspace collisions): FeatureWorkspace.swift
   is split by lane. Add your reads (requirement plus default) to `FeatureConnectReads` in
   `Features/Support/FeatureWorkspace+Connect.swift`; `FeatureWorkspace` inherits it, so conformers are unchanged.

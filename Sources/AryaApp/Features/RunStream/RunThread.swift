@@ -64,8 +64,15 @@ struct RunHeader: View {
 
     private var metrics: RunMetrics {
         var metrics = stream.facts
-        guard let facts else { return metrics }
+        guard let facts else {
+            if let progress = stream.progress, case .running = stream.status {
+                metrics.elapsed = FeatureRunFacts.elapsedText(
+                    now.timeIntervalSince(progress.started), running: true)
+            }
+            return metrics
+        }
         metrics.seconds = facts.running ? nil : facts.elapsedSeconds
+        metrics.elapsed = facts.elapsedText(now: now)
         metrics.decisions = facts.decisions
         metrics.actions = facts.actionsProposed
         return metrics
@@ -129,9 +136,11 @@ private struct ThreadLine: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                // Only steps carry a time; notes (decisions, the run's end) align under them.
                 Text(StreamStepText.clock(step.at))
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     .help(FeatureTime.absolute(step.at))
+                    .opacity(RunThreadText.isStep(step.kind) ? 1 : 0)
                 line
                 Spacer(minLength: 0)
             }
@@ -364,6 +373,21 @@ struct InlineApproval: View {
 enum RunThreadText {
     /// Steps worth a line: the start is the header, so it is left out; the finish stays as
     /// the one place the summary appears.
+    /// One step (decision 0067 wording, app side): a row the person sees in the thread with
+    /// its time: each tool call, each action (approval asks included), each message, each
+    /// hand-off. Decisions, thinking, status and the run's end are notes on those rows, not
+    /// steps. Progress, the brief and the usual count all count these; workspace's
+    /// `visibleSteps` uses the same rule.
+    static func isStep(_ kind: StreamStep.Kind) -> Bool {
+        switch kind {
+        case .toolCall, .action, .message, .delegated: true
+        default: false
+        }
+    }
+
+    /// The run's steps, in order.
+    static func steps(_ steps: [StreamStep]) -> [StreamStep] { steps.filter { isStep($0.kind) } }
+
     static func visible(_ steps: [StreamStep]) -> [StreamStep] {
         steps.filter { step in
             if case .started = step.kind { return false }

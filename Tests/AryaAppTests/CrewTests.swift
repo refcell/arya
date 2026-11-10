@@ -19,7 +19,7 @@ private func delegations() -> [DelegationStep] {
     #expect(CrewText.line(child) == "drafted the refund reply · child run · 2.1 s")
     #expect(child.childSteps.count == 3)
     #expect(
-        CrewText.budget(child) == "budget: adapter fake · effort low · 4 turns · 60 s · $0.20")
+        CrewText.budget(child) == "budget: adapter Fake · effort low · 4 turns · 60 s · $0.20")
     #expect(
         CrewText.result(child) == "Drafted a reply offering a refund for the second charge.")
 }

@@ -10,8 +10,8 @@ import Testing
     #expect(stream.status == .running)
     let progress = try #require(stream.progress)
     #expect(progress.expected == 5)
-    #expect(progress.done == RunThreadText.visible(stream.steps).count)
-    #expect(progress.text(now: now) == "4 of ~5 steps · 4 s")
+    #expect(progress.done == RunThreadText.steps(stream.steps).count)
+    #expect(progress.text(now: now) == "2 of ~5 steps · 4 s")
     #expect(progress.fraction > 0 && progress.fraction < 1)
 }
 
@@ -258,4 +258,32 @@ import Testing
     let parts = RunTitle.parts(
         summary: "Dry run: would have labeled inbox:MSG-9 as spam.", dryRun: false)
     #expect(parts == RunTitle.Parts(title: "Labeled MSG-9 as spam.", isDryRun: true))
+}
+
+@Test func briefCountsFromTheRunFactsAndAdaptersReadAsNames() {
+    let events = PreviewFixtures.streaming(now: FeatureTestClock.now)
+    let stream = RunStream.build(events: events, run: PreviewFixtures.streamingRun)
+    let brief = RunBrief.build(stream: stream, events: events, done: 9, expected: 9)
+    #expect(!brief.plan.contains { $0.text.contains("more step") })
+    let behind = RunBrief.build(stream: stream, events: events, done: 4, expected: 6)
+    #expect(behind.plan.last?.text == "~2 more steps expected")
+    #expect(AdapterName.display("demo-lead_follow_up") == "Lead follow up")
+    #expect(AdapterName.display("fake-triage") == "Triage (test)")
+    #expect(AdapterName.display("fake-triage", named: "Triage bot") == "Triage bot")
+}
+
+@Test func aStepIsOneTimedThreadRowAndTheBriefListsEachOne() {
+    for events in [
+        PreviewFixtures.streaming(now: FeatureTestClock.now),
+        PreviewFixtures.live(now: FeatureTestClock.now),
+    ] {
+        let run = events.first { $0.type == "run.started" }?.run ?? ""
+        let stream = RunStream.build(events: events, run: run)
+        let steps = RunThreadText.steps(stream.steps)
+        let rows = RunThreadText.visible(stream.steps).filter { RunThreadText.isStep($0.kind) }
+        #expect(rows.map(\.id) == steps.map(\.id))
+        #expect(!steps.contains { if case .decision = $0.kind { true } else { false } })
+        let brief = RunBrief.build(stream: stream, events: events, expected: nil)
+        #expect(brief.plan.filter { $0.mark != .next }.count == steps.count)
+    }
 }

@@ -6,7 +6,7 @@ import Testing
 @Test func runHeaderNamesAdapterDurationTokensAndCost() {
     let facts = RunMetrics(
         adapter: "fake-triage", effort: "medium", seconds: 2.4, tokens: 12_840, costMicros: 1_200)
-    #expect(facts.text == "fake-triage · effort medium · 2.4 s · 12,840 tokens · $0.0012")
+    #expect(facts.text == "Triage (test) · effort medium · 2.4 s · 12,840 tokens · $0.0012")
     #expect(RunMetrics().text == "duration — · cost —")
     #expect(RunMetrics.count(1, "decision") == "1 decision")
     #expect(RunMetrics.count(4, "tool") == "4 tools")
@@ -24,7 +24,7 @@ import Testing
         ])
     let facts = RunStream.build(events: log.events, run: "r1").facts
     let expected =
-        "fake · effort low · 3.0 s · 1 decision · 3 actions · 120 tokens" + " · cost —"
+        "Fake · effort low · 3.0 s · 1 decision · 3 actions · 120 tokens" + " · cost —"
     #expect(facts.text == expected)
 }
 

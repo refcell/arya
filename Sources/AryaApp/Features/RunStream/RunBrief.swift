@@ -23,21 +23,28 @@ struct RunBrief: Hashable, Sendable {
     /// Rows shown before "+N more".
     static let shownItems = 8
 
-    static func build(stream: RunStream, events: [FeatureEvent], expected: Int?) -> RunBrief {
+    /// `done` and `expected` are the run's facts (`stepIndex`, `estimatedSteps`), the same
+    /// numbers as the header's "9 of ~9 steps".
+    static func build(
+        stream: RunStream, events: [FeatureEvent], done: Int? = nil, expected: Int?
+    ) -> RunBrief {
         RunBrief(
             trigger: trigger(stream), plan: [], planSource: "",
             reads: reads(stream)
         )
-        .with(plan: ownPlan(stream, events: events), expected: expected, stream: stream)
+        .with(
+            plan: ownPlan(stream, events: events), done: done, expected: expected, stream: stream)
     }
 
-    private func with(plan own: [Item]?, expected: Int?, stream: RunStream) -> RunBrief {
+    private func with(plan own: [Item]?, done: Int?, expected: Int?, stream: RunStream)
+        -> RunBrief
+    {
         var brief = self
         if let own, !own.isEmpty {
             brief.plan = own
             brief.planSource = "the run's plan"
         } else {
-            brief.plan = RunBrief.steps(stream, expected: expected)
+            brief.plan = RunBrief.steps(stream, done: done, expected: expected)
             brief.reads = []  // the checklist already lists every call
             brief.planSource = stream.status == .running ? "steps so far" : "steps"
         }
@@ -89,7 +96,7 @@ struct RunBrief: Hashable, Sendable {
 
     /// The run's work steps as a checklist: done, the one running, and while the run is live
     /// how many more its steward usually takes.
-    static func steps(_ stream: RunStream, expected: Int?) -> [Item] {
+    static func steps(_ stream: RunStream, done: Int? = nil, expected: Int?) -> [Item] {
         var items = stream.steps.compactMap { step -> Item? in
             switch step.kind {
             case .toolCall(let call):
@@ -105,11 +112,13 @@ struct RunBrief: Hashable, Sendable {
                     text: "hand off: " + delegation.title)
             case .message(let role, _) where role == "streaming":
                 return Item(mark: .current, text: "write the reply")
+            case .message:
+                return Item(mark: .done, text: StreamStepText.title(step.kind))
             default: return nil
             }
         }
         if stream.status == .running {
-            let done = RunThreadText.visible(stream.steps).count
+            let done = done ?? RunThreadText.steps(stream.steps).count
             if let expected, expected > done {
                 let more = expected - done
                 items.append(

@@ -219,7 +219,7 @@ struct RunStream: Hashable, Sendable {
             projector.status == .running
             ? RunProgress.build(
                 events: events, run: run, steward: projector.steward,
-                done: RunThreadText.visible(steps).count, reported: projector.reported) : nil
+                done: RunThreadText.steps(steps).count, reported: projector.reported) : nil
         var status = projector.status
         var shown = steps
         // A run that drafted and applied nothing does not claim effects (same rule as the
@@ -617,7 +617,7 @@ enum CrewText {
     /// The child's budget as it ran: "adapter fake · effort low · 4 turns · 60 s · $0.20".
     static func budget(_ step: DelegationStep) -> String? {
         var parts: [String] = []
-        if let adapter = step.adapter { parts.append("adapter \(adapter)") }
+        if let adapter = step.adapter { parts.append("adapter \(AdapterName.display(adapter))") }
         if let effort = step.effort { parts.append("effort \(effort)") }
         if let turns = step.limits?["maxTurns"]?.number { parts.append("\(Int(turns)) turns") }
         if let timeout = step.limits?["timeoutSeconds"]?.number {
@@ -664,15 +664,18 @@ struct RunMetrics: Hashable, Sendable {
     var costMicros: Int?
     var decisions: Int?
     var actions: Int?
+    /// The one elapsed text (`FeatureRunFacts.elapsedText`), set by the header; it replaces
+    /// "duration —" while the run is going.
+    var elapsed: String?
 
     /// "fake-triage · effort medium · 2.4 s · 1 decision · 3 actions · 12,840 tokens ·
     /// $0.0012". Duration and cost read "—" when unknown (a running run, an adapter that
     /// reports no usage), never "0.0 s" or "$0".
     var text: String {
         var parts: [String] = []
-        if let adapter { parts.append(adapter) }
+        if let adapter { parts.append(AdapterName.display(adapter)) }
         if let effort { parts.append("effort \(effort)") }
-        parts.append(seconds.map(FeatureTime.duration) ?? "duration —")
+        parts.append(elapsed ?? seconds.map(FeatureTime.duration) ?? "duration —")
         if let decisions { parts.append(RunMetrics.count(decisions, "decision")) }
         if let actions { parts.append(RunMetrics.count(actions, "action")) }
         if let tokens, tokens > 0 { parts.append("\(RunMetrics.grouped(tokens)) tokens") }
@@ -859,7 +862,7 @@ struct RunProgress: Hashable, Sendable {
         }
         .suffix(10).compactMap(\.run)
         let history = finished.map {
-            RunThreadText.visible(RunStream.build(events: events, run: $0).steps).count
+            RunThreadText.steps(RunStream.build(events: events, run: $0).steps).count
         }
         .sorted()
         let expected = history.isEmpty ? nil : history[history.count / 2]
