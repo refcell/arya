@@ -7,6 +7,9 @@ struct FeatureEventBuilder {
 
     init(start: Date) { clock = start }
 
+    /// Moves the clock, so the next events follow `date`.
+    mutating func jump(to date: Date) { clock = date }
+
     /// Appends one event `seconds` after the previous one.
     /// Pass `at` to stamp a specific time without moving the builder's clock.
     mutating func add(
@@ -338,7 +341,7 @@ enum PreviewFixtures {
         let system = FeatureActor(kind: .system, id: "arya")
         let label: FeatureJSON = [
             "id": "a1", "kind": "label", "binding": "tracker", "target": "tracker:ISSUE-7",
-            "rationale": "Bugs get the bug label.",
+            "params": ["label": "bug"], "rationale": "Bugs get the bug label.",
         ]
         let assign: FeatureJSON = [
             "id": "a2", "kind": "assign", "binding": "tracker", "target": "tracker:ISSUE-7",
@@ -447,8 +450,9 @@ extension PreviewFixtures {
                 "run.finished", run: run, after: 1,
                 ["status": "completed", "summary": .string("Earlier run \(index + 1).")])
         }
+        log.jump(to: now.addingTimeInterval(-4.2))
         log.add(
-            "run.started", run: inProgressRun, at: now.addingTimeInterval(-4.2),
+            "run.started", run: inProgressRun, after: 0,
             [
                 "trigger": "message", "adapter": "fake-triage", "effort": "medium",
                 "input": [

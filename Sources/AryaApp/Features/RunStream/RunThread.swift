@@ -73,7 +73,7 @@ struct RunHeader: View {
                     AryaSpinner()
                     Text(progress.text(now: now)).aryaText(AryaFont.monoSmall, AryaColor.ink)
                         .fixedSize()
-                    AryaProgressBar(progress.fraction, isLive: true)
+                    AryaProgressBar(progress.fraction)
                 }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("Running: \(progress.text(now: now))")
@@ -433,7 +433,8 @@ enum RunThreadText {
     /// A short note after an action's line; nil when the mark says it all (it ran).
     static func actionNote(_ action: ProposedActionStep) -> String? {
         switch action.outcome {
-        case .executed, .proposed, .awaitingApproval: return nil
+        case .executed: return action.dryRun ? ActionWords.done(action) : nil
+        case .proposed, .awaitingApproval: return nil
         case .approved: return "approved, running"
         case .failed(let error): return "failed: \(error)"
         case .rejected(let rule):
@@ -514,6 +515,8 @@ enum ActionSummary {
     private static let amountKeys = ["amount", "total", "value"]
     private static let referenceKeys = ["order", "order_id", "invoice", "ticket", "account"]
     private static let contentKeys: Set<String> = ["text", "body", "message", "comment"]
+    /// Keys that read as a phrase after the target: "to person:alex", "into billing".
+    private static let prepositions: Set<String> = ["to", "from", "into", "onto", "for", "as"]
 
     static func sentence(_ action: ProposedActionStep) -> String? {
         guard case .object(let params) = action.params else { return nil }
@@ -530,11 +533,23 @@ enum ActionSummary {
             return "\(verb) \(amount)\(currency)" + (place.map { " on \($0)" } ?? "")
         }
         let used = Set(referenceKeys + ["currency"]).union(contentKeys)
-        let rest = params.keys.sorted().filter { !used.contains($0) }.compactMap { key in
-            scalar(params[key]).map { "\(key.replacingOccurrences(of: "_", with: " ")) \($0)" }
+        var phrases: [String] = []
+        var rest: [String] = []
+        for key in params.keys.sorted() where !used.contains(key) {
+            guard let value = scalar(params[key]) else { continue }
+            if key == action.kind {
+                phrases.append("as \(value)")
+            } else if prepositions.contains(key) {
+                phrases.append("\(key) \(value)")
+            } else {
+                rest.append("\(key.replacingOccurrences(of: "_", with: " ")) \(value)")
+            }
         }
-        guard !rest.isEmpty else { return nil }
-        return "\(verb)" + (place.map { " \($0)" } ?? "") + " with " + rest.joined(separator: ", ")
+        guard !phrases.isEmpty || !rest.isEmpty else { return nil }
+        var sentence = verb + (place.map { " \($0)" } ?? "")
+        if !phrases.isEmpty { sentence += " " + phrases.joined(separator: " ") }
+        if !rest.isEmpty { sentence += " with " + rest.joined(separator: ", ") }
+        return sentence
     }
 
     private static func money(_ value: FeatureJSON?) -> String? {
@@ -560,7 +575,17 @@ private struct CrewOpenByDefault: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct InitialWorkTab: EnvironmentKey {
+    static let defaultValue: WorkTab? = nil
+}
+
 extension EnvironmentValues {
+    /// The work tab a run opens on when nothing was picked; set for offscreen snapshots.
+    var initialWorkTab: WorkTab? {
+        get { self[InitialWorkTab.self] }
+        set { self[InitialWorkTab.self] = newValue }
+    }
+
     /// Whether crew delegation lines start expanded; set for offscreen snapshots.
     var crewOpenByDefault: Bool {
         get { self[CrewOpenByDefault.self] }

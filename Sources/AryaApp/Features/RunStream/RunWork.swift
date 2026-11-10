@@ -136,7 +136,7 @@ struct RunWork: Hashable, Sendable {
         case .action(let action):
             var meta: [String] = []
             if let binding = action.binding { meta.append("via \(binding)") }
-            meta.append(outcomeWord(action.outcome))
+            meta.append(ActionWords.outcome(action))
             var sections: [WorkBlock.Section] = []
             if action.params != [:] {
                 sections.append(.init(label: "params", text: action.params.prettyText))
@@ -176,7 +176,7 @@ struct RunWork: Hashable, Sendable {
 
     static func outcomeWord(_ outcome: ActionOutcome) -> String {
         switch outcome {
-        case .executed: "executed"
+        case .executed: "applied"
         case .proposed: "proposed"
         case .awaitingApproval: "waiting on you"
         case .approved: "approved"
@@ -203,8 +203,12 @@ struct RunWork: Hashable, Sendable {
                         .map { "  \($0)" }
                 case .object, .array:
                     added += value.prettyText.split(separator: "\n").map { "\(key) \($0)" }
+                case .string(let text):
+                    // The value itself when the key names the action: "+bug" for a label.
+                    added.append(key == action.kind ? text : "\(key): \(text)")
                 default:
-                    added.append("\(key): \(value.compactText)")
+                    added.append(
+                        key == action.kind ? value.compactText : "\(key): \(value.compactText)")
                 }
             }
         }
@@ -261,9 +265,18 @@ struct RunWork: Hashable, Sendable {
             ?? (message["error"] != nil ? "error" : message["result"] != nil ? "result" : "")
         let body = message["params"] ?? message["result"] ?? message["error"] ?? .null
         let tone: WorkLine.Tone = method == "error" ? .failed : sent ? .sent : .received
+        // A notification carries an inner event: show its kind and its words, not the envelope.
+        if method == "run/event", let inner = body["event"], let kind = inner["kind"]?.string {
+            let words =
+                inner["text"]?.string ?? inner["tool"]?.string ?? inner["message"]?.string
+                ?? oneLine(inner, limit: 400)
+            return WorkLine(
+                id: event.id, time: StreamStepText.clock(event.at, timeZone: timeZone),
+                tag: "← \(kind)", text: words, tone: kind == "error" ? .failed : .received)
+        }
         return WorkLine(
             id: event.id, time: StreamStepText.clock(event.at, timeZone: timeZone),
-            tag: (sent ? "→ " : "← ") + method, text: oneLine(body, limit: 140), tone: tone)
+            tag: (sent ? "→ " : "← ") + method, text: oneLine(body, limit: 400), tone: tone)
     }
 
     /// Compact JSON on one line, cut at `limit` characters.
@@ -273,6 +286,8 @@ struct RunWork: Hashable, Sendable {
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         guard let data = try? encoder.encode(value), let text = String(data: data, encoding: .utf8)
         else { return value.compactText }
-        return text.count > limit ? String(text.prefix(limit)) + "…" : text
+        // String values keep their line breaks, so output reads as text, not escapes.
+        let readable = text.replacingOccurrences(of: "\\n", with: "\n")
+        return readable.count > limit ? String(readable.prefix(limit)) + "…" : readable
     }
 }

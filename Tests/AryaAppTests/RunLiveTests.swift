@@ -9,8 +9,9 @@ import Testing
     let stream = RunStream.build(events: events, run: PreviewFixtures.inProgressRun)
     #expect(stream.status == .running)
     let progress = try #require(stream.progress)
-    #expect(progress.expected == 6)
-    #expect(progress.text(now: now) == "\(progress.done) of ~6 steps · 4.2 s")
+    #expect(progress.expected == 5)
+    #expect(progress.done == RunThreadText.visible(stream.steps).count)
+    #expect(progress.text(now: now) == "4 of ~5 steps · 4.2 s")
     #expect(progress.fraction > 0 && progress.fraction < 1)
 }
 

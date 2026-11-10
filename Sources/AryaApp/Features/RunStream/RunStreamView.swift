@@ -11,6 +11,7 @@ struct RunStreamView: View {
     var openRun: ((String) -> Void)? = nil
     /// The work tab to open on (snapshots); nil opens the first tab with something in it.
     var initialTab: WorkTab? = nil
+    @Environment(\.initialWorkTab) private var environmentTab
     /// The tab picked by the person.
     @AryaState private var pickedTab: WorkTab?
     @AryaState private var selection: String?
@@ -102,7 +103,9 @@ struct RunStreamView: View {
     private func tabBinding(_ work: RunWork) -> Binding<WorkTab> {
         Binding(
             get: {
-                pickedTab ?? initialTab ?? WorkTab.allCases.first { work.count($0) > 0 }
+                pickedTab ?? initialTab ?? environmentTab ?? WorkTab.allCases.first {
+                    work.count($0) > 0
+                }
                     ?? .tools
             },
             set: { pickedTab = $0 })

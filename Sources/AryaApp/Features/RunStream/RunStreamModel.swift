@@ -58,6 +58,8 @@ struct ProposedActionStep: Hashable, Sendable {
     var routine: RoutineRun? = nil
     /// The action's parameters, for example a reply's `text`.
     var params: FeatureJSON = [:]
+    /// Executed as a dry run (`action.executed` output `{dryRun: true}`): drafted, not applied.
+    var dryRun = false
 
     /// The full content the action would write, for actions that carry text (a reply, a
     /// comment, a message), shown in full on its approval.
@@ -196,16 +198,21 @@ struct RunStream: Hashable, Sendable {
             return filled
         }
         var facts = projector.facts
-        let times = events.lazy.filter { $0.run == run }.map(\.at)
-        if projector.status != .running, let first = times.min(), let last = times.max() {
-            facts.seconds = last.timeIntervalSince(first)
+        // One duration source: run.started to run.finished (or run.failed).
+        let mine = events.filter { $0.run == run }
+        if let start = mine.first(where: { $0.type == "run.started" })?.at,
+            let end = mine.last(where: { $0.type == "run.finished" || $0.type == "run.failed" })?.at
+        {
+            facts.seconds = end.timeIntervalSince(start)
         }
         let reading = projector.input.map {
             RunInput.build(kind: projector.inputKind, text: $0, events: events)
         }
         let progress =
             projector.status == .running
-            ? RunProgress.build(events: events, run: run, steward: projector.steward) : nil
+            ? RunProgress.build(
+                events: events, run: run, steward: projector.steward,
+                done: RunThreadText.visible(steps).count) : nil
         return RunStream(
             run: run, steward: projector.steward, steps: steps,
             status: projector.status, input: projector.input, facts: facts, reading: reading,
@@ -375,7 +382,10 @@ private struct RunStreamProjector {
             let reason = p["note"]?.string ?? (event.type == "approval.expired" ? "expired" : "")
             update(action, .denied(approval: approval, reason: reason))
         case "action.executed":
-            update(p["action"]?.string, .executed(output: p["output"]?.compactOutput ?? ""))
+            let dry = p["output"]?["dryRun"]?.bool == true
+            update(
+                p["action"]?.string,
+                .executed(output: dry ? "" : p["output"]?.compactOutput ?? ""), dryRun: dry)
             attachRoutine(p["action"]?.string, p["output"])
         case "action.failed":
             update(p["action"]?.string, .failed(error: p["error"]?.string ?? "unknown error"))
@@ -386,11 +396,13 @@ private struct RunStreamProjector {
         }
     }
 
-    private mutating func update(_ action: String?, _ outcome: ActionOutcome) {
+    private mutating func update(_ action: String?, _ outcome: ActionOutcome, dryRun: Bool = false)
+    {
         guard let action, let index = actionIndex[action],
             case .action(var step) = steps[index].kind
         else { return }
         step.outcome = outcome
+        step.dryRun = dryRun
         steps[index].kind = .action(step)
     }
 
@@ -698,20 +710,42 @@ struct RunProgress: Hashable, Sendable {
         return min(Double(done) / Double(expected), 0.95)
     }
 
-    static func build(events: [FeatureEvent], run: String, steward: String?) -> RunProgress? {
-        var counts: [String: Int] = [:]
-        var finished: Set<String> = []
-        var started: Date?
-        for event in events where event.run != nil && event.type != "run.adapter.event" {
-            guard let id = event.run else { continue }
-            if id == run, event.type == "run.started" { started = event.at }
-            guard id == run || event.steward == steward else { continue }
-            counts[id, default: 0] += 1
-            if event.type == "run.finished" || event.type == "run.failed" { finished.insert(id) }
+    /// `done` is the thread's visible step count; `expected` the median of the same count over
+    /// the steward's last ten finished runs.
+    static func build(events: [FeatureEvent], run: String, steward: String?, done: Int)
+        -> RunProgress?
+    {
+        guard let started = events.first(where: { $0.run == run && $0.type == "run.started" })?.at
+        else { return nil }
+        let finished = events.filter {
+            $0.type == "run.finished" && $0.steward == steward && $0.run != run
         }
-        guard let started else { return nil }
-        let history = finished.compactMap { counts[$0] }.sorted()
+        .suffix(10).compactMap(\.run)
+        let history = finished.map {
+            RunThreadText.visible(RunStream.build(events: events, run: $0).steps).count
+        }
+        .sorted()
         let expected = history.isEmpty ? nil : history[history.count / 2]
-        return RunProgress(done: counts[run] ?? 0, expected: expected, started: started)
+        return RunProgress(done: done, expected: expected, started: started)
+    }
+}
+
+/// How an action's result reads: a reply that was sent, or drafted in a dry run.
+extension ActionWords {
+    static func isMessage(_ kind: String) -> Bool {
+        ["reply", "comment", "message", "send"].contains(kind)
+    }
+
+    /// "sent", "applied", "drafted, not sent (dry run)", "not applied (dry run)".
+    static func done(_ action: ProposedActionStep) -> String {
+        if action.dryRun {
+            return isMessage(action.kind) ? "drafted, not sent (dry run)" : "not applied (dry run)"
+        }
+        return isMessage(action.kind) ? "sent" : "applied"
+    }
+
+    static func outcome(_ action: ProposedActionStep) -> String {
+        if case .executed = action.outcome { return done(action) }
+        return RunWork.outcomeWord(action.outcome)
     }
 }

@@ -41,6 +41,8 @@ struct WorkPane: View {
     }
 
     static let bottom = "work-bottom"
+    /// Log lines shown under the Tools blocks.
+    static let logTail = 12
 
     private var tabs: some View {
         HStack(spacing: AryaSpace.s3) {
@@ -82,6 +84,13 @@ struct WorkPane: View {
                     selection = block.id
                 }
                 .id(block.id)
+            }
+            if !work.log.isEmpty {
+                // The log tails under the blocks, so the pane reads as a working session.
+                Text("LOG").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    .padding(.top, AryaSpace.s3).padding(.bottom, AryaSpace.s1)
+                ForEach(work.log.suffix(WorkPane.logTail)) { WorkLineView(line: $0) }
+                if running { BlinkingCaret() }
             }
         case .diff:
             if work.diffs.isEmpty { empty("This run changed nothing.") }
@@ -179,7 +188,7 @@ private struct WorkLineView: View {
             Text(line.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             Text(line.tag).aryaText(AryaFont.monoSmall, tagColor).lineLimit(1)
             Text(line.text).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                .lineLimit(2).truncationMode(.tail)
+                .lineLimit(6).truncationMode(.tail)
                 .textSelection(.enabled)
         }
         .padding(.vertical, AryaSpace.s1 / 2)
@@ -200,7 +209,7 @@ struct BlinkingCaret: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
             let on = Int(context.date.timeIntervalSinceReferenceDate * 2) % 2 == 0
-            Text("▍").aryaText(AryaFont.mono, on ? AryaColor.accent : .clear)
+            Text("▍").aryaText(AryaFont.mono, on ? AryaColor.accent : AryaColor.inkFaint)
                 .accessibilityLabel("Waiting for output")
         }
     }

@@ -49,3 +49,27 @@ import Testing
     #expect(line.text == #"{"v":1}"#)
     #expect(line.tone == WorkLine.Tone.sent)
 }
+
+@Test func actionSentencesAndDiffsUseTheActualValues() {
+    let label = ProposedActionStep(
+        actionID: "a1", kind: "label", target: "tracker:ISSUE-7", summary: "", rationale: "",
+        policy: "auto", outcome: .proposed, params: ["label": "bug"])
+    let assign = ProposedActionStep(
+        actionID: "a2", kind: "assign", target: "tracker:ISSUE-7", summary: "", rationale: "",
+        policy: "ask", outcome: .proposed, params: ["to": "person:alex"])
+    #expect(ActionSummary.sentence(label) == "Label tracker:ISSUE-7 as bug")
+    #expect(ActionSummary.sentence(assign) == "Assign tracker:ISSUE-7 to person:alex")
+    let step = StreamStep(id: "e", number: 1, at: FeatureTestClock.now, kind: .action(label))
+    #expect(RunWork.actionDiff(step)?.text.hasSuffix("\n+bug") == true)
+}
+
+@Test func dryRunRepliesReadAsDraftedNotSent() {
+    var reply = ProposedActionStep(
+        actionID: "a1", kind: "reply", target: "inbox:MSG-1", summary: "", rationale: "",
+        policy: "ask", outcome: .executed(output: ""))
+    reply.dryRun = true
+    #expect(ActionWords.done(reply) == "drafted, not sent (dry run)")
+    reply.dryRun = false
+    #expect(ActionWords.done(reply) == "sent")
+    #expect(RunWork.oneLine(["body": "a\nb"], limit: 100) == "{\"body\":\"a\nb\"}")
+}

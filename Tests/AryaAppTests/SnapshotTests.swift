@@ -46,6 +46,7 @@ import Testing
         model.navigation.select(steward: steward.id)
         try write("window", scheme: scheme, renderInWindow(RootView(model: model), dark: dark))
         if let quiet { try page("run") { $0.select(run: quiet.id, steward: steward.id) } }
+        try await runWindows(model: model, scheme: scheme, dark: dark)
         if let waiting {
             try page("run-approval") { $0.select(run: waiting.id, steward: steward.id) }
         }
@@ -299,6 +300,12 @@ import Testing
             .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
             .background(AryaColor.canvas)
         try write("run-live", scheme: scheme, render(live, dark: dark))
+        let liveOutput = RunStreamView(
+            store: liveStore, run: PreviewFixtures.inProgressRun, initialTab: .output
+        )
+        .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+        .background(AryaColor.canvas)
+        try write("run-live-output", scheme: scheme, render(liveOutput, dark: dark))
         // A run's Diff tab (app-views): what each action writes and a routine's new version.
         let diffStore = FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now)
         await diffStore.reload()
@@ -320,6 +327,34 @@ import Testing
     }
 
     /// The seeded demo home when `ARYA_SNAPSHOT_HOME` is set, else the fake workspace.
+    /// Full-window run states (app-views): the newest live run, and a run with a routine
+    /// diff on its Diff tab, with the rail, inspector, and status bar around them.
+    private func runWindows(model: AppModel, scheme: String, dark: Bool) async throws {
+        guard let store = model.featureStore else { return }
+        let all = model.runs.values.flatMap { $0 }
+        func window(_ name: String, run: RunSummary, tab: WorkTab?) throws {
+            var navigation = NavigationState()
+            navigation.select(steward: run.steward)
+            navigation.select(run: run.id, steward: run.steward)
+            model.navigation = navigation
+            let root = RootView(model: model).environment(\.initialWorkTab, tab)
+            try write(name, scheme: scheme, render(root, dark: dark))
+        }
+        if let live = all.filter({ $0.status == .running }).max(by: { $0.startedAt < $1.startedAt })
+        {
+            try window("run-live-window", run: live, tab: nil)
+        }
+        let routineRuns = Set(
+            store.events.filter { $0.type == "routine.proposed" }.compactMap(\.run))
+        if let diffRun = all.first(where: { routineRuns.contains($0.id) }) {
+            let stream = RunStream.build(events: store.events, run: diffRun.id)
+            for diff in RunWork.build(stream: stream, events: store.events).diffs {
+                await store.loadRoutineDiff(diff)
+            }
+            try window("run-diff-window", run: diffRun, tab: .diff)
+        }
+    }
+
     private func makeModel() async throws -> AppModel {
         let environment = ProcessInfo.processInfo.environment
         if let path = environment["ARYA_SNAPSHOT_HOME"] {
