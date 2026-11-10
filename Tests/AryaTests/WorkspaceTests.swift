@@ -54,15 +54,15 @@ struct Opened {
     init(
         _ runs: [FakeScript.Run] = [], leases: any RunLeases = MemoryRunLeases(),
         adapters: (any AdapterFactory)? = nil, keys: any HomeKeyStore = MemoryHomeKeyStore(),
-        drafting: Bool = false
+        drafting: Bool = false, connect: BindingConnect? = nil
     ) async throws {
-        workspace = try await Workspace.open(
-            home: home.url,
-            wiring: Wiring(
-                ambient: .fixed(stepMillis: 1),
-                adapters: adapters ?? ScriptedFactory(script: FakeScript(runs: runs)),
-                executor: drafting ? DryRunExecutor() : executor,
-                leases: leases, questionPoll: .milliseconds(1), keys: keys))
+        var wiring = Wiring(
+            ambient: .fixed(stepMillis: 1),
+            adapters: adapters ?? ScriptedFactory(script: FakeScript(runs: runs)),
+            executor: drafting ? DryRunExecutor() : executor,
+            leases: leases, questionPoll: .milliseconds(1), keys: keys)
+        if let connect { wiring.connect = connect }
+        workspace = try await Workspace.open(home: home.url, wiring: wiring)
     }
 
     func types() async throws -> [String] {
@@ -658,4 +658,35 @@ private struct ResolvedOutcome: ToolUpstream {
     #expect(label.resolved == 1)
     #expect(label.successRate == 1)
     #expect(try await workspace.checks(steward: "st_inbox").map(\.status) == ["resolved"])
+}
+
+private struct Directory: ToolUpstream {
+    func listTools() async throws -> [JSONValue] { [] }
+    func call(_ tool: String, arguments: JSONValue) async throws -> JSONValue {
+        tool == "directory"
+            ? ["structuredContent": ["people": [["id": "person:alex", "name": "Alex Kim"]]]]
+            : ["structuredContent": ["queues": [["id": "vip", "name": "VIP"]]]]
+    }
+    func close() async {}
+}
+
+@Test func aNewStewardOnboardsFromItsConnectedSystems() async throws {
+    let opened = try await Opened(
+        [FakeScript.Run(result: liveResult)], connect: { _ in Directory() })
+    let workspace = opened.workspace
+    var charter = inboxCharter()
+    charter.id = StewardID(unchecked: "st_inbox")
+    charter.bindings.append(.mcp("org", command: "org-mcp", read: ["directory", "process"]))
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    #expect(try await workspace.onboarding(steward: "st_inbox") == nil)
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let first = try #require(try await workspace.onboarding(steward: "st_inbox"))
+    #expect(first.sources == ["org"])
+    #expect(first.notes == 2)
+    #expect(first.people == 1)
+    #expect(first.queues == 1)
+    let again = try #require(try await workspace.onboard(steward: "st_inbox"))
+    #expect(again.run != first.run)
+    #expect(again.duplicates == 2)
+    #expect(try await workspace.runs(steward: "st_inbox").map(\.trigger).contains("onboard"))
 }

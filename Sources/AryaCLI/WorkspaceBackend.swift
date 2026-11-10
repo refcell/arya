@@ -85,6 +85,16 @@ struct WorkspaceBackend: CLIBackend {
             summary, outcome: steward.outcome, charter: charter.flatMap(CharterDigest.init(json:)))
     }
 
+    func onboard(_ steward: String) async throws(CLIError) -> OnboardReport {
+        let workspace = try await open()
+        let summary = try await call("onboard") { try await workspace.onboard(steward: steward) }
+        guard let summary else { return OnboardReport(steward: steward) }
+        return OnboardReport(
+            steward: steward, run: summary.run, sources: summary.sources, notes: summary.notes,
+            duplicates: summary.duplicates, people: summary.people, queues: summary.queues,
+            rules: summary.rules, documents: summary.documents, failed: summary.failed)
+    }
+
     func pauseSteward(_ id: String) async throws(CLIError) -> StewardDetail {
         let workspace = try await open()
         try await call("pauseSteward") { try await workspace.pauseSteward(id) }

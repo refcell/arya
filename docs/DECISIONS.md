@@ -633,3 +633,22 @@ on exit. A ticket whose process is gone, or untouched for 25 minutes (waiting la
 theirs on every 15 s poll), expires. While waiting it prints its position and who is
 publishing. Why: lanes polling for a free CI slot starved each other, and two lanes running
 `just ci` at once on one machine made both slow and their pushes race.
+
+### 0059 — 2026-11-10 — A new steward onboards from its connected systems
+
+Context: a new steward started cold, learning people and process only from corrections.
+Decision: an onboard run reads each MCP binding that lists the `directory` or `process` read
+tool (binding conventions) and keeps what they say as memory notes: people with their roles and
+queues, queues with their owners, routing rules people follow, and the documents that describe
+the work (cut to 1,500 characters). Like a report run it is short and runs no adapter:
+`run.started` (input kind `onboard`), `onboard.read` per tool (counts, or the error),
+`memory.added` per new note (authored by the steward, the onboard run as provenance, tagged
+`onboarding`, the kind, and `from:<binding>`), `onboard.completed` (sources, notes,
+duplicates, counts, failures), then `run.finished`, or `run.failed` when no source could be
+read. Notes equal to live ones are not added again, so onboarding again adds only what
+changed. It runs before a steward's first live run (an engine given `connect`; the workspace
+spawns binding servers), and on request: `Workspace.onboard(steward:)` and
+`arya steward onboard`. `Workspace.onboarding(steward:)` reads the latest result for the
+onboarding view. Why: the people and rules a team already has are the cheapest context a
+steward can get, and provenance lets a person see where each note came from and correct it.
+

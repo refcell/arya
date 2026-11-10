@@ -153,7 +153,7 @@ M4:
   `rehearse`, and a titled `proposeCharter(title:reason:)` (titles must match diffs: see
   `demoProposalTitlesDescribeTheirDiffs`); port demo.sh's refunds history (`binding:
   "billing"`), triage/refunds reviews, and `etc/examples/proposals.json`.
-
+- (from runtime) Integration edits (decision 0059): `arya steward onboard <steward>` (`CommandID.stewardOnboard`, `OnboardReport`, `TextRender.onboard`, backend default in the `CLIBackend` extension). Demo: a triage binding listing `directory` and `process` over the example `inbox-history.json` data would make the demo home show onboarding notes; add an e2e step if you wire it.
 
 ## Log
 - 2026-11-10: seed retimed: 1244 runs in 236 s at load 40 (0.19 s per run); no hotspot left

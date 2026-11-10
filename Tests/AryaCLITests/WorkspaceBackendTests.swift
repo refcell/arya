@@ -297,3 +297,17 @@ private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
         #expect(!run.dropFirst("run_".count).hasPrefix("0000000000"))
     }
 }
+
+@Test func onboardWithoutASourceSaysSo() async throws {
+    try await withTemporaryHome { home in
+        let backend = WorkspaceBackend(home: home)
+        _ = try await backend.initHome()
+        let charter = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("etc/examples/triage/charter.json")
+        _ = try await backend.createSteward(charterPath: charter.path)
+        let report = try await backend.onboard("st_triage")
+        #expect(report.run == nil)
+        #expect(TextRender.onboard(report).first?.contains("no binding") == true)
+    }
+}

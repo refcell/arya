@@ -57,6 +57,20 @@ extension String {
 /// Plain-text renderings of the view models. One function per command keeps output easy to
 /// find and test.
 enum TextRender {
+    static func onboard(_ report: OnboardReport) -> [String] {
+        guard let run = report.run else {
+            return ["\(report.steward) has no binding that lists the directory or process tool"]
+        }
+        var lines = [
+            "\(report.steward) onboarded in \(run): \(report.notes) new notes"
+                + " (\(report.duplicates) already known)",
+            "  \(report.people) people, \(report.queues) queues, \(report.rules) rules,"
+                + " \(report.documents) documents from \(report.sources.joined(separator: ", "))",
+        ]
+        if report.failed > 0 { lines.append("  \(report.failed) reads failed") }
+        return lines
+    }
+
     static func initReport(_ report: InitReport) -> [String] {
         switch report.status {
         case .created: ["created arya home at \(report.home)"]

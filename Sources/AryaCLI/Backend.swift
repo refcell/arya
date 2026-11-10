@@ -98,4 +98,24 @@ extension CLIBackend {
     func serve(every: Int, demoPace: Bool) async throws(CLIError) {
         try await serve(every: every)
     }
+
+    /// `steward onboard` (runtime decision 0059).
+    func onboard(_ steward: String) async throws(CLIError) -> OnboardReport {
+        throw .unavailable("Workspace.onboard (runtime lane)")
+    }
+}
+
+/// What `steward onboard` learned (runtime decision 0059).
+struct OnboardReport: Codable, Sendable, Equatable {
+    var steward: String
+    /// The onboard run, absent when the steward has no onboarding source.
+    var run: String?
+    var sources: [String] = []
+    var notes = 0
+    var duplicates = 0
+    var people = 0
+    var queues = 0
+    var rules = 0
+    var documents = 0
+    var failed = 0
 }

@@ -6,6 +6,7 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case stewardShow = "steward show"
     case stewardPause = "steward pause"
     case stewardResume = "steward resume"
+    case stewardOnboard = "steward onboard"
     case fleet
     case run
     case runShow = "run show"
@@ -107,6 +108,10 @@ enum CommandTable {
                 positionals: [PositionalSpec(name: "steward", help: "steward id")]),
             CommandSpec(
                 id: .stewardResume, summary: "Resume a paused steward",
+                positionals: [PositionalSpec(name: "steward", help: "steward id")]),
+            CommandSpec(
+                id: .stewardOnboard,
+                summary: "Learn people, queues, and routing rules from connected systems",
                 positionals: [PositionalSpec(name: "steward", help: "steward id")]),
             CommandSpec(
                 id: .fleet,

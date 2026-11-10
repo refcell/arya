@@ -127,7 +127,7 @@ is. Fix these five first; this lane owns its share:
 - (from runtime) Findings (decision 0055): `Workspace.findings(steward:all:)` (open problems and opportunities with evidence and a one-line suggestion) for the Overview, `needsPerson` ones in Needs you, `resolveFinding(id, resolution: "acted"|"dismissed")` for its buttons.
 - (from eval) `comparison(proposal:)` rows now carry `fields` (choice/action: expected,
   current, proposed, matches, changed), both scores and run ids; `learnedChecks` has `result`.
-
+- (from runtime) Onboarding (decision 0059): `Workspace.onboarding(steward:)` (what a steward learned: people, queues, rules, documents, from which bindings) and `onboard(steward:)` for an "Onboard again" button; onboarding notes carry the `onboarding` and `from:<binding>` tags.
 
 ## Log
 

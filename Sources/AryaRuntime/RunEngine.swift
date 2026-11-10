@@ -172,6 +172,8 @@ public struct RunEngine: Sendable {
     let leases: any RunLeases
     /// Plans, memory, findings, and effects as of the last seq read (decision 0057).
     let start = StartCache()
+    /// Connects to bindings for onboarding (decision 0059); nil never onboards on its own.
+    public let connect: BindingConnect?
     let secondsUnit: Duration
     let proxy: BindingProxyLaunch?
     /// Confine binding servers (through the proxies) to the run's workdir (decision 0040).
@@ -190,8 +192,9 @@ public struct RunEngine: Sendable {
         workdir: @escaping @Sendable (RunID) throws -> String,
         questionPoll: Duration = .milliseconds(250), leases: any RunLeases = MemoryRunLeases(),
         secondsUnit: Duration = .seconds(1), proxy: BindingProxyLaunch? = nil,
-        sandbox: Bool = false
+        sandbox: Bool = false, connect: BindingConnect? = nil
     ) {
+        self.connect = connect
         self.sandbox = sandbox
         self.secondsUnit = secondsUnit
         self.proxy = proxy
@@ -214,6 +217,12 @@ public struct RunEngine: Sendable {
         var charter = request.charter ?? steward.charter
         if let crew = request.crew { charter = crew.applied(to: charter) }
         let version = request.charter == nil ? steward.version : 0
+        // A new steward learns the work's people and process before its first live run (0059).
+        if let connect, case .live = request.mode, request.parent == nil, request.charter == nil,
+            try await needsOnboarding(request.steward, charter: charter)
+        {
+            try await onboard(request.steward, connect: connect)
+        }
         let run = request.id ?? ambient.newID(RunID.self)
         var outcome = try await drive(run, request, charter, version)
         if request.fansOut, let delegations = outcome.result?.delegations, !delegations.isEmpty {

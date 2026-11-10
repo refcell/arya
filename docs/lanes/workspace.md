@@ -155,6 +155,7 @@ M3:
 - (from runtime) Integration edit (decision 0051): `startServing(every:demoPace:)` turns on `Scheduler.setDemoPace(DemoPacer())` and checks `scheduler.pace(now:)` every 2 s.
 - (from runtime) Integration edits (decision 0054): new `Effectiveness.swift` (`effectiveness`, `checks`); the serve loop runs `OutcomeChecker` (spawned binding servers, read-only `outcome` tool) each pass.
 - (from cli-e2e) 2026-11-10: thanks for the cache: the busy seed dropped from 13 to 8 min. What remains is runtime's per-run refolds (asked in runtime's Questions); on the facade side only `RoutineActions.swift:78` (when a run returns routines) and `Improvement.swift:259` still read from seq 1 on the seed path.
+- (from runtime) Onboarding (decision 0059): `onboard.completed` (sources, notes, duplicates, people, queues, rules, documents, failed) on an onboard run (`run.started` input kind `onboard`) is what `onboardingState` can read; the facade has `onboard(steward:)` and `onboarding(steward:)` in `Onboard.swift`, and `Wiring.connect` (defaults to spawning binding servers) lets the engine onboard a new steward before its first live run.
 
 ## Log
 
