@@ -55,7 +55,7 @@ app bundle script.
 The M3 checklist passes, but the app was far from the target experience. Owners are in
 parentheses; status as of 2026-11-09, evening. "Landed" means on main. The reviewer passed the
 redesigned Overview and run-approval screens; the other screens still await review. `just e2e`
-(33 steps, under a minute) drives the facade flows behind these screens headlessly.
+(37 steps, about a minute) drives the facade flows behind these screens headlessly.
 
 - Restyle (app-shell, app-views). Landed in a clean single-canvas style instead of the dense
   dark layout first listed (decision 0036): hidden title bar, four tabs, one accent.
@@ -88,10 +88,68 @@ redesigned Overview and run-approval screens; the other screens still await revi
   run under an OS sandbox profile in the run workdir, and replay uses a sandboxed engine.
 - Fleet view of sub-agents (app-views, workspace). Partly landed: the sidebar shows each
   steward's health, the demo seeds three stewards (on track, behind, paused), and stewards can be
-  paused and resumed (app and `arya steward pause|resume`); a fleet read in the facade and the
-  fleet view itself are open, and sub-agents within a steward (its crew) are not shown.
+  paused and resumed (app and `arya steward pause|resume`). Crews run (children propose, a join
+  acts), the demo seeds one, and `arya run show` lists a run's crew and join; a fleet read in the
+  facade, the fleet view, and showing a steward's crew in the app are open.
 - Schedule and long-running work view (app-outcome). Partly landed: the runtime exposes each
   steward's next wake and recent trigger outcomes; the view is open.
+
+## M3.6 — Outcome platform parity (functional parity before polish)
+
+arya has about half of what an outcome-owning agent platform offers. Functional parity comes
+before polishing any one screen. An item is done only when it works end to end in the app:
+reachable, on real data, with a `just snapshot` state, a Visual check line in its lane, tests, and
+a `just e2e` step. Status is done, partial, or missing; owning lanes are in parentheses (new
+lanes: connect, governance). `e2e:` names what `just e2e` covers today.
+
+1. Outcome, success definition, guardrails, ownership (app-outcome UI). Partial: the New steward
+   wizard and the charter editor exist; the scope of what a steward owns and multiple metrics
+   are missing. e2e: create, editor proposal through its gate and readiness.
+2. Self-onboarding: the steward ingests connected systems and history and builds context about
+   people, processes, and decisions (runtime; app-outcome UI). Missing.
+3. Train on history: run against past tickets, deals, and decisions, see what it would have
+   done, correct, decide when ready (eval; app-views UI). Partial: casebook rehearsal, Correct,
+   and Mark ready exist; importing real history from a connection as cases, and a review queue
+   to go through cases one by one, are missing. e2e: rehearse, correct a case, correct a run
+   into a case, mark ready.
+4. Learn from results after acting: watch the outcome and credit it to past actions (runtime;
+   app-outcome UI). Missing.
+5. Changes simulated against past cases before going live. Done: the proposal gate and live
+   readiness. e2e: a regressing proposal fails its gate; an editor proposal passes and is ready.
+6. Works where people work (chat, email, team chat); anyone can ask, correct, or hand off, and
+   corrections improve it for everyone (connect). Partial: the local inbox and email and chat
+   relay exist; conversation threads in the app, hand-off tasks, and attribution to many people
+   are missing.
+7. Self-written routines in a versioned repository; repeatable work becomes reusable code
+   (app-views UI). Partial: routine proposals and versions exist; a browsable repository with
+   diffs and per-version stats is missing.
+8. Custom policies; sensitive actions approved first. Done: charter policy, autonomy, and risk.
+   e2e: a policy hold and an autonomy hold, each explained; approve and deny.
+9. Precise metrics, or evaluations it builds from its own work and expert judgment (eval).
+   Partial: metrics and the rubric judge exist; evaluations built automatically from
+   corrections and expert labels are missing. e2e: the run's metric and series.
+10. Fleets: fan out sub-agents across tasks and scale with the work (app-views UI). Partial:
+    crew delegation exists, and the demo seeds one crew run; a fleet view of active children and
+    parallel fan-out are missing. e2e: a crew run whose child only proposes, then a join.
+11. Organizational memory: preferences and best practices across people and runs, updated as it
+    learns (workspace). Partial: memory with retract exists; per-person preferences and scope
+    (one steward or shared) are missing. e2e: a correction becomes a memory; retract.
+12. Persistent and proactive: keeps working for weeks and surfaces problems and opportunities on
+    its own (runtime; app-views UI). Partial: the scheduler exists; a feed of proactive findings
+    and opportunities is missing.
+13. Governance: fine-grained access by organization, team, user, and tool; every action
+    attributable and auditable (governance). Partial: the ledger audit is done; roles and
+    approver permissions are missing. e2e: verify the ledger.
+14. Sandboxed execution, encryption at rest, configurable retention (governance). Partial: the
+    sandbox is done; encryption and retention are missing.
+15. Many stewards per organization, by department, with a portfolio view (workspace facade;
+    app-shell UI). Partial: the sidebar lists stewards with health, and the demo seeds three;
+    a portfolio screen with every outcome against its target is missing. e2e: three stewards,
+    pause and resume.
+16. Templates: start from an example steward such as lead conversion, vendor spend, adoption,
+    commitments, or support triage (workspace facade; app-shell UI). Missing.
+17. Reports to people: a periodic digest of progress (connect). Missing.
+18. Abort and rollback paths (governance). Missing.
 
 ## M4 — Real harnesses
 
