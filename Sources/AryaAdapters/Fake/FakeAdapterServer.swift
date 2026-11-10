@@ -21,7 +21,8 @@ public actor FakeAdapterServer {
 
     /// Demo pace in milliseconds (decision 0051): when above 0, each event waits about this
     /// long, and a tool result's text streams first as `tool_output` chunks, one per line
-    /// group, so a run looks like work in progress. 0 (the default) keeps scripts exact.
+    /// group, so a run looks like work in progress; scripted `pauseMs` and stream delays play as
+    /// written. 0 (the default) keeps scripts exact and never waits.
     private let pace: Int
 
     public init(script: FakeScript, endpoint: any AdapterEndpoint, pace: Int = 0) {
@@ -192,6 +193,12 @@ public actor FakeAdapterServer {
         }
     }
 
+    /// A scripted pause: waits only at a demo pace, so tests and seeding never wait.
+    private func pause(_ milliseconds: Int) async {
+        guard pace > 0, milliseconds > 0 else { return }
+        try? await Task.sleep(for: .milliseconds(milliseconds))
+    }
+
     private func perform(_ run: FakeScript.Response) async {
         for step in run.allSteps {
             if Task.isCancelled || closed { return }
@@ -214,6 +221,16 @@ public actor FakeAdapterServer {
             case .crash(let code):
                 await close(.exited(code))
                 return
+            case .pause(let milliseconds):
+                await pause(milliseconds)
+            case .stream(let stream):
+                for (index, chunk) in stream.chunks.enumerated() {
+                    if Task.isCancelled || closed { return }
+                    if index > 0 { await pause(stream.delayMs ?? 0) }
+                    await emit(
+                        .output(
+                            .init(id: stream.id, stream: stream.stream ?? "stdout", text: chunk)))
+                }
             case .hang:
                 while !Task.isCancelled, !closed {
                     try? await Task.sleep(for: .seconds(3600))

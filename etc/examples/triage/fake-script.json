@@ -782,18 +782,6 @@
       }
     },
     "New message MSG-201: Refund for a duplicate charge": {
-      "events": [
-        {
-          "kind": "status",
-          "state": "working",
-          "detail": "reading the message"
-        },
-        {
-          "kind": "message",
-          "role": "assistant",
-          "text": "A duplicate charge: billing. I will draft a reply."
-        }
-      ],
       "status": "completed",
       "result": {
         "summary": "Labeled MSG-201 as billing, routed it, and drafted a reply for approval.",
@@ -883,7 +871,185 @@
             "value": 0.96
           }
         ]
-      }
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "reading the message"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 4,
+            "label": "read the message"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.get",
+            "input": {
+              "id": "MSG-201"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "output": {
+              "id": "MSG-201",
+              "from": "customer:c-201",
+              "received": "2026-11-10T08:42:00Z",
+              "subject": "Refund for a duplicate charge",
+              "labels": [],
+              "thread": 1,
+              "body": "Hi, I was charged twice for my annual plan this month: two charges of $96.00 on Nov 3. Please refund the extra one. The order is ORDER-1031."
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 4,
+            "label": "look for related messages"
+          }
+        },
+        {
+          "pauseMs": 250
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "inbox.search",
+            "input": {
+              "query": "\"charged twice\" OR \"duplicate charge\"",
+              "since": "2026-11-03"
+            }
+          }
+        },
+        {
+          "pauseMs": 450
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "total": 3,
+              "hits": [
+                {
+                  "id": "MSG-134",
+                  "subject": "Duplicate charge on the 3rd",
+                  "queue": "billing",
+                  "status": "resolved"
+                },
+                {
+                  "id": "MSG-188",
+                  "subject": "Charged twice for my annual plan",
+                  "queue": "billing",
+                  "status": "resolved"
+                },
+                {
+                  "id": "MSG-196",
+                  "subject": "Double charge after a plan change",
+                  "queue": "billing",
+                  "status": "open"
+                }
+              ]
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 4,
+            "label": "check the order"
+          }
+        },
+        {
+          "pauseMs": 250
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t3",
+            "tool": "billing.order",
+            "input": {
+              "order": "ORDER-1031"
+            }
+          }
+        },
+        {
+          "pauseMs": 400
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t3",
+            "output": {
+              "order": "ORDER-1031",
+              "customer": "customer:c-201",
+              "plan": "annual",
+              "refunds": [],
+              "charges": [
+                {
+                  "id": "ch_8812",
+                  "amount": "96.00",
+                  "currency": "USD",
+                  "at": "2026-11-03T09:14:07Z",
+                  "status": "captured"
+                },
+                {
+                  "id": "ch_8813",
+                  "amount": "96.00",
+                  "currency": "USD",
+                  "at": "2026-11-03T09:14:09Z",
+                  "status": "captured"
+                }
+              ]
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "thinking",
+            "text": "Two captures two seconds apart on one order: a payment retry, not a second purchase. Billing owns annual-plan refunds (memory). Label and route now; the reply goes out only after approval."
+          }
+        },
+        {
+          "pauseMs": 300
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 4,
+            "total": 4,
+            "label": "label, route, and draft a reply"
+          }
+        },
+        {
+          "event": {
+            "kind": "message",
+            "role": "assistant",
+            "text": "A duplicate charge: billing. I will draft a reply."
+          }
+        }
+      ]
     },
     "New message MSG-110: Invoice shows the wrong company name": {
       "events": [
@@ -2618,37 +2784,6 @@
       }
     },
     "New message MSG-134: Duplicate charge on the 3rd": {
-      "events": [
-        {
-          "kind": "status",
-          "state": "working",
-          "detail": "reading the message"
-        },
-        {
-          "kind": "tool_call",
-          "id": "t1",
-          "tool": "inbox.get",
-          "input": {
-            "id": "MSG-134"
-          }
-        },
-        {
-          "kind": "tool_result",
-          "id": "t1",
-          "output": {
-            "id": "MSG-134",
-            "from": "customer:c-134",
-            "subject": "Duplicate charge on the 3rd",
-            "body": "Duplicate charge on the 3rd."
-          },
-          "isError": false
-        },
-        {
-          "kind": "message",
-          "role": "assistant",
-          "text": "This reads as a billing message."
-        }
-      ],
       "status": "completed",
       "result": {
         "summary": "Sent a duplicate charge to billing and proposed a routine to flag these early.",
@@ -2726,7 +2861,135 @@
             "reason": "Three duplicate-charge messages this week; a routine can flag them before triage."
           }
         ]
-      }
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "reading the message"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.get",
+            "input": {
+              "id": "MSG-134"
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "output": {
+              "id": "MSG-134",
+              "from": "customer:c-134",
+              "subject": "Duplicate charge on the 3rd",
+              "body": "Duplicate charge on the 3rd."
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "draft a routine for duplicate charges"
+          }
+        },
+        {
+          "pauseMs": 300
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "write",
+            "input": {
+              "path": "routines/flag-duplicate-charges.sh"
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "diff",
+            "id": "t2",
+            "path": "routines/flag-duplicate-charges.sh",
+            "patch": "--- /dev/null\n+++ b/routines/flag-duplicate-charges.sh\n@@ -0,0 +1,3 @@\n+#!/bin/sh\n+# Print the files whose text mentions a duplicate or double charge.\n+grep -il 'duplicate\\|charged twice\\|double charge' \"$@\"\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "path": "routines/flag-duplicate-charges.sh",
+              "bytes": 134
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "try it on this week's messages"
+          }
+        },
+        {
+          "pauseMs": 250
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t3",
+            "tool": "shell",
+            "input": {
+              "command": "sh routines/flag-duplicate-charges.sh inbox/week/*.txt"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t3",
+            "lines": 1,
+            "delayMs": 220,
+            "text": "inbox/week/MSG-118.txt\ninbox/week/MSG-127.txt\ninbox/week/MSG-134.txt\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t3",
+            "output": {
+              "exitCode": 0,
+              "matched": 3,
+              "scanned": 17
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "label and route"
+          }
+        },
+        {
+          "event": {
+            "kind": "message",
+            "role": "assistant",
+            "text": "This reads as a billing message."
+          }
+        }
+      ]
     },
     "New message MSG-117: Package marked delivered but not here": {
       "events": [
@@ -3443,37 +3706,6 @@
       }
     },
     "New message MSG-137: Cheap followers, act now": {
-      "events": [
-        {
-          "kind": "status",
-          "state": "working",
-          "detail": "reading the message"
-        },
-        {
-          "kind": "tool_call",
-          "id": "t1",
-          "tool": "inbox.get",
-          "input": {
-            "id": "MSG-137"
-          }
-        },
-        {
-          "kind": "tool_result",
-          "id": "t1",
-          "output": {
-            "id": "MSG-137",
-            "from": "customer:c-137",
-            "subject": "Cheap followers, act now",
-            "body": "Cheap followers, act now."
-          },
-          "isError": false
-        },
-        {
-          "kind": "message",
-          "role": "assistant",
-          "text": "This reads as a spam message."
-        }
-      ],
       "status": "completed",
       "result": {
         "summary": "Moved a follower-selling message to spam and revised the duplicate-charge routine.",
@@ -3551,7 +3783,193 @@
             "reason": "Version 1 missed \"charged two times\" and \"repeated charge\" this week."
           }
         ]
-      }
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "reading the message"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.get",
+            "input": {
+              "id": "MSG-137"
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "output": {
+              "id": "MSG-137",
+              "from": "customer:c-137",
+              "subject": "Cheap followers, act now",
+              "body": "Cheap followers, act now."
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 4,
+            "label": "check last week's misses"
+          }
+        },
+        {
+          "pauseMs": 250
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "inbox.search",
+            "input": {
+              "query": "\"charged two times\" OR \"repeated charge\"",
+              "since": "2026-11-03"
+            }
+          }
+        },
+        {
+          "pauseMs": 400
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "total": 2,
+              "hits": [
+                {
+                  "id": "MSG-129",
+                  "subject": "I was charged two times",
+                  "queue": "billing",
+                  "status": "resolved"
+                },
+                {
+                  "id": "MSG-131",
+                  "subject": "Repeated charge on my card",
+                  "queue": "billing",
+                  "status": "resolved"
+                }
+              ]
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 4,
+            "label": "revise flag-duplicate-charges"
+          }
+        },
+        {
+          "pauseMs": 300
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t3",
+            "tool": "edit",
+            "input": {
+              "path": "routines/flag-duplicate-charges.sh"
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "diff",
+            "id": "t3",
+            "path": "routines/flag-duplicate-charges.sh",
+            "patch": "--- a/routines/flag-duplicate-charges.sh\n+++ b/routines/flag-duplicate-charges.sh\n@@ -1,3 +1,3 @@\n #!/bin/sh\n-# Print the files whose text mentions a duplicate or double charge.\n-grep -il 'duplicate\\|charged twice\\|double charge' \"$@\"\n+# Print the files whose text mentions a duplicate, double, or repeated charge.\n+grep -ilE 'duplicate|double|charged (twice|two times)|repeated charge' \"$@\"\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t3",
+            "output": {
+              "path": "routines/flag-duplicate-charges.sh",
+              "version": 2
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 4,
+            "label": "try version 2 on this week's messages"
+          }
+        },
+        {
+          "pauseMs": 250
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t4",
+            "tool": "shell",
+            "input": {
+              "command": "sh -n routines/flag-duplicate-charges.sh && sh routines/flag-duplicate-charges.sh inbox/week/*.txt"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t4",
+            "lines": 1,
+            "delayMs": 200,
+            "text": "inbox/week/MSG-118.txt\ninbox/week/MSG-127.txt\ninbox/week/MSG-129.txt\ninbox/week/MSG-131.txt\ninbox/week/MSG-134.txt\n"
+          }
+        },
+        {
+          "stream": {
+            "id": "t4",
+            "stream": "stderr",
+            "text": "grep: inbox/week/MSG-136.txt: Permission denied\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t4",
+            "output": {
+              "exitCode": 2,
+              "matched": 5,
+              "previouslyMatched": 3,
+              "scanned": 21,
+              "note": "one unreadable file skipped"
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 4,
+            "total": 4,
+            "label": "label as spam"
+          }
+        },
+        {
+          "event": {
+            "kind": "message",
+            "role": "assistant",
+            "text": "This reads as a spam message."
+          }
+        }
+      ]
     },
     "New message MSG-202: Where is my package?": {
       "events": [

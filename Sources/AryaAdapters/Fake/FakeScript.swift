@@ -193,6 +193,51 @@ public struct FakeScript: Sendable, Hashable, Codable {
         var allSteps: [Step] { events.map { .event($0) } + steps }
     }
 
+    /// A tool's output to stream in chunks (the `stream` step).
+    public struct OutputStream: Sendable, Hashable, Codable {
+        /// The `tool_call` id the output belongs to.
+        public var id: String
+        public var text: String
+        /// `stdout` (default) or `stderr`.
+        public var stream: String?
+        /// Lines per chunk (default 1).
+        public var lines: Int?
+        /// Pause between chunks in milliseconds, at a demo pace only (default 0).
+        public var delayMs: Int?
+
+        public init(
+            id: String, text: String, stream: String? = nil, lines: Int? = nil,
+            delayMs: Int? = nil
+        ) {
+            self.id = id
+            self.text = text
+            self.stream = stream
+            self.lines = lines
+            self.delayMs = delayMs
+        }
+
+        /// The chunks in order; together they are exactly `text`.
+        public var chunks: [String] {
+            let per = max(1, lines ?? 1)
+            var result: [String] = []
+            var current = ""
+            var count = 0
+            for character in text {
+                current.append(character)
+                if character == "\n" {
+                    count += 1
+                    if count == per {
+                        result.append(current)
+                        current = ""
+                        count = 0
+                    }
+                }
+            }
+            if !current.isEmpty { result.append(current) }
+            return result
+        }
+    }
+
     /// One scripted step. Exactly one key is set per step on the wire.
     public enum Step: Sendable, Hashable, Codable {
         /// Emit a `run/event`.
@@ -211,9 +256,15 @@ public struct FakeScript: Sendable, Hashable, Codable {
         case crash(exitCode: Int32)
         /// Stop producing anything until `run/stop` arrives.
         case hang
+        /// Wait this many milliseconds, only at a demo pace (the adapter's `pace` above 0), so
+        /// tests and seeding never wait.
+        case pause(milliseconds: Int)
+        /// Emit a tool's output as `tool_output` events, `lines` lines per chunk, pausing
+        /// `delayMs` between chunks at a demo pace.
+        case stream(OutputStream)
 
         enum CodingKeys: String, CodingKey {
-            case event, sleepMs, ask, delegate, stdout, crash, hang
+            case event, sleepMs, ask, delegate, stdout, crash, hang, pauseMs, stream
         }
 
         enum DelegateKeys: String, CodingKey { case id, title, input }
@@ -244,6 +295,10 @@ public struct FakeScript: Sendable, Hashable, Codable {
                 let crash = try c.nestedContainer(keyedBy: CrashKeys.self, forKey: .crash)
                 self = .crash(
                     exitCode: try crash.decodeIfPresent(Int32.self, forKey: .exitCode) ?? 1)
+            } else if let ms = try c.decodeIfPresent(Int.self, forKey: .pauseMs) {
+                self = .pause(milliseconds: ms)
+            } else if let stream = try c.decodeIfPresent(OutputStream.self, forKey: .stream) {
+                self = .stream(stream)
             } else if try c.decodeIfPresent(Bool.self, forKey: .hang) == true {
                 self = .hang
             } else {
@@ -271,6 +326,8 @@ public struct FakeScript: Sendable, Hashable, Codable {
                 var crash = c.nestedContainer(keyedBy: CrashKeys.self, forKey: .crash)
                 try crash.encode(code, forKey: .exitCode)
             case .hang: try c.encode(true, forKey: .hang)
+            case .pause(let ms): try c.encode(ms, forKey: .pauseMs)
+            case .stream(let stream): try c.encode(stream, forKey: .stream)
             }
         }
     }

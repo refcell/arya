@@ -151,10 +151,22 @@ an adapter is alive (the "test connection" step uses it). An adapter from before
 | `tool_result` | `id`, `output`, `isError` | the tool answered |
 | `status` | `state`, `detail` | progress (`working`, `waiting`, …) |
 | `error` | `message` | a recoverable error |
-| `tool_output` | `id`, `text` | optional: a piece of an open tool call's output as it streams, before its `tool_result` |
+| `tool_output` | `id`, `text`, `stream`? | optional: a piece of an open tool call's output as it streams, before its `tool_result` (`stream` is `stdout`, the default, or `stderr`) |
+| `diff` | `path`, `patch`, `id`? | optional: an edit, as a unified diff |
+| `progress` | `done`, `total`, `label`? | optional: how far the run has got |
 
 Events are informational: they feed the run stream and the transcript. Only `run/result` carries
 decisions and actions. `at` is informational too; arya stamps its own time from `Ambient`.
+
+Work events show the work while it happens, for a work pane next to the conversation. `tool_output`
+carries a tool's stdout or stderr in chunks between its `tool_call` and `tool_result`, with the
+call's `id`; chunks concatenate in `seq` order, newlines included (arya records each as a step's
+output, decision 0049). `diff` is an edit as a unified diff (`---`/`+++` header, `@@` hunks;
+`/dev/null` for a new file), with the `id` of the call that made it when one did. `progress` counts
+steps (`done` of `total`, with an optional `label` for the step under way). All three are optional:
+an adapter that cannot see a tool's output just sends the `tool_result`. Hosts read them through
+`RunEvent.outputChunk`, `fileDiff`, and `progress`; a host that predates them sees unknown kinds and
+keeps them as they are.
 
 ### `run/result`
 
@@ -461,9 +473,15 @@ else is optional:
 | `stdout` | write the text as one raw stdout line (a protocol error) |
 | `crash` | exit with `exitCode` without a `run/result` |
 | `hang` | produce nothing until `run/stop` |
+| `pauseMs` | wait that many milliseconds, at a demo pace only |
+| `stream` | emit `text` as `tool_output` events for call `id` (`stream` default `stdout`), `lines` lines per chunk (default 1), waiting `delayMs` between chunks at a demo pace |
 
 `run/send` emits the message as a `message` event, and `run/stop` ends the run with
 `status: "stopped"`.
+
+Scripted `pauseMs` and stream delays play as written only at a demo pace (`ARYA_FAKE_PACE_MS` above
+0, or `pace:` in process); at 0, the default, nothing waits, so tests and seeded histories stay
+instant. `sleepMs` always waits.
 
 The list form `"runs":[{"input":"…", …response fields…}, …]` is equivalent: each run answers
 its `input`, and the run without `input` is the default. When both forms name an input,

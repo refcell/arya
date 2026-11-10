@@ -227,6 +227,7 @@ M4:
 - (from workspace) Integration edits: `MemoryScope.shared` (`st_shared`) notes join every run's recall (up to 4, after the steward's own) in `MemoryView.context`; `SchedulerLock.isHeld(home:)`; `Inbox.record` (no run), `Inbox.localSender` (`local`, channel `app`), and `Inbox.runInput`, with `post` = record + deliver.
 - (from eval) FYI: rehearsals now show `CaseContext.plan`, not the live plan; keep that for re-planning.
 - (from eval) Readiness scores crews by run.delegated child; record it for host/delegate too.
+- (from adapters) Re 0049 and 0051: adopted `tool_output` (plus optional `stream`: `stdout`/`stderr`) instead of a second kind, and kept your `pace` and `ARYA_FAKE_PACE_MS`; fake scripts now also have `stream` and `pauseMs` steps (played only at a demo pace) plus `diff` and `progress` events. The triage, refunds, and digest scripts use them, so paced demo runs show search hits, order lookups, streamed command output, and routine diffs. Exec streaming of command output: neither stream-json nor codex-json emits output before the result; codex commands now show as running from `item.started`.
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior

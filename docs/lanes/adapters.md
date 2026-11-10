@@ -68,6 +68,13 @@ M4:
   served by the fake binding with triage data; shared `BindingServer` core.
 - [x] Local connectors in `arya-binding`: `folder` (JSON, JSONL, CSV exports) and `http-json`
   (https only, no redirects, token from `ARYA_CREDENTIAL`), tested without network.
+- [x] Work events (M3.5 points 1 and 4): `tool_output` chunks (runtime's 0049 kind, plus
+  `stream`), `diff`, and `progress` with typed views; fake script `stream` and `pauseMs` steps
+  that wait only at runtime's demo pace (`ARYA_FAKE_PACE_MS`, 0051; 0 in tests); the
+  triage refund, routine-write, and routine-revise runs show search hits, the order, streamed
+  shell output, and the routine edit as a diff.
+- [ ] Next: richer work in more triage runs (drafted replies, the crew child); `output` from
+  the exec adapter's stream-json and codex-json tool results.
 - [ ] Next: confirm eval's casebook importer reads binding `history` (it harvests the ledger
   today).
 
@@ -147,6 +154,10 @@ M4:
 - `ping` is optional for adapters: `-32601` also proves the process is alive. Probes never
   throw; their `problem` sentence ends with the command's last stderr line, which is usually
   the actionable part (a missing key or flag).
+- Work events are ordinary `run/event` kinds read through `RunEvent` views, not new `Body`
+  cases: every host and exhaustive switch keeps compiling, and older hosts keep them as
+  unknown kinds. Scripted pauses follow runtime's demo pace (0051), so tests,
+  seeding, and replay never wait.
 - `ProcessTransport` ignores SIGPIPE process-wide so a write to an exited adapter fails with
   an error instead of killing arya.
 
@@ -190,3 +201,9 @@ M4:
   http-json connectors (connect already uses `ConnectionProbe`; the name stays).
 - 2026-11-10: Paused for the night after the connectors commit. Next: the open backlog item
   above (eval history import check), then the product-name question.
+- 2026-11-10: work events (`tool_output` stream, `diff`, `progress`), paced fake `stream` and `pauseMs`
+  steps, and realistic triage work in MSG-201, MSG-134, and MSG-137.
+- 2026-11-10: Visual check (`just snapshot`, demo home, run-approval): the MSG-201 run stream
+  now fills with real work (the fetched message, three search hits, the order with two
+  captured charges, the reasoning) before the approval; moves points 2 (density from real
+  content) and 5 (busy demo). Progress, output, and diffs await app-views rendering (point 1).
