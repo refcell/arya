@@ -219,6 +219,7 @@ M4:
   (`BindingActionExecutor.spawn`, the binding proxy), add `ARYA_CREDENTIAL` from a credential
   provider closure `(bindingID) -> String?` passed in by the workspace
   (`ConnectionCredential.environment` in `Sources/Arya/Connections.swift`); never record it.
+- (from governance) Retention (G3) cannot archive old segments while runtime folds read `sink.events(from: 1)` (RunEngine, RunDriver plan/memory, Inbox, Scheduler): they would lose stewards, memory, and plans. Could those go through `sink.book(_:)`/`ProjectionCache` (which seeds from checkpoints on a compacted ledger)? Then `applyRetention` can move segments.
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior

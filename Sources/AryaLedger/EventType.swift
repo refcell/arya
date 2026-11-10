@@ -82,6 +82,7 @@ extension EventType {
     public static let envRead: EventType = "env.read"
     public static let systemRepair: EventType = "system.repair"
     public static let systemStarted: EventType = "system.started"
+    public static let systemRetentionSet: EventType = "system.retention.set"
     public static let systemKeyAdded: EventType = "system.key.added"
     public static let systemCheckpoint: EventType = "system.checkpoint"
 
@@ -99,5 +100,6 @@ extension EventType {
         casebookImported, caseCorrected, rehearsalStarted, rehearsalCaseScored, rehearsalFinished,
         proposalCreated, proposalGated, proposalAccepted, proposalRejected, proposalOverridden,
         metricRecorded, envRead, systemRepair, systemStarted, systemKeyAdded, systemCheckpoint,
+        systemRetentionSet,
     ]
 }

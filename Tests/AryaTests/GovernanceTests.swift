@@ -174,3 +174,25 @@ private func undoableCharterJSON(allowUnlabel: Bool = true) throws -> Data {
     #expect(undo.decision == "deny")
     #expect(try await opened.types().suffix(2) == ["action.proposed", "action.rejected"])
 }
+
+@Test func retentionSettingsAreRecordedAndPlanned() async throws {
+    let opened = try await Opened()
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    #expect(try await workspace.retention().defaultDays == nil)
+    _ = try await workspace.setRetention(days: 30)
+    let summary = try await workspace.setRetention(steward: "st_inbox", days: 90)
+    #expect(summary.defaultDays == 30)
+    #expect(summary.stewards == [.init(steward: "st_inbox", days: 90)])
+    #expect(summary.segments.isEmpty)
+    #expect(summary.blocker == nil)
+    #expect(try await opened.types().suffix(2) == ["system.retention.set", "system.retention.set"])
+    _ = try await workspace.setRetention(steward: "st_inbox", days: nil)
+    #expect(try await workspace.retention().stewards.isEmpty)
+    await #expect(throws: WorkspaceError.rejected("days must be at least 1")) {
+        try await workspace.setRetention(days: 0)
+    }
+    await #expect(throws: WorkspaceError.notFound("st_missing")) {
+        try await workspace.setRetention(steward: "st_missing", days: 3)
+    }
+}

@@ -291,3 +291,61 @@ extension Workspace {
         throw WorkspaceError.notFound(id)
     }
 }
+
+/// Retention settings and what they would move to `archive/` now.
+public struct RetentionSummary: Sendable, Hashable, Codable {
+    /// One steward's own setting.
+    public struct Steward: Sendable, Hashable, Codable {
+        public var steward: String
+        public var days: Int
+    }
+
+    /// Days for history with no steward and stewards without their own setting.
+    public var defaultDays: Int?
+    public var stewards: [Steward]
+    /// Closed segments eligible now, oldest first.
+    public var segments: [String]
+    /// The last eligible `seq` (0 when none).
+    public var through: Int
+    /// Eligible events by steward id (`""` for home-level events).
+    public var events: [String: Int]
+    public var bytes: Int
+    /// Why eligible history is not archived yet, if it is not; nil when archiving can run.
+    public var blocker: String?
+}
+
+extension Workspace {
+    /// Archiving is held back while runtime and eval reads fold the whole history from the
+    /// first event: moving segments to `archive/` would hide stewards, memory, and plans from
+    /// them. The plan is still shown so a person can see what retention covers.
+    static let retentionBlocker =
+        "Archiving waits until every history read starts from a checkpoint; nothing is moved."
+
+    /// The retention settings and the current plan.
+    public func retention() async throws -> RetentionSummary {
+        let policy = try RetentionPolicy.read(reader)
+        let plan = try RetentionPlan.compute(reader, policy: policy, now: ambient.now())
+        return RetentionSummary(
+            defaultDays: policy.defaultDays,
+            stewards: policy.stewards.keys.sorted { $0.rawValue < $1.rawValue }.compactMap { id in
+                policy.stewards[id].map { RetentionSummary.Steward(steward: id.rawValue, days: $0) }
+            },
+            segments: plan.segments, through: Int(plan.through), events: plan.events,
+            bytes: Int(plan.bytes), blocker: plan.segments.isEmpty ? nil : Self.retentionBlocker)
+    }
+
+    /// Records how many days of history to keep for `steward` (the home default when nil);
+    /// nil `days` clears the setting (`system.retention.set`, actor: the person).
+    public func setRetention(steward: String? = nil, days: Int?, as person: String = "local")
+        async throws -> RetentionSummary
+    {
+        if let days, days < 1 { throw WorkspaceError.rejected("days must be at least 1") }
+        var id: StewardID?
+        if let steward { id = try await existing(steward).id }
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: SystemRetentionSet.type.rawValue, steward: id, actor: .person(person),
+                payload: try Self.json(SystemRetentionSet(steward: id, days: days))))
+        return try await retention()
+    }
+}

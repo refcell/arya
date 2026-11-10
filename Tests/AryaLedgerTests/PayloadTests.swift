@@ -73,6 +73,7 @@ let payloadSamples: [PayloadSample] = [
             segment: "000001.jsonl", offset: 4096, length: 17,
             blob: String(repeating: "ef", count: 32), reason: "no trailing newline")),
     PayloadSample(SystemStarted(process: "test", version: "0.1.0")),
+    PayloadSample(SystemRetentionSet(steward: StewardID(unchecked: "st_triage"), days: 90)),
     PayloadSample(
         SystemKeyAdded(
             key: "key_0123456789abcdef", publicKey: String(repeating: "A", count: 43) + "=",

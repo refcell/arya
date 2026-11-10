@@ -113,8 +113,10 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - [x] (G2b) Undo or compensate an approved action where its kind supports it, with the audit
   trail: `policy.undo`, `action.undo.requested`, `undoOptions(run:)`, `undoAction(...)`;
   app control and e2e asked.
-- [ ] (G3) Data retention: per-steward retention (archive or compact older than N days, on
-  top of compaction), shown in settings.
+- [x] (G3a) Data retention settings and plan: `system.retention.set`, `RetentionPolicy`,
+  `RetentionPlan`, `retention()`/`setRetention(...)`; settings row asked in app-views.md.
+- [ ] (G3b) Apply retention (archive eligible segments with a fresh checkpoint), once runtime
+  and eval folds start from checkpoint seeds (Questions).
 - [ ] (G4) Encryption at rest for the home (ledger, memory, credential references) with a
   Keychain-held key or file data protection, plus a migration.
 - [ ] (G5) Signed audit export of a steward's ledger slice: JSON Lines plus a verification
@@ -147,6 +149,14 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   `undo:<id>` (same binding and target, params `{undoes, params, previous}`) through the
   normal dispatcher, so policy, autonomy, approvers, and the binding's action list all apply;
   a binding that does not list `with` refuses it structurally. One undo per action.
+- (G3 retention) Settings are ledger facts: `system.retention.set {steward?, days?}` (nil
+  steward = home default, nil days clears; latest wins; `RetentionPolicy`). `RetentionPlan`
+  takes the longest prefix of closed segments whose every event is older than the days that
+  apply to it (its steward's, else the default; no setting keeps it), since compaction moves
+  whole segments. Archiving is held back: 38 runtime and eval reads fold `events(from: 1)`, so
+  moving segments would hide stewards, memory, and plans; `retention().blocker` says so and
+  nothing moves. "Archive" is the only mode (nothing is ever deleted; compaction already
+  archives). Applying retention waits on the question below.
 
 - Ids are `PrefixedID` structs (`st_`, `run_`, `ev_`, `ap_`, `prop_`, `reh_`, `mem_`); generated
   bodies are 26-character ULIDs (48-bit ms time, 80 random bits, Crockford base32). `CaseID`
@@ -250,9 +260,15 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 
 ## Questions
 
+- (G3) To apply retention, every `sink.events(from: 1)` fold in runtime and eval must start
+  from a checkpoint seed (`ProjectionCache.current`) instead of the first event, or read the
+  archive too. Asked in runtime.md and eval.md; until then retention plans but never moves.
+
 - (from eval) Add `ScorerSpec.judge(rubric:, passThreshold:, adapter:)`? Eval has `AdapterJudge`.
 
 ## Log
+- 2026-11-09: (G3a) done: retention settings on the ledger and a whole-segment retention
+  plan; archiving held back until history folds use checkpoint seeds (asked runtime, eval).
 - 2026-11-09: (G2b) done: undo as a policy-gated compensation (`policy.undo`,
   `action.undo.requested`, `undoOptions`, `undoAction`).
 - 2026-11-09: (G2a) done: abort a running run from any process (`run.abort.requested`,
