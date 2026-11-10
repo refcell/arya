@@ -217,3 +217,7 @@ M4:
   Held the publish per the CEO's CI-queue order; batching locally.
 - 2026-11-10: codex-json `tool_call` at `item.started` (live running state).
 - 2026-11-10: replay ignores step `millis` (eval integration edit); MSG-201's tool calls exposed it.
+- 2026-11-10: Visual check (`just snapshot` after fb983d8): the split work pane shows Tools,
+  Diff, Log, and Output counts; run-approval (now the MSG-140 hand-off) fills both panes. The
+  Diff tab draws actions and routine versions, not adapter `diff` events yet (asked in
+  app-views' Questions). Moves points 1 and 4 through `tool_output` steps in paced runs.
