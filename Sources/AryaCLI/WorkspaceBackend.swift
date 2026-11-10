@@ -595,3 +595,19 @@ extension WorkspaceBackend {
         }
     }
 }
+
+extension WorkspaceBackend {
+    func runFacts(run: String) async throws(CLIError) -> RunFacts {
+        let workspace = try await open()
+        let facts = try await call("runFacts") { try await workspace.runFacts(run: run) }
+        guard let facts else { throw .notFound(run) }
+        return facts
+    }
+
+    func stewardLive(steward: String) async throws(CLIError) -> StewardLive {
+        let workspace = try await open()
+        return try await call("stewardLive", rejection: { .notFound($0) }) {
+            try await workspace.stewardLive(steward: steward)
+        }
+    }
+}

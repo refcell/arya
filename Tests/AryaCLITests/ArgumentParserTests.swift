@@ -69,7 +69,10 @@ private func usageError(_ arguments: [String]) -> CLIError? {
 
 @Test(arguments: [
     (["bogus"], CLIError.usage("unknown command: bogus")),
-    (["steward"], .usage("steward needs a subcommand: create, list, show, pause, resume, policy")),
+    (
+        ["steward"],
+        .usage("steward needs a subcommand: create, list, show, pause, resume, policy, live")
+    ),
     (["steward", "bogus"], .usage("unknown command: steward bogus")),
     (["run"], .usage("missing <steward>", command: .run)),
     (["run", "a", "b"], .usage("unexpected argument b", command: .run)),

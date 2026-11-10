@@ -212,3 +212,9 @@ import Testing
             "decide ap_1 grant - as person:sam", "abort run_1 wrong customer",
         ])
 }
+
+@Test func liveCommandsAreUnavailableWithoutAFacade() async {
+    let (facts, _) = await runCLI(["run", "facts", "run_1"])
+    let (live, _) = await runCLI(["steward", "live", "st_triage"])
+    #expect(facts == .unavailable && live == .unavailable)
+}
