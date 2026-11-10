@@ -92,4 +92,9 @@ private func store(_ opened: Opened) throws -> LedgerStore {
     let needs = clock.now - start
     #expect(fleet < .milliseconds(20), "warm fleet() took \(fleet)")
     #expect(needs < .milliseconds(20), "warm needsYou() took \(needs)")
+    _ = try await workspace.liveRuns()
+    start = clock.now
+    _ = try await workspace.liveRuns()
+    let live = clock.now - start
+    #expect(live < .milliseconds(20), "warm liveRuns() took \(live)")
 }

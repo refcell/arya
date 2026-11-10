@@ -22,6 +22,8 @@ struct FacadeState: Sendable {
     /// Each steward's events, oldest first, for per-steward reads (metrics, outcomes).
     var bySteward: [StewardID: [RuntimeEvent]] = [:]
     var rehearsals = RehearsalBook()
+    /// Step counts, last step titles, and run lengths, for `liveRuns()`.
+    var live = LiveTally(keepSteps: false)
     /// Imported casebooks, oldest first.
     var casebooks: [CasebookSummary] = []
     /// When each steward's charter last changed (created or updated).
@@ -50,6 +52,7 @@ struct FacadeState: Sendable {
         runtime.append(runtimeEvent)
         if let steward = event.steward { bySteward[steward, default: []].append(runtimeEvent) }
         try? rehearsals.apply(runtimeEvent)
+        live.add(event)
         if let casebook = Workspace.casebookSummary(event) { casebooks.append(casebook) }
         let type = event.type.rawValue
         if let steward = event.steward,

@@ -60,15 +60,13 @@ extension Workspace {
         guard !running.isEmpty else { return [] }
         let names = Dictionary(
             try await stewards().map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
-        var tally = LiveTally()
-        try reader.forEach { tally.add($0) }
+        let tally = try facadeState().live
         let now = now()
         return running.map { run in
             let id = RunID(unchecked: run.id)
-            let steps = tally.steps[id] ?? []
             return LiveRun(
-                run: run, stewardName: names[run.steward] ?? run.steward, stepCount: steps.count,
-                lastStep: steps.last?.title,
+                run: run, stewardName: names[run.steward] ?? run.steward,
+                stepCount: tally.counts[id] ?? 0, lastStep: tally.lastTitle[id],
                 progress: tally.progress(run: id, steward: StewardID(unchecked: run.steward)),
                 started: TimeText(run.startedAt, now: now, timeZone: timeZone))
         }
@@ -96,7 +94,7 @@ extension Workspace {
         return AsyncStream(bufferingPolicy: .unbounded) { continuation in
             let signals = LedgerWatch.signals(directory: reader.directory, fallback: fallback)
             let task = Task {
-                var tally = LiveTally()
+                var tally = LiveTally(keepSteps: false)
                 var next: Int64 = 1
                 func pass() -> Bool {
                     var changed: [RunID: [LiveStep]] = [:]
@@ -115,7 +113,7 @@ extension Workspace {
                             LiveUpdate(
                                 run: run.rawValue, steward: steward.rawValue, status: status,
                                 steps: changed[run] ?? [],
-                                stepCount: tally.steps[run]?.count ?? 0,
+                                stepCount: tally.counts[run] ?? 0,
                                 progress: tally.progress(run: run, steward: steward)))
                         if endsWithRun, status != .running { return true }
                     }
@@ -133,8 +131,12 @@ extension Workspace {
 }
 
 /// Folds ledger events into live steps per run, with run status and step counts.
-struct LiveTally {
+struct LiveTally: Sendable {
+    /// False keeps only counts and last titles (the cached tally behind `liveRuns()`).
+    var keepSteps = true
     private(set) var steps: [RunID: [LiveStep]] = [:]
+    private(set) var counts: [RunID: Int] = [:]
+    private(set) var lastTitle: [RunID: String] = [:]
     private(set) var stewards: [RunID: StewardID] = [:]
     private(set) var status: [RunID: RunSummary.Status] = [:]
     /// Step counts of ended runs, per steward, oldest first.
@@ -151,7 +153,7 @@ struct LiveTally {
         let recent = (ended[steward] ?? []).suffix(5).sorted()
         guard !recent.isEmpty else { return nil }
         let usual = max(1, recent[recent.count / 2])
-        return min(0.95, Double(steps[run]?.count ?? 0) / Double(usual))
+        return min(0.95, Double(counts[run] ?? 0) / Double(usual))
     }
 
     @discardableResult
@@ -167,13 +169,15 @@ struct LiveTally {
             default: return true
             }
         }
-        guard !made.isEmpty else { return [] }
-        steps[run, default: []] += made
+        guard let newest = made.last else { return [] }
+        if keepSteps { steps[run, default: []] += made }
+        counts[run, default: 0] += made.count
+        lastTitle[run] = newest.title
         let type = event.type.rawValue
         if type == RunEventType.finished || type == RunEventType.failed {
             status[run] = type == RunEventType.finished ? .finished : .failed
             if let steward = stewards[run] {
-                ended[steward, default: []].append(steps[run]?.count ?? 0)
+                ended[steward, default: []].append(counts[run] ?? 0)
             }
         } else if status[run] == nil {
             status[run] = .running
