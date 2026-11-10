@@ -266,3 +266,6 @@ The lane's backlog is done; the session is retiring. State for whoever picks it 
   Partial-message `compose` steps, `command` parse mode and `shell` profile with live stdout
   and stderr, opt-in live harness test; eval's `HistoryItem` adoption confirmed.
 - 2026-11-10: handoff written; backlog done (one optional fixture refresh left).
+- 2026-11-10: de-flaked `triageExampleScriptAnswersEveryCase`: it slept through MSG-204's
+  30 s `sleepMs` (cli-e2e's abort fixture) against wall-clock timeouts; long-running
+  responses are now checked by stopping them on their first event (suite 32 s → 6 s).

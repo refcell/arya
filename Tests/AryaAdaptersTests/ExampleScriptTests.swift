@@ -22,8 +22,13 @@ let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
                 .stringValue)
     }
     #expect(!inputs.isEmpty)
-    // Every casebook input, plus the scripted messages only the demo and live runs use.
-    let all = inputs + script.responses.keys.sorted().filter { !inputs.contains($0) }
+    // Every casebook input, plus the scripted messages only the demo and live runs use, except
+    // runs scripted to keep running until stopped (checked on their own below, without waits).
+    let all =
+        inputs
+        + script.responses.keys.sorted().filter {
+            !inputs.contains($0) && !(script.responses[$0].map(waitsForStop) ?? false)
+        }
     #expect(all.count > inputs.count)
     for (index, text) in all.enumerated() {
         let updates = try await runAsCrewHost(script, text, run: "run_\(index)")
@@ -38,6 +43,44 @@ let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         #expect(decoded.actions.allSatisfy { $0.risk != nil && $0.why != nil }, "\(text)")
         let seqs = updates.compactMap(\.event).map(\.seq)
         #expect(seqs == Array(1..<(seqs.count + 1)))
+    }
+}
+
+/// Whether a response is scripted to keep running until stopped (`sleepMs` or `hang`), as the
+/// e2e abort step needs.
+func waitsForStop(_ response: FakeScript.Response) -> Bool {
+    response.allSteps.contains {
+        switch $0 {
+        case .sleep, .hang: true
+        default: false
+        }
+    }
+}
+
+/// A long-running example run reports that it is working and ends `stopped` as soon as it is
+/// stopped, with no wall-clock wait (the e2e abort step relies on this).
+@Test func longRunningExampleStopsOnRequest() async throws {
+    let examples = repositoryRoot.appendingPathComponent("etc/examples/triage")
+    let script = try FakeScript.load(from: examples.appendingPathComponent("fake-script.json"))
+    let long = script.responses.filter { waitsForStop($0.value) }.keys.sorted()
+    #expect(!long.isEmpty)
+    for (index, text) in long.enumerated() {
+        let adapter = FakeAdapter(script: script, timeouts: Sample.timeouts)
+        let session = try await adapter.start(Sample.start(text, run: "run_long_\(index)"))
+            .session
+        var stopped = false
+        var status: RunStatus?
+        for await update in adapter.updates {
+            if update.event != nil, !stopped {
+                stopped = true
+                try await adapter.stop(RunStopParams(session: session, reason: .user))
+            }
+            if let result = update.result {
+                status = result.status
+                break
+            }
+        }
+        #expect(stopped && status == .stopped, "\(text)")
     }
 }
 
