@@ -152,6 +152,12 @@ M4:
 
 
 ## Log
+- 2026-11-10: `arya run facts <run>` and `arya steward live <steward>` (the facade's one source
+  of run numbers and live state); e2e checks a run's facts (3 drafted, none waiting) and the
+  long run in `steward live` before and after the abort. The triage MSG-203 example now
+  delegates only in run (`host/delegate`, runtime 6b26d22b): its `result.delegations` copy made
+  a second child. Seed fixes (triage bad week, one pending reply per order), shared seeded
+  homes by stamp, and the uncached-path asks landed in 56bc2896. e2e 55 steps.
 - 2026-11-10: busy demo home (decision 0051): `arya-demo` seeds 11 stewards in 8 departments
   (3 examples, 8 from templates), 685 runs over 4-8 weeks with weekday rhythm, a bad week three
   weeks ago and a recovery, failed runs, 11 approvals waiting across 7 stewards (the rest
