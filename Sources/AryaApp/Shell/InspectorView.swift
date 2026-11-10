@@ -255,11 +255,25 @@ struct InspectorView: View {
         case .steward:
             if let steward = model.selectedSteward { stewardContent(steward) }
         case .fleet:
+            let rows = PortfolioRow.build(
+                stewards: model.stewards, runs: model.runs, approvals: model.approvals,
+                events: events, now: now, serve: model.featureStore?.serve,
+                departments: model.departments, live: model.liveLines, fleet: model.fleetStatus)
             FleetPulseView(
                 pulse: FleetPulse.build(
                     stewards: model.stewards, runs: model.runs, approvals: model.approvals,
-                    events: events, live: model.liveLines, fleet: model.fleetStatus, now: now)
-            ) { model.navigation.select(steward: $0) }
+                    events: events, live: model.liveLines, fleet: model.fleetStatus, now: now),
+                departments: model.departments.isEmpty ? [] : PortfolioDepartments.lines(rows),
+                waiting: FleetPulseView.waiting(
+                    model.approvals,
+                    names: Dictionary(
+                        model.stewards.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a }),
+                    now: now),
+                open: { model.navigation.select(steward: $0) },
+                openApproval: { id in
+                    model.navigation.showApprovals()
+                    model.navigation.approval = id
+                })
         case .none:
             Text("Select a steward to see its schedule, policy, connections, and people.")
                 .aryaText(AryaFont.caption, AryaColor.inkFaint)

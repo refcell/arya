@@ -251,9 +251,19 @@ private struct NeedsYouRow: View {
                         .aryaText(AryaFont.mono, isSelected ? AryaColor.ink : AryaColor.inkMuted)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text([stewardName, why].compactMap { $0 }.joined(separator: " · "))
-                        .aryaText(AryaFont.caption, AryaColor.inkFaint)
-                        .lineLimit(1)
+                    // The steward's name is never clipped; the reason gets its own line, cut
+                    // at a word, with the whole of it in the tooltip.
+                    if let stewardName {
+                        Text(stewardName)
+                            .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let why {
+                        Text(AryaTrim.words(why, limit: Self.whyLimit))
+                            .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                            .lineLimit(1)
+                            .help(why)
+                    }
                 }
                 Spacer(minLength: AryaSpace.s2)
                 Text(AryaTime.label(item.requestedAt, now: now, style: .short))
@@ -274,6 +284,9 @@ private struct NeedsYouRow: View {
         )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
+
+    /// Characters of the reason that fit the queue column on one caption line.
+    static let whyLimit = 44
 
     private var risk: ActionRisk { ActionRisk(kind: item.kind) }
 

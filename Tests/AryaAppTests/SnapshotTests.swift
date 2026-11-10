@@ -615,6 +615,7 @@ import Testing
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try png.write(to: url)
+        SnapshotSpace.report(file, png: png, dir: dir)
     }
 
     /// A panel on the canvas at `size`, padded like a pane.
@@ -678,6 +679,62 @@ import Testing
         host.cacheDisplay(in: host.bounds, to: bitmap)
         return bitmap.representation(using: .png, properties: [:])
     }
+}
+
+/// How much of a state is blank, as an objective dead-space number. The PNG is cut into
+/// 48 px blocks (24 pt, one row at 2x); a block is empty when every pixel is within 10 levels
+/// of its first, so blank canvas and blank panes count and text, hairlines, bars, and badges
+/// do not. Printed per state and kept, one row per file, in `empty.tsv` next to the PNGs.
+enum SnapshotSpace {
+    static func emptyFraction(_ png: Data, block: Int = 48, tolerance: Int = 10) -> Double? {
+        guard let bitmap = NSBitmapImageRep(data: png), let data = bitmap.bitmapData,
+            bitmap.bitsPerSample == 8, bitmap.samplesPerPixel >= 3
+        else { return nil }
+        let width = bitmap.pixelsWide
+        let height = bitmap.pixelsHigh
+        let row = bitmap.bytesPerRow
+        let step = bitmap.bitsPerPixel / 8
+        var empty = 0
+        var total = 0
+        for top in stride(from: 0, to: height - block + 1, by: block) {
+            for left in stride(from: 0, to: width - block + 1, by: block) {
+                let first = top * row + left * step
+                var uniform = true
+                scan: for y in top..<(top + block) {
+                    for x in left..<(left + block) {
+                        let at = y * row + x * step
+                        for channel in 0..<3
+                        where abs(Int(data[at + channel]) - Int(data[first + channel])) > tolerance
+                        {
+                            uniform = false
+                            break scan
+                        }
+                    }
+                }
+                total += 1
+                if uniform { empty += 1 }
+            }
+        }
+        return total == 0 ? nil : Double(empty) / Double(total)
+    }
+
+    static func report(_ file: String, png: Data, dir: String) {
+        guard let fraction = emptyFraction(png) else { return }
+        let percent = Int((fraction * 100).rounded())
+        print("empty \(file): \(percent)%")
+        // One row per file, newest value; the dark and light tests write in parallel.
+        lock.withLock {
+            let url = URL(fileURLWithPath: dir).appendingPathComponent("empty.tsv")
+            let old = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+            var rows = old.split(separator: "\n").map(String.init)
+                .filter { !$0.hasPrefix("\(file)\t") }
+            rows.append("\(file)\t\(percent)")
+            try? (rows.sorted().joined(separator: "\n") + "\n").write(
+                to: url, atomically: true, encoding: .utf8)
+        }
+    }
+
+    private static let lock = NSLock()
 }
 
 /// One watchdog over every state's setup and render: each state that finishes re-arms it, so

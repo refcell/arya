@@ -94,3 +94,16 @@ public enum AryaTime {
         number < 10 && number >= 0 ? "0\(number)" : "\(number)"
     }
 }
+
+/// Shortening text without cutting a word: "5 tools, every one read-only" at 16 reads
+/// "5 tools, every…", never "5 tools, ev…".
+public enum AryaTrim {
+    public static func words(_ text: String, limit: Int) -> String {
+        let flat = text.split(whereSeparator: \.isNewline).joined(separator: " ")
+        guard flat.count > limit else { return flat }
+        let head = flat.prefix(limit)
+        let cut = head.lastIndex(where: \.isWhitespace) ?? head.endIndex
+        let kept = head[..<cut].trimmingCharacters(in: .whitespaces.union(.punctuationCharacters))
+        return (kept.isEmpty ? String(head) : kept) + "…"
+    }
+}

@@ -330,6 +330,8 @@ struct FleetActivity: View {
     let lines: [Line]
     let open: (String) -> Void
 
+    static let timeWidth: CGFloat = 40
+
     /// What each event type reads as; types not listed are skipped.
     static let words: [String: String] = [
         "run.started": "started a run", "run.finished": "finished a run",
@@ -343,7 +345,7 @@ struct FleetActivity: View {
     ]
 
     static func lines(
-        events: [FeatureEvent], stewards: [StewardSummary], now: Date, limit: Int = 12
+        events: [FeatureEvent], stewards: [StewardSummary], now: Date, limit: Int = 24
     ) -> [Line] {
         let names = Dictionary(
             stewards.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
@@ -389,13 +391,24 @@ struct FleetActivity: View {
                 Text("Nothing yet.").aryaText(AryaFont.caption, AryaColor.inkFaint)
                     .frame(height: AryaSize.rowHeight)
             }
+            // Two columns side by side, newest top left, so the stream fills the page width.
+            let half = (lines.count + 1) / 2
+            HStack(alignment: .top, spacing: AryaSpace.s6) {
+                column(Array(lines.prefix(half)))
+                column(Array(lines.dropFirst(half)))
+            }
+        }
+    }
+
+    private func column(_ lines: [Line]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(lines) { line in
                 Button {
                     open(line.steward)
                 } label: {
                     HStack(spacing: AryaSpace.s2) {
                         Text(line.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                            .frame(width: 56, alignment: .leading)
+                            .frame(width: Self.timeWidth, alignment: .leading)
                         Text(line.name).aryaText(AryaFont.body, AryaColor.ink).lineLimit(1)
                         Text(line.text)
                             .aryaText(
@@ -411,5 +424,6 @@ struct FleetActivity: View {
                 .buttonStyle(.plain)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }

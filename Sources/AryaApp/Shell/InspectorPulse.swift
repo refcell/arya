@@ -285,8 +285,33 @@ struct StewardPulseView: View {
 
 /// The fleet pulse: the All stewards inspector.
 struct FleetPulseView: View {
+    /// One approval waiting on a person, oldest first.
+    struct Waiting: Identifiable, Equatable {
+        var id: String
+        var steward: String
+        var text: String
+        var age: String
+    }
+
     let pulse: FleetPulse
+    var departments: [PortfolioDepartments.Line] = []
+    var waiting: [Waiting] = []
     let open: (String) -> Void
+    var openApproval: (String) -> Void = { _ in }
+
+    /// The oldest approvals across the fleet, at most `limit`.
+    static func waiting(
+        _ approvals: [ApprovalSummary], names: [String: String], now: Date, limit: Int = 6
+    ) -> [Waiting] {
+        approvals.sorted { $0.requestedAt < $1.requestedAt }.prefix(limit).map { approval in
+            Waiting(
+                id: approval.id, steward: names[approval.steward] ?? approval.steward,
+                text: approval.actionKind.map {
+                    ActionWords.line(kind: $0, target: approval.target ?? "")
+                } ?? approval.text,
+                age: ThreadRow.shortTime(approval.requestedAt, now: now))
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
@@ -336,6 +361,52 @@ struct FleetPulseView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                }
+            }
+            if !departments.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("By department").aryaText(AryaFont.label, AryaColor.inkFaint)
+                        .frame(height: AryaSize.rowHeight)
+                    ForEach(departments) { line in
+                        HStack(spacing: AryaSpace.s2) {
+                            Text(line.id).aryaText(AryaFont.caption, AryaColor.ink).lineLimit(1)
+                            if line.running > 0 { AryaLiveDot() }
+                            Spacer(minLength: AryaSpace.s2)
+                            Text("\(line.stewards)").aryaText(
+                                AryaFont.monoSmall, AryaColor.inkFaint)
+                            Text(line.waiting > 0 ? "\(line.waiting) waiting" : "")
+                                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                            Text(line.behind > 0 ? "\(line.behind) behind" : "")
+                                .aryaText(AryaFont.monoSmall, AryaColor.negative)
+                        }
+                        .frame(height: AryaSize.rowHeight)
+                    }
+                }
+            }
+            if !waiting.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Oldest waiting").aryaText(AryaFont.label, AryaColor.inkFaint)
+                        .frame(height: AryaSize.rowHeight)
+                    ForEach(waiting) { item in
+                        Button {
+                            openApproval(item.id)
+                        } label: {
+                            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text(item.text).aryaText(AryaFont.mono, AryaColor.ink)
+                                        .lineLimit(1).truncationMode(.middle)
+                                    Text(item.steward)
+                                        .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                                }
+                                Spacer(minLength: AryaSpace.s2)
+                                Text(item.age).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                            }
+                            .padding(.vertical, AryaSpace.s1)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help(item.text)
+                    }
                 }
             }
         }

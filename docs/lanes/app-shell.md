@@ -391,3 +391,12 @@ M4:
   never "of ~". Rail run rows show a `TagPill` "DRY RUN" before the plain title (`ThreadRow`
   `badge:`). The breadcrumb and inspector keep `RunTitle.text`.
 - Visual check (`just snapshot` run, run-live): moves (3) a real pill control, (4) one clock.
+- Review 16 addendum: the snapshot tool reports each state's empty share (`SnapshotSpace`:
+  48 px blocks with no content, printed and kept in `.build/snapshots/empty.tsv`). Mine:
+  portfolio and portfolio-live 46% -> 35-36% (two-column fleet activity, fleet inspector adds
+  By department and Oldest waiting), needs-you 56%, overview 40%, knowledge 56%,
+  command-palette and sidebar-folded about 40-50%, new-steward 85% (sheet page). Needs you rows
+  give the steward name its own line, never clipped, and cut the reason at a word
+  (`AryaTrim.words`), with the full reason in a tooltip.
+- Visual check (`just snapshot` portfolio, portfolio-live, needs-you): moves (2) dead space and
+  (3) no mid-word clipping.
