@@ -324,7 +324,7 @@ struct OutcomeMetricsPanel: View {
                     }
                     OutcomeSparkline(
                         values: values, target: metrics.metric?.target,
-                        height: AryaSize.outcomeChartHeight)
+                        height: AryaSize.outcomeChartHeight, gridlines: 3)
                 }
                 .frame(height: AryaSize.outcomeChartHeight)
                 HStack {

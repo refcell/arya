@@ -71,12 +71,24 @@ struct OutcomeSparkline: View {
     let values: [Double]
     let target: Double?
     var height: CGFloat = AryaSize.sparklineHeight
+    /// Horizontal value gridlines across the chart, evenly spaced; none on a sparkline.
+    var gridlines = 0
 
     var body: some View {
         GeometryReader { geometry in
             let frame = geometry.size
             let scale = Scale(values: values, target: target, bounds: frame)
             ZStack(alignment: .topLeading) {
+                if gridlines > 0 {
+                    Path { path in
+                        for line in 0...(gridlines + 1) {
+                            let y = frame.height * CGFloat(line) / CGFloat(gridlines + 1)
+                            path.move(to: CGPoint(x: 0, y: y))
+                            path.addLine(to: CGPoint(x: frame.width, y: y))
+                        }
+                    }
+                    .stroke(AryaColor.rule, lineWidth: 1)
+                }
                 if let target {
                     Path { path in
                         path.move(to: CGPoint(x: 0, y: scale.y(target)))

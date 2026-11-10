@@ -206,6 +206,14 @@ is. Fix these five first; this lane owns its share:
 - Visual check: charter-editor-2: metric step with "Must also hold (guardrail metrics)":
   reopen_rate, at most, 0.05, Remove, Add guardrail metric; rail says "Changes owner, metric,
   sign-off". charter-editor: Owner field under Outcome.
+- Dead space (CEO, 58% for three reviews): RECENT shows 12 actions, each with an inline mini
+  diff (what it writes, one line per parameter, green when applied, muted while waiting,
+  struck when refused); the METRICS chart spans the stream with three value gridlines and the
+  series sit beneath it in two columns. The header names the owner ("owned by Maya"); the
+  unused CharterEditorView and CharterFields are gone.
+- Visual check (app-shell's empty-% per state, 1400x1000): overview 33% (light 33%),
+  overview-live 31% (light 35%); before: 39/37 and 40/35 after the diffs alone, and 63% of
+  the stream pane by a block count before both.
 - Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
   next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
   (live feel) and 2 (no dead space).
