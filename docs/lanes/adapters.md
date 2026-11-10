@@ -76,7 +76,9 @@ M4:
 - [x] Work content across examples: MSG-202 order lookup, the crew child's drafted reply as a
   diff, the refunds check's confirmation spot-check, and each weekly digest's per-queue table
   streamed as command output; a test ties every output and diff to an answered call.
-- [ ] Next: `output` from the exec adapter's stream-json and codex-json tool results.
+- [x] codex-json: commands and tool calls show as running from `item.started`.
+- [ ] Next: live `output` deltas from a harness that streams command output (none of the two
+  parsed formats does today; results arrive whole).
 - [ ] Next: confirm eval's casebook importer reads binding `history` (it harvests the ledger
   today).
 
@@ -211,3 +213,4 @@ M4:
   content) and 5 (busy demo). Progress, output, and diffs await app-views rendering (point 1).
 - 2026-11-10: work content in MSG-202, the MSG-203 draft child, refunds, and digest scripts.
   Held the publish per the CEO's CI-queue order; batching locally.
+- 2026-11-10: codex-json `tool_call` at `item.started` (live running state).

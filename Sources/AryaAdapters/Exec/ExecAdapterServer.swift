@@ -28,6 +28,8 @@ public actor ExecAdapterServer {
     private var finalText: String?
     private var agentReportedError = false
     private var lastReply: String?
+    /// Codex calls shown at `item.started` whose completion has not arrived.
+    private var openCalls: Set<String> = []
     private var stopRequested = false
     private var resultSent = false
     private var closed = false
@@ -245,8 +247,19 @@ public actor ExecAdapterServer {
         case .codexJSON:
             switch ExecOutput.parse(codexJSONLine: line) {
             case .events(let events, let reply):
-                for event in events { await emit(event) }
+                for event in events {
+                    // A call already shown when it started is not shown again.
+                    if case .toolCall(let id, _, _) = event.body,
+                        openCalls.remove(id) != nil
+                    {
+                        continue
+                    }
+                    await emit(event)
+                }
                 if let reply { lastReply = reply }
+            case .started(let call):
+                if case .toolCall(let id, _, _) = call.body { openCalls.insert(id) }
+                await emit(call)
             case .usage(let turn):
                 cost = CostResult(
                     inputTokens: cost.inputTokens + turn.inputTokens,

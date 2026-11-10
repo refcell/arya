@@ -413,8 +413,9 @@ events as they arrive; the final `result` line's text supplies the result (its l
 block), its `total_cost_usd` and `usage` (input counts include cache reads and writes) answer
 `run/cost`, and `is_error` fails the run. With `codex-json`, completed `reasoning`, `agent_message`,
 `command_execution` (tool `shell`), and `mcp_tool_call` (tool `<server>/<tool>`) items become
-`thinking`, `message`, and `tool_call` plus `tool_result` events; the last agent message supplies
-the result; `turn.completed` usage adds up into `run/cost` tokens (Codex reports no dollar cost, so
+`thinking`, `message`, and `tool_call` plus `tool_result` events (a command or tool call's
+`tool_call` goes out at `item.started`, so it shows as running, and is not repeated when the item
+completes); the last agent message supplies the result; `turn.completed` usage adds up into `run/cost` tokens (Codex reports no dollar cost, so
 `costMicros` stays 0); and `turn.failed` or `error` fails the run with its message. The run is
 `completed` when the agent exits 0 with a result that matches `resultSchema`; otherwise it is
 `failed` with an `error` event saying why (the result, if any, is still sent). `run/stop` terminates

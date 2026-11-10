@@ -127,12 +127,22 @@ extension ExecOutput {
     public enum CodexJSONLine: Sendable, Hashable {
         /// A completed item, as run events; `reply` is set for an agent message.
         case events([RunEvent], reply: String?)
+        /// A command or tool call that started and has not answered yet, as its `tool_call`.
+        case started(RunEvent)
         /// A finished turn's token usage (Codex reports no dollar cost); turns add up.
         case usage(CostResult)
         /// A failed turn or a stream error.
         case failed(String)
-        /// Anything else (thread and turn starts, item starts and updates, non-JSON).
+        /// Anything else (thread and turn starts, other item starts, updates, non-JSON).
         case other
+
+        /// The `tool_call` that opens these events, when they open with one.
+        var startedCall: RunEvent? {
+            guard case .events(let events, _) = self, let first = events.first,
+                case .toolCall = first.body
+            else { return nil }
+            return first
+        }
     }
 
     /// `codex-json` parsing of one line.
@@ -141,6 +151,12 @@ extension ExecOutput {
             let type = value["type"]?.stringValue
         else { return .other }
         switch type {
+        case "item.started":
+            // A command or tool call shows as running before it answers.
+            guard let item = value["item"], let call = codexItem(item).startedCall else {
+                return .other
+            }
+            return .started(call)
         case "item.completed":
             guard let item = value["item"] else { return .other }
             return codexItem(item)

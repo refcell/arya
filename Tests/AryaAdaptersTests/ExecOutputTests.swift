@@ -125,6 +125,15 @@ func resultSchemaChecks(_ value: JSONValue, _ problem: String?) {
     #expect(
         ExecOutput.parse(codexJSONLine: #"{"type":"item.started","item":{"type":"reasoning"}}"#)
             == .other)
+    // A command shows as running when it starts; its completion answers it.
+    let started = #"""
+        {"type":"item.started","item":{"id":"c0","type":"command_execution",
+        "command":"make test","status":"in_progress","aggregated_output":""}}
+        """#.replacingOccurrences(of: "\n", with: "")
+    #expect(
+        ExecOutput.parse(codexJSONLine: started)
+            == .started(
+                RunEvent(.toolCall(id: "c0", tool: "shell", input: ["command": "make test"]))))
     let failedCommand = #"""
         {"type":"item.completed","item":{"id":"c1","type":"command_execution",
         "command":"false","status":"failed","exit_code":1,"aggregated_output":""}}
