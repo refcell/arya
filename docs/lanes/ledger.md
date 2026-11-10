@@ -340,6 +340,11 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) New eval event `case.reviewed` {casebook, case, verdict agreed|skipped}; PROTOCOL?
 
 ## Log
+- 2026-11-10: batch of three commits (G3b retention, (13) probe, (14) import) rebased on
+  origin/main 07401a4 and green on AryaLedgerTests, AryaTests, and AryaAppTests; held for
+  the CEO publish order (governance is 7th, after runtime). The governance hooks survived
+  the split work pane (StreamTab, InspectorView, AppSettingsView). Snapshots re-render after
+  the app-shell settle fix lands.
 - 2026-11-10: (14) done: import a steward from a checked audit export (charter, live
   memory, provenance event) and "Import…" in app settings. Visual check:
   `governance-retention` shows the import row with the last import; moves point (3).
