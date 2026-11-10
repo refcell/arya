@@ -204,14 +204,39 @@ public struct StewardDraft: Sendable, Hashable, Codable {
     /// Who answers for the outcome, and the department it serves.
     public var owner: String?
     public var department: String?
+    /// Metrics that must hold while the primary moves (charter `guardrailMetrics`); nil keeps
+    /// the charter's own when the draft is applied to it.
+    public var guardrailMetrics: [GuardrailMetric]?
+    /// The evaluation window in days (charter `metric.windowDays`); nil keeps the charter's
+    /// own when applied, or the 7-day default for a new steward.
+    public var windowDays: Int?
+
+    /// One guardrail metric in a draft.
+    public struct GuardrailMetric: Sendable, Hashable, Codable {
+        public var name: String
+        public var unit: String
+        /// `up` or `down`: which way is better.
+        public var direction: String
+        public var target: Double?
+
+        public init(name: String, unit: String, direction: String = "up", target: Double? = nil) {
+            self.name = name
+            self.unit = unit
+            self.direction = direction
+            self.target = target
+        }
+    }
 
     public init(
         id: String? = nil, name: String, outcome: String, metric: String, unit: String,
         direction: String = "up", target: Double? = nil, guardrails: [String] = [],
         autonomy: String = "ask", rules: [Rule] = [], bindings: [Binding] = [],
         effort: String = "medium", triggers: [Trigger] = [Trigger(kind: "manual")],
-        adapter: String, level: String? = nil, owner: String? = nil, department: String? = nil
+        adapter: String, level: String? = nil, owner: String? = nil, department: String? = nil,
+        guardrailMetrics: [GuardrailMetric]? = nil, windowDays: Int? = nil
     ) {
+        self.guardrailMetrics = guardrailMetrics
+        self.windowDays = windowDays
         self.level = level
         self.owner = owner
         self.department = department
@@ -464,6 +489,17 @@ extension StewardDraft {
             guardrails: guardrails, bindings: bindings, triggers: triggers, policy: policy,
             adapter: adapter, effort: effort)
         charter.autonomy = autonomy
+        charter.metric.windowDays = windowDays
+        charter.guardrailMetrics = try guardrailMetrics.map { list in
+            try list.map { extra in
+                guard let way = Metric.Direction(rawValue: extra.direction) else {
+                    throw fail(
+                        "guardrail metric direction must be up or down, not \(extra.direction)")
+                }
+                return Metric(
+                    name: extra.name, unit: extra.unit, direction: way, target: extra.target)
+            }
+        }
         charter.owner = owner.flatMap { $0.isEmpty ? nil : $0 }
         charter.department = department.flatMap { $0.isEmpty ? nil : $0 }
         return charter
@@ -496,7 +532,13 @@ extension StewardDraft {
                 }
             },
             adapter: charter.adapter, level: charter.autonomy?.rawValue, owner: charter.owner,
-            department: charter.department)
+            department: charter.department,
+            guardrailMetrics: charter.guardrailMetrics?.map {
+                GuardrailMetric(
+                    name: $0.name, unit: $0.unit, direction: $0.direction.rawValue,
+                    target: $0.target)
+            },
+            windowDays: charter.metric.windowDays)
     }
 
     /// `base` with these fields applied; fields a draft does not hold are kept from `base`.
@@ -510,6 +552,8 @@ extension StewardDraft {
         out.name = edited.name
         out.outcome = edited.outcome
         out.metric = edited.metric
+        if windowDays == nil { out.metric.windowDays = base.metric.windowDays }
+        if guardrailMetrics != nil { out.guardrailMetrics = edited.guardrailMetrics }
         out.guardrails = edited.guardrails
         out.bindings = edited.bindings.map { binding in
             guard var kept = base.bindings.first(where: { $0.id == binding.id }) else {

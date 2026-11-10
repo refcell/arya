@@ -31,7 +31,8 @@ public struct RunFacts: Sendable, Hashable, Codable {
     public var actionsWaiting: Int
     /// Steps so far (the same count `liveRuns()` shows).
     public var stepIndex: Int
-    /// The steward's usual steps per run (median of its last five ended runs), when known.
+    /// While running: the steward's usual steps per run (median of its last five ended runs),
+    /// never below `stepIndex`; nil once the run ended (`stepIndex` is then the steps done).
     public var estimatedSteps: Int?
     /// 0...1, the same estimate `liveRuns()` shows; 1 once ended.
     public var progress: Double?
@@ -127,7 +128,7 @@ extension Workspace {
             actionsProposed: proposed, actionsApplied: applied, actionsDrafted: drafted,
             actionsFailed: failed, actionsWaiting: waiting,
             stepIndex: state.live.counts[record.id] ?? 0,
-            estimatedSteps: state.live.usualSteps(steward: record.steward),
+            estimatedSteps: state.live.estimate(run: record.id, steward: record.steward),
             progress: state.live.progress(run: record.id, steward: record.steward),
             dryRun: drafted > 0 && applied == 0)
     }

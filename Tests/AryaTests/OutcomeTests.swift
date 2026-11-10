@@ -146,3 +146,31 @@ private func steward(target: Double?) async throws -> Opened {
     #expect(detail.decisions.first?.why == "It is about a charge.")
     #expect(detail.actions.first?.risk == "medium")
 }
+
+@Test func draftsCarryGuardrailMetricsTheWindowAndTheOwner() async throws {
+    let opened = try await Opened()
+    let workspace = opened.workspace
+    var draft = StewardDraft(
+        name: "Inbox triage", outcome: "Every message is routed within an hour.",
+        metric: "routed_within_1h", unit: "ratio", target: 0.95, adapter: "fake",
+        owner: "person:alex",
+        guardrailMetrics: [
+            StewardDraft.GuardrailMetric(
+                name: "reopened", unit: "ratio", direction: "down", target: 0.05)
+        ],
+        windowDays: 14)
+    let created = try await workspace.createSteward(draft)
+    let charter = try Charter.load(from: try await workspace.charter(created.id))
+    #expect(charter.owner == "person:alex")
+    #expect(charter.metric.windowDays == 14)
+    #expect(charter.guardrailMetrics?.map(\.name) == ["reopened"])
+    #expect(charter.guardrailMetrics?.first?.direction == .down)
+
+    draft.name = "Other"
+    draft.guardrailMetrics = [StewardDraft.GuardrailMetric(name: "x", unit: "n", direction: "left")]
+    await #expect(
+        throws: WorkspaceError.rejected("guardrail metric direction must be up or down, not left")
+    ) {
+        try await workspace.createSteward(draft)
+    }
+}

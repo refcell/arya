@@ -74,7 +74,7 @@ extension Workspace {
                 progress: tally.progress(run: id, steward: StewardID(unchecked: run.steward)),
                 started: TimeText(run.startedAt, now: now, timeZone: timeZone),
                 elapsedSeconds: max(0, now.timeIntervalSince(run.startedAt)),
-                estimatedSteps: tally.usualSteps(steward: StewardID(unchecked: run.steward)))
+                estimatedSteps: tally.estimate(run: id, steward: StewardID(unchecked: run.steward)))
         }
     }
 
@@ -159,6 +159,13 @@ struct LiveTally: Sendable {
     }
 
     /// Steps so far against the steward's usual run length.
+    /// The step estimate a screen shows: none once the run ended (it shows steps done), and
+    /// while it runs never below the steps it already took.
+    func estimate(run: RunID, steward: StewardID) -> Int? {
+        guard (status[run] ?? .running) == .running else { return nil }
+        return usualSteps(steward: steward).map { max($0, counts[run] ?? 0) }
+    }
+
     func progress(run: RunID, steward: StewardID) -> Double? {
         let state = status[run] ?? .running
         if state != .running { return 1 }

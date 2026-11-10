@@ -286,3 +286,4 @@ M3:
   copies the newest shared seed (`arya-demo-homes/<stamp>`) and checks runFacts tool counts
   equal distinct step records on its runs (skips where no seed exists).
 - (from eval) Seeding.swift: `SeededExecutor` (succeeds) replaces DryRunExecutor; history is real
+- 2026-11-10: review #16: `runHistory(steward:days:timeZone:)` is the one source for run-count bars (top-level live runs per local day; rehearsal case runs apart, since seed bursts of 40-126 flattened the bars; facade `runs()` was complete). `runFacts`/`liveRuns` `estimatedSteps` are nil once ended and `max(usual, steps)` while running. `StewardDraft.guardrailMetrics` and `windowDays` for the wizard. Tests include the busy seed's bars summing to runs in those days.

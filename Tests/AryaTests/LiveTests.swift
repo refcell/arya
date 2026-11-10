@@ -189,6 +189,62 @@ private func first(
     #expect(steward.schedule == "off" || steward.schedule == "unscheduled")
 }
 
+@Test func finishedRunsShowStepsDoneAndRunningEstimatesNeverTrailTheSteps() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let done = try await workspace.startRun(steward: "st_inbox", input: "First")
+    let finished = try #require(try await workspace.runFacts(run: done.id))
+    // Finished: steps done, no estimate (no "step 34 of ~14").
+    #expect(finished.estimatedSteps == nil)
+    #expect(finished.stepIndex > 0 && finished.progress == 1)
+
+    var started: Event?
+    try workspace.reader.forEach { event in
+        if event.run?.rawValue == done.id, event.type.rawValue == RunEventType.started {
+            started = event
+        }
+    }
+    let start = try #require(started)
+    let live = RunID(unchecked: "run_long")
+    _ = try await workspace.sink.append(
+        RuntimeEventDraft(
+            type: RunEventType.started, steward: start.steward, run: live, actor: .localUser,
+            payload: start.payload))
+    let usual = finished.stepIndex
+    #expect(try await workspace.runFacts(run: live.rawValue)?.estimatedSteps == usual)
+    for index in 0..<(usual + 3) {
+        _ = try await workspace.sink.append(
+            RuntimeEventDraft(
+                type: StepEventType.started.rawValue, steward: start.steward, run: live,
+                actor: .localUser, payload: ["step": .string("s\(index)"), "tool": "search"]))
+    }
+    let facts = try #require(try await workspace.runFacts(run: live.rawValue))
+    #expect(facts.stepIndex > usual)
+    #expect(facts.estimatedSteps == facts.stepIndex)
+    #expect(try await workspace.liveRuns().first?.estimatedSteps == facts.stepIndex)
+}
+
+@Test func runHistoryCountsLiveRunsPerDayAndKeepsRehearsalsApart() async throws {
+    let opened = try await Opened([
+        FakeScript.Run(result: liveResult), FakeScript.Run(result: liveResult),
+    ])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    _ = try await workspace.startRun(steward: "st_inbox", input: "First")
+    _ = try await workspace.startRun(steward: "st_inbox", input: "Second")
+    let history = try await workspace.runHistory(steward: "st_inbox")
+    #expect(history.days.count == 7)
+    #expect(history.days.last?.runs == 2 && history.today == 2 && history.total == 2)
+    #expect(history.days.dropLast().allSatisfy { $0.runs == 0 })
+    #expect(history.days.reduce(0) { $0 + $1.rehearsals } == 0)
+    #expect(history.line == "2 runs in 7 days, 2 today")
+    #expect(try await workspace.runHistory(days: 3).days.count == 3)
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.runHistory(steward: "st_missing")
+    }
+}
+
 @Test func servingIsOneRuleSchedulerOrALeasedRun() async throws {
     let opened = try await Opened([FakeScript.Run(result: liveResult)])
     let workspace = opened.workspace

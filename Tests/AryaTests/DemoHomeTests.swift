@@ -69,3 +69,29 @@ func busyDemoHomeRunFactsCountStepToolRecords() async throws {
         #expect(facts.toolCalls == steps[run]?.count ?? 0, "run \(run)")
     }
 }
+
+/// Run-count bars on the busy home: each steward's 7 days sum to its top-level live runs
+/// started in those days, and rehearsal bursts stay out of them.
+@Test(.enabled(if: sharedDemoHome() != nil, "no shared seeded demo home in this clone"))
+func busyDemoHomeRunBarsSumToRunsInThoseDays() async throws {
+    let seed = try #require(sharedDemoHome())
+    let home = FileManager.default.temporaryDirectory
+        .appendingPathComponent("arya-demo-\(UUID().uuidString)")
+    try FileManager.default.copyItem(at: seed, to: home)
+    defer { try? FileManager.default.removeItem(at: home) }
+    let workspace = try await Workspace.open(home: home)
+    let utc = try #require(TimeZone(identifier: "UTC"))
+    var fleet = 0
+    for steward in try await workspace.stewards() {
+        let history = try await workspace.runHistory(steward: steward.id, timeZone: utc)
+        let from = try #require(history.days.first?.start)
+        let expected = try await workspace.runs(steward: steward.id).filter {
+            $0.parent == nil && $0.trigger != "case" && $0.startedAt >= from
+        }.count
+        #expect(history.days.count == 7)
+        #expect(history.total == expected, "\(steward.name)")
+        #expect(history.days.reduce(0) { $0 + $1.runs } == expected)
+        fleet += history.total
+    }
+    #expect(try await workspace.runHistory(timeZone: utc).total == fleet)
+}
