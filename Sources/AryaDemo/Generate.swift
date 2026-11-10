@@ -57,9 +57,10 @@ struct GeneratedSteward {
                     responses[input] = Self.failure(spec, number: number)
                 } else {
                     if holds { held.insert(input) }
+                    // The live steward re-planned three days ago, so its PLAN reads recent.
                     responses[input] = Self.response(
                         spec, charter: fields, number: number, detail: detail, value: value,
-                        held: holds, rng: &rng)
+                        held: holds, replanned: spec.live && day <= 3, rng: &rng)
                 }
                 runs.append(PlannedRun(at: at, input: input))
             }
@@ -144,7 +145,7 @@ struct GeneratedSteward {
 
     static func response(
         _ spec: StewardSpec, charter: [String: Any], number: Int, detail: String,
-        value: Double, held: Bool, rng: inout SeededGenerator
+        value: Double, held: Bool, replanned: Bool = false, rng: inout SeededGenerator
     ) -> [String: Any] {
         let item = "\(spec.prefix)-\(number)"
         let choice = spec.choices[number % spec.choices.count]
@@ -199,7 +200,18 @@ struct GeneratedSteward {
                         "id": "p2", "text": "Catch items that went quiet for a week",
                         "status": "pending", "rationale": "Quiet items are where misses hide.",
                     ],
-                ],
+                ]
+                    + (replanned
+                        ? [
+                            [
+                                "id": "p3",
+                                "text":
+                                    "Answer pricing questions from larger teams within two hours",
+                                "status": "in_progress",
+                                "rationale":
+                                    "Large-team pricing questions waited the longest last week.",
+                            ]
+                        ] : []),
                 "decisions": [
                     [
                         "id": "d1", "choice": choice, "rationale": detail.lowercased(),
