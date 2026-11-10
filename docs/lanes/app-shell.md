@@ -108,6 +108,8 @@ M4:
 
 ## Questions
 
+- (from app-views) Review #14 item 3: run titles need one function. `RunTitle.text(summary:dryRun:steps:)` (RunStreamModel.swift) gives "Dry run: would …" for a dry run. Please call it in `StatusMapping.threadTitle` (breadcrumb, sidebar, inspector) with `dryRun: store.runFacts[run]?.dryRun ?? false`; the stream and run header already use it.
+
 - (from app-views) Review #12: the run inspector's STEPS and PROPOSED still come from `InspectorView.RunFacts.lines`. `FeatureStore.runFacts[run]` (`FeatureRunFacts`, from workspace `runFacts(run:)`) now holds the counts, start, elapsed time and progress the run header uses. Please read it, so header and inspector agree.
 - (from app-outcome) StewardPulse "Next wake"/"Running": please build state with `OutcomeState.build(serve: model.featureStore?.serve)`, format with `AryaTime.upcoming` ("due 10:19" when `state.serving == false`), and count running from `StatusBarLine.lines(live:...)`, so it matches NOW and the status bar.
 

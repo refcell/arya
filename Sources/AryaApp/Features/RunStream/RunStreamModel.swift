@@ -223,7 +223,7 @@ struct RunStream: Hashable, Sendable {
         if case .finished(let state, let summary) = status, !summary.isEmpty,
             RunStream.isDryRun(steps)
         {
-            let words = RunStream.dryRunSummary(summary)
+            let words = RunTitle.dryRun(summary: summary, steps: steps)
             status = .finished(status: state, summary: words)
             shown = steps.map { step in
                 guard case .finished = step.kind else { return step }
@@ -249,13 +249,6 @@ struct RunStream: Hashable, Sendable {
             drafted += 1
         }
         return drafted > 0
-    }
-
-    /// "Labeled MSG-1 as spam." -> "Dry run: would have labeled MSG-1 as spam."
-    static func dryRunSummary(_ summary: String) -> String {
-        guard !summary.hasPrefix("Dry run") else { return summary }
-        let lowered = summary.prefix(1).lowercased() + summary.dropFirst()
-        return "Dry run: would have \(lowered)"
     }
 
     /// The approval ids in this run still waiting for a person.
@@ -853,5 +846,47 @@ extension ActionWords {
     static func outcome(_ action: ProposedActionStep) -> String {
         if case .executed = action.outcome { return done(action) }
         return RunWork.outcomeWord(action.outcome)
+    }
+}
+
+/// One run title for every surface: the summary as written, or for a dry run (drafted, applied
+/// nothing) what it would have done, from each drafted action's own verb phrase.
+enum RunTitle {
+    /// The title for `summary`; `dryRun` comes from `runFacts(run:)`. A dry run without
+    /// steps to read reads "Dry run, nothing applied: <summary>".
+    static func text(summary: String, dryRun: Bool, steps: [StreamStep] = []) -> String {
+        dryRun ? self.dryRun(summary: summary, steps: steps) : summary
+    }
+
+    /// "Dry run: would mark LEAD-1095 disqualified and send email to lead:LEAD-1095."
+    static func dryRun(summary: String, steps: [StreamStep]) -> String {
+        if summary.hasPrefix("Dry run") { return summary }
+        let phrases = steps.compactMap { step -> String? in
+            guard case .action(let action) = step.kind, case .executed = action.outcome,
+                action.dryRun
+            else { return nil }
+            return phrase(action)
+        }
+        guard !phrases.isEmpty else { return "Dry run, nothing applied: \(summary)" }
+        let joined =
+            phrases.count == 1
+            ? phrases[0] : phrases.dropLast().joined(separator: ", ") + " and " + phrases.last!
+        return "Dry run: would \(joined)."
+    }
+
+    /// The action as a base-verb phrase: "mark LEAD-1095 disqualified", "send email lead:X".
+    static func phrase(_ action: ProposedActionStep) -> String {
+        let sentence =
+            ActionSummary.sentence(action)
+            ?? ([verb(action.kind), action.target].filter { !$0.isEmpty }.joined(separator: " "))
+        let trimmed = sentence.hasSuffix(".") ? String(sentence.dropLast()) : sentence
+        return trimmed.prefix(1).lowercased() + trimmed.dropFirst()
+    }
+
+    /// A kind as words: "send_email" -> "send email", "follow-up" -> "follow up".
+    static func verb(_ kind: String) -> String {
+        let words = kind.replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ").lowercased()
+        return words.isEmpty ? "act" : words
     }
 }

@@ -98,9 +98,6 @@ import Testing
 }
 
 @Test func dryRunsDoNotClaimEffects() {
-    #expect(
-        RunStream.dryRunSummary("Moved a message to spam.")
-            == "Dry run: would have moved a message to spam.")
     var drafted = ProposedActionStep(
         actionID: "a1", kind: "label", target: "inbox:MSG-1", summary: "", rationale: "",
         policy: "auto", outcome: .executed(output: ""))
@@ -131,4 +128,44 @@ import Testing
     drafted.dryRun = true
     let step = StreamStep(id: "e", number: 1, at: FeatureTestClock.now, kind: .action(drafted))
     #expect(UndoState.of(facts: nil, steps: [step]) == .nothingApplied)
+}
+
+@Test func dryRunTitlesUseEachActionsVerbPhrase() {
+    func step(_ kind: String, _ target: String, _ params: FeatureJSON) -> StreamStep {
+        var action = ProposedActionStep(
+            actionID: kind, kind: kind, target: target, summary: "", rationale: "",
+            policy: "auto", outcome: .executed(output: ""), params: params)
+        action.dryRun = true
+        return StreamStep(id: kind, number: 1, at: FeatureTestClock.now, kind: .action(action))
+    }
+    let cases: [(StreamStep, String)] = [
+        (step("label", "inbox:MSG-1", ["label": "spam"]), "label inbox:MSG-1 as spam"),
+        (
+            step("assign", "tracker:ISSUE-7", ["to": "person:alex"]),
+            "assign tracker:ISSUE-7 to person:alex"
+        ),
+        (
+            step("mark", "crm:LEAD-1095", ["mark": "disqualified"]),
+            "mark crm:LEAD-1095 as disqualified"
+        ),
+        (step("send_email", "lead:LEAD-1095", .null), "send email lead:LEAD-1095"),
+        (
+            step("refund", "billing:ORDER-1", ["amount": 12, "currency": "USD"]),
+            "refund 12.00 USD on billing:ORDER-1"
+        ),
+    ]
+    for (step, phrase) in cases {
+        guard case .action(let action) = step.kind else { continue }
+        #expect(RunTitle.phrase(action) == phrase)
+    }
+    let title = RunTitle.dryRun(
+        summary: "LEAD-1095 (demo request, wants pricing): disqualified.",
+        steps: [cases[2].0, cases[3].0])
+    #expect(
+        title == "Dry run: would mark crm:LEAD-1095 as disqualified and send email lead:LEAD-1095.")
+    #expect(RunTitle.text(summary: "Closed it.", dryRun: false) == "Closed it.")
+    #expect(
+        RunTitle.text(summary: "Closed it.", dryRun: true) == "Dry run, nothing applied: Closed it."
+    )
+    #expect(RunTitle.verb("send_email") == "send email")
 }

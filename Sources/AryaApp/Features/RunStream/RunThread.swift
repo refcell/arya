@@ -469,7 +469,7 @@ enum RunThreadText {
 
     /// "Approve and reply"; a question is just "Approve".
     static func approveLabel(_ action: ProposedActionStep) -> String {
-        action.kind == "question" ? "Approve" : "Approve and \(action.kind)"
+        action.kind == "question" ? "Approve" : "Approve and \(RunTitle.verb(action.kind))"
     }
 
     /// "Reply to inbox:MSG-201".
@@ -559,6 +559,8 @@ enum ActionSummary {
                 phrases.append("as \(value)")
             } else if prepositions.contains(key) {
                 phrases.append("\(key) \(value)")
+            } else if key == "queue" {
+                phrases.append("to \(value)")
             } else {
                 rest.append("\(key.replacingOccurrences(of: "_", with: " ")) \(value)")
             }

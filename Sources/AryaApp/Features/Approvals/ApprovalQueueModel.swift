@@ -15,7 +15,9 @@ struct ApprovalItem: Identifiable, Hashable, Sendable {
     var decision: ApprovalDecision?
 
     /// The primary button label, naming the effect: "Approve and assign".
-    var approveLabel: String { kind == "question" ? "Approve" : "Approve and \(kind)" }
+    var approveLabel: String {
+        kind == "question" ? "Approve" : "Approve and \(RunTitle.verb(kind))"
+    }
 }
 
 /// How a person (or time) answered an approval.

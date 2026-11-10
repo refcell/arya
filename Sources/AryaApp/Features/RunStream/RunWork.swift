@@ -108,7 +108,13 @@ struct RunWork: Hashable, Sendable {
         let mine = events.filter { $0.run == stream.run }
         var diffs = stream.steps.compactMap(actionDiff)
         diffs += routineDiffs(mine, all: events)
-        diffs += mine.compactMap(adapterDiff)
+        // A harness edit of a routine's file shows once, as the routine's version diff.
+        let routines = Set(diffs.compactMap { $0.routine?.name })
+        diffs += mine.compactMap(adapterDiff).filter { diff in
+            let file = diff.title.split(separator: "/").last.map(String.init) ?? diff.title
+            let stem = file.split(separator: ".").first.map(String.init) ?? file
+            return !(diff.title.contains("routines/") && routines.contains(stem))
+        }
         // In the order the run made them.
         let order = Dictionary(mine.map { ($0.id, $0.seq) }, uniquingKeysWith: { a, _ in a })
         diffs.sort { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
