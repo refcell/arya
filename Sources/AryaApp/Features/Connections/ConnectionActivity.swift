@@ -39,11 +39,15 @@ struct ConnectionActivity: Hashable, Sendable {
                 guard let action = event.payload["action"],
                     let binding = action["binding"]?.string, let kind = action["kind"]?.string
                 else { continue }
-                let target = action["target"]?.string.map { " " + $0 } ?? ""
+                // "reply Sam", "follow-up inbox:MSG-140": machine words as people read them.
+                let target = (action["target"]?.string).map {
+                    $0.hasPrefix("person:") ? PeopleDirectory.displayName($0) : $0
+                }
+                let word = ActionWords.kind(kind)
                 calls[binding, default: []].append(
                     Call(
                         id: event.id, at: event.at, steward: event.steward, run: event.run,
-                        kind: .proposed, what: kind + target))
+                        kind: .proposed, what: target.map { "\(word) \($0)" } ?? word))
                 if let run = event.run, let id = action["id"]?.string {
                     proposed["\(run)/\(id)"] = (binding, calls[binding, default: []].count - 1)
                 }

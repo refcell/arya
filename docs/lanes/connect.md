@@ -126,6 +126,12 @@ and receive a periodic report from it.
   and chat with volume, recent messages across channels), and `people-thread` (dense rows,
   segmented steward picker and composer, ellipsis menus). Moves (2) no dead space, (3) real
   controls, and (5) busy demo.
+- 2026-11-10: Review 11 fixes. Per-row Connect and Message are secondary (no orange per row).
+  People always shows a person: with none chosen the first one's thread opens and the
+  inspector shows them (focus `.person("")` stands for the first person). Connections lists
+  the selected steward's bindings, with This steward | Show all. Action kinds read through
+  `ActionWords.kind` and person targets by name. Visual check pending: no snapshot state
+  filter yet and the CEO bars full renders while load is over 30.
 
 ## Questions
 

@@ -163,7 +163,10 @@ struct PeopleView: View {
                     person.approves.isEmpty
                         ? "approves nothing"
                         : "approves "
-                            + person.approves.map { $0 == "*" ? "any action" : $0 }.joined(
+                            + person.approves.map {
+                                $0 == "*" ? "any action" : ActionWords.kind($0)
+                            }
+                            .joined(
                                 separator: ", ")
                 )
                 .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)

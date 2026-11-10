@@ -30,8 +30,10 @@ enum InspectorFocus: Equatable {
         if case .connections = navigation.destination {
             if let connection = navigation.connection { return .connection(connection) }
         }
-        if case .people = navigation.destination, let person = navigation.person {
-            return .person(person)
+        // People always shows a person: "" stands for the directory's first person, so the
+        // inspector is never empty on that page.
+        if case .people = navigation.destination, navigation.peoplePane == .people {
+            return .person(navigation.person ?? "")
         }
         if navigation.tab == .ledger, navigation.steward != nil,
             let event = navigation.ledgerEvent

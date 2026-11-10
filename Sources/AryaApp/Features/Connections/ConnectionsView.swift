@@ -23,6 +23,8 @@ struct ConnectionsView: View {
     let probe: @Sendable (ConnectionsCatalog.Entry, String?) async throws -> ConnectionTest
 
     @AryaState private var stored: [String: Bool] = [:]
+    /// Every connection any steward binds, not just the selected steward's.
+    @AryaState private var showAll = false
     @AryaState private var note: String?
     @AryaState private var confirming: String?
 
@@ -35,7 +37,14 @@ struct ConnectionsView: View {
                     subtitle: "Systems stewards read from and act in. Secrets stay in the Keychain."
                 )
                 if let steward {
-                    StewardPicker(stewards: stewards, selected: steward, select: selectSteward)
+                    HStack(spacing: AryaSpace.s3) {
+                        StewardPicker(stewards: stewards, selected: steward, select: selectSteward)
+                        Spacer()
+                        AryaSegmented(
+                            [(false, "This steward"), (true, "Show all")], selection: showAll
+                        ) { showAll = $0 }
+                        .accessibilityLabel("Connections shown")
+                    }
                 }
                 if let note { Text(note).aryaText(AryaFont.caption, AryaColor.inkMuted) }
                 if let error = store.writeError {
@@ -48,7 +57,7 @@ struct ConnectionsView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
                         let activity = ConnectionActivity(events: store.events)
-                        ForEach(catalog.entries) { entry in
+                        ForEach(shown(catalog)) { entry in
                             row(
                                 catalog.entry(entry, for: steward), catalog: catalog,
                                 activity: activity)
@@ -136,12 +145,18 @@ struct ConnectionsView: View {
         .accessibilityAddTraits(selected == entry.id ? .isSelected : [])
     }
 
+    /// The selected steward's connections, or all with Show all (or no steward).
+    private func shown(_ catalog: ConnectionsCatalog) -> [ConnectionsCatalog.Entry] {
+        guard let steward, !showAll else { return catalog.entries }
+        return catalog.entries.filter { catalog.isConnected($0, steward: steward) }
+    }
+
     /// "label low · reply high", each kind in its risk's color.
     private func actions(_ entry: ConnectionsCatalog.Entry) -> some View {
         HStack(spacing: AryaSpace.s2) {
             Text("does").aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
             ForEach(entry.actions, id: \.kind) { action in
-                Text("\(action.kind) \(action.risk)")
+                Text("\(ActionWords.kind(action.kind)) \(action.risk)")
                     .aryaText(AryaFont.monoSmall, Self.riskColor(action.risk))
             }
         }
@@ -342,7 +357,8 @@ struct ConnectionInspector: View {
                     "Does",
                     entry.actions.isEmpty
                         ? "nothing"
-                        : entry.actions.map { "\($0.kind) \($0.risk)" }.joined(separator: ", "))
+                        : entry.actions.map { "\(ActionWords.kind($0.kind)) \($0.risk)" }
+                            .joined(separator: ", "))
                 fact("Network", entry.network ? "allowed when sandboxed" : "none")
                 fact(
                     "Used by",

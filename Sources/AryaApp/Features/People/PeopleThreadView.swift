@@ -149,7 +149,7 @@ struct PersonInspector: View {
                     "Approves",
                     found.approves.isEmpty
                         ? "nothing"
-                        : found.approves.map { $0 == "*" ? "any action" : $0 }
+                        : found.approves.map { $0 == "*" ? "any action" : ActionWords.kind($0) }
                             .joined(separator: ", "))
                 fact("Messages", PeopleThreadText.counts(thread))
                 if let reports = PeopleThreadText.reports(thread, now: store.now) {
@@ -231,7 +231,7 @@ enum PeopleThreadText {
         if entry.inbound {
             return entry.intent.flatMap(MessageIntent.init(rawValue:))?.label.lowercased()
         }
-        return entry.action
+        return entry.action.map(ActionWords.kind)
     }
 
     /// "2 sent · last 3d ago" for the reports this person received, nil when none.

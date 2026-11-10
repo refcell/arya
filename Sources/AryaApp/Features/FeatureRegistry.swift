@@ -250,7 +250,10 @@ enum FeatureRegistry {
             PeopleView(
                 store: store, stewards: model.stewards,
                 steward: model.navigation.pageSteward ?? model.stewards.first?.id,
-                selected: model.navigation.person,
+                selected: model.navigation.person
+                    ?? (model.navigation.pageSteward ?? model.stewards.first?.id).flatMap {
+                        PeopleDirectory(events: store.events, steward: $0).people.first?.id
+                    },
                 selectSteward: { model.navigation.showPeople(steward: $0) },
                 select: { model.navigation.select(person: $0) }, reports: model.reports,
                 readReport: { [source = model.source] in try await source.reportDigest(steward: $0)
@@ -272,7 +275,11 @@ enum FeatureRegistry {
             let steward = model.navigation.pageSteward
                 ?? model.stewards.first?.id
         {
-            PersonInspector(store: store, steward: steward, person: person)
+            let id =
+                person.isEmpty
+                ? PeopleDirectory(events: store.events, steward: steward).people.first?.id ?? ""
+                : person
+            PersonInspector(store: store, steward: steward, person: id)
         }
     }
 
