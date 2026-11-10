@@ -108,15 +108,15 @@ redesigned Overview and run-approval screens; the other screens still await revi
 
 Functional parity comes before polishing any one screen. Each item has a status (done,
 partial, missing) judged on what works end to end in the app on real data, the commits that
-built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-10: 13 done,
-5 partial, 0 missing.
+built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-10: 14 done,
+4 partial, 0 missing.
 
 | #  | Item                                   | Status  |
 | -- | -------------------------------------- | ------- |
 | 1  | Outcome, guardrails, ownership         | partial |
 | 2  | Self-onboarding                        | partial |
 | 3  | Train on history                       | done    |
-| 4  | Learn from results after acting        | partial |
+| 4  | Learn from results after acting        | done    |
 | 5  | Changes simulated before going live    | done    |
 | 6  | Works where people work                | done    |
 | 7  | Self-written, versioned routines       | done    |
@@ -144,9 +144,10 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-10:
    (e3187fc7, 91452312), import from a binding and a real folder connector (a05aad51,
    e02b9fd3), and the go-live gate. e2e: import, rehearse with history, review, agree,
    `steward gate`.
-4. Learn from results after acting (runtime, eval; app-outcome). Partial: outcome checks scored
-   per action kind (bbe9256d), trajectory grading with credit (8703fef0), and Impact in the app
-   (b4548d6e); e2e only drafts, so no graded run is covered yet. e2e: `steward trajectories`.
+4. Learn from results after acting (runtime, eval; app-outcome). Done: outcome checks scored
+   per action kind (bbe9256d), trajectory grading with credit (8703fef0), Impact in the app
+   (b4548d6e), and seeded follow-up checks (0596e756). e2e: `steward trajectories` on a seeded
+   demo home shows good runs and credit per action kind.
 5. Changes simulated against past cases before going live (eval). Done: the proposal gate and
    live readiness. e2e: a regressing proposal fails its gate; an editor proposal passes.
 6. Works where people work; anyone can ask, correct, or hand off (connect). Done: person

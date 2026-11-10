@@ -157,6 +157,16 @@ M4:
 - (from runtime) `OnboardSummary.records` (decision 0063): past records summarized from `history`; worth a word in `arya steward onboard` text and an e2e step with a history binding.
 
 ## Log
+- 2026-11-10: graded-run e2e (79 steps): e2e seeds a three-example demo home (about 40 s) and
+  asserts `steward trajectories` shows good runs and a credit line, since real homes run
+  actions dry. ROADMAP 4 flipped to done: 14 done, 4 partial, 0 missing.
+- 2026-11-10: Visual check (`just snapshot overview-live portfolio-live`, current seed):
+  portfolio-live shows 11 stewards by department, 7 need you, 5 behind, 1 running, with
+  sparklines, costs, and fleet activity; overview-live leads with 0.94 / 0.90 on track, the
+  live LEAD-LIVE run at step 9, three findings, Impact, and PLAN "Changed Nov 7" with the new
+  pricing item (review 15 nit fixed). Wrong: RUNS 7D bars and the 7-day chart spike on one day,
+  because the seeded rehearsal runs (42 for lead follow-up at 05:00 Nov 8) count as runs; asked
+  workspace to count live runs only.
 - 2026-11-10: `arya findings`, `arya finding resolve`, `arya template list|use`, with six e2e
   steps (77): the triage script's "Sweep the inbox for patterns" raises a problem and an
   opportunity; a person acts on the problem. ROADMAP 12 and 16 now name their e2e. Next: a
