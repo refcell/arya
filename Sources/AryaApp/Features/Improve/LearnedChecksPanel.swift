@@ -47,7 +47,7 @@ struct LearnedChecksPanel: View {
                     MarkGlyph(mark: .idle)
                 }
             }
-            .frame(width: 12)
+            .frame(width: AryaSpace.s3)
             Text(line.caseID).aryaText(AryaFont.mono, AryaColor.ink)
                 .frame(minWidth: 120, alignment: .leading)
             Text(line.text).aryaText(AryaFont.body, AryaColor.ink)
