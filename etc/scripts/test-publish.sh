@@ -4,8 +4,8 @@
 # "formats" by rewriting `fmt-me.swift`. Commits follow your git signing settings, so the
 # pushes pass the same hooks as real ones. Run with `just test-scripts`.
 #
-#   test-publish.sh [SCENARIO]   all scenarios, or one: code, docs-only, dirty, fmt, fmt-race, race,
-#                                conflict, lock (`just e2e` runs docs-only)
+#   test-publish.sh [SCENARIO]   all scenarios, or one: code, docs-only, dirty, fmt, fmt-race,
+#                                queue, race, conflict, lock (`just e2e` runs docs-only)
 set -euo pipefail
 publish="$(cd "$(dirname "$0")" && pwd)/publish.sh"
 root=$(mktemp -d "${TMPDIR:-/tmp}/arya-test-publish.XXXXXX")
@@ -23,6 +23,9 @@ check() { # check DESCRIPTION COMMAND...: report one expectation
     failures=$((failures + 1))
   fi
 }
+
+# Every scenario gets its own queue; tests poll every second.
+export ARYA_PUBLISH_QUEUE="$root/queue" ARYA_PUBLISH_POLL=1
 
 # The stub `just`: logs its arguments; `fmt` normalizes fmt-me.swift if it exists.
 cat >"$root/just" <<'EOF'
@@ -117,6 +120,40 @@ if want fmt-race; then
   check "says why" said "files changed during the publish"
   check "keeps the edit uncommitted" grep -q racing "$root/lane/docs/x.md"
   check "pushed nothing" origin_lacks "feat: add fmt-me"
+
+fi
+
+if want queue; then
+  echo "publish: waits its turn behind a live ticket; dead and stale tickets expire"
+  fresh
+  rm -rf "$root/queue" && mkdir -p "$root/queue"
+  echo three >>"$root/lane/code.swift" && commit lane "feat: queued"
+  sleep 300 &
+  holder=$!
+  sleep 300 &
+  stale=$!
+  (exit 0) &
+  dead=$!
+  wait "$dead" || true
+  now=$(date +%s)
+  echo gone-lane >"$root/queue/$((now - 30))-$dead"
+  echo hung-lane >"$root/queue/$((now - 20))-$stale"
+  touch -t "$(date -v-30M +%Y%m%d%H%M)" "$root/queue/$((now - 20))-$stale"
+  echo busy-lane >"$root/queue/$((now - 10))-$holder"
+  publish &
+  waiting=$!
+  sleep 4
+  check "waits behind the live ticket" said "queued: position 2 of 2"
+  check "names the lane publishing" said "publishing: busy-lane"
+  check "a dead ticket expires" test ! -e "$root/queue/$((now - 30))-$dead"
+  check "a stale ticket expires" test ! -e "$root/queue/$((now - 20))-$stale"
+  check "pushed nothing while waiting" origin_lacks "feat: queued"
+  { kill "$holder" "$stale" && wait "$holder" "$stale"; } 2>/dev/null || true
+  status=0
+  wait "$waiting" || status=$?
+  check "then publishes" test "$status" -eq 0
+  check "pushed the change" origin_has "feat: queued"
+  check "removed its ticket" test -z "$(ls "$root/queue")"
 
 fi
 

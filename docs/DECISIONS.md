@@ -623,3 +623,13 @@ every line of the segment; the existing first-line seq check still catches a seg
 changed underneath it, and a mismatch forgets the segment's marks and rescans. A probe
 (`ARYA_PERF=1`) measures a warm start on a 50,000-event home: about 5 ms, target 10 ms.
 
+
+### 0058 — 2026-11-10 — Lanes publish through a first-come queue
+
+`just publish` takes a ticket in `<git common dir>/arya-publish-queue` after its preflight
+(a file `<epoch seconds>-<pid>` holding the lane name) and waits until its ticket is the
+oldest live one before it fetches, rebases, runs `just ci`, and pushes; it removes the ticket
+on exit. A ticket whose process is gone, or untouched for 25 minutes (waiting lanes touch
+theirs on every 15 s poll), expires. While waiting it prints its position and who is
+publishing. Why: lanes polling for a free CI slot starved each other, and two lanes running
+`just ci` at once on one machine made both slow and their pushes race.

@@ -3,7 +3,9 @@
 # `just publish <TestFilter>`, where the filter names your lane's tests (`AryaCLITests`).
 #
 #   0. preflight: refuse a dirty tree or a rebase in progress, wait out a stale
-#      `index.lock`, run `just fmt`, and commit any formatting it changed on its own;
+#      `index.lock`, run `just fmt`, and commit any formatting it changed on its own; then
+#      wait for this lane's turn in the publish queue (first come first served,
+#      etc/scripts/publish-queue.sh), so lanes never race each other's `just ci`;
 #   1. fetch and rebase on origin/main, run the full `just ci`, push;
 #   2. on a rejected push, rebase again; without conflicts, re-check with tidy, build, and the
 #      filtered tests and push, at most three times; then go back to step 1.
@@ -23,7 +25,10 @@ set -euo pipefail
 export GIT_EDITOR=true GIT_TERMINAL_PROMPT=0
 started=$SECONDS
 say() { printf 'publish: [%4ds] %s\n' "$((SECONDS - started))" "$*"; }
+scripts=$(cd "$(dirname "$0")" && pwd)
 cd "$(git rev-parse --show-toplevel)"
+# shellcheck source=etc/scripts/publish-queue.sh
+. "$scripts/publish-queue.sh"
 
 filter=${1:?usage: publish.sh <TestFilter>}
 just=${ARYA_PUBLISH_JUST:-just}
@@ -38,6 +43,7 @@ rebasing() {
 # On any exit, never leave a rebase half done.
 cleanup() {
   rm -f "$log"
+  [ -z "$ticket" ] || rm -f -- "$ticket"
   if rebasing; then
     git rebase --abort >/dev/null 2>&1 || true
   fi
@@ -130,6 +136,8 @@ docs_only() {
 }
 
 preflight
+take_ticket
+wait_for_turn
 say "fetch and rebase on origin/main"
 rebase
 if docs_only; then
