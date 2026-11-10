@@ -139,6 +139,13 @@ is. Fix these five first; this lane owns its share:
 - Review #10: NOW reads the shell's live runs (`StatusBarLine.lines`, same as rail and status
   bar): title, step N, elapsed, `AryaProgressBar`, latest step; next run only when idle.
   IMPACT zero reads "±0.00" muted; RECENT and CONTEXT show people by name (`OutcomePeople`).
+- Review #11: FINDINGS sort by severity (harm, waiting, good, notes); a regressed proposal is
+  red, first, and wraps ("made 1 of 8 cases worse … stays off until you decide"). The policy
+  line lists each kind once. A metric change that rounds to zero reads "±0.00" (recap, fleet
+  movers). The inspector pulse reads the same serve status and live runs as NOW (minimal edit
+  on app-shell's 596d7e9 version).
+- Visual check: not re-rendered this push (CEO load order: only changed states, and no state
+  filter yet); last render overview-live 10:09 showed NOW, status bar and inspector agreeing.
 - Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
   next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
   (live feel) and 2 (no dead space).

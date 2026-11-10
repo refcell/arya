@@ -106,7 +106,10 @@ struct OutcomeAutonomy: Hashable, Sendable {
         for rule in policy?["rules"]?.array ?? [] {
             guard let action = rule["action"]?.string, let decision = rule["decision"]?.string
             else { continue }
-            lists[decision, default: []].append(action)
+            // A kind ruled twice (per binding) is listed once.
+            if lists[decision]?.contains(action) != true {
+                lists[decision, default: []].append(action)
+            }
         }
         let auto = lists["auto"] ?? []
         let level: Level =
@@ -327,7 +330,6 @@ enum OutcomeText {
         }
         let delta = last.value - first.value
         let days = Int((last.day.timeIntervalSince(first.day) / 86_400).rounded())
-        let sign = delta >= 0 ? "+" : "−"
-        return "\(sign)\(MetricText.value(abs(delta))) over \(days)d"
+        return "\(OutcomeDashboardText.credit(delta)) over \(days)d"
     }
 }

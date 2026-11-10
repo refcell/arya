@@ -28,7 +28,8 @@ struct StewardPulse: Equatable {
 
     static func build(
         steward: StewardSummary, runs: [RunSummary], approvals: [ApprovalSummary],
-        events: [FeatureEvent], now: Date, timeZone: TimeZone = .current
+        events: [FeatureEvent], now: Date, serve: FeatureServe? = nil, live: [LiveLine] = [],
+        timeZone: TimeZone = .current
     ) -> StewardPulse {
         let series = MetricSeries.build(events: events, steward: steward.id)
         var value = "—"
@@ -38,12 +39,16 @@ struct StewardPulse: Equatable {
         }
         let (totals, failed) = perDay(
             runs.filter { $0.parent == nil }, now: now, timeZone: timeZone)
-        let state = OutcomeState.build(events: events, steward: steward.id, now: now)
+        // One source and one format with NOW and the status bar (app-outcome).
+        let state = OutcomeState.build(
+            events: events, steward: steward.id, now: now, serve: serve)
         let next: String
         switch state.wake {
         case .paused: next = "paused"
         case .onDemand: next = "on demand"
-        case .at(let date): next = countdown(to: date, now: now)
+        case .at(let date):
+            let time = AryaTime.upcoming(date, now: now, timeZone: timeZone)
+            next = state.serving == false ? "due \(time)" : time
         }
         return StewardPulse(
             metricName: series?.definition.name, metricValue: value,
@@ -52,7 +57,9 @@ struct StewardPulse: Equatable {
             runsPerDay: totals, failedPerDay: failed,
             costToday: costToday(runs, now: now, timeZone: timeZone),
             nextWake: steward.status == .paused ? "paused" : next,
-            running: runs.filter { $0.status == .running }.count,
+            running: max(
+                runs.filter { $0.status == .running }.count,
+                live.filter { $0.steward == steward.id }.count),
             approvals: approvals.filter { $0.steward == steward.id },
             decisions: OutcomeContext.build(events: events, steward: steward.id).decisions)
     }
@@ -137,7 +144,8 @@ struct FleetPulse: Equatable {
             }
             if let points = series?.points, points.count >= 2 {
                 let delta = points[points.count - 1].value - points[points.count - 2].value
-                if abs(delta) > 1e-9 {
+                // A change that rounds to zero is not a mover ("−0.00").
+                if abs(delta) >= 0.005 {
                     let sign = delta > 0 ? "+" : "−"
                     let text = sign + StatusMapping.metric(abs(delta))
                     movers.append(

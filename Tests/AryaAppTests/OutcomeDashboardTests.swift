@@ -153,7 +153,12 @@ private func log() -> [FeatureEvent] {
     let findings = OutcomeFinding.build(
         events: events, steward: steward, state: snapshot.state, recap: snapshot.recap, now: now)
     let texts = findings.map(\.text)
-    #expect(texts.contains { $0.contains("case-0005 worse in rehearsal") })
+    #expect(texts.contains { $0.contains("cases worse in rehearsal (case-0005)") })
+    // Severity first: harm leads, then what waits on you, then good news, then notes.
+    let rank: [OutcomeFinding.Kind: Int] = [.negative: 0, .attention: 1, .positive: 2, .info: 3]
+    let ranks = findings.map { rank[$0.kind] ?? 9 }
+    #expect(ranks == ranks.sorted())
+    #expect(findings.first?.kind == .negative)
     #expect(texts.contains { $0.contains("wait on you") || $0.contains("waits on you") })
     #expect(
         texts.contains { $0.contains("missed its target") } == (snapshot.state.missed > 0))
@@ -185,4 +190,18 @@ private func log() -> [FeatureEvent] {
 @Test func peopleReadByName() {
     #expect(OutcomePeople.name("person:priya") == "Priya")
     #expect(OutcomePeople.name("inbox:MSG-1") == "inbox:MSG-1")
+}
+
+/// A kind ruled for two bindings shows once in the policy line.
+@Test func policyListsEachKindOnce() {
+    let charter: FeatureJSON = [
+        "policy": [
+            "default": "ask",
+            "rules": [
+                ["action": "reply", "decision": "auto"], ["action": "reply", "decision": "auto"],
+                ["action": "label", "decision": "auto"],
+            ],
+        ]
+    ]
+    #expect(OutcomeAutonomy.build(charter: charter).auto == ["reply", "label"])
 }

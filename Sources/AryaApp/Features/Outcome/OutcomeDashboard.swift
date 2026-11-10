@@ -273,15 +273,22 @@ struct OutcomeFinding: Hashable, Sendable, Identifiable {
         for item in list.open {
             let review = ProposalReview.build(item, events: events)
             if !review.worse.isEmpty {
+                let ids = review.worse.map(\.id).joined(separator: ", ")
                 out.append(
                     OutcomeFinding(
-                        kind: .attention,
-                        text: "A proposed change made "
-                            + review.worse.map(\.id).joined(separator: ", ")
-                            + " worse in rehearsal"))
+                        kind: .negative,
+                        text: "A proposed change made \(review.worse.count) of \(review.cases) "
+                            + "cases worse in rehearsal (\(ids)); it stays off until you decide"))
             }
         }
-        return out
+        // Severity first: harm, then what waits on you, then good news, then notes.
+        let rank: [OutcomeFinding.Kind: Int] = [
+            .negative: 0, .attention: 1, .positive: 2, .info: 3,
+        ]
+        return out.enumerated().sorted {
+            let (left, right) = (rank[$0.element.kind] ?? 9, rank[$1.element.kind] ?? 9)
+            return left != right ? left < right : $0.offset < $1.offset
+        }.map(\.element)
     }
 }
 
@@ -572,7 +579,6 @@ struct OutcomeFindingsSection: View {
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                     Text(mark(finding.kind)).aryaText(AryaFont.monoSmall, color(finding.kind))
                     Text(finding.text).aryaText(AryaFont.body, AryaColor.ink)
-                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(minHeight: AryaSize.rowHeight)
