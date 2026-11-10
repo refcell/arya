@@ -154,6 +154,38 @@ enum OutcomeWake: Hashable, Sendable {
         return .at(next)
     }
 
+    /// The last `limit` live top-level runs that ended (not rehearsals or child runs), oldest
+    /// first: true when the run finished, false when it failed. Mirrors the runtime's
+    /// `ScheduleStatus.recent` until the facade exposes it.
+    static func triggers(events: [FeatureEvent], steward: String, limit: Int = 5) -> [Bool] {
+        var live: Set<String> = []
+        var ended: [Bool] = []
+        for event in events where event.steward == steward {
+            guard let run = event.run else { continue }
+            switch event.type {
+            case "run.started":
+                if !OutcomeRuns.isRehearsal(event.payload), event.payload["parent"] == nil {
+                    live.insert(run)
+                }
+            case "run.finished" where live.contains(run): ended.append(true)
+            case "run.failed" where live.contains(run): ended.append(false)
+            default: continue
+            }
+        }
+        return Array(ended.suffix(limit))
+    }
+
+    /// The schedule line's lead: "Next run 14:00", "Next run Nov 10", "Paused", or
+    /// "Runs on demand".
+    func schedule(now: Date, timeZone: TimeZone = .current) -> String {
+        switch self {
+        case .paused: return "Paused"
+        case .onDemand: return "Runs on demand"
+        case .at(let date):
+            return "Next run \(AryaTime.upcoming(date, now: now, timeZone: timeZone))"
+        }
+    }
+
     func text(now: Date) -> String {
         switch self {
         case .paused: return "paused"
@@ -179,6 +211,8 @@ struct OutcomeState: Hashable, Sendable {
     var readiness: OutcomeReadiness
     var autonomy: OutcomeAutonomy
     var wake: OutcomeWake
+    /// The last five live triggered runs that ended, oldest first: true when it finished.
+    var triggers: [Bool] = []
     /// Values for the sparkline: daily means, or each reading while there is under two days.
     var trend: [Double]
 
@@ -210,6 +244,7 @@ struct OutcomeState: Hashable, Sendable {
             readiness: OutcomeReadiness.build(events: events, steward: steward),
             autonomy: OutcomeAutonomy.build(charter: charter),
             wake: OutcomeWake.build(events: events, steward: steward, charter: charter, now: now),
+            triggers: OutcomeWake.triggers(events: events, steward: steward),
             trend: trend)
     }
 }

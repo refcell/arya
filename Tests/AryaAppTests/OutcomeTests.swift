@@ -1,3 +1,4 @@
+import AryaDesign
 import Foundation
 import Testing
 
@@ -239,4 +240,28 @@ private func triage() -> OutcomeSnapshot {
     #expect(OutcomePlan.status("skipped") == .dropped)
     #expect(OutcomePlan.status("failed") == .failed)
     #expect(OutcomePlan.StepStatus.dropped.mark == OutcomePlan.StepStatus.failed.mark)
+}
+
+@Test func scheduleLineShowsNextRunAndRecentTriggers() throws {
+    let utc = try #require(TimeZone(identifier: "UTC"))
+    let now = Date(timeIntervalSince1970: 1_700_000_000)
+    #expect(
+        OutcomeWake.at(now.addingTimeInterval(3600)).schedule(now: now, timeZone: utc)
+            == "Next run \(AryaTime.clock(now.addingTimeInterval(3600), timeZone: utc))")
+    #expect(
+        OutcomeWake.at(now.addingTimeInterval(3 * 86_400)).schedule(now: now, timeZone: utc)
+            == "Next run Nov 17")
+    #expect(OutcomeWake.paused.schedule(now: now) == "Paused")
+    var log = FeatureEventBuilder(start: now)
+    for (index, ok) in [true, true, false, true, true, true].enumerated() {
+        let run = "run_\(index)"
+        log.add("run.started", steward: "st_triage", run: run, ["trigger": "interval"])
+        log.add(ok ? "run.finished" : "run.failed", steward: "st_triage", run: run)
+    }
+    log.add(
+        "run.started", steward: "st_triage", run: "run_r", ["trigger": "case", "rehearsal": true])
+    log.add("run.failed", steward: "st_triage", run: "run_r")
+    #expect(
+        OutcomeWake.triggers(events: log.events, steward: "st_triage")
+            == [true, false, true, true, true])
 }

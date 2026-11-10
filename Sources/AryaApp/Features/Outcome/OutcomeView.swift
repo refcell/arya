@@ -120,7 +120,14 @@ struct OverviewTab: View {
 struct OutcomeDetails: View {
     let state: OutcomeState
     let now: Date
-    @AryaState private var open = false
+    @AryaState private var open: Bool
+
+    /// - Parameter open: start expanded (snapshots render the facts this way).
+    init(state: OutcomeState, now: Date, open: Bool = false) {
+        self.state = state
+        self.now = now
+        _open = AryaState(initialValue: open)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
@@ -141,7 +148,7 @@ struct OutcomeDetails: View {
                 OutcomeFact(label: "Success", value: state.success)
                 OutcomeFact(label: "Readiness", value: state.readiness.text, color: readinessColor)
                 OutcomeFact(label: "Autonomy", value: state.autonomy.text)
-                OutcomeFact(label: "Next wake", value: state.wake.text(now: now))
+                OutcomeSchedule(state: state, now: now)
                 if let direction = state.metric?.direction {
                     OutcomeFact(label: "Direction", value: OutcomeText.direction(direction))
                 }

@@ -219,3 +219,10 @@ M4:
 - Visual check (`just snapshot` stewards, overview-light): Refund follow-up (red 0.84) first,
   Support inbox triage (muted 0.96 when selected), Weekly queue digest ring plus paused last;
   names untruncated at 240 pt; R1-R5 pass.
+- 2026-11-09 (M3.5): settings has an Edit charter… button (`FeatureRegistry.editCharter`). The
+  Details disclosure's Next wake fact became a Schedule line, "Next run 14:00 · last 5 ✓✓✓✕✓"
+  (`OutcomeSchedule`, `AryaTime.upcoming`, `TriggerStrip`). It is derived from the ledger
+  until the facade exposes runtime's `schedule()`. New snapshot state `details`. The sidebar
+  still waits on workspace's `fleet()`.
+- Visual check (`just snapshot` details, settings): Schedule reads "Next run 19:16 · last 5"
+  with five positive checks; Edit charter… is a quiet button under the steward id; R1-R5 pass.

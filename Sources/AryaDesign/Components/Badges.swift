@@ -27,6 +27,27 @@ public struct StatusDot: View {
     }
 }
 
+/// How the last few triggered runs went, oldest first: "✓✓✓✕✓", a check in the
+/// positive tone per run that finished and a cross in the negative tone per run that failed.
+public struct TriggerStrip: View {
+    let outcomes: [Bool]
+
+    public init(_ outcomes: [Bool]) {
+        self.outcomes = outcomes
+    }
+
+    public var body: some View {
+        outcomes.reduce(Text("")) { line, ok in
+            line
+                + Text(ok ? "✓" : "✕")
+                .foregroundColor(ok ? AryaColor.positive : AryaColor.negative)
+        }
+        .aryaText(AryaFont.monoSmall)
+        .accessibilityLabel(
+            "\(outcomes.filter { $0 }.count) of the last \(outcomes.count) runs succeeded")
+    }
+}
+
 /// A dot paired with its word: the way every run and approval state is shown.
 public struct StatusBadge: View {
     let status: AryaStatus

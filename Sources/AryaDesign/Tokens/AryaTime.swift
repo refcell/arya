@@ -34,6 +34,15 @@ extension AryaTime {
         return clock(date, format: sameYear ? "MMM d" : "MMM d, yyyy", timeZone: timeZone)
     }
 
+    /// A time ahead (a next run): the clock time under 24 hours away ("14:00"), else the date
+    /// ("Nov 10"). A time already passed reads "now".
+    public static func upcoming(_ date: Date, now: Date, timeZone: TimeZone = .current) -> String {
+        let seconds = date.timeIntervalSince(now)
+        if seconds <= 0 { return "now" }
+        return seconds < 86_400
+            ? clock(date, timeZone: timeZone) : clock(date, format: "MMM d", timeZone: timeZone)
+    }
+
     /// Clock time alone, "14:27", for step gutters in a transcript; "14:27:05" with `seconds`
     /// where steps land within the same minute.
     public static func clock(

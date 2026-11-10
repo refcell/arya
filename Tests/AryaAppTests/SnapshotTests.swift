@@ -71,6 +71,17 @@ import Testing
             }
         }
         try page("settings") { $0.inspector = true }
+        // The steward's Details disclosure, open: schedule line, readiness, autonomy.
+        if let store = model.featureContext().store {
+            let state = OutcomeState.build(
+                events: store.events, steward: steward.id, now: store.now)
+            let details = OutcomeDetails(state: state, now: store.now, open: true)
+                .padding(AryaSpace.s6)
+                .frame(width: 560, alignment: .topLeading)
+                .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+                .background(AryaColor.canvas)
+            try write("details", scheme: scheme, render(details, dark: dark))
+        }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()
         model.navigation.select(steward: steward.id)

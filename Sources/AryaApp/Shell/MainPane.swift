@@ -154,6 +154,8 @@ struct InspectorView: View {
                     section("Steward") {
                         Text(steward.name).aryaText(AryaFont.body, AryaColor.ink)
                         Text(steward.id).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        Button("Edit charter…") { FeatureRegistry.editCharter(model) }
+                            .buttonStyle(.aryaQuiet)
                     }
                     section("Effort") {
                         let effort = effortBinding(steward.id)

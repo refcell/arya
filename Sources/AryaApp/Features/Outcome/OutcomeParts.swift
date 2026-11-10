@@ -132,6 +132,29 @@ struct OutcomeSparkline: View {
 }
 
 /// An uppercase label over a monospaced value, for the headline's facts grid.
+/// "Next run 14:00 · last 5 ✓✓✓✕✓": when the steward runs next and how its
+/// last triggered runs went.
+struct OutcomeSchedule: View {
+    let state: OutcomeState
+    let now: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s1 / 2) {
+            Text("Schedule").aryaText(AryaFont.overline, AryaColor.inkFaint)
+            HStack(spacing: AryaSpace.s1) {
+                Text(state.wake.schedule(now: now)).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                if !state.triggers.isEmpty {
+                    Text("· last \(state.triggers.count)")
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                    TriggerStrip(state.triggers)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct OutcomeFact: View {
     let label: String
     let value: String
