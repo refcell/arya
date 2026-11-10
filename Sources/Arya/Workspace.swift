@@ -448,7 +448,18 @@ public actor Workspace {
     var readSink: CachedReadSink { CachedReadSink(workspace: self, sink: sink) }
 
     /// The cached projections, caught up with the ledger.
-    nonisolated func facadeState() throws -> FacadeState { try cache.current(home) }
+    nonisolated func facadeState() throws -> FacadeState {
+        let clock = ContinuousClock()
+        let start = clock.now
+        let before = cache.counters
+        let state = try cache.current(home)
+        if state.rebuilds != before.rebuilds {
+            FacadeTimings.shared.record("cache.rebuild", clock.now - start)
+        } else if state.applied != before.applied {
+            FacadeTimings.shared.record("cache.fold", clock.now - start)
+        }
+        return state
+    }
 
     func record(_ id: String) async throws -> StewardRecord? {
         try await stewardBook().records[StewardID(unchecked: id)]

@@ -147,6 +147,11 @@ final class FacadeCache: @unchecked Sendable {
     private var built = false
     private var signature: [String] = []
 
+    /// Events folded and rebuilds so far, for timing what a read made the cache do.
+    var counters: (applied: Int, rebuilds: Int) {
+        lock.withLock { (state.applied, state.rebuilds) }
+    }
+
     /// The state caught up with the ledger. When the folded events no longer continue (the
     /// head moved back, or the event after the last one folded does not chain to it, as after
     /// a restore), it rebuilds: books from the disk projection cache, which also covers a

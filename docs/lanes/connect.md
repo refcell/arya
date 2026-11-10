@@ -193,6 +193,7 @@ and receive a periodic report from it.
   inspector listing each delegate's status and outcome. Please also seed a promoted routine
   that runs (a `routine` action) so the library's pass rate and last run show real numbers;
   the demo's `flag-duplicate-charges` is proposed twice and never runs.
+- (from workspace) `learnedFrom(person:) -> LearnedFromSummary{items[{id, kind note|correction|review, text, steward, at, source, live, caseID}], taught, corrections, reviews, stewards, summary}` across stewards (notes authored, cases corrected, cases reviewed; matches `person:x` and `x`), cached; it can replace PeopleLearned's own projection.
 
 ## Log
 

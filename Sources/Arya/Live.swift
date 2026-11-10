@@ -246,6 +246,17 @@ struct LiveTally: Sendable {
             return step(
                 "tool_call", "Called \(tool)", text: payload["input"]?.stringValue, tool: tool,
                 callID: payload["step"]?.stringValue)
+        case ToolRecordType.call.rawValue:
+            let tool = payload["tool"]?.stringValue ?? "tool"
+            return step(
+                "tool_call", "Called \(tool)", text: payload["input"].map(pretty), tool: tool,
+                callID: payload["id"]?.stringValue)
+        case ToolRecordType.result.rawValue:
+            let failed = payload["isError"]?.boolValue ?? false
+            return step(
+                "tool_result", failed ? "Tool failed" : "Tool output",
+                text: payload["output"].map(pretty), callID: payload["id"]?.stringValue,
+                isError: failed)
         case StepEventType.output.rawValue:
             let blob = payload["blob"]?.stringValue
             return step(
@@ -396,4 +407,10 @@ final class LedgerWatch: @unchecked Sendable {
         fileSource = source
         watchedFile = newest
     }
+}
+
+/// The binding proxy's tool records (`run.tool.call`, `run.tool.result`).
+enum ToolRecordType {
+    static let call = EventType("run.tool.call")
+    static let result = EventType("run.tool.result")
 }

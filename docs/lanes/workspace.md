@@ -269,3 +269,6 @@ M3:
   `outcomeWindow(steward:)`; outcome trend, metric statuses, impact, and overview findings use
   it and name it in their text; regression findings are `negative`. The large-home timing test
   takes the best of three warm calls (a loaded publish re-check failed one at 26 ms).
+- 2026-11-10: run facts count tool records the way the TOOLS tab does (steps, else proxy
+  records, else adapter notifications); `learnedFrom(person:)` (notes, corrections, reviews by
+  a person) and debug `timings()` with `timed(_:_:)` and cache fold/rebuild timings.

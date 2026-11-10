@@ -169,3 +169,27 @@ private enum ProposalSummaryCharter {
         try await workspace.message(steward: "st_inbox", text: "  ")
     }
 }
+
+@Test func learnedFromListsAPersonsCorrectionsAndTimingsRecordCalls() async throws {
+    let opened = try await Opened([])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    #expect(
+        try await workspace.learnedFrom(person: "local").summary
+            == "Nothing learned from local yet.")
+    let corrected = try await workspace.message(
+        steward: "st_inbox", text: "Card updates are billing.", intent: "correct")
+    let learned = try await workspace.learnedFrom(person: "local")
+    #expect(learned.items.map(\.id) == [try #require(corrected.note)])
+    #expect(learned.items.first?.text == "Card updates are billing.")
+    #expect(learned.taught == 1 && learned.stewards == ["st_inbox"])
+    #expect(learned.summary == "Taught 1 note to 1 steward.")
+    #expect(try await workspace.learnedFrom(person: "person:sam").items.isEmpty)
+
+    workspace.resetTimings()
+    let value = await workspace.timed("test.call") { 7 }
+    #expect(value == 7)
+    _ = await workspace.timed("test.call") { 8 }
+    let timing = try #require(workspace.timings().first { $0.name == "test.call" })
+    #expect(timing.calls == 2 && timing.maxMillis >= timing.meanMillis)
+}

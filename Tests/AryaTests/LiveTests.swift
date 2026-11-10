@@ -221,3 +221,52 @@ private func first(
     lease.release()
     #expect(try await workspace.serveState().serving == false)
 }
+
+@Test func runFactsCountTheToolRecordsTheToolsTabLists() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let done = try await workspace.startRun(steward: "st_inbox", input: "First")
+    var started: Event?
+    try workspace.reader.forEach { event in
+        if event.run?.rawValue == done.id, event.type.rawValue == RunEventType.started {
+            started = event
+        }
+    }
+    let start = try #require(started)
+    func add(_ run: String, _ type: String, _ payload: JSONValue) async throws {
+        _ = try await workspace.sink.append(
+            RuntimeEventDraft(
+                type: type, steward: start.steward, run: RunID(unchecked: run),
+                actor: .localUser, payload: payload))
+    }
+
+    // The binding proxy's records: two calls, one result.
+    try await add("run_proxy", RunEventType.started, start.payload)
+    try await add("run_proxy", "run.tool.call", ["id": "t1", "tool": "inbox.get"])
+    try await add("run_proxy", "run.tool.result", ["id": "t1", "isError": false])
+    try await add("run_proxy", "run.tool.call", ["id": "t2", "tool": "billing.order"])
+    var facts = try #require(try await workspace.runFacts(run: "run_proxy"))
+    #expect(facts.status == "running" && facts.toolCalls == 2)
+    var observed = workspace.observe(run: "run_proxy").makeAsyncIterator()
+    var update = try #require(await observed.next())
+    #expect(update.steps.filter { $0.kind == "tool_call" }.count == facts.toolCalls)
+
+    // The runtime's step records win once the run has them, as on the TOOLS tab.
+    try await add("run_steps", RunEventType.started, start.payload)
+    for id in ["c1", "c2", "c3"] {
+        try await add(
+            "run_steps", StepEventType.started.rawValue,
+            ["step": .string(id), "tool": "search", "input": "MSG-9"])
+        try await add(
+            "run_steps", StepEventType.finished.rawValue,
+            ["step": .string(id), "ok": true, "bytes": "1", "chunks": "1", "millis": 5])
+    }
+    facts = try #require(try await workspace.runFacts(run: "run_steps"))
+    #expect(facts.toolCalls == 3)
+    observed = workspace.observe(run: "run_steps").makeAsyncIterator()
+    update = try #require(await observed.next())
+    #expect(update.steps.filter { $0.kind == "tool_call" }.count == 3)
+    try await add("run_proxy", StepEventType.started.rawValue, ["step": "c9", "tool": "search"])
+    #expect(try await workspace.runFacts(run: "run_proxy")?.toolCalls == 1)
+}

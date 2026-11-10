@@ -92,7 +92,11 @@ extension Workspace {
         var drafted = 0
         var failed = 0
         var decisions = 0
-        var tools = Set<String>()
+        // Tool calls as the TOOLS tab lists them: the runtime's step records win over the
+        // binding proxy's records, which win over the adapter's own notifications.
+        var stepped = Set<String>()
+        var proxied = Set<String>()
+        var reported = Set<String>()
         for event in state.byRun[record.id] ?? [] {
             switch event.type.rawValue {
             case ActionEventType.proposed: proposed += 1
@@ -102,10 +106,16 @@ extension Workspace {
             case RunEventType.decision: decisions += 1
             default:
                 for step in LiveTally.steps(event, run: record.id) where step.kind == "tool_call" {
-                    tools.insert(step.callID ?? "\(step.seq)")
+                    let id = step.callID ?? "\(step.seq)"
+                    switch event.type {
+                    case StepEventType.started: stepped.insert(id)
+                    case ToolRecordType.call: proxied.insert(id)
+                    default: reported.insert(id)
+                    }
                 }
             }
         }
+        let tools = !stepped.isEmpty ? stepped : !proxied.isEmpty ? proxied : reported
         let waiting = state.approvals.pending.filter { $0.run == record.id }.count
         let end = summary.endedAt
         let elapsed = max(0, (end ?? now).timeIntervalSince(summary.startedAt))
