@@ -129,7 +129,7 @@ public struct Inbox: Sendable {
 
         let noteID: NoteID? = intent == .correct ? engine.ambient.newID(NoteID.self) : nil
         var note: MemoryNote?
-        if let noteID, try await !Self.known(trimmed, steward: steward, engine.sink) {
+        if let noteID, try await !Self.known(trimmed, steward: steward, engine) {
             note = try MemoryNote(
                 id: noteID, text: trimmed, tags: ["correction"],
                 provenance: MemoryProvenance(author: MemoryAuthor(kind: .human, id: sender)))
@@ -225,10 +225,12 @@ public struct Inbox: Sendable {
         }
     }
 
-    private static func known(_ text: String, steward: StewardID, _ sink: any EventSink)
+    /// True when `steward` already has a live note with `text`. Reads the engine's cached
+    /// memory, so a message costs the events since the last read, not the history (0057).
+    private static func known(_ text: String, steward: StewardID, _ engine: RunEngine)
         async throws -> Bool
     {
-        let memory = try MemoryView(try await sink.events(from: 1)).memory
+        let memory = try await engine.start.current(engine.sink).memory.memory
         return memory.liveNotes(steward: steward).contains { $0.note.text == text }
     }
 }

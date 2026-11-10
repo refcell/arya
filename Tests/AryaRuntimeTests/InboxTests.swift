@@ -256,3 +256,20 @@ private func relayCharter() -> Charter {
             steward: triage, run: RunID(unchecked: "run_01"), action: action, binding: alex))
     #expect(missing == .failed(error: "unknown_relay:mail", output: nil))
 }
+
+@Test func handlingAMessageReadsOnlyTheEventsSinceTheLastRead() async throws {
+    let rig = InboxRig()
+    try await rig.create([.manual])
+    _ = try await rig.inbox.post("first fact", from: "alex", to: triage, intent: .correct)
+    let start = rig.harness.loop.start
+    let foldedBefore = await start.folded
+    let seqBefore = try await rig.harness.sink.events(from: 1).count
+    _ = try await rig.inbox.post("second fact", from: "alex", to: triage, intent: .correct)
+    let total = try await rig.harness.sink.events(from: 1).count
+    // The second message folds only what was appended since the first one read memory.
+    #expect(await start.folded - foldedBefore <= total - seqBefore + 4)
+    #expect(await start.folded - foldedBefore < total)
+    // A repeated correction is still recognized from the cached memory.
+    _ = try await rig.inbox.post("second fact", from: "alex", to: triage, intent: .correct)
+    #expect(try await rig.events("memory.added").count == 2)
+}

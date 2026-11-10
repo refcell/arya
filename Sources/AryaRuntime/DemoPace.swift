@@ -96,7 +96,9 @@ extension Scheduler {
     @discardableResult
     public func pace(now: Timestamp) async throws -> StewardID? {
         guard var pacer = demoPacer else { return nil }
-        let events = try await engine.sink.events(from: 1)
+        // Read the ledger only when a paced run is due, not on every serve pass (0057).
+        let due = pacer.nextAt.map { now.millis >= $0.millis } ?? false
+        let events = due ? try await engine.sink.events(from: 1) : []
         let request = try pacer.due(now: now, events: events)
         demoPacer = pacer
         guard let request else { return nil }

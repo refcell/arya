@@ -133,9 +133,10 @@ public actor Scheduler {
     /// Starts a scheduled run for every due steward; returns the stewards it started.
     @discardableResult
     public func tick(now: Timestamp) async throws -> [StewardID] {
-        let events = try await engine.sink.events(from: 1)
+        // The cached books: a pass reads the events since the last one, not the history (0057).
         let due = SchedulePlan.due(
-            stewards: try StewardBook(events), runs: try RunBook(events), now: now
+            stewards: try await engine.sink.book(StewardBook.self),
+            runs: try await engine.sink.book(RunBook.self), now: now
         ).filter { !scheduled.contains($0) }
         for steward in due {
             scheduled.insert(steward)
@@ -168,9 +169,8 @@ public actor Scheduler {
 
     /// Every steward's schedule at `now`, with its last `recent` triggered runs.
     public func status(now: Timestamp, recent: Int = 10) async throws -> [ScheduleStatus] {
-        let events = try await engine.sink.events(from: 1)
-        let runs = try RunBook(events)
-        return try StewardBook(events).all.map {
+        let runs = try await engine.sink.book(RunBook.self)
+        return try await engine.sink.book(StewardBook.self).all.map {
             SchedulePlan.status(of: $0, runs: runs, now: now, recent: recent)
         }
     }

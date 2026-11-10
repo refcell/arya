@@ -284,3 +284,4 @@ M4:
 - 2026-11-10: proactive findings (0055): `findings` in results → `finding.raised` once while open, `finding.resolved` by a person, facade `findings`/`resolveFinding`.
 - 2026-11-10: drafts (0056, CEO review #10): `ExecutionOutcome.drafted` → `action.executed` with `dryRun: true`; skipped by follow-ups and credit; facade shows "Drafted, not sent".
 - 2026-11-10: run start O(new events) (0057, CEO): `StartCache` on the engine (plans, memory, findings, effects by last seq), incremental `EffectFold`, ledger tail reads from line marks; warm start on 50k events about 5 ms (probe, `ARYA_PERF=1`).
+- 2026-11-10: per-message and per-pass reads (0057): inbox correction check reads the cached memory; scheduler tick/status read the cached steward and run books; demo pace reads the ledger only when a run is due. Test: handling message N folds only new events.
