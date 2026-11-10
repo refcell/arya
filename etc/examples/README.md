@@ -28,6 +28,10 @@ The live input `New message MSG-201: Refund for a duplicate charge` produces a `
 `route` action, which the policy executes, and a `reply`, which waits for approval. It also
 records one memory note and one `routed_within_1h` measurement.
 
+`New message MSG-203: Damaged order, please refund` hands "Draft the refund reply" to a crew:
+its result's `delegations` start a child run that drafts the reply (children only propose), and
+the script's `joins` entry answers the join run, which checks the draft.
+
 `charter-v2.json` drops the security routing guardrail and treats card-on-file questions as
 how-to. Gated on the casebook as imported, it improves `case-0006` and regresses `case-0005`
 (seven of eight both ways), so the gate fails and the demo home has one failed proposal to show.

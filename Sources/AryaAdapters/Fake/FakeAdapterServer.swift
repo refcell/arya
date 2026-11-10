@@ -110,7 +110,7 @@ public actor FakeAdapterServer {
             throw RPCError(
                 code: RPCErrorCode.capabilityNotSupported, message: "no OS sandbox")
         }
-        guard let match = script.response(for: request.input.text) else {
+        guard let match = script.response(for: request.input) else {
             throw RPCError(
                 code: RPCErrorCode.harnessFailure, message: "no script response for input")
         }

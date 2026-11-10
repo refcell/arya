@@ -342,6 +342,7 @@ else is optional:
 | response `startError` | `{"code":…,"message":…}`: `run/start` fails with it |
 | response `ignoreStop` | `true`: `run/stop` is acknowledged but no `run/result` follows |
 | response `steps` | performed after `events`, in order, one key each (below) |
+| `joins` | responses for crew join runs, by delegation id: a `join` input answers with the entry for the first child's `delegation` it names (its text carries run ids, so `responses` cannot match it) |
 
 | step | effect |
 | --- | --- |

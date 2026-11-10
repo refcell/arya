@@ -122,3 +122,21 @@ func runAsCrewHost(_ script: FakeScript, _ text: String, run: String) async thro
     let again = try JSONValue(encoding: fromMap).decode(FakeScript.self)
     #expect(again == fromMap)
 }
+
+/// Join runs carry run ids in their input, so scripts answer them by delegation id (`joins`).
+@Test func joinRunsAreAnsweredByDelegationID() throws {
+    let joined = FakeScript.Response(result: ["summary": "joined"])
+    let script = FakeScript(
+        responses: ["x": FakeScript.Response(result: ["summary": "x"])],
+        defaultResponse: FakeScript.Response(result: ["summary": "default"]),
+        joins: ["c1": joined])
+    let text = #"{"children":[{"delegation":"c1","run":"run_7","status":"completed"}]}"#
+    #expect(script.response(for: RunInput(kind: .join, text: text)) == joined)
+    let other = #"{"children":[{"delegation":"c9","run":"run_7","status":"completed"}]}"#
+    #expect(
+        script.response(for: RunInput(kind: .join, text: other))?.result == ["summary": "default"])
+    #expect(script.response(for: RunInput(kind: .manual, text: "x"))?.result == ["summary": "x"])
+    let decoded = try JSONDecoder().decode(
+        FakeScript.self, from: try JSONEncoder().encode(script))
+    #expect(decoded.joins == ["c1": joined])
+}

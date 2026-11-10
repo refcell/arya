@@ -6,13 +6,16 @@ import Foundation
 /// The format is documented in docs/PROTOCOL.md ("Fake adapter scripts"). `responses` maps the
 /// exact `run/start.input.text` to a response; other inputs get `default`; with neither,
 /// `run/start` fails with `-32004`. The equivalent list form `runs` (entries with an optional
-/// `input`) is read too; when both name an input, `responses` wins.
+/// `input`) is read too; when both name an input, `responses` wins. `joins` answers crew join
+/// runs, whose input text carries run ids: by the delegation id of the first child it names.
 public struct FakeScript: Sendable, Hashable, Codable {
     public var v: Int
     public var adapter: PeerInfo
     public var capabilities: Capabilities
     public var responses: [String: Response]
     public var defaultResponse: Response?
+    /// Responses for crew join runs, by delegation id.
+    public var joins: [String: Response]
 
     public static let defaultAdapter = PeerInfo(name: "fake", version: "0.1.0")
 
@@ -23,13 +26,15 @@ public struct FakeScript: Sendable, Hashable, Codable {
     public init(
         adapter: PeerInfo = FakeScript.defaultAdapter,
         capabilities: Capabilities = FakeScript.defaultCapabilities,
-        responses: [String: Response] = [:], defaultResponse: Response? = nil
+        responses: [String: Response] = [:], defaultResponse: Response? = nil,
+        joins: [String: Response] = [:]
     ) {
         self.v = 1
         self.adapter = adapter
         self.capabilities = capabilities
         self.responses = responses
         self.defaultResponse = defaultResponse
+        self.joins = joins
     }
 
     public init(from decoder: any Decoder) throws {
@@ -41,6 +46,7 @@ public struct FakeScript: Sendable, Hashable, Codable {
             ?? Self.defaultCapabilities
         responses = try c.decodeIfPresent([String: Response].self, forKey: .responses) ?? [:]
         defaultResponse = try c.decodeIfPresent(Response.self, forKey: .defaultResponse)
+        joins = try c.decodeIfPresent([String: Response].self, forKey: .joins) ?? [:]
         // The list form: each run carries its `input`; the run without one is the default.
         for run in try c.decodeIfPresent([ListedRun].self, forKey: .runs) ?? [] {
             if let input = run.input {
@@ -58,6 +64,7 @@ public struct FakeScript: Sendable, Hashable, Codable {
         try c.encode(capabilities, forKey: .capabilities)
         try c.encode(responses, forKey: .responses)
         try c.encodeIfPresent(defaultResponse, forKey: .defaultResponse)
+        if !joins.isEmpty { try c.encode(joins, forKey: .joins) }
     }
 
     /// One entry of the list form `runs`: a response plus the input it answers.
@@ -75,7 +82,7 @@ public struct FakeScript: Sendable, Hashable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case v, adapter, capabilities, responses, runs
+        case v, adapter, capabilities, responses, runs, joins
         case defaultResponse = "default"
     }
 
@@ -121,6 +128,20 @@ public struct FakeScript: Sendable, Hashable, Codable {
     /// The response for `text`: its exact entry, else the default.
     public func response(for text: String) -> Response? {
         responses[text] ?? defaultResponse
+    }
+
+    /// The response for `input`: a join run's by the delegation ids its children name (from
+    /// `joins`), else the one for its text.
+    public func response(for input: RunInput) -> Response? {
+        if input.kind == .join, !joins.isEmpty,
+            let value = try? CanonicalJSON.decode(JSONValue.self, from: Data(input.text.utf8)),
+            let match = value.objectValue?["children"]?.arrayValue?.lazy
+                .compactMap({ $0.objectValue?["delegation"]?.stringValue })
+                .compactMap({ joins[$0] }).first
+        {
+            return match
+        }
+        return response(for: input.text)
     }
 
     /// What the fake adapter does for one run input. Only `events`, `status`, and `result`

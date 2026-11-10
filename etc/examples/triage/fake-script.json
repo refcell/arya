@@ -3812,6 +3812,13 @@
             "metric": "routed_within_1h",
             "value": 0.95
           }
+        ],
+        "delegations": [
+          {
+            "id": "draft-refund-reply",
+            "title": "Draft the refund reply",
+            "input": "Draft the refund reply for MSG-203: ORDER-1043 arrived with a cracked screen and a refund of 24.00 is proposed."
+          }
         ]
       },
       "steps": [
@@ -3932,6 +3939,38 @@
       ],
       "decisions": [],
       "actions": []
+    }
+  },
+  "joins": {
+    "draft-refund-reply": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the crew report"
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Checked the drafted refund reply; it matches the reply waiting with the refund.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Check the drafted reply before it goes out",
+            "status": "done",
+            "rationale": "The child run drafted it; the parent proposed it for approval."
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "reply-ready",
+            "rationale": "The draft apologizes and states the refund.",
+            "why": "The draft answers the customer and promises nothing the refund approval has not settled."
+          }
+        ],
+        "actions": []
+      }
     }
   }
 }
