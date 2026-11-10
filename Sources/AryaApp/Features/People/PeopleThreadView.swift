@@ -16,7 +16,9 @@ struct PersonThreadView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let thread = PeopleThread(events: store.events, steward: steward, person: person.id)
+        let thread = PeopleThread(
+            events: store.events, steward: steward, person: person.id,
+            conversation: store.conversations[key])
         let titles = LedgerTable.runTitles(store.events)
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             if thread.entries.isEmpty {
@@ -35,6 +37,14 @@ struct PersonThreadView: View {
             Rectangle().fill(AryaColor.rule).frame(width: 1)
         }
         .animation(AryaMotion.appear(reduceMotion: reduceMotion), value: thread.entries.count)
+        .task(id: "\(key)#\(store.events.count)") {
+            // The facade's thread; without one (previews, older homes) the ledger fold stays.
+            if let entries = try? await store.workspace.conversation(
+                steward: steward, person: person.id)
+            {
+                store.conversations[key] = entries
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Conversation with \(person.name)")
     }
@@ -102,6 +112,8 @@ struct PersonThreadView: View {
         .padding(.top, AryaSpace.s1)
     }
 
+    private var key: String { "\(steward)/\(person.id)" }
+
     private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     private func send() {
@@ -122,7 +134,9 @@ struct PersonInspector: View {
     var body: some View {
         let directory = PeopleDirectory(events: store.events, steward: steward)
         if let found = directory.people.first(where: { $0.id == person }) {
-            let thread = PeopleThread(events: store.events, steward: steward, person: person)
+            let thread = PeopleThread(
+                events: store.events, steward: steward, person: person,
+                conversation: store.conversations["\(steward)/\(person)"])
             VStack(alignment: .leading, spacing: AryaSpace.s3) {
                 VStack(alignment: .leading, spacing: AryaSpace.s1) {
                     Text(found.name).aryaText(AryaFont.bodyStrong, AryaColor.ink)
@@ -138,6 +152,9 @@ struct PersonInspector: View {
                         : found.approves.map { $0 == "*" ? "any action" : $0 }
                             .joined(separator: ", "))
                 fact("Messages", PeopleThreadText.counts(thread))
+                if let reports = PeopleThreadText.reports(thread, now: store.now) {
+                    fact("Reports", reports)
+                }
                 VStack(alignment: .leading, spacing: AryaSpace.s1) {
                     Text("HANDED OFF").aryaText(AryaFont.label, AryaColor.inkFaint)
                     if thread.tasks.isEmpty {
@@ -150,6 +167,29 @@ struct PersonInspector: View {
                                 .frame(width: 96, alignment: .leading)
                             Text(task.text).aryaText(AryaFont.caption, AryaColor.ink)
                                 .lineLimit(2)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                    Text("LAST MESSAGES").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    let recent = thread.entries.filter { $0.action != "report" }.suffix(3)
+                    if recent.isEmpty {
+                        Text("None yet.").aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    }
+                    ForEach(Array(recent.reversed())) { entry in
+                        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                            Text(entry.inbound ? found.name : "steward")
+                                .aryaText(
+                                    AryaFont.monoSmall,
+                                    entry.inbound ? AryaColor.inkMuted : AryaColor.accent
+                                )
+                                .frame(width: 56, alignment: .leading)
+                            Text(entry.text).aryaText(AryaFont.caption, AryaColor.ink)
+                                .lineLimit(2)
+                            Spacer(minLength: 0)
+                            Text(FeatureTime.relative(entry.at, now: store.now))
+                                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -194,10 +234,18 @@ enum PeopleThreadText {
         return entry.action
     }
 
+    /// "2 sent · last 3d ago" for the reports this person received, nil when none.
+    static func reports(_ thread: PeopleThread, now: Date) -> String? {
+        let sent = thread.entries.filter { $0.action == "report" }
+        guard let last = sent.last else { return nil }
+        return "\(sent.count) sent · last \(FeatureTime.relative(last.at, now: now))"
+    }
+
     /// "3 in · 1 out · 1 open hand-off".
     static func counts(_ thread: PeopleThread) -> String {
-        let inbound = thread.entries.filter(\.inbound).count
-        var out = "\(inbound) in · \(thread.entries.count - inbound) out"
+        let messages = thread.entries.filter { $0.action != "report" }
+        let inbound = messages.filter(\.inbound).count
+        var out = "\(inbound) in · \(messages.count - inbound) out"
         if thread.open > 0 {
             out += " · \(thread.open) open hand-off" + (thread.open == 1 ? "" : "s")
         }

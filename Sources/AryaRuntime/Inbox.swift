@@ -259,12 +259,43 @@ public struct InboxEntry: Equatable, Sendable {
 public struct InboxBook: Sendable {
     public private(set) var threads: [StewardID: [InboxEntry]] = [:]
 
-    /// Folds `events` in order.
-    public init(_ events: [RuntimeEvent]) throws {
+    /// Folds `events` in order. An executed action is a delivery when its output names the
+    /// person's inbox (`BindingActionExecutor`), or when the action it settles was proposed on a
+    /// person binding: one in `people` for that steward, or a binding that messaged it before.
+    /// That second form keeps deliveries that recorded no inbox entry (dry runs, relays).
+    public init(_ events: [RuntimeEvent], people: [StewardID: Set<String>] = [:]) throws {
+        var people = people
+        // Run/action id → the proposed action on a person binding.
+        var addressed: [String: JSONValue] = [:]
         for event in events {
             guard let steward = event.draft.steward else { continue }
+            let payload = event.draft.payload
+            if event.type == ActionEventType.proposed, let run = event.draft.run,
+                let action = payload["action"], let binding = action["binding"]?.stringValue,
+                let id = action["id"]?.stringValue, people[steward]?.contains(binding) == true
+            {
+                addressed["\(run.rawValue)/\(id)"] = action
+                continue
+            }
+            if event.type == ActionEventType.executed, let run = event.draft.run,
+                payload["output"]?["inbox"]?.stringValue == nil,
+                let id = payload["action"]?.stringValue,
+                let action = addressed["\(run.rawValue)/\(id)"],
+                let person = action["binding"]?.stringValue
+            {
+                let params = action["params"]
+                let text = ["text", "body", "message"].lazy.compactMap { params?[$0]?.stringValue }
+                    .first
+                threads[steward, default: []].append(
+                    InboxEntry(
+                        seq: event.seq, at: event.at, direction: .outbound, person: person,
+                        channel: "inbox", text: text, run: run,
+                        action: action["kind"]?.stringValue))
+                continue
+            }
             if event.type == InboxEventType.message {
                 let message = try Payload.decode(InboxMessage.self, event.draft.payload)
+                people[steward, default: []].insert(message.from)
                 threads[steward, default: []].append(
                     InboxEntry(
                         seq: event.seq, at: event.at, direction: .inbound, person: message.from,

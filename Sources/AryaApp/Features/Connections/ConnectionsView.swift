@@ -286,9 +286,35 @@ struct ConnectionInspector: View {
                         ? "no steward"
                         : entry.connected.map { id in stewards.first { $0.id == id }?.name ?? id }
                             .joined(separator: ", "))
+                if let carries = ConnectionsText.carries(
+                    catalog, entry: entry, events: store.events)
+                {
+                    fact("Carries", carries)
+                }
                 fact(
                     "Secret",
                     credentials.hasCredential(for: entry.id) ? "in Keychain" : "none stored")
+                let relayed = ConnectionsText.relayed(entry.id, events: store.events)
+                if !relayed.isEmpty {
+                    VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                        Text("LAST MESSAGES").aryaText(AryaFont.label, AryaColor.inkFaint)
+                        ForEach(relayed, id: \.id) { event in
+                            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                                Text(
+                                    PeopleDirectory.displayName(event.payload["from"]?.string ?? "")
+                                )
+                                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                                .frame(width: 56, alignment: .leading)
+                                Text(event.payload["text"]?.string ?? "")
+                                    .aryaText(AryaFont.caption, AryaColor.ink).lineLimit(2)
+                                Spacer(minLength: 0)
+                                Text(FeatureTime.relative(event.at, now: store.now))
+                                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                            }
+                            .accessibilityElement(children: .combine)
+                        }
+                    }
+                }
                 VStack(alignment: .leading, spacing: AryaSpace.s1) {
                     Text("LAST TEST").aryaText(AryaFont.label, AryaColor.inkFaint)
                     Text(ConnectionsText.lastTest(tests.results[entry.id]))

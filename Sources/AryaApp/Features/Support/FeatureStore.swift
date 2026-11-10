@@ -29,6 +29,9 @@ final class FeatureStore: ObservableObject {
     @Published var knowledge: [String: FeatureKnowledge] = [:]
     /// The workspace's serve status, refreshed by the shell (app-outcome's `FeatureServe`).
     @Published var serve: FeatureServe?
+    /// Person threads from the facade (`Workspace.conversation`), keyed "steward/person"; the
+    /// People thread folds the ledger itself until one loads.
+    @Published var conversations: [String: [FeatureConversationEntry]] = [:]
     /// The review queue by steward, once read (Improve loads it; snapshots preload it).
     @Published var reviewQueues: [String: FeatureReviewQueue] = [:]
     /// Unified diffs of routines a run proposed, by work-diff id (the run pane loads them;

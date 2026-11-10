@@ -69,7 +69,12 @@ struct PeopleThread: Hashable, Sendable {
     /// Newest first.
     var tasks: [Task]
 
-    init(events: [FeatureEvent], steward: String, person: String) {
+    /// `conversation`, when the facade's read has loaded, supplies the messages and replies;
+    /// reports, hand-off tasks, and the working line always come from `events`.
+    init(
+        events: [FeatureEvent], steward: String, person: String,
+        conversation: [FeatureConversationEntry]? = nil
+    ) {
         self.person = person
         var entries: [Entry] = []
         var handoffs: [Entry] = []
@@ -149,6 +154,22 @@ struct PeopleThread: Hashable, Sendable {
                 }
             default: continue
             }
+        }
+        if let conversation {
+            // Kind and event id come from the ledger event at that seq.
+            let bySeq = Dictionary(
+                events.map { ($0.seq, $0) }, uniquingKeysWith: { first, _ in first })
+            let actions = Dictionary(
+                entries.filter { !$0.inbound }.map { ($0.seq, $0.action) },
+                uniquingKeysWith: { first, _ in first })
+            entries =
+                (conversation.map { item in
+                    Entry(
+                        id: bySeq[item.seq]?.id ?? "seq-\(item.seq)", seq: item.seq,
+                        at: bySeq[item.seq]?.at ?? .distantPast, inbound: item.inbound,
+                        intent: item.intent, text: item.text ?? "", run: item.run,
+                        action: item.inbound ? nil : (actions[item.seq] ?? "reply"))
+                } + entries.filter { $0.action == "report" }).sorted { $0.seq < $1.seq }
         }
         self.entries = entries
         working = theirs.last { ended[$0.run] == nil && (pending[$0.run]?.isEmpty ?? true) }

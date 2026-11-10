@@ -33,6 +33,32 @@ final class ConnectionTestStore: ObservableObject {
 
 /// Connection text, kept apart from layout so it can be tested.
 enum ConnectionsText {
+    /// The people a relay connection carries messages for, by name, with the steward when more
+    /// than one uses it: "Sam, Priya (Support inbox triage)". Nil when it relays for no one.
+    static func carries(
+        _ catalog: ConnectionsCatalog, entry: ConnectionsCatalog.Entry, events: [FeatureEvent]
+    ) -> String? {
+        guard let bySteward = catalog.relays[entry.id], !bySteward.isEmpty else { return nil }
+        let names = StewardNames.build(events: events)
+        return bySteward.keys.sorted().map { steward in
+            let directory = PeopleDirectory(events: events, steward: steward)
+            let people = bySteward[steward, default: []].map { id in
+                directory.people.first { $0.id == id }?.name ?? PeopleDirectory.displayName(id)
+            }
+            return people.joined(separator: ", ") + " (\(names[steward] ?? steward))"
+        }.joined(separator: "; ")
+    }
+
+    /// The newest messages a relay carried in (`inbox.message` with `via`), newest first.
+    static func relayed(_ connection: String, events: [FeatureEvent], limit: Int = 3)
+        -> [FeatureEvent]
+    {
+        Array(
+            events.filter {
+                $0.type == "inbox.message" && $0.payload["via"]?.string == connection
+            }.suffix(limit).reversed())
+    }
+
     /// "reads: search, get · does: label (low), reply (medium)".
     static func capabilities(_ entry: ConnectionsCatalog.Entry) -> String {
         var parts: [String] = []

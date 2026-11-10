@@ -41,6 +41,9 @@ protocol WorkspaceSource: Sendable {
     func reviewQueueSummary(steward: String) async throws -> FeatureReviewQueue?
     /// The Knowledge screen's notes and routines.
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge
+    /// One person's thread with a steward, oldest first.
+    func conversationEntries(steward: String, person: String) async throws
+        -> [FeatureConversationEntry]
     /// A run replayed under a proposal's charter, in one line.
     func whatIfSummary(run: String, proposal: String) async throws -> String
     /// A proposal backtested against the live charter.
@@ -107,6 +110,12 @@ extension WorkspaceSource {
 
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge {
         throw FeatureReadError.unavailable("knowledge")
+    }
+
+    func conversationEntries(steward: String, person: String) async throws
+        -> [FeatureConversationEntry]
+    {
+        throw FeatureReadError.unavailable("conversation")
     }
 
     func reviewQueueSummary(steward: String) async throws -> FeatureReviewQueue? {
@@ -282,6 +291,16 @@ extension Workspace: WorkspaceSource {
                 FeatureEventDetail.Step(
                     run: $0.run, index: $0.index, count: $0.count, title: $0.title)
             })
+    }
+
+    func conversationEntries(steward: String, person: String) async throws
+        -> [FeatureConversationEntry]
+    {
+        try await conversation(steward: steward, person: person).map {
+            FeatureConversationEntry(
+                seq: $0.seq, inbound: $0.direction == "inbound", intent: $0.intent, text: $0.text,
+                run: $0.run)
+        }
     }
 
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge {

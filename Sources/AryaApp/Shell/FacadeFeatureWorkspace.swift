@@ -54,6 +54,10 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.reviewQueueSummary(steward: steward)
     }
 
+    func conversation(steward: String, person: String) async throws -> [FeatureConversationEntry] {
+        try await source.conversationEntries(steward: steward, person: person)
+    }
+
     func knowledge(steward: String) async throws -> FeatureKnowledge {
         try await source.knowledgeSummary(steward: steward)
     }

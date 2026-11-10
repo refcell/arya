@@ -208,9 +208,12 @@ extension Workspace {
     public func conversation(
         steward: String, person: String? = nil, timeZone: TimeZone = .current
     ) async throws -> [ConversationEntry] {
-        let id = try await existing(steward).id
+        let record = try await existing(steward)
+        let id = record.id
         let now = now()
-        let thread = try InboxBook(try facadeState().runtime).threads[id, default: []]
+        let people = Set(record.charter.bindings.filter { $0.kind == .person }.map(\.id))
+        let thread = try InboxBook(try facadeState().runtime, people: [id: people])
+            .threads[id, default: []]
         return thread.filter { person == nil || $0.person == person }.map {
             ConversationEntry(
                 direction: $0.direction.rawValue, person: $0.person, channel: $0.channel,

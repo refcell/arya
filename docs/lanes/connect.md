@@ -93,6 +93,20 @@ and receive a periodic report from it.
   approval; new entries fade in. Thread lines name the steward and the run's title, never raw
   ids; statuses and tags are plain mono text. Remove sits behind More with a confirm, and
   Message is the row's one primary button.
+- 2026-11-10: Person threads read `Workspace.conversation(steward:person:)` through
+  `FeatureWorkspace.conversation` (cached in `FeatureStore.conversations`, reloaded as the
+  ledger grows); reports, hand-off tasks, and the working line still fold the ledger, since
+  the facade has no read for them. Until the read loads (and in offscreen snapshots) the app
+  folds the ledger the same way. `InboxBook` now also counts an executed action proposed on a
+  person binding as a delivery (charter people, or anyone who wrote first), so dry-run and
+  relayed replies appear in the facade's thread too (integration edit in AryaRuntime).
+- 2026-11-10: The person inspector shows who (name, role), reach, approvals, message counts,
+  reports received, hand-offs with status, and the last three messages; the connection
+  inspector shows the people a relay carries per steward and the last messages it carried in.
+  Visual check: `people-thread` shows the person inspector with Reports "1 sent · last Nov 9",
+  the needs-approval hand-off, and the last three messages; the weekly report reads "Reply Sam".
+  Moves (5) busy demo and (2) no dead space in the inspector. The demo has no relay, so the
+  connection inspector's Carries line is covered by tests only.
 
 ## Questions
 
@@ -112,6 +126,10 @@ and receive a periodic report from it.
   hand-off's run in progress; reviewer defects (a) to (e) fixed. (d) and (e) came from the
   old snapshot fixture (seeded report text and an extra approval); `people-thread` now renders
   the demo home itself, so reports come from `reportDigest` and counts from the workspace.
+  Visual check (6938b70): `people-thread` and `people-thread-live` on the demo home show Sam's
+  asks, the steward's replies, a correction, the weekly report, and hand-offs as tasks; the live
+  state adds "Support inbox triage calling inbox.search… step 2" under a new hand-off. Moves (5)
+  busy demo and (4) live feel; Needs you reads 6 in the rail and the status bar.
 
 - 2026-11-10: Channels, hand-offs, and periodic reports. People shows each person's thread and
   a "Message as" composer; the inspector lists their hand-offs with run status; the Report

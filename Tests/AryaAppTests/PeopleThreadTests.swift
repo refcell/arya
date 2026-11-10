@@ -78,12 +78,42 @@ import Testing
 
     @Test func countsAndTags() {
         let thread = thread()
-        #expect(PeopleThreadText.counts(thread) == "5 in · 3 out · 2 open hand-offs")
+        #expect(PeopleThreadText.counts(thread) == "5 in · 2 out · 2 open hand-offs")
         #expect(PeopleThreadText.tag(thread.entries[0]) == "ask")
         #expect(PeopleThreadText.tag(thread.entries[1]) == "reply")
         #expect(PeopleThreadText.tag(thread.entries[3]) == "hand off")
         #expect(PeopleThreadText.tag(thread.entries[5]) == "report")
         #expect(thread.entries[5].text.hasPrefix("Weekly report"))
         #expect(PeopleThreadText.placeholder("Sam") == "Message as Sam…")
+    }
+
+    @Test func theFacadesConversationSuppliesMessagesAndKeepsReportsAndTasks() throws {
+        let events = PeopleFixtures.events(steward: "st_triage", person: "person:sam", start: start)
+        let folded = thread()
+        let first = try #require(folded.entries.first)
+        // The facade knows one message and one reply; reports still come from the ledger.
+        let reply = try #require(folded.entries.first { !$0.inbound && $0.action == "reply" })
+        let conversation = [
+            FeatureConversationEntry(
+                seq: first.seq, inbound: true, intent: "ask", text: "From the facade", run: nil),
+            FeatureConversationEntry(
+                seq: reply.seq, inbound: false, intent: nil, text: "Reply", run: reply.run),
+        ]
+        let merged = PeopleThread(
+            events: events, steward: "st_triage", person: "person:sam",
+            conversation: conversation)
+        #expect(merged.entries.first?.text == "From the facade")
+        #expect(merged.entries.first?.id == first.id)
+        #expect(merged.entries.filter { $0.action == "reply" }.count == 1)
+        #expect(merged.entries.contains { $0.action == "report" })
+        #expect(merged.tasks == folded.tasks)
+        #expect(merged.working == folded.working)
+        #expect(merged.entries.map(\.seq) == merged.entries.map(\.seq).sorted())
+    }
+
+    @Test func reportsLineCountsOnlyReports() {
+        let folded = thread()
+        let line = PeopleThreadText.reports(folded, now: start.addingTimeInterval(86400))
+        #expect(line?.hasPrefix("1 sent · last ") == true)
     }
 }

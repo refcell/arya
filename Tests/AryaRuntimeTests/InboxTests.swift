@@ -125,6 +125,45 @@ private struct InboxRig {
     #expect(thread[1].action == "reply")
 }
 
+@Test func aReplyProposedOnAPersonBindingIsADeliveryWithoutAnInboxEntry() async throws {
+    let rig = InboxRig()
+    try await rig.create([.manual])
+    _ = try await rig.inbox.post("How many refunds this week?", from: "alex", to: triage)
+    let run = RunID(unchecked: "run_02")
+    let steps: [(String, JSONValue)] = [
+        (
+            ActionEventType.proposed,
+            [
+                "action": [
+                    "id": "a1", "kind": "reply", "binding": "alex", "target": "alex",
+                    "params": ["text": "Six."],
+                ]
+            ]
+        ),
+        (ActionEventType.executed, ["action": "a1", "output": ["dryRun": true]]),
+        (
+            ActionEventType.proposed,
+            ["action": ["id": "a2", "kind": "label", "binding": "tracker", "target": "x"]]
+        ),
+        (ActionEventType.executed, ["action": "a2", "output": ["dryRun": true]]),
+    ]
+    for (type, payload) in steps {
+        _ = try await rig.harness.sink.append(
+            RuntimeEventDraft(
+                type: type, steward: triage, run: run, actor: .system,
+                payload: payload))
+    }
+    let events = try await rig.harness.sink.events(from: 1)
+    let thread = try #require(try InboxBook(events).threads[triage])
+    #expect(thread.map(\.direction) == [.inbound, .outbound])
+    #expect(thread.last?.text == "Six.")
+    #expect(thread.last?.action == "reply")
+    #expect(thread.last?.person == "alex")
+    // A charter person who never wrote first is known through `people`.
+    let quiet = try InboxBook(Array(events.dropFirst(events.count - 4)), people: [triage: ["alex"]])
+    #expect(quiet.threads[triage]?.map(\.text) == ["Six."])
+}
+
 /// A relay MCP server: `receive` returns queued messages once; other tools echo their arguments.
 private actor RelayServer: ToolUpstream {
     var queued: [JSONValue]

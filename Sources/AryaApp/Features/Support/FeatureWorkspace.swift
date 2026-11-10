@@ -206,8 +206,21 @@ protocol FeatureWorkspace: Sendable {
     func knowledge(steward: String) async throws -> FeatureKnowledge
     /// A charter proposal backtested against the live charter, for Improve.
     func liveReadiness(proposal: String) async throws -> FeatureLiveReadiness
+    /// One person's conversation with a steward, oldest first (`Workspace.conversation`).
+    func conversation(steward: String, person: String) async throws -> [FeatureConversationEntry]
     /// Yields once whenever new events may be available.
     func changes() -> AsyncStream<Void>
+}
+
+/// One message in a person's thread: theirs (inbound) or the steward's delivery (outbound).
+struct FeatureConversationEntry: Hashable, Sendable {
+    var seq: Int
+    var inbound: Bool
+    /// `ask`, `correct`, or `handoff`, for inbound messages.
+    var intent: String?
+    var text: String?
+    /// The run that sent an outbound entry.
+    var run: String?
 }
 
 extension FeatureWorkspace {
@@ -252,6 +265,12 @@ extension FeatureWorkspace {
     /// Workspaces without a review queue report it unavailable; Improve then hides it.
     func reviewQueue(steward: String) async throws -> FeatureReviewQueue? {
         throw FeatureReadError.unavailable("review queue")
+    }
+
+    /// Workspaces without a conversation read report it unavailable; People then folds the
+    /// ledger itself.
+    func conversation(steward: String, person: String) async throws -> [FeatureConversationEntry] {
+        throw FeatureReadError.unavailable("conversation")
     }
 
     /// Workspaces without a Knowledge read report it unavailable.
