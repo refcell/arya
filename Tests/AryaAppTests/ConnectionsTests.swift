@@ -30,6 +30,31 @@ private func events() -> [FeatureEvent] {
 }
 
 @Suite struct ConnectionsCatalogTests {
+    @Test func aRelayCarriesItsPeopleAndShowsTheirLatestMessages() throws {
+        var log = events()
+        var builder = FeatureEventBuilder(start: Date(timeIntervalSince1970: 1_800_000_100))
+        for text in ["one", "two", "three", "four"] {
+            builder.add(
+                "inbox.message", actor: FeatureActor(kind: .human, id: "person:sam"),
+                ["from": "person:sam", "channel": "sam", "via": "mail", "text": .string(text)])
+        }
+        builder.add("inbox.message", ["from": "person:alex", "channel": "inbox", "text": "x"])
+        let base = log.map(\.seq).max() ?? 0
+        log += builder.events.map {
+            var event = $0
+            event.seq += base
+            return event
+        }
+        let catalog = ConnectionsCatalog(events: log)
+        let mail = try #require(catalog.entries.first { $0.id == "mail" })
+        let carries = try #require(ConnectionsText.carries(catalog, entry: mail, events: log))
+        #expect(carries.hasPrefix("Sam ("))
+        let tracker = try #require(catalog.entries.first { $0.id == "tracker" })
+        #expect(ConnectionsText.carries(catalog, entry: tracker, events: log) == nil)
+        let relayed = ConnectionsText.relayed("mail", events: log)
+        #expect(relayed.map { $0.payload["text"]?.string } == ["four", "three", "two"])
+    }
+
     @Test func listsConnectionsWithReadsActionsRiskAndStewards() throws {
         let catalog = ConnectionsCatalog(events: events())
         #expect(catalog.entries.map(\.id) == ["tracker", "mail"])
