@@ -96,6 +96,22 @@ import Testing
         try write(
             "governance-run-controls", scheme: scheme,
             render(Self.runControls(options), dark: dark, size: NSSize(width: 820, height: 300)))
+        // A dry run: no Undo, a quiet note (app-views).
+        let dryRun = HStack {
+            Text("Dry run: would have labeled MSG-9 as billing · manual").aryaText(
+                AryaFont.monoSmall, AryaColor.inkFaint)
+            Spacer(minLength: AryaSpace.s3)
+            RunGovernanceBar(
+                running: false, options: [], nothingApplied: true, problem: nil,
+                confirmAbort: .constant(false), showUndo: .constant(false),
+                reason: .constant(""), abort: { _ in }, undo: { _ in })
+        }
+        .padding(AryaSpace.s4)
+        .frame(width: 820, height: 80, alignment: .topLeading)
+        .background(AryaColor.canvas)
+        try write(
+            "run-controls-dry-run", scheme: scheme,
+            render(dryRun, dark: dark, size: NSSize(width: 820, height: 80)))
     }
 
     /// The header bar on a live run, and the two popovers it opens, side by side.

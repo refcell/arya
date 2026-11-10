@@ -354,7 +354,9 @@ import Testing
     private func runWindows(model: AppModel, scheme: String, dark: Bool) async throws {
         guard let store = model.featureStore else { return }
         let all = model.runs.values.flatMap { $0 }
-        func window(_ name: String, run: RunSummary, tab: WorkTab?) throws {
+        func window(_ name: String, run: RunSummary, tab: WorkTab?) async throws {
+            // Offscreen renders run no `.task`, so the workspace's numbers load first.
+            await store.loadRunFacts(run.id)
             var navigation = NavigationState()
             navigation.select(steward: run.steward)
             navigation.select(run: run.id, steward: run.steward)
@@ -364,7 +366,7 @@ import Testing
         }
         if let live = all.filter({ $0.status == .running }).max(by: { $0.startedAt < $1.startedAt })
         {
-            try window("run-live-window", run: live, tab: nil)
+            try await window("run-live-window", run: live, tab: nil)
         }
         let routineRuns = Set(
             store.events.filter { $0.type == "routine.proposed" }.compactMap(\.run))
@@ -373,7 +375,7 @@ import Testing
             for diff in RunWork.build(stream: stream, events: store.events).diffs {
                 await store.loadRoutineDiff(diff)
             }
-            try window("run-diff-window", run: diffRun, tab: .diff)
+            try await window("run-diff-window", run: diffRun, tab: .diff)
         }
     }
 

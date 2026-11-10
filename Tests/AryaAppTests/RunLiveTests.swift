@@ -111,3 +111,24 @@ import Testing
     let real = StreamStep(id: "e", number: 1, at: FeatureTestClock.now, kind: .action(drafted))
     #expect(!RunStream.isDryRun([real]))
 }
+
+@Test func undoShowsOnlyWhenTheRunAppliedSomething() {
+    func facts(applied: Int, drafted: Int, dryRun: Bool) -> FeatureRunFacts {
+        FeatureRunFacts(
+            running: false, started: FeatureTestClock.now, elapsedSeconds: 3, decisions: 1,
+            toolCalls: 0, actionsProposed: applied + drafted, actionsApplied: applied,
+            actionsDrafted: drafted, actionsWaiting: 0, stepIndex: 3, estimatedSteps: nil,
+            dryRun: dryRun)
+    }
+    #expect(
+        UndoState.of(facts: facts(applied: 0, drafted: 2, dryRun: true), steps: [])
+            == .nothingApplied)
+    #expect(UndoState.of(facts: facts(applied: 0, drafted: 0, dryRun: false), steps: []) == .hidden)
+    #expect(UndoState.of(facts: facts(applied: 1, drafted: 1, dryRun: false), steps: []) == .shown)
+    var drafted = ProposedActionStep(
+        actionID: "a1", kind: "label", target: "inbox:MSG-1", summary: "", rationale: "",
+        policy: "auto", outcome: .executed(output: ""))
+    drafted.dryRun = true
+    let step = StreamStep(id: "e", number: 1, at: FeatureTestClock.now, kind: .action(drafted))
+    #expect(UndoState.of(facts: nil, steps: [step]) == .nothingApplied)
+}

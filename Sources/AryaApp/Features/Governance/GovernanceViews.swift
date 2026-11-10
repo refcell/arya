@@ -17,8 +17,11 @@ struct RunGovernanceControls: View {
 
     var body: some View {
         let running = isRunning
+        let undo = UndoState.of(
+            facts: store.runFacts[run], steps: RunStream.build(events: events, run: run).steps)
         RunGovernanceBar(
-            running: running, options: cache.undo[run] ?? [], problem: cache.problem,
+            running: running, options: undo == .shown ? cache.undo[run] ?? [] : [],
+            nothingApplied: undo == .nothingApplied, problem: cache.problem,
             confirmAbort: $confirmAbort, showUndo: $showUndo, reason: $reason,
             abort: { text in
                 guard let source = store.governance else { return }
@@ -55,10 +58,29 @@ struct RunGovernanceControls: View {
     }
 }
 
+/// Whether a run offers Undo: only when it applied something. A dry run (drafted, applied
+/// nothing) says so quietly instead. The workspace's `runFacts` decide; the ledger projection
+/// is the fallback when the workspace has none.
+enum UndoState: Equatable {
+    case shown
+    case hidden
+    case nothingApplied
+
+    static func of(facts: FeatureRunFacts?, steps: [StreamStep]) -> UndoState {
+        if let facts {
+            if facts.dryRun { return .nothingApplied }
+            return facts.actionsApplied == 0 ? .hidden : .shown
+        }
+        return RunStream.isDryRun(steps) ? .nothingApplied : .shown
+    }
+}
+
 /// The controls themselves, with their state passed in, so snapshots draw them loaded.
 struct RunGovernanceBar: View {
     var running: Bool
     var options: [UndoOption]
+    /// The run drafted and applied nothing: no Undo, a quiet note instead.
+    var nothingApplied = false
     var problem: String?
     @Binding var confirmAbort: Bool
     @Binding var showUndo: Bool
@@ -68,7 +90,9 @@ struct RunGovernanceBar: View {
 
     var body: some View {
         HStack(spacing: AryaSpace.s2) {
-            if !options.isEmpty {
+            if nothingApplied {
+                Text("Nothing applied (dry run)").aryaText(AryaFont.caption, AryaColor.inkFaint)
+            } else if !options.isEmpty {
                 Button {
                     showUndo.toggle()
                 } label: {
