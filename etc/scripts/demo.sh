@@ -134,15 +134,18 @@ seed "st_triage: MSG-201 Refund for a duplicate charge, now" run st_triage \
 
 # A recent last look, about 2 h before the newest activity, so the Overview recap reads "Since
 # you looked …". The app reads `app/visits.json` (newest seq seen, per steward) in the home.
+# (`date -j` is the macOS form; the demo is macOS only.)
 mkdir -p "$home/app"
-"$bin/arya" --home "$home" ledger tail --count 100000 --json | python3 -c '
-import datetime, json, sys
-def at(e): return datetime.datetime.fromisoformat(e["at"].replace("Z", "+00:00")).timestamp()
-events = json.load(sys.stdin)
-cutoff = max(map(at, events)) - 2 * 3600
-seen = max(e["seq"] for e in events if at(e) <= cutoff)
-stewards = sorted({e["steward"] for e in events if e.get("steward")})
-json.dump({"v": 1, "lastSeen": {s: seen for s in stewards}}, sys.stdout, sort_keys=True)
-' >"$home/app/visits.json"
+ledger=$("$bin/arya" --home "$home" --json ledger tail --count 100000)
+newest=$(printf '%s\n' "$ledger" | sed -n 's/.*"at" : "\(.*\)".*/\1/p' | tail -n 1)
+cutoff=$(date -u -r "$(($(date -u -j -f '%Y-%m-%dT%H:%M:%S' "${newest%.*}" +%s) - 7200))" \
+  '+%Y-%m-%dT%H:%M:%S')
+seen=$(printf '%s\n' "$ledger" | awk -v cutoff="$cutoff" '
+  /"at" :/ { at = $3; gsub(/[",]/, "", at) }
+  /"seq" :/ { seq = $3; gsub(/,/, "", seq); if (substr(at, 1, 19) <= cutoff) last = seq }
+  END { print last }')
+entries=$("$bin/arya" --home "$home" --json steward list |
+  sed -n 's/.*"id" : "\(.*\)".*/"\1":'"$seen"'/p' | paste -sd, -)
+printf '{"lastSeen":{%s},"v":1}\n' "$entries" >"$home/app/visits.json"
 
 echo "demo: seeded $home; render it with \`just snapshot\` (offscreen, no window)"
