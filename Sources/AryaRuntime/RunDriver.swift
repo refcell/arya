@@ -18,6 +18,9 @@ final class RunDriver: @unchecked Sendable {
     private var leak = false
     private var turns = 0
     private var steps = StepRecorder()
+    /// In-run delegations still running (decision 0052).
+    private var delegations: [Task<Void, Never>] = []
+    private lazy var gate = DelegationGate(width: charter.crew.maxParallel)
     private let overdue = Flag()
     /// Set once a person asks to abort the run (`run.abort.requested`).
     private let aborted = Flag()
@@ -213,11 +216,10 @@ final class RunDriver: @unchecked Sendable {
             case .ask(let id, let params):
                 let answer = try await ask(params)
                 try? await adapter.answer(id, HostAskResult(answer: answer))
-            case .delegate(let id, _):
-                // In-run crews are not wired yet; the agent falls back to run/result delegations.
-                let refusal = HostDelegateResult.refused("use run/result delegations")
-                try? await adapter.answerDelegation(id, refusal)
+            case .delegate(let id, let params):
+                startDelegation(adapter, id, params)
             case .result(let params):
+                await finishDelegations()
                 if aborted.isSet { return try await finishAborted(adapter, &updates) }
                 if overdue.isSet {
                     let cost = await closeAdapter(adapter, &updates)
@@ -324,6 +326,31 @@ final class RunDriver: @unchecked Sendable {
         else { return }
         let answered = context.toolResults.contains { $0.tool == tool && $0.input == input }
         if !answered { leak = true }
+    }
+
+    /// Runs an in-run child for `host/delegate` in the background and answers when it ends,
+    /// so the parent's other messages keep flowing (decision 0052).
+    private func startDelegation(_ adapter: any Adapter, _ id: RPCID, _ params: HostDelegateParams)
+    {
+        let (loop, request, charter, run, gate) = (loop, request, charter, run, gate)
+        delegations.append(
+            Task {
+                let answer: HostDelegateResult
+                do {
+                    answer = try await loop.delegate(
+                        params, parent: run, request: request, charter: charter, gate: gate)
+                } catch {
+                    answer = HostDelegateResult(status: .failed, reason: "\(error)")
+                }
+                try? await adapter.answerDelegation(id, answer)
+            })
+    }
+
+    /// Waits for in-run children still running (an adapter normally waits for each answer
+    /// before its result).
+    private func finishDelegations() async {
+        for task in delegations { await task.value }
+        delegations = []
     }
 
     /// Records the live step events an adapter event adds (decision 0049).

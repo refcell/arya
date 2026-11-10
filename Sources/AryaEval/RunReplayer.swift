@@ -45,6 +45,7 @@ public struct RunReplayer: Replayer {
         let recording = try RunRecording(run: run, events: events)
         var request = try await recording.request(casebooks: casebooks)
         request.crewPolicy = .skip
+        request.delegations = recording.delegations
         request.crew = try Self.budget(of: run, in: events)
         let replayed = try await drive(recording, request)
         return Self.compare(run: run, recorded: recording.runEvents, replayed: replayed)
@@ -147,6 +148,38 @@ struct RunRecording: Sendable {
     var wireRecords: [WireRecord] {
         runEvents.filter { $0.type == RunEventType.adapterEvent }
             .compactMap { WireRecord(ledgerPayload: $0.payload) }
+    }
+
+    /// Each in-run delegation (`host/delegate`) as recorded, by delegation id: the parent's
+    /// `run.delegated` and the answer arya sent (runtime decision 0052).
+    var delegations: [String: RecordedDelegation] {
+        var asked: [RPCID: String] = [:]
+        var answers: [String: HostDelegateResult] = [:]
+        for record in wireRecords {
+            switch record.message {
+            case .request(let request)? where request.method == RPCMethod.hostDelegate:
+                asked[request.id] = request.params?["id"]?.stringValue
+            case .response(let response)?:
+                guard let id = asked[response.id], case .success(let value) = response.outcome,
+                    let answer = try? EvalPayload.decode(HostDelegateResult.self, value)
+                else { continue }
+                answers[id] = answer
+            default:
+                continue
+            }
+        }
+        var recorded: [String: RecordedDelegation] = [:]
+        for (id, answer) in answers {
+            let delegated = runEvents.first {
+                $0.type == RunDelegated.type.rawValue && $0.payload["delegation"]?.stringValue == id
+            }
+            recorded[id] = RecordedDelegation(
+                delegated: delegated.flatMap {
+                    try? EvalPayload.decode(RunDelegated.self, $0.payload)
+                },
+                answer: answer)
+        }
+        return recorded
     }
 
     var executions: [ExecutionOutcome] {

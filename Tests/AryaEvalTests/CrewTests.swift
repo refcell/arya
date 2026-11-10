@@ -176,3 +176,39 @@ private struct CrewCaseRunner: CaseRunner {
     // Every sentence is one line with no trailing punctuation.
     #expect(!say(ReadinessCounts(passed: 1, total: 1, gatePassed: true, checked: 3)).contains("\n"))
 }
+
+/// The parent hands one check to a child in the middle of its run and waits for it.
+private func inRunScript() -> FakeScript {
+    FakeScript(runs: [
+        FakeScript.Run(
+            input: "Issue ISSUE-2",
+            steps: [.delegate(id: "d1", title: "Check logs", input: "check logs")],
+            result: ["summary": "Used the logs.", "decisions": [["id": "p1", "choice": "bug"]]]),
+        FakeScript.Run(
+            input: "check logs",
+            result: ["summary": "logs", "decisions": [["id": "c1", "choice": "bug"]]]),
+    ])
+}
+
+@Test func anInRunDelegationIsACrewMemberAndReplaysFromTheRecording() async throws {
+    let ambient = Ambient.fixed(stepMillis: 3, seed: 63)
+    let sink = MemoryEventSink(ambient: ambient)
+    try await StewardLifecycle(sink: sink).create(crewCharter())
+    let approvals = ApprovalQueue(sink: sink, ambient: ambient)
+    let engine = RunEngine(
+        sink: sink, ambient: ambient, adapters: ScriptAdapters(script: inRunScript()),
+        dispatcher: ActionDispatcher(
+            sink: sink, approvals: approvals, executor: RecordingExecutor(outcomes: [:])),
+        approvals: approvals, workdir: { "scratch/\($0.rawValue)" })
+    let outcome = try await engine.run(.manual(crewSteward, text: "Issue ISSUE-2"))
+    #expect(outcome.phase == .finished(.completed))
+    let events = try await sink.events(from: 1)
+    // Scored like a result delegation: the child is a member of the parent's crew tree.
+    let members = try CrewTree.members(events, of: outcome.run)
+    #expect(members.count == 2)
+
+    let report = try await RunReplayer(sink: sink).replay(run: outcome.run)
+    #expect(report.passed)
+    #expect(report.divergence == nil)
+    #expect(report.crew?.map(\.run) == [members[1]])
+}

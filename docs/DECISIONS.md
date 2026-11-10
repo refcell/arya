@@ -545,3 +545,19 @@ generated from a fixed seed, relative to the day it runs. `just snapshot` copies
 home and keeps one live run in progress in the copy (its process holds the run's lease).
 Why: a process per seeded run made a fleet of eleven stewards take many minutes, and a run in
 progress only exists while a process holds it.
+
+### 0052 — 2026-11-10 — In-run delegations run through the crew path
+
+Context: adapters can send `host/delegate` and wait for a child's result, but the runtime
+refused it. Decision (CEO): the child runs exactly like a `run/result` delegation (decision
+0043): the parent's charter, policy, and autonomy with a `CrewBudget` capped at the parent's,
+`parent` set, input kind of the parent (a re-plan's child runs as `manual`), actions recorded
+as proposals only, and `run.delegated` on the parent naming the child or why it was refused
+(`depth_limit` from a child or join run, `adapter_not_allowed:<name>`, `unknown_effort:<v>`).
+It runs in the background so the parent's stream keeps flowing; at most `crew.maxParallel`
+children of one run run at once. The answer is `completed` with the child's result, `stopped`,
+or `failed` with the reason. The driver waits for open children before taking the parent's
+result. Replay answers from the recorded `host/delegate` responses (`RunRequest.delegations`)
+and replays the child as a crew member. Why: one path for crews keeps the safety rules and
+eval's scoring (`CrewTree`, by `run.delegated`) the same for both kinds.
+

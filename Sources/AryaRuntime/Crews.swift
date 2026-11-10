@@ -91,7 +91,7 @@ struct CrewRefusal: Error, Hashable {
 /// `run.delegated`: a delegation of the parent run (actor: the steward, run: the parent). A
 /// started child has `child`, `adapter`, `effort`, and `limits` as it will run with them; a
 /// refused one has `refused`.
-public struct RunDelegated: EventPayload {
+public struct RunDelegated: EventPayload, Hashable {
     public static let type = EventType("run.delegated")
     public var delegation: String
     public var title: String
@@ -215,7 +215,7 @@ extension RunEngine {
         return CrewOutcome(children: children, join: try await run(join))
     }
 
-    private func recordDelegated(_ payload: RunDelegated, _ steward: StewardID, _ parent: RunID)
+    func recordDelegated(_ payload: RunDelegated, _ steward: StewardID, _ parent: RunID)
         async throws
     {
         _ = try await sink.append(
