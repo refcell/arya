@@ -400,3 +400,27 @@ private struct WhatIfRunner: CaseRunner {
         try await corrector.correct(run: RunID(unchecked: "run_nope"), expected: want)
     }
 }
+
+/// A busy steward's casebook comes from its own finished runs: what it did, nobody objected.
+@Test func casebookBuildsFromAcceptedRuns() async throws {
+    let (sink, run) = try await recordRun()
+    let blobs = MemoryBlobs()
+    let builder = CasebookBuilder(sink: sink, blobs: blobs)
+    let built = try await builder.fromRuns(steward: steward, into: nil, name: "runs")
+    let book = try #require(built.casebook)
+    #expect(book.name == "runs")
+    #expect(built.harvested.map(\.reason) == [.accepted])
+    let item = try #require(book.cases.first)
+    #expect(item.id == (try RunCases.caseID(for: run)))
+    #expect(
+        item.expected == [
+            "decisions": [["choice": "billing"]],
+            "actions": [
+                ["kind": "label", "target": "inbox:MSG-1"],
+                ["kind": "route", "target": "inbox:MSG-1"],
+            ],
+        ])
+    #expect(item.source?.contains("accepted") == true)
+    // Nothing new on a second build.
+    #expect(try await builder.fromRuns(steward: steward, into: book, name: "runs").casebook == nil)
+}

@@ -137,6 +137,10 @@ check_review_queue() {
   expect "next case" "$(get next.caseID)" hist-MSG-113 && expect total "$(get total)" 35 &&
     expect reviewed "$(get reviewed)" 2
 }
+check_casebook_build() {
+  [ "$(get added)" -gt 0 ] || { echo "    no cases from runs"; return 1; }
+  case "$(get summary)" in "Added "*" from runs to "*) ;; *) echo "    $(get summary)"; return 1 ;; esac
+}
 check_history_steward() { expect id "$(get summary.id)" st_history; }
 check_binding_history() {
   expect added "$(get added)" 40 && expect casebook "$(get casebook)" history &&
@@ -400,6 +404,8 @@ step "agree with MSG-110" history rehearsal check_reviewed \
   review st_triage --case hist-MSG-110 --verdict agree
 step "corrections and agreements became checks" history rehearsal check_checks \
   checks st_triage
+step "grow the casebook from its runs" history rehearsal check_casebook_build \
+  casebook build st_triage
 step "a steward reading the inbox binding" history setup check_history_steward \
   steward create --charter "$work/history.json"
 step "import 40 past messages from it" history setup check_binding_history \

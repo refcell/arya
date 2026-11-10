@@ -160,6 +160,53 @@ extension Workspace {
     }
 }
 
+extension Workspace {
+    /// Builds or grows the steward's newest casebook (or a new one named `runs`) from its live
+    /// runs: corrected and denied runs, then finished runs nobody objected to, newest first,
+    /// expecting what they did. At most `limit` new cases.
+    public func buildCasebook(steward: String, limit: Int = 60, by person: String = "local")
+        async throws -> CasebookBuildSummary
+    {
+        let id = try await existing(steward).id
+        let newest = try await casebookIndex().last { $0.steward == steward }
+        var book: Casebook?
+        if let newest { book = try await casebookSource.casebook(version: newest.version) }
+        let outcome = try await CasebookBuilder(sink: sink, blobs: blobs).fromRuns(
+            steward: id, into: book, name: book?.name ?? "runs", limit: max(1, limit),
+            actor: .person(person))
+        let count = { (reason: HarvestReason) in
+            outcome.harvested.filter { $0.reason == reason }.count
+        }
+        let added = outcome.harvested.count
+        let name = outcome.casebook?.name ?? book?.name ?? "runs"
+        let noun = added == 1 ? "case" : "cases"
+        var parts: [String] = []
+        if count(.accepted) > 0 { parts.append("\(count(.accepted)) accepted") }
+        if count(.corrected) > 0 { parts.append("\(count(.corrected)) corrected") }
+        if count(.denied) > 0 { parts.append("\(count(.denied)) denied") }
+        let detail = parts.isEmpty ? "" : " (\(parts.joined(separator: ", ")))"
+        return CasebookBuildSummary(
+            steward: steward, casebook: name,
+            version: outcome.casebook?.version ?? book?.version, added: added,
+            cases: outcome.casebook?.cases.count ?? book?.cases.count ?? 0,
+            summary: added == 0
+                ? "No new runs to add to \(name)."
+                : "Added \(added) \(noun) from runs to \(name)\(detail).")
+    }
+}
+
+/// What `buildCasebook` added.
+public struct CasebookBuildSummary: Sendable, Hashable, Codable {
+    public var steward: String
+    public var casebook: String
+    public var version: String?
+    public var added: Int
+    /// Cases in the casebook afterwards.
+    public var cases: Int
+    /// `Added 42 cases from runs to runs (40 accepted, 2 corrected).`
+    public var summary: String
+}
+
 /// The review queue as the CLI and app read it.
 public typealias ReviewQueueSummary = ReviewQueueView
 /// One case in the review queue.

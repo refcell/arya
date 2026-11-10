@@ -467,6 +467,13 @@ extension WorkspaceBackend {
         }
     }
 
+    func buildCasebook(steward: String, limit: Int) async throws(CLIError) -> CasebookBuildSummary {
+        let workspace = try await open()
+        return try await call("buildCasebook") {
+            try await workspace.buildCasebook(steward: steward, limit: limit)
+        }
+    }
+
     func learnedChecks(steward: String) async throws(CLIError) -> LearnedChecksSummary? {
         let workspace = try await open()
         return try await call("learnedChecks") {

@@ -8,6 +8,9 @@ public enum HarvestReason: String, Hashable, Sendable, Codable {
     case corrected
     /// A person denied one of its actions; the case expects the run without that action.
     case denied
+    /// The run finished and nobody corrected it or denied an action; the case expects what it
+    /// did (`CasebookBuilder.fromRuns`).
+    case accepted
 }
 
 /// One live run harvested into a case, with provenance.
@@ -77,6 +80,62 @@ public struct CasebookBuilder: Sendable {
         try await CasebookImporter(blobs: blobs, sink: sink).record(
             next, steward: steward, actor: actor, correctedFrom: book.version)
         return HarvestOutcome(casebook: next, harvested: found.map(\.1))
+    }
+
+    /// Builds or grows a casebook from the steward's live runs: corrected and denied runs as
+    /// `harvest` takes them, then finished runs nobody objected to, newest first, expecting what
+    /// they did. Skips crew children, failed runs, and inputs or runs the casebook already has;
+    /// adds at most `limit` cases. `book` nil starts a casebook named `name`.
+    public func fromRuns(
+        steward: StewardID, into book: Casebook?, name: String, limit: Int = 60,
+        actor: RuntimeActor = .system
+    ) async throws -> HarvestOutcome {
+        let events = try await sink.events(from: 1)
+        let start = try book ?? Casebook(name: name, cases: [])
+        var found = Array(try await candidates(steward: steward, in: start).prefix(limit))
+        var ids = Set(start.cases.map(\.id)).union(found.map(\.1.caseID))
+        var inputs = Set((start.cases + found.map(\.0)).map { Self.normalized($0.input.text) })
+        var failed = Set<RunID>()
+        var finished: [(RuntimeEvent, RunID)] = []
+        for event in events where event.draft.steward == steward {
+            guard let run = event.draft.run else { continue }
+            if event.type == RunEventType.failed { failed.insert(run) }
+            if event.type == RunEventType.finished { finished.append((event, run)) }
+        }
+        for (event, run) in finished.reversed() where found.count < limit {
+            guard !failed.contains(run), let caseID = try? RunCases.caseID(for: run),
+                !ids.contains(caseID),
+                let started = events.first(where: {
+                    $0.draft.run == run && $0.type == RunEventType.started
+                })
+            else { continue }
+            let body = try EvalPayload.decode(RunStarted.self, started.payload)
+            guard body.rehearsal == nil, body.parent == nil else { continue }
+            let input = Self.normalized(body.input.text)
+            guard !input.isEmpty, !inputs.contains(input) else { continue }
+            var item = try RunCases.makeCase(events, run: run)
+            item.source = "run \(run.rawValue) accepted (nobody corrected it) at \(event.at)"
+            ids.insert(caseID)
+            inputs.insert(input)
+            found.append(
+                (
+                    item,
+                    HarvestedCase(
+                        run: run, reason: .accepted, event: event.id, actor: "system:arya",
+                        caseID: caseID)
+                ))
+        }
+        guard !found.isEmpty else { return HarvestOutcome(casebook: nil, harvested: []) }
+        var next = start
+        for (item, _) in found { next = try next.upserting(item) }
+        try await CasebookImporter(blobs: blobs, sink: sink).record(
+            next, steward: steward, actor: actor, correctedFrom: book?.version)
+        return HarvestOutcome(casebook: next, harvested: found.map(\.1))
+    }
+
+    /// Lowercased, whitespace collapsed: two inputs that read the same are one case.
+    static func normalized(_ text: String) -> String {
+        text.lowercased().split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 
     typealias Expectation = @Sendable ([RuntimeEvent], RunID) throws -> JSONValue

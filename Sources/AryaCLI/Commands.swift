@@ -36,6 +36,7 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case historyImport = "history import"
     case review
     case checks
+    case casebookBuild = "casebook build"
     case message
     case reportShow = "report show"
     case reportSend = "report send"

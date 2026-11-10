@@ -11,6 +11,7 @@ protocol HistoryBackend: Sendable {
     func reviewCase(steward: String, case: String, verdict: String) async throws(CLIError)
         -> ReviewQueueSummary?
     func learnedChecks(steward: String) async throws(CLIError) -> LearnedChecksSummary?
+    func buildCasebook(steward: String, limit: Int) async throws(CLIError) -> CasebookBuildSummary
 }
 
 extension HistoryBackend {
@@ -32,6 +33,10 @@ extension HistoryBackend {
 
     func learnedChecks(steward: String) async throws(CLIError) -> LearnedChecksSummary? {
         throw .unavailable("learnedChecks")
+    }
+
+    func buildCasebook(steward: String, limit: Int) async throws(CLIError) -> CasebookBuildSummary {
+        throw .unavailable("buildCasebook")
     }
 }
 
@@ -72,6 +77,15 @@ extension CommandTable {
             id: .checks,
             summary: "Checks people taught the steward by correcting and agreeing, and its score",
             positionals: [PositionalSpec(name: "steward", help: "steward id")]),
+        CommandSpec(
+            id: .casebookBuild,
+            summary: "Grow the casebook from live runs: corrected, denied, then accepted ones",
+            positionals: [PositionalSpec(name: "steward", help: "steward id")],
+            options: [
+                OptionSpec(
+                    name: "limit", kind: .value(placeholder: "n"),
+                    help: "most cases to add (default: 60)")
+            ]),
     ]
 }
 
@@ -112,6 +126,16 @@ extension CLI {
             }
             guard let queue else { throw .notFound("casebook for \(steward)") }
             try output.emit(queue, json: json, text: HistoryText.queue)
+        case .casebookBuild:
+            var limit = 60
+            if let raw = values["limit"] {
+                guard let parsed = Int(raw), parsed > 0 else {
+                    throw .usage("--limit must be a positive number", command: .casebookBuild)
+                }
+                limit = parsed
+            }
+            let summary = try await backend.buildCasebook(steward: steward, limit: limit)
+            try output.emit(summary, json: json, text: { [$0.summary] })
         case .checks:
             guard let checks = try await backend.learnedChecks(steward: steward) else {
                 throw .notFound("checks for \(steward) (review or correct a case first)")
