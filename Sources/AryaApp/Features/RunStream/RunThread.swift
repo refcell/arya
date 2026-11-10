@@ -56,6 +56,7 @@ struct RunThread: View {
 struct RunHeader: View {
     var stream: RunStream
     var accessory = AnyView(EmptyView())
+    var now = Date()
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -67,6 +68,16 @@ struct RunHeader: View {
             }
             Text(stream.facts.text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+            if let progress = stream.progress {
+                HStack(spacing: AryaSpace.s2) {
+                    AryaSpinner()
+                    Text(progress.text(now: now)).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                        .fixedSize()
+                    AryaProgressBar(progress.fraction, isLive: true)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Running: \(progress.text(now: now))")
+            }
         }
     }
 }
@@ -224,7 +235,7 @@ struct MarkGlyph: View {
         case .failed:
             Image(systemName: "xmark").aryaText(AryaFont.monoSmall, AryaColor.negative)
                 .accessibilityLabel("failed")
-        case .running: StatusDot(.running)
+        case .running: AryaSpinner().accessibilityLabel("running")
         case .waiting: StatusDot(.waiting)
         case .idle:
             Image(systemName: "circle").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)

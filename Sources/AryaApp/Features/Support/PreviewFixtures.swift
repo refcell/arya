@@ -423,4 +423,81 @@ extension PreviewFixtures {
             ["status": "completed", "summary": "Labeled MSG-301 as billing with a drafted reply."])
         return log.events
     }
+
+    static let inProgressRun = "run_live"
+
+    /// A run in progress: two finished runs for history, then a live one that has read the
+    /// message, called one tool, decided, and is waiting on a second tool call.
+    static func live(now: Date) -> [FeatureEvent] {
+        var log = FeatureEventBuilder(start: now.addingTimeInterval(-600))
+        let adapter = FeatureActor(kind: .adapter, id: "fake-triage")
+        log.add("steward.created", actor: .localUser, ["charter": charter, "version": 1])
+        for (index, run) in ["run_h1", "run_h2"].enumerated() {
+            log.add("run.started", run: run, ["trigger": "message"])
+            for step in 0..<4 {
+                log.add(
+                    "run.decision", run: run, after: 1,
+                    [
+                        "decision": [
+                            "id": .string("d\(step)"), "choice": "billing", "rationale": "History.",
+                        ]
+                    ])
+            }
+            log.add(
+                "run.finished", run: run, after: 1,
+                ["status": "completed", "summary": .string("Earlier run \(index + 1).")])
+        }
+        log.add(
+            "run.started", run: inProgressRun, at: now.addingTimeInterval(-4.2),
+            [
+                "trigger": "message", "adapter": "fake-triage", "effort": "medium",
+                "input": [
+                    "kind": "message", "text": "New message MSG-412: Refund for a broken lamp?",
+                ],
+            ])
+        log.add(
+            "run.adapter.event", run: inProgressRun, actor: adapter, after: 0.1,
+            [
+                "direction": "sent",
+                "message": [
+                    "jsonrpc": "2.0", "id": 1, "method": "run/start",
+                    "params": ["input": "MSG-412"],
+                ],
+            ])
+        log.add(
+            "run.adapter.event", run: inProgressRun, actor: adapter, after: 0.2,
+            wire(1, ["kind": "thinking", "text": "Reading the message and the order."]))
+        log.add(
+            "run.tool.call", run: inProgressRun, after: 0.3,
+            ["id": "t1", "tool": "inbox.get", "binding": "inbox", "input": ["id": "MSG-412"]])
+        log.add(
+            "run.tool.result", run: inProgressRun, after: 0.4,
+            [
+                "id": "t1", "isError": false, "durationSeconds": 0.4,
+                "output": [
+                    "id": "MSG-412", "from": "customer:c-412",
+                    "body":
+                        "The lamp arrived broken.\nOrder ORDER-2210.\nPhoto attached.\n"
+                        + "I would like a refund.\nThanks.",
+                ],
+            ])
+        log.add(
+            "run.decision", run: inProgressRun, after: 0.5,
+            [
+                "decision": [
+                    "id": "d1", "choice": "billing",
+                    "rationale": "A damaged item with an order number is a refund request.",
+                ]
+            ])
+        log.add(
+            "run.tool.call", run: inProgressRun, after: 0.3,
+            [
+                "id": "t2", "tool": "billing.order", "binding": "billing",
+                "input": ["order": "ORDER-2210"],
+            ])
+        log.add(
+            "run.adapter.event", run: inProgressRun, actor: adapter, after: 0.2,
+            wire(2, ["kind": "tool_call", "id": "t2", "tool": "billing.order"]))
+        return log.events
+    }
 }

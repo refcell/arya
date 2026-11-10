@@ -254,7 +254,7 @@ struct RunWork: Hashable, Sendable {
 
     /// One JSON-RPC line: "→ initialize {"client":…}" or "← tool_call {…}".
     static func outputLine(_ event: FeatureEvent, timeZone: TimeZone) -> WorkLine {
-        let sent = event.payload["direction"]?.string == "sent"
+        let sent = ["sent", "out"].contains(event.payload["direction"]?.string ?? "")
         let message = event.payload["message"] ?? .null
         let method =
             message["method"]?.string

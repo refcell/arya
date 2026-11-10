@@ -35,7 +35,7 @@ struct RunStreamView: View {
                 guidance: "Steps appear here as the run reads, decides, and proposes.")
         } else {
             VStack(spacing: 0) {
-                RunHeader(stream: stream, accessory: accessory)
+                RunHeader(stream: stream, accessory: accessory, now: store.now)
                     .padding(.horizontal, AryaSpace.s4)
                     .padding(.vertical, AryaSpace.s2)
                 AryaHairline()
@@ -64,6 +64,11 @@ struct RunStreamView: View {
                 }
             }
             .background(AryaColor.canvas)
+            .task(id: stream.status == .running ? run : nil) {
+                guard stream.status == .running else { return }
+                // Steps appear and output appends as the ledger grows; ends with the run.
+                for await _ in store.workspace.observeRun(run) { await store.reload() }
+            }
         }
     }
 

@@ -27,6 +27,8 @@ protocol WorkspaceSource: Sendable {
     func record(_ write: FeatureWrite) async throws
     /// A routine version's body, or nil if it is missing.
     func routineBody(steward: String, name: String, version: String) async throws -> String?
+    /// Yields each time a live run's ledger grows; finishes when the run ends.
+    func observeRun(_ run: String) -> AsyncStream<Void>
     /// One case's expected result in a casebook version, or nil if it is missing.
     func expectedResult(casebook: String, caseID: String) async throws -> FeatureJSON?
     /// Replays a run from the ledger alone.
@@ -58,6 +60,8 @@ protocol WorkspaceSource: Sendable {
 }
 
 extension WorkspaceSource {
+    func observeRun(_ run: String) -> AsyncStream<Void> { AsyncStream { $0.finish() } }
+
     func schedulerServing() async -> Bool? { nil }
 
     func liveLines() async -> [LiveLine] { [] }
@@ -114,6 +118,17 @@ extension WorkspaceSource {
 }
 
 extension Workspace: WorkspaceSource {
+    nonisolated func observeRun(_ run: String) -> AsyncStream<Void> {
+        let updates = observe(run: run)
+        return AsyncStream { continuation in
+            let task = Task {
+                for await _ in updates { continuation.yield() }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
     nonisolated var label: String { home.lastPathComponent }
 
     /// Serving here, or another process holds `<home>/scheduler.lock` (the lock `arya serve`

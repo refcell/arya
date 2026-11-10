@@ -259,6 +259,15 @@ import Testing
             .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
             .background(AryaColor.canvas)
         try write("run-crew", scheme: scheme, render(crew, dark: dark))
+        // A run in progress (app-views): spinner on the open tool call, progress, caret.
+        let liveStore = FeatureStore(
+            workspace: PreviewWorkspace(events: PreviewFixtures.live(now: now), now: now),
+            now: now)
+        await liveStore.reload()
+        let live = RunStreamView(store: liveStore, run: PreviewFixtures.inProgressRun)
+            .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+            .background(AryaColor.canvas)
+        try write("run-live", scheme: scheme, render(live, dark: dark))
 
         let empty = try await emptyModel()
         defer { try? FileManager.default.removeItem(at: empty.home) }

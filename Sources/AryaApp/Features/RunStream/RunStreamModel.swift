@@ -166,6 +166,8 @@ struct RunStream: Hashable, Sendable {
     var facts = RunMetrics()
     /// The input read in plain words: a crew report, structured data, or text.
     var reading: RunInput? = nil
+    /// How far a live run has got; nil once it ended.
+    var progress: RunProgress? = nil
 
     /// The run in one line: its summary once finished, else its input, else its id.
     var title: String {
@@ -201,9 +203,13 @@ struct RunStream: Hashable, Sendable {
         let reading = projector.input.map {
             RunInput.build(kind: projector.inputKind, text: $0, events: events)
         }
+        let progress =
+            projector.status == .running
+            ? RunProgress.build(events: events, run: run, steward: projector.steward) : nil
         return RunStream(
             run: run, steward: projector.steward, steps: steps,
-            status: projector.status, input: projector.input, facts: facts, reading: reading)
+            status: projector.status, input: projector.input, facts: facts, reading: reading,
+            progress: progress)
     }
 
     /// The approval ids in this run still waiting for a person.
@@ -668,5 +674,44 @@ struct RunInput: Hashable, Sendable {
     /// The run whose `run.delegated` started `child`.
     static func delegator(of child: String, events: [FeatureEvent]) -> String? {
         events.first { $0.type == "run.delegated" && $0.payload["child"]?.string == child }?.run
+    }
+}
+
+/// A live run's progress: events so far against the steward's usual run, and time since start.
+/// Steps are counted as ledger events other than adapter traffic, the same way for both.
+struct RunProgress: Hashable, Sendable {
+    var done: Int
+    /// The median count over the steward's finished runs; nil before any finished.
+    var expected: Int?
+    var started: Date
+
+    /// "3 of ~6 steps · 4.2 s"; "3 steps · 4.2 s" without history. A run past its usual length
+    /// reads "7 of ~6".
+    func text(now: Date) -> String {
+        let steps = expected.map { "\(done) of ~\($0) steps" } ?? RunMetrics.count(done, "step")
+        return "\(steps) · \(FeatureTime.duration(max(0, now.timeIntervalSince(started))))"
+    }
+
+    /// Done against expected, held under 1 while the run is still going.
+    var fraction: Double {
+        guard let expected, expected > 0 else { return 0.5 }
+        return min(Double(done) / Double(expected), 0.95)
+    }
+
+    static func build(events: [FeatureEvent], run: String, steward: String?) -> RunProgress? {
+        var counts: [String: Int] = [:]
+        var finished: Set<String> = []
+        var started: Date?
+        for event in events where event.run != nil && event.type != "run.adapter.event" {
+            guard let id = event.run else { continue }
+            if id == run, event.type == "run.started" { started = event.at }
+            guard id == run || event.steward == steward else { continue }
+            counts[id, default: 0] += 1
+            if event.type == "run.finished" || event.type == "run.failed" { finished.insert(id) }
+        }
+        guard let started else { return nil }
+        let history = finished.compactMap { counts[$0] }.sorted()
+        let expected = history.isEmpty ? nil : history[history.count / 2]
+        return RunProgress(done: counts[run] ?? 0, expected: expected, started: started)
     }
 }

@@ -22,6 +22,10 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.routineBody(steward: steward, name: name, version: version)
     }
 
+    func observeRun(_ run: String) -> AsyncStream<Void> {
+        source.observeRun(run)
+    }
+
     func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON? {
         try await source.expectedResult(casebook: casebook, caseID: caseID)
     }

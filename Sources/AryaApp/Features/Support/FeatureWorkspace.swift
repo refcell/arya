@@ -192,6 +192,8 @@ protocol FeatureWorkspace: Sendable {
     func replay(run: String) async throws -> FeatureReplayResult
     /// The workspace's words for each pending approval, by approval id.
     func approvalTexts() async throws -> [String: FeatureApprovalText]
+    /// Yields each time a live run's ledger grows, and finishes when the run ends.
+    func observeRun(_ run: String) -> AsyncStream<Void>
     /// What `run` would have done under a proposal's charter, in one line.
     func whatIf(run: String, proposal: String) async throws -> String
     /// The Improve screen's sentences for one steward, written by the workspace.
@@ -209,6 +211,11 @@ protocol FeatureWorkspace: Sendable {
 }
 
 extension FeatureWorkspace {
+    /// Workspaces without a ledger watch never yield; the run shows as of its last reload.
+    func observeRun(_ run: String) -> AsyncStream<Void> {
+        AsyncStream { $0.finish() }
+    }
+
     /// Workspaces without a blob read report that routine bodies are not available yet.
     func routineContent(steward: String, name: String, version: String) async throws -> String? {
         throw FeatureReadError.unavailable("routine bodies")
