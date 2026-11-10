@@ -74,6 +74,14 @@ enum Mapping {
     }
 
     /// A run report from the facade's run detail.
+    static func report(_ detail: RunDetail, crew members: [RunSummary]) -> RunReport {
+        var report = report(detail)
+        report.parent = detail.run.parent
+        report.crew = members.filter { $0.trigger != "join" }.map(\.id)
+        report.join = members.first { $0.trigger == "join" }?.id
+        return report
+    }
+
     static func report(_ detail: RunDetail) -> RunReport {
         let base = report(detail.run, entries: [], approvals: [])
         let actions = detail.actions.map { action in
@@ -91,7 +99,8 @@ enum Mapping {
         }
         return RunReport(
             run: base.run, steward: base.steward, status: base.status, summary: base.summary,
-            decisions: detail.decisions.map(\.choice), actions: actions)
+            decisions: detail.decisions.map(\.choice), actions: actions,
+            parent: detail.run.parent)
     }
 
     static func casebook(_ summary: CasebookSummary) -> CasebookRow {

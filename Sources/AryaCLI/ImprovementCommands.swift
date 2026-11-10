@@ -32,6 +32,10 @@ extension CLI {
         case .ready:
             let detail = try await backend.markReady(steward: try invocation.positional("steward"))
             try output.emit(detail, json: json, text: TextRender.steward)
+        case .readiness:
+            let report = try await backend.readiness(
+                proposal: try invocation.positional("proposal"))
+            try output.emit(report, json: json, text: ImprovementText.readiness)
         case .runCorrect:
             let report = try await backend.correctRun(
                 try invocation.positional("run"), choice: values["choice"] ?? "",
@@ -152,6 +156,16 @@ enum ImprovementText {
     }
 
     static func memory(_ row: MemoryRow) -> [String] { memory([row]) }
+
+    static func readiness(_ report: ReadinessReport) -> [String] {
+        var lines = ["\(report.proposal) (\(report.steward)): \(report.summary)"]
+        lines += report.regressions.map { "  \($0)" }
+        if !report.improved.isEmpty {
+            lines.append("  improves \(report.improved.joined(separator: ", "))")
+        }
+        lines.append("  \(report.runsChecked) recent runs replayed")
+        return lines
+    }
 
     static func memory(_ rows: [MemoryRow]) -> [String] {
         guard !rows.isEmpty else { return ["no memory notes"] }

@@ -195,6 +195,13 @@ extension FakeBackend {
                 author: "human:local", run: nil, retracted: false)
         ]
     }
+    func readiness(proposal: String) async throws(CLIError) -> ReadinessReport {
+        record("readiness \(proposal)")
+        return ReadinessReport(
+            proposal: proposal, steward: "st_triage", ready: false,
+            summary: "Not ready: case-0005 would regress", regressions: ["case-0005: 1 → 0"],
+            improved: [], runsChecked: 2)
+    }
     func correctRun(_ run: String, choice: String, note: String?) async throws(CLIError)
         -> CorrectionReport
     {

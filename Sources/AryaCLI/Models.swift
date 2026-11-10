@@ -89,8 +89,16 @@ struct RunReport: Codable, Sendable, Equatable {
     let summary: String
     let decisions: [String]
     let actions: [ActionOutcome]
+    /// The run that delegated this one, for a crew child.
+    var parent: String? = nil
+    /// Child runs this run delegated to its crew, oldest first.
+    var crew: [String] = []
+    /// The run that joined the crew's results, once it started.
+    var join: String? = nil
 
-    enum CodingKeys: String, CodingKey { case run, steward, status, summary, decisions, actions }
+    enum CodingKeys: String, CodingKey {
+        case run, steward, status, summary, decisions, actions, parent, crew, join
+    }
 }
 
 /// An approval's state.

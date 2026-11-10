@@ -21,6 +21,7 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case ready
     case propose
     case proposals
+    case readiness
     case metrics
     case memory
     case retract
@@ -190,6 +191,10 @@ enum CommandTable {
         CommandSpec(
             id: .proposals, summary: "List proposals and their gate results",
             options: [stewardFilter]),
+        CommandSpec(
+            id: .readiness,
+            summary: "Backtest a proposal: its casebook gate and recent runs replayed under it",
+            positionals: [PositionalSpec(name: "proposal", help: "proposal id")]),
         CommandSpec(
             id: .metrics, summary: "Show a steward's outcome metric series",
             positionals: [stewardArgument],

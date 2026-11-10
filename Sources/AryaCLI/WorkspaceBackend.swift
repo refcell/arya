@@ -105,7 +105,13 @@ struct WorkspaceBackend: CLIBackend {
         guard let detail = try await call("run", { try await workspace.run(id) }) else {
             throw .notFound("run \(id)")
         }
-        return Mapping.report(detail)
+        return Mapping.report(detail, crew: await crew(of: id, workspace: workspace))
+    }
+
+    /// The crew children and join run of `id`, oldest first.
+    private func crew(of id: String, workspace: Workspace) async -> [RunSummary] {
+        let runs = await optional { try await workspace.runs() } ?? []
+        return runs.filter { $0.parent == id }.sorted { $0.startedAt < $1.startedAt }
     }
 
     /// The run's detail from the facade, or a report read from its ledger entries.
@@ -113,7 +119,7 @@ struct WorkspaceBackend: CLIBackend {
         -> RunReport
     {
         if let detail = await optional({ try await workspace.run(run.id) }), let detail {
-            return Mapping.report(detail)
+            return Mapping.report(detail, crew: await crew(of: run.id, workspace: workspace))
         }
         let entries = await optional { try await workspace.ledger() } ?? []
         let approvals = await optional { try await workspace.approvals(includeDecided: true) } ?? []
@@ -327,6 +333,17 @@ extension WorkspaceBackend {
                 id: $0.id, text: $0.text, tags: $0.tags, author: $0.author, run: $0.run,
                 retracted: $0.retracted)
         }
+    }
+
+    func readiness(proposal: String) async throws(CLIError) -> ReadinessReport {
+        let workspace = try await open()
+        let summary = try await call("liveReadiness", rejection: { .invalidInput($0) }) {
+            try await workspace.liveReadiness(proposal: proposal)
+        }
+        return ReadinessReport(
+            proposal: summary.proposal, steward: summary.steward, ready: summary.ready,
+            summary: summary.summary, regressions: summary.regressions,
+            improved: summary.improved, runsChecked: summary.runsChecked)
     }
 
     func correctRun(_ run: String, choice: String, note: String?) async throws(CLIError)

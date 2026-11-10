@@ -99,7 +99,7 @@ enum CLI {
             try output.emit(report, json: json, text: TextRender.verify)
             if !report.isValid { throw .failed("ledger verification failed") }
         case .casebookImport, .casebookList, .rehearse, .correct, .runCorrect, .retract, .ready,
-            .propose, .proposals,
+            .propose, .proposals, .readiness,
             .metrics, .memory, .routines, .replay, .bindingProxy:
             try await dispatchImprovement(invocation, backend: backend, output: output)
         case .serve:

@@ -100,7 +100,10 @@ enum TextRender {
 
     static func run(_ report: RunReport) -> [String] {
         var lines = ["run \(report.run) (\(report.steward)) \(report.status)"]
+        if let parent = report.parent { lines.append("delegated by: \(parent)") }
         if !report.summary.isEmpty { lines.append("summary: \(report.summary)") }
+        lines += report.crew.map { "crew: \($0)" }
+        if let join = report.join { lines.append("joined by: \(join)") }
         lines += report.decisions.map { "decision: \($0)" }
         for action in report.actions {
             var line = "action \(action.id): \(action.kind) \(action.target) -> "

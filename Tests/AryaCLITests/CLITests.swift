@@ -170,3 +170,22 @@ import Testing
         backend.calls == ["correct run run_1 refunds Refunds own these.", "retract mem_2 wrong"])
     #expect(await runCLI(["run", "correct", "run_1"]).0 == .usage)
 }
+
+@Test func readinessRendersTheSentenceAndRegressions() async {
+    let backend = FakeBackend()
+    let (status, capture) = await runCLI(["readiness", "prop_1"], backend: backend)
+    #expect(status == .ok)
+    #expect(capture.outText.contains("prop_1 (st_triage): Not ready: case-0005 would regress"))
+    #expect(capture.outText.contains("2 recent runs replayed"))
+    #expect(backend.calls == ["readiness prop_1"])
+}
+
+@Test func runReportsShowTheirCrew() {
+    let lines = TextRender.run(
+        RunReport(
+            run: "run_2", steward: "st_triage", status: "completed", summary: "drafted",
+            decisions: [], actions: [], parent: "run_1", crew: ["run_3"], join: "run_4"))
+    #expect(lines.contains("delegated by: run_1"))
+    #expect(lines.contains("crew: run_3"))
+    #expect(lines.contains("joined by: run_4"))
+}

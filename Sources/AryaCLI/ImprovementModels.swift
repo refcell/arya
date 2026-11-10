@@ -106,6 +106,23 @@ struct MemoryRow: Codable, Sendable, Equatable {
     enum CodingKeys: String, CodingKey { case id, text, tags, author, run, retracted }
 }
 
+/// `arya readiness`.
+struct ReadinessReport: Codable, Sendable, Equatable {
+    let proposal: String
+    let steward: String
+    let ready: Bool
+    /// One sentence, for example `Not ready: case-0005 would regress`.
+    let summary: String
+    let regressions: [String]
+    let improved: [String]
+    /// Recent live runs replayed under the proposal.
+    let runsChecked: Int
+
+    enum CodingKeys: String, CodingKey {
+        case proposal, steward, ready, summary, regressions, improved, runsChecked
+    }
+}
+
 /// One row of `arya routines`.
 struct RoutineRow: Codable, Sendable, Equatable {
     let name: String
@@ -150,6 +167,8 @@ protocol ImprovementBackend: Sendable {
     func markReady(steward: String) async throws(CLIError) -> StewardDetail
     func propose(steward: String, charterPath: String) async throws(CLIError) -> ProposalRow
     func listProposals(steward: String?) async throws(CLIError) -> [ProposalRow]
+    /// Whether a proposal is ready to go live: casebook gate plus recent runs replayed under it.
+    func readiness(proposal: String) async throws(CLIError) -> ReadinessReport
     func metrics(steward: String, metric: String?) async throws(CLIError) -> [MetricSeries]
     func memory(steward: String, scope: MemoryScope) async throws(CLIError) -> [MemoryRow]
     /// Corrects a run's first decision to `choice`: the run becomes a case and `note` a memory.
