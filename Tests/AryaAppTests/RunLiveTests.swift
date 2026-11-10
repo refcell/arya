@@ -214,3 +214,34 @@ import Testing
     #expect(RunKeys.action(for: "j") == .next)
     #expect(RunKeys.action(for: "9") == nil)
 }
+
+@Test func runBriefTicksTheStepsOfALiveRun() {
+    let events = PreviewFixtures.streaming(now: FeatureTestClock.now)
+    let stream = RunStream.build(events: events, run: PreviewFixtures.streamingRun)
+    let brief = RunBrief.build(stream: stream, events: events, expected: 6)
+    #expect(brief.trigger == "Started by a message")
+    #expect(brief.plan.map(\.mark) == [.done, .current, .current, .next])
+    #expect(brief.plan.last?.text == "~3 more steps expected")
+    #expect(brief.planSource == "steps so far")
+}
+
+@Test func runBriefUsesTheRunsOwnPlanAndNamesWhoHandedItOff() {
+    var log = FeatureEventBuilder(start: FeatureTestClock.now)
+    log.add(
+        "run.started", run: "r",
+        ["trigger": "message", "input": "person:priya hands this to you: Close ISSUE-9"])
+    log.add(
+        "plan.updated", run: "r",
+        [
+            "items": [
+                ["id": "1", "text": "Read ISSUE-9", "status": "done"],
+                ["id": "2", "text": "Close it", "status": "in_progress"],
+                ["id": "3", "text": "Tell Priya", "status": "pending"],
+            ]
+        ])
+    let stream = RunStream.build(events: log.events, run: "r")
+    let brief = RunBrief.build(stream: stream, events: log.events, expected: nil)
+    #expect(brief.trigger == "Priya handed this off")
+    #expect(brief.plan.map(\.mark) == [.done, .current, .next])
+    #expect(brief.planSource == "the run's plan")
+}

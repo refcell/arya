@@ -407,6 +407,14 @@ import Testing
             .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
             .background(AryaColor.canvas)
         try write("run-live", scheme: scheme, render(live, dark: dark))
+        // A short run (app-views): the brief above the thread fills the pane: who started it,
+        // the steps ticked so far and those expected, what it read.
+        let short = RunStreamView(store: liveStore, run: PreviewFixtures.inProgressRun)
+            .frame(width: 1280, height: 800, alignment: .topLeading)
+            .background(AryaColor.canvas)
+        try write(
+            "run-short", scheme: scheme,
+            render(short, dark: dark, size: NSSize(width: 1280, height: 800)))
         let liveOutput = RunStreamView(
             store: liveStore, run: PreviewFixtures.inProgressRun, initialTab: .output
         )

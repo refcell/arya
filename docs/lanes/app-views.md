@@ -279,3 +279,4 @@ M4:
   run, so the watchers piled up across about 80 renders. I added a one-line
   `!AryaMotion.frozenByProcess` guard to your `observeRun` task, same as RootView's. Keep
   any new ledger-following loop behind that guard.
+- 2026-11-10: run brief (item 4, dead space). The left pane opens with a pinned brief: who or what started the run ("Started by you", "Priya handed this off", "Started by its schedule"), the input in plain words, and a plan checklist. The checklist is the run's own plan (`plan.updated` from that run) when it has one, else its steps ticked live (✓ done, ● running, ○ "~N more steps expected" from the steward's usual count). READ lists the calls next to the run's own plan. New state run-short at 1280×800. Visual check: run-short, run-streaming, run-live-window (header 3 tools = TOOLS 3 = inspector, after workspace 3d659d55); moves points 2 and 4.

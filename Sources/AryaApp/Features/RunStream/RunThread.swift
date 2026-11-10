@@ -12,6 +12,8 @@ struct RunThread: View {
     var accessory = AnyView(EmptyView())
     /// The split work pane shows the header above both halves instead.
     var showsHeader = true
+    /// False where the run brief above the thread already shows the input.
+    var showsInput = true
     /// The selected work step, shared with the work pane; nil outside the split view.
     var selection: Binding<String?>? = nil
 
@@ -19,7 +21,7 @@ struct RunThread: View {
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
             if showsHeader { RunHeader(stream: stream, accessory: accessory) }
             if let store = context.store { FeatureWriteErrorLine(store: store) }
-            if let reading = stream.reading {
+            if showsInput, let reading = stream.reading {
                 RunInputView(reading: reading, openRun: context.openRun)
             }
             LazyVStack(alignment: .leading, spacing: AryaSpace.s1) {
