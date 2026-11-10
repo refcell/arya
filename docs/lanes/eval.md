@@ -7,6 +7,35 @@ replayed.** Deterministic replay with a divergence report, casebooks, rehearsal,
 corrections, readiness, proposals, gates, and outcome metrics over time. Design:
 [ARCHITECTURE.md](../ARCHITECTURE.md#replay), decisions 0015, 0017.
 
+## Handoff (2026-11-10)
+
+State: the backlog is done and on main except one item. Done: replay with divergence reports,
+casebooks (`arya casebook build`), rehearsal and scorers, readiness, proposals and gates,
+learned checks, history import (`--file`, `--from <binding>`), review queue, go-live gate,
+trajectory grading, seeded follow-up checks in the demo, and Improve in two columns (34% empty
+at 1280 x 800).
+
+Where things live:
+- Eval core: `Sources/AryaEval` (GoLiveGate, TrajectoryGrades, LearnedChecks, CasebookBuilder,
+  Rehearsal*, Readiness*, Proposals); tests in `Tests/AryaEvalTests`.
+- Facade reads and writes: `Sources/Arya/Checks.swift` (learned checks, `goLiveGate`,
+  `trajectories`, `checkOutcomes`); seeding executor `SeededExecutor` in `Seeding.swift`.
+- App: `Sources/AryaApp/Features/Improve` (ImproveView, ReviewQueuePanel,
+  LearnedChecksPanel, WhatWorkedPanel, GoLiveGateRow); reads in `FeatureOutcomeReads`.
+- Demo: `Sources/AryaDemo/Seeder.swift` (`improve`, `reviewHistory`, `proposeExample`,
+  nightly `checkOutcomes`, `OutcomeReads`, `DemoOutcomes`).
+- Snapshot states: improve, improve-trajectories, onboarding-gate.
+
+Open:
+- Learned checks as a proposal gate: waits for ledger to confirm `checks.built`.
+- Charter-level `ScorerSpec.judge`: waits on ledger.
+- cli-e2e question: `liveReadiness` counts a crew's runs as plain recent runs, so one crew run
+  marks any proposal not ready; score the crew as one run.
+- Governance G3: eval folds `sink.events(from: 1)` and blocks retention archiving; seeded
+  `ProjectionCache` books would unblock it.
+- `Canonicalizer` drops `run.step.finished.millis`; keep it or move to a recorded clock.
+- `GoLiveGateRow` is not yet embedded on onboarding (asked in app-outcome's Questions).
+
 ## Backlog
 
 Priority (replay before live, visible in the app):
