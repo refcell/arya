@@ -503,6 +503,18 @@ extension PreviewFixtures {
         log.add(
             "run.adapter.event", run: inProgressRun, actor: adapter, after: 0.2,
             wire(2, ["kind": "tool_call", "id": "t2", "tool": "billing.order"]))
+        log.add(
+            "run.adapter.event", run: inProgressRun, actor: adapter, after: 0.1,
+            wire(
+                3,
+                [
+                    "kind": "diff", "path": "drafts/MSG-412.md",
+                    "patch": .string(
+                        "--- /dev/null\n+++ drafts/MSG-412.md\n@@ -0,0 +1,3 @@\n"
+                            + "+Sorry the lamp arrived broken.\n"
+                            + "+A refund for ORDER-2210 is on its way.\n"
+                            + "+It should reach you in 3 to 5 days."),
+                ]))
         return log.events
     }
 }

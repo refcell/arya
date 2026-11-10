@@ -45,3 +45,46 @@ import Testing
     #expect(RunKeys.action(for: "c") == .compose)
     #expect(RunKeys.action(for: "x") == nil)
 }
+
+@Test func runtimeStepEventsStreamIntoOneToolCall() throws {
+    var log = FeatureEventBuilder(start: FeatureTestClock.now)
+    log.add("run.started", run: "r", ["trigger": "manual"])
+    log.add(
+        "run.step.started", run: "r", ["step": "s1", "tool": "shell", "input": #"{"cmd":"ls"}"#])
+    log.add("run.step.output", run: "r", ["step": "s1", "seq": 1, "text": "a.txt\n", "bytes": 6])
+    log.add("run.step.output", run: "r", ["step": "s1", "seq": 2, "text": "b.txt\n", "bytes": 6])
+    let open = RunStream.build(events: log.events, run: "r")
+    guard case .toolCall(let running) = open.steps.last?.kind else {
+        Issue.record("no tool call")
+        return
+    }
+    #expect(running.output == .string("a.txt\nb.txt\n"))
+    #expect(running.input["cmd"] == .string("ls"))
+    log.add(
+        "run.step.finished", run: "r",
+        ["step": "s1", "ok": true, "bytes": 12, "chunks": 2, "millis": 1500])
+    guard case .toolCall(let done) = RunStream.build(events: log.events, run: "r").steps.last?.kind
+    else {
+        Issue.record("no tool call")
+        return
+    }
+    #expect(done.durationSeconds == 1.5)
+    #expect(!done.isError)
+}
+
+@Test func adapterDiffsAndProgressFeedTheWorkPane() throws {
+    var log = FeatureEventBuilder(start: FeatureTestClock.now)
+    log.add("run.started", run: "r", ["trigger": "manual"])
+    log.add(
+        "run.adapter.event", run: "r",
+        PreviewFixtures.wire(
+            1, ["kind": "diff", "path": "src/a.txt", "patch": "@@ -1 +1 @@\n-old\n+new"]))
+    log.add(
+        "run.adapter.event", run: "r",
+        PreviewFixtures.wire(2, ["kind": "progress", "done": 2, "total": 7]))
+    let stream = RunStream.build(events: log.events, run: "r")
+    #expect(stream.progress?.text(now: FeatureTestClock.now).hasPrefix("2 of ~7 steps") == true)
+    let diff = try #require(RunWork.build(stream: stream, events: log.events).diffs.first)
+    #expect(diff.title == "src/a.txt")
+    #expect(diff.countText == "+1 −1")
+}

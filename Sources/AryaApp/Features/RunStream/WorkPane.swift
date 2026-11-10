@@ -17,7 +17,8 @@ struct WorkPane: View {
             AryaHairline()
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) { content }
+                    // Not lazy: a run's blocks are few, and lazy rows render blank offscreen.
+                    VStack(alignment: .leading, spacing: 0) { content }
                         .padding(.horizontal, AryaSpace.s3)
                         .padding(.vertical, AryaSpace.s2)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -187,9 +188,11 @@ private struct WorkLineView: View {
         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
             Text(line.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             Text(line.tag).aryaText(AryaFont.monoSmall, tagColor).lineLimit(1)
-            Text(line.text).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                .lineLimit(6).truncationMode(.tail)
-                .textSelection(.enabled)
+            if !line.text.isEmpty {
+                Text(line.text).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                    .lineLimit(6).truncationMode(.tail)
+                    .textSelection(.enabled)
+            }
         }
         .padding(.vertical, AryaSpace.s1 / 2)
     }

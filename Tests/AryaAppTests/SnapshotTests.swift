@@ -319,6 +319,12 @@ import Testing
         .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
         .background(AryaColor.canvas)
         try write("run-live-output", scheme: scheme, render(liveOutput, dark: dark))
+        let liveDiff = RunStreamView(
+            store: liveStore, run: PreviewFixtures.inProgressRun, initialTab: .diff
+        )
+        .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+        .background(AryaColor.canvas)
+        try write("run-live-diff", scheme: scheme, render(liveDiff, dark: dark))
         // A run's Diff tab (app-views): what each action writes and a routine's new version.
         let diffStore = FeatureStore(workspace: PreviewWorkspace.triage(now: now), now: now)
         await diffStore.reload()
@@ -445,7 +451,14 @@ import Testing
     /// Writes `<name>.png` (dark) or `<name>-light.png` when `ARYA_SNAPSHOT_DIR` is set.
     private func write(_ name: String, scheme: String, _ png: Data?) throws {
         let png = try #require(png)
-        guard let dir = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_DIR"] else { return }
+        let environment = ProcessInfo.processInfo.environment
+        guard let dir = environment["ARYA_SNAPSHOT_DIR"] else { return }
+        // ARYA_SNAPSHOT_STATES="run-live run-diff" writes only those states.
+        if let only = environment["ARYA_SNAPSHOT_STATES"]?.split(separator: " "), !only.isEmpty,
+            !only.contains(Substring(name))
+        {
+            return
+        }
         let file = scheme == "dark" ? "\(name).png" : "\(name)-light.png"
         let url = URL(fileURLWithPath: dir, isDirectory: true).appendingPathComponent(file)
         try FileManager.default.createDirectory(

@@ -183,8 +183,11 @@ struct RunStream: Hashable, Sendable {
     /// calls come from the adapter's `tool_call` and `tool_result` notifications, unless the
     /// run has `run.tool.call` events (the binding proxy's record), which then win.
     static func build(events: [FeatureEvent], run: String) -> RunStream {
-        let proxied = events.contains { $0.run == run && $0.type == "run.tool.call" }
-        var projector = RunStreamProjector(proxiedTools: proxied)
+        // The runtime's live step records win over the proxy's and the adapter's tool records.
+        let stepped = events.contains { $0.run == run && $0.type == "run.step.started" }
+        let proxied =
+            stepped || events.contains { $0.run == run && $0.type == "run.tool.call" }
+        var projector = RunStreamProjector(proxiedTools: proxied, steppedTools: stepped)
         for event in events where event.run == run {
             projector.apply(event)
         }
@@ -212,7 +215,7 @@ struct RunStream: Hashable, Sendable {
             projector.status == .running
             ? RunProgress.build(
                 events: events, run: run, steward: projector.steward,
-                done: RunThreadText.visible(steps).count) : nil
+                done: RunThreadText.visible(steps).count, reported: projector.reported) : nil
         return RunStream(
             run: run, steward: projector.steward, steps: steps,
             status: projector.status, input: projector.input, facts: facts, reading: reading,
@@ -245,6 +248,9 @@ private struct RunStreamProjector {
     private var actionIndex: [String: Int] = [:]
     private var approvalAction: [String: String] = [:]
     private var toolStart: [String: Date] = [:]
+    var steppedTools = false
+    /// The adapter's own count (`progress` event): done of total.
+    var reported: (done: Int, total: Int)?
 
     mutating func apply(_ event: FeatureEvent) {
         steward = steward ?? event.steward
@@ -259,8 +265,19 @@ private struct RunStreamProjector {
             let trigger = p["trigger"]?.string ?? p["input"]?["kind"]?.string ?? "manual"
             add(event, .started(trigger: trigger))
         case "run.adapter.event": applyAdapter(event)
-        case "run.tool.call": applyToolCall(event, p)
-        case "run.tool.result": applyToolResult(event, p)
+        case "run.step.started":
+            let text = p["input"]?.string ?? ""
+            let input =
+                text.data(using: .utf8).flatMap {
+                    try? JSONDecoder().decode(FeatureJSON.self, from: $0)
+                }
+                ?? .string(text)
+            applyToolCall(
+                event, ["id": p["step"] ?? .null, "tool": p["tool"] ?? .null, "input": input])
+        case "run.step.output": applyStepOutput(p)
+        case "run.step.finished": applyStepFinished(p)
+        case "run.tool.call" where !steppedTools: applyToolCall(event, p)
+        case "run.tool.result" where !steppedTools: applyToolResult(event, p)
         case "run.decision":
             // `{decision: RecordedDecision}`; older recordings put the fields at the top.
             let d = p["decision"] ?? p
@@ -320,8 +337,32 @@ private struct RunStreamProjector {
                 .status(
                     state: inner["state"]?.string ?? "", detail: inner["detail"]?.string ?? ""))
         case "error": add(event, .error(message: inner["message"]?.string ?? ""))
+        case "progress":
+            if let done = inner["done"]?.number, let total = inner["total"]?.number, total > 0 {
+                reported = (Int(done), Int(total))
+            }
         default: break
         }
+    }
+
+    /// A chunk of a live step's output, appended in order.
+    private mutating func applyStepOutput(_ p: FeatureJSON) {
+        guard let call = p["step"]?.string, let index = toolIndex[call],
+            case .toolCall(var step) = steps[index].kind
+        else { return }
+        let sofar = step.output?.string ?? ""
+        step.output = .string(sofar + (p["text"]?.string ?? ""))
+        steps[index].kind = .toolCall(step)
+    }
+
+    private mutating func applyStepFinished(_ p: FeatureJSON) {
+        guard let call = p["step"]?.string, let index = toolIndex[call],
+            case .toolCall(var step) = steps[index].kind
+        else { return }
+        step.output = step.output ?? .string("")
+        step.isError = p["ok"]?.bool == false
+        step.durationSeconds = p["millis"]?.number.map { $0 / 1000 }
+        steps[index].kind = .toolCall(step)
     }
 
     private mutating func applyToolCall(_ event: FeatureEvent, _ p: FeatureJSON) {
@@ -382,7 +423,7 @@ private struct RunStreamProjector {
             let reason = p["note"]?.string ?? (event.type == "approval.expired" ? "expired" : "")
             update(action, .denied(approval: approval, reason: reason))
         case "action.executed":
-            let dry = p["output"]?["dryRun"]?.bool == true
+            let dry = p["dryRun"]?.bool == true || p["output"]?["dryRun"]?.bool == true
             update(
                 p["action"]?.string,
                 .executed(output: dry ? "" : p["output"]?.compactOutput ?? ""), dryRun: dry)
@@ -712,11 +753,16 @@ struct RunProgress: Hashable, Sendable {
 
     /// `done` is the thread's visible step count; `expected` the median of the same count over
     /// the steward's last ten finished runs.
-    static func build(events: [FeatureEvent], run: String, steward: String?, done: Int)
-        -> RunProgress?
-    {
+    static func build(
+        events: [FeatureEvent], run: String, steward: String?, done: Int,
+        reported: (done: Int, total: Int)? = nil
+    ) -> RunProgress? {
         guard let started = events.first(where: { $0.run == run && $0.type == "run.started" })?.at
         else { return nil }
+        // The adapter's own count is better than an estimate from history.
+        if let reported {
+            return RunProgress(done: reported.done, expected: reported.total, started: started)
+        }
         let finished = events.filter {
             $0.type == "run.finished" && $0.steward == steward && $0.run != run
         }

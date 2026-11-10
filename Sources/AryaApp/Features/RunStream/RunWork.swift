@@ -108,6 +108,10 @@ struct RunWork: Hashable, Sendable {
         let mine = events.filter { $0.run == stream.run }
         var diffs = stream.steps.compactMap(actionDiff)
         diffs += routineDiffs(mine, all: events)
+        diffs += mine.compactMap(adapterDiff)
+        // In the order the run made them.
+        let order = Dictionary(mine.map { ($0.id, $0.seq) }, uniquingKeysWith: { a, _ in a })
+        diffs.sort { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
         let log = mine.filter { $0.type != "run.adapter.event" }.map {
             logLine($0, timeZone: timeZone)
         }
@@ -217,6 +221,17 @@ struct RunWork: Hashable, Sendable {
             (["--- \(action.target)", "+++ \(action.target)", "@@ \(action.kind) @@"]
             + added.map { "+\($0)" }).joined(separator: "\n")
         return WorkDiff(id: step.id, title: "\(action.kind) \(action.target)", text: text)
+    }
+
+    /// An edit the harness reported (`diff` event: `path`, `patch`), as it reported it.
+    static func adapterDiff(_ event: FeatureEvent) -> WorkDiff? {
+        guard event.type == "run.adapter.event",
+            let inner = event.payload["message"]?["params"]?["event"],
+            inner["kind"]?.string == "diff", let patch = inner["patch"]?.string
+        else { return nil }
+        let path = inner["path"]?.string ?? "file"
+        let text = patch.hasPrefix("---") ? patch : "--- \(path)\n+++ \(path)\n" + patch
+        return WorkDiff(id: event.id, title: path, text: text)
     }
 
     /// Routines the run proposed; their text loads from the workspace.

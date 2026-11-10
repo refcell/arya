@@ -57,6 +57,9 @@ enum FeatureJSON: Hashable, Sendable {
                 inner + Self.quote(key) + ": " + (members[key] ?? .null).pretty(indent: inner)
             }
             return "{\n" + lines.joined(separator: ",\n") + "\n" + indent + "}"
+        case .string(let value) where value.contains("\n"):
+            // Line breaks in a string read as lines, continued under the opening quote.
+            return Self.quote(value).replacingOccurrences(of: "\\n", with: "\n" + inner + " ")
         default:
             return compactText
         }
