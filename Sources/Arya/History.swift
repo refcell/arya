@@ -113,7 +113,7 @@ extension Workspace {
     /// The review queue on the steward's newest casebook: what it would have done next to what
     /// the person did, case by case, with progress. `nil` when the steward has no casebook.
     public func reviewQueue(steward: String) async throws -> ReviewQueueSummary? {
-        try await ReviewQueue(sink: sink, casebooks: casebookSource)
+        try await ReviewQueue(sink: readSink, casebooks: casebookSource)
             .view(steward: try await existing(steward).id)
     }
 
@@ -133,7 +133,7 @@ extension Workspace {
             throw WorkspaceError.notFound(caseID)
         }
         let book = try await casebook(for: steward, version: nil)
-        let queue = ReviewQueue(sink: sink, casebooks: casebookSource)
+        let queue = ReviewQueue(sink: readSink, casebooks: casebookSource)
         do {
             try await queue.record(
                 parsed, caseID: wanted, casebook: book, steward: id, person: person)

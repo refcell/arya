@@ -67,12 +67,8 @@ extension Workspace {
         guard let record = try await runBook().records[RunID(unchecked: id)] else { return nil }
         var detail = RunDetail(
             run: RunSummary(record), input: record.input, decisions: [], actions: [])
-        var own: [Event] = []
-        try reader.forEach { event in
-            guard event.run?.rawValue == id else { return }
-            own.append(event)
-            try RunDetailFolder.apply(event, to: &detail)
-        }
+        let own = try facadeState().byRun[RunID(unchecked: id)] ?? []
+        for event in own { try RunDetailFolder.apply(event, to: &detail) }
         let recorded = RecordedResults(own)
         let run = RunID(unchecked: id)
         for index in detail.decisions.indices {

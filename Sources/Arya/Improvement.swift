@@ -246,7 +246,9 @@ struct HomeBlobs: EvalBlobStore {
 
 /// Imported casebooks by version, read from the ledger and blobs.
 extension Workspace {
-    var casebookSource: HomeCasebooks { HomeCasebooks(sink: sink, blobs: BlobStore(home: home)) }
+    var casebookSource: HomeCasebooks {
+        HomeCasebooks(sink: readSink, blobs: BlobStore(home: home))
+    }
 }
 
 struct HomeCasebooks: CasebookSource {

@@ -19,6 +19,8 @@ struct FacadeState: Sendable {
     /// instead of reading and decoding the ledger files again.
     var events: [Event] = []
     var runtime: [RuntimeEvent] = []
+    /// Each run's events, oldest first, for run detail.
+    var byRun: [RunID: [Event]] = [:]
     /// Each steward's events, oldest first, for per-steward reads (metrics, outcomes).
     var bySteward: [StewardID: [RuntimeEvent]] = [:]
     var rehearsals = RehearsalBook()
@@ -44,6 +46,12 @@ struct FacadeState: Sendable {
         applied += 1
     }
 
+    /// The position of the first event with `seq >= from` (live seqs are contiguous).
+    func index(from seq: Int64) -> Int {
+        guard let first = events.first?.seq else { return 0 }
+        return min(events.count, max(0, Int(seq - first)))
+    }
+
     /// Folds an event into everything but the seeded books.
     mutating func fold(_ event: Event) {
         let runtimeEvent = RuntimeEvent(event)
@@ -51,6 +59,7 @@ struct FacadeState: Sendable {
         events.append(event)
         runtime.append(runtimeEvent)
         if let steward = event.steward { bySteward[steward, default: []].append(runtimeEvent) }
+        if let run = event.run { byRun[run, default: []].append(event) }
         try? rehearsals.apply(runtimeEvent)
         live.add(event)
         if let casebook = Workspace.casebookSummary(event) { casebooks.append(casebook) }
@@ -180,4 +189,22 @@ final class FacadeCache: @unchecked Sendable {
             return "\(name):\(info.st_size):\(modified)"
         }
     }
+}
+
+/// A sink whose reads come from the facade's cached state and whose writes go to the ledger:
+/// for read-mostly helpers (reports, casebooks) that take a sink and read every event.
+struct CachedReadSink: EventSink {
+    let workspace: Workspace
+    let sink: LedgerEventSink
+
+    func append(_ draft: RuntimeEventDraft) async throws -> RuntimeEvent {
+        try await sink.append(draft)
+    }
+
+    func events(from seq: Int) async throws -> [RuntimeEvent] {
+        let state = try workspace.facadeState()
+        return Array(state.runtime[state.index(from: Int64(max(1, seq)))...])
+    }
+
+    func putBlob(_ data: Data) async throws -> String? { try await sink.putBlob(data) }
 }

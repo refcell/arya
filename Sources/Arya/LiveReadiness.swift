@@ -38,7 +38,7 @@ extension Workspace {
         let gate = LiveReadinessGate(
             backtester: Backtester(
                 rehearser: rehearser,
-                reports: RehearsalReports(sink: sink, casebooks: casebookSource)),
+                reports: RehearsalReports(sink: readSink, casebooks: casebookSource)),
             counterfactuals: Counterfactuals(sink: sink, runner: runner, ambient: ambient))
         let result: LiveReadiness
         do {

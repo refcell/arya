@@ -91,14 +91,14 @@ extension Workspace {
     /// readiness, and proposals with their gate state.
     public func improve(steward: String) async throws -> ImproveView {
         let record = try await existing(steward)
-        let readiness = try await ReadinessReports(sink: sink).report(record.id)
+        let readiness = try await ReadinessReports(sink: readSink).report(record.id)
         let rehearsals = try await self.rehearsals(steward: steward)
         let rehearsal =
             readiness.rehearsal.flatMap { id in rehearsals.first { $0.id == id.rawValue } }
             ?? rehearsals.first { $0.charterVersion > 0 }
         var cases: [ImproveView.CaseReview] = []
         if let rehearsal {
-            let report = try await RehearsalReports(sink: sink, casebooks: casebookSource)
+            let report = try await RehearsalReports(sink: readSink, casebooks: casebookSource)
                 .report(RehearsalID(unchecked: rehearsal.id))
             cases = report.cases.map(Self.review)
         }

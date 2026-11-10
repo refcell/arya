@@ -373,12 +373,10 @@ public actor Workspace {
 
     /// Ledger entries with `seq >= from`, in order, at most `limit` of them.
     public func ledger(from seq: Int = 1, limit: Int? = nil) async throws -> [LedgerEntry] {
-        var entries: [LedgerEntry] = []
-        try reader.forEach(from: Int64(max(1, seq))) { event in
-            if let limit, entries.count >= limit { return }
-            entries.append(try LedgerEntry(event))
-        }
-        return entries
+        let state = try facadeState()
+        var slice = state.events[state.index(from: Int64(max(1, seq)))...]
+        if let limit { slice = slice.prefix(max(0, limit)) }
+        return try slice.map(LedgerEntry.init)
     }
 
     /// Entries with `seq >= from`, then every new entry as it is appended, by any process.
@@ -443,6 +441,9 @@ public actor Workspace {
     func stewardBook() async throws -> StewardBook { try facadeState().stewards }
 
     func approvalBook() async throws -> ApprovalBook { try facadeState().approvals }
+
+    /// A sink that reads from the cached projections and writes to the ledger.
+    var readSink: CachedReadSink { CachedReadSink(workspace: self, sink: sink) }
 
     /// The cached projections, caught up with the ledger.
     nonisolated func facadeState() throws -> FacadeState { try cache.current(home) }

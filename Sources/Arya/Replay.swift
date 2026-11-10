@@ -36,7 +36,7 @@ extension Workspace {
     public func replay(run id: String) async throws -> ReplaySummary {
         let report: ReplayReport
         do {
-            report = try await RunReplayer(sink: sink, casebooks: casebookSource)
+            report = try await RunReplayer(sink: readSink, casebooks: casebookSource)
                 .replay(run: RunID(unchecked: id))
         } catch EvalError.unknownRun(let run) {
             throw WorkspaceError.notFound(run.rawValue)

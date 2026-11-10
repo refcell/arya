@@ -24,7 +24,7 @@ extension Workspace {
         let comparison: BacktestComparison
         do {
             comparison = try await Backtests(
-                reports: RehearsalReports(sink: sink, casebooks: casebookSource)
+                reports: RehearsalReports(sink: readSink, casebooks: casebookSource)
             ).compare(
                 current: baseline, proposed: candidate, tolerance: live.charter.gate.tolerance)
         } catch let error as EvalError {
