@@ -39,6 +39,8 @@ final class FeatureStore: ObservableObject {
     /// Unified diffs of routines a run proposed, by work-diff id (the run pane loads them;
     /// snapshots preload them).
     @Published var routineDiffs: [String: String] = [:]
+    /// Learned checks by steward, loaded by Improve (an async read).
+    @Published var learnedChecks: [String: FeatureLearnedChecks] = [:]
 
     init(workspace: any FeatureWorkspace, now: Date = Date()) {
         self.workspace = workspace

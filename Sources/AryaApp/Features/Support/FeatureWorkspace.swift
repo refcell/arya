@@ -96,6 +96,31 @@ struct FeatureReviewQueue: Hashable, Sendable {
     var next: Item?
 }
 
+/// The checks people taught a steward by correcting and agreeing, scored on its newest live
+/// rehearsal. Every string is shown verbatim.
+struct FeatureLearnedChecks: Hashable, Sendable {
+    struct Line: Hashable, Sendable, Identifiable {
+        var id: String
+        var caseID: String
+        /// The person's note for a correction, else the expectation in words.
+        var text: String
+        /// nil when the rehearsal has no answer for the case.
+        var passed: Bool?
+        /// What the steward did on that field: `choice: bug`, or `not rehearsed`.
+        var found: String
+        /// `corrected` or `agreed`.
+        var origin: String
+    }
+
+    var version: Int
+    var sentence: String
+    var total: Int
+    var scored: Int
+    var passed: Int
+    /// Failing first, then unscored, then passing.
+    var lines: [Line]
+}
+
 /// One event as the inspector shows it.
 struct FeatureEventDetail: Hashable, Sendable {
     /// Where the event sits in its run: its position from 1, the run's event count, and title.
@@ -202,6 +227,8 @@ protocol FeatureWorkspace: Sendable {
     func improveSummary(steward: String) async throws -> FeatureImproveSummary
     /// The review queue for one steward, or nil when it has no casebook.
     func reviewQueue(steward: String) async throws -> FeatureReviewQueue?
+    /// The learned checks for one steward, or nil before anyone reviewed a case.
+    func learnedChecks(steward: String) async throws -> FeatureLearnedChecks?
     /// One event's inspector detail (hash chain, run position, readable payload), or nil.
     func eventDetail(seq: Int) async throws -> FeatureEventDetail?
     /// The Knowledge screen for one steward, written by the workspace.
@@ -298,6 +325,11 @@ extension FeatureWorkspace {
     /// ledger itself.
     func conversation(steward: String, person: String) async throws -> [FeatureConversationEntry] {
         throw FeatureReadError.unavailable("conversation")
+    }
+
+    /// Workspaces without learned checks report them unavailable; Improve then hides them.
+    func learnedChecks(steward: String) async throws -> FeatureLearnedChecks? {
+        throw FeatureReadError.unavailable("learned checks")
     }
 
     /// Workspaces without a Knowledge read report it unavailable.

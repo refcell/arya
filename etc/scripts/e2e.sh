@@ -143,6 +143,15 @@ check_binding_history() {
     expect "first case" "$(get added.0)" hist-MSG-040
 }
 check_reviewed() { expect reviewed "$(get reviewed)" 3 && expect agreed "$(get agreed)" 1; }
+# v1 from the live-run correction, v2 and v3 from the two reviews; each check is scored.
+check_checks() {
+  expect version "$(get version)" 3 || return 1
+  [ "$(get total)" -gt 0 ] && [ "$(get scored)" -gt 0 ] || { echo "    no scored checks"; return 1; }
+  case "$(get sentence)" in
+    "Checks v3: passes "*) ;;
+    *) echo "    sentence: $(get sentence)"; return 1 ;;
+  esac
+}
 check_verify() { expect ok "$(get ok)" true; }
 check_refunds() { expect id "$(get summary.id)" st_refunds; }
 check_digest() { expect id "$(get summary.id)" st_digest; }
@@ -389,6 +398,8 @@ step "rehearse with history: 30 of 35" history rehearsal check_history_rehearsal
 step "review queue: MSG-113 disagrees" history rehearsal check_review_queue review st_triage
 step "agree with MSG-110" history rehearsal check_reviewed \
   review st_triage --case hist-MSG-110 --verdict agree
+step "corrections and agreements became checks" history rehearsal check_checks \
+  checks st_triage
 step "a steward reading the inbox binding" history setup check_history_steward \
   steward create --charter "$work/history.json"
 step "import 40 past messages from it" history setup check_binding_history \

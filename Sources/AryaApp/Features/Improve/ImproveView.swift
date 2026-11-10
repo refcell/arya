@@ -30,6 +30,9 @@ struct ImproveView: View {
                     if let queue = store.reviewQueues[steward] {
                         ReviewQueuePanel(store: store, steward: steward, queue: queue)
                     }
+                    if let checks = store.learnedChecks[steward] {
+                        LearnedChecksPanel(checks: checks)
+                    }
                     AryaHairline()
                     // Proposal review (app-outcome): change and why, rehearsal case by case,
                     // and Reject or Accept by what the rehearsal found.
@@ -48,6 +51,9 @@ struct ImproveView: View {
                 summary = try? await store.workspace.improveSummary(steward: steward)
                 if let queue = try? await store.workspace.reviewQueue(steward: steward) {
                     store.reviewQueues[steward] = queue
+                }
+                if let checks = try? await store.workspace.learnedChecks(steward: steward) {
+                    store.learnedChecks[steward] = checks
                 }
             }
         }

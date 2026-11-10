@@ -91,6 +91,8 @@ import Testing
             // The review queue is an async read; load it before drawing Improve.
             store.reviewQueues[steward.id] = try? await store.workspace.reviewQueue(
                 steward: steward.id)
+            store.learnedChecks[steward.id] = try? await store.workspace.learnedChecks(
+                steward: steward.id)
         }
         try page("improve") { $0.tab = .improve }
         // Improve's proposals: one whose rehearsal regressed and one that passed (app-outcome).

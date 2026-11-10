@@ -39,6 +39,8 @@ protocol WorkspaceSource: Sendable {
     func improveSummary(steward: String) async throws -> FeatureImproveSummary
     /// The review queue on the steward's newest casebook, or nil when it has none.
     func reviewQueueSummary(steward: String) async throws -> FeatureReviewQueue?
+    /// The learned checks, scored, or nil before anyone reviewed a case.
+    func learnedChecksSummary(steward: String) async throws -> FeatureLearnedChecks?
     /// The Knowledge screen's notes and routines.
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge
     /// One person's thread with a steward, oldest first.
@@ -139,6 +141,10 @@ extension WorkspaceSource {
 
     func reviewQueueSummary(steward: String) async throws -> FeatureReviewQueue? {
         throw FeatureReadError.unavailable("review queue")
+    }
+
+    func learnedChecksSummary(steward: String) async throws -> FeatureLearnedChecks? {
+        throw FeatureReadError.unavailable("learned checks")
     }
 
     func whatIfSummary(run: String, proposal: String) async throws -> String {
@@ -406,6 +412,18 @@ extension Workspace: WorkspaceSource {
             casebookVersion: queue.casebookVersion, rehearsal: queue.rehearsal,
             progressText: queue.progressText, total: queue.total, reviewed: queue.reviewed,
             next: queue.next.map(item))
+    }
+
+    func learnedChecksSummary(steward: String) async throws -> FeatureLearnedChecks? {
+        guard let checks = try await learnedChecks(steward: steward) else { return nil }
+        return FeatureLearnedChecks(
+            version: checks.version, sentence: checks.sentence, total: checks.total,
+            scored: checks.scored, passed: checks.passed,
+            lines: checks.results.map { line in
+                FeatureLearnedChecks.Line(
+                    id: line.check.id, caseID: line.check.caseID.rawValue, text: line.check.text,
+                    passed: line.passed, found: line.found, origin: line.check.origin.rawValue)
+            })
     }
 
     func whatIfSummary(run: String, proposal: String) async throws -> String {
