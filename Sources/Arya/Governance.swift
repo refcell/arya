@@ -93,7 +93,7 @@ extension Workspace {
     /// or unknown approvals) is left to the grant itself.
     func checkApprover(_ id: String, person: String) async throws {
         let approval = ApprovalID(unchecked: id)
-        guard let record = try await approvalQueue.book().records[approval],
+        guard let record = try await approvalBook().records[approval],
             record.status == .pending, case .action(let action) = record.subject
         else { return }
         let charter = try await existing(record.steward.rawValue).charter

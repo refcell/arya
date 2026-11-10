@@ -29,7 +29,7 @@ extension Workspace {
         -> LiveReadinessSummary
     {
         guard
-            let found = try ProposalBook(try await sink.events(from: 1))
+            let found = try ProposalBook(try facadeState().runtime)
                 .records[ProposalID(unchecked: id)]
         else { throw WorkspaceError.notFound(id) }
         let live = try await existing(found.steward.rawValue)

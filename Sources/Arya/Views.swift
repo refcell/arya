@@ -119,7 +119,7 @@ extension Workspace {
         -> KnowledgeView
     {
         let id = try await existing(steward).id
-        let events = try reader.events()
+        let events = try facadeState().events
         let times = Dictionary(
             events.map { (Int($0.seq), $0.at.date) }, uniquingKeysWith: { first, _ in first })
         let now = now()

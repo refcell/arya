@@ -56,7 +56,7 @@ extension Workspace {
     /// Finished rehearsals of a steward, newest first.
     public func rehearsals(steward: String) async throws -> [RehearsalSummary] {
         let id = try await existing(steward).id
-        let finished = try RehearsalBook(try await sink.events(from: 1)).finished(steward: id)
+        let finished = try facadeState().rehearsals.finished(steward: id)
         let names = Dictionary(
             try await casebookIndex().map { ($0.version, $0.name) }, uniquingKeysWith: { a, _ in a }
         )
@@ -169,7 +169,7 @@ extension Workspace {
         -> StewardSummary
     {
         let record = try await existing(steward)
-        let reviewed = try RehearsalBook(try await sink.events(from: 1))
+        let reviewed = try facadeState().rehearsals
             .finished(steward: record.id)
             .first { $0.request.charterVersion == record.version && $0.request.proposal == nil }
         try await Readiness(sink: sink).markReady(
@@ -187,7 +187,7 @@ extension Workspace {
     {
         let record = try await existing(steward)
         let series = OutcomeMetrics.series(
-            try await sink.events(from: 1), steward: record.id,
+            try facadeState().bySteward[record.id] ?? [], steward: record.id,
             windowMillis: Int64(max(1, windowSeconds)) * 1000)
         return MetricSeriesSummary(series, metric: record.charter.metric)
     }
@@ -218,22 +218,22 @@ extension Workspace {
 
     /// Every `casebook.imported`, oldest first.
     func casebookIndex() async throws -> [CasebookSummary] {
-        var rows: [CasebookSummary] = []
-        try reader.forEach { event in
-            guard event.type.rawValue == EvalEventType.casebookImported else { return }
-            let body = try CanonicalJSON.decode(
+        try facadeState().casebooks
+    }
+
+    /// The casebook a `casebook.imported` event recorded, else nil.
+    static func casebookSummary(_ event: Event) -> CasebookSummary? {
+        guard event.type.rawValue == EvalEventType.casebookImported,
+            let body = try? CanonicalJSON.decode(
                 CasebookImported.self, from: try CanonicalJSON.encode(event.payload))
-            rows.append(
-                CasebookSummary(
-                    name: body.name, steward: event.steward?.rawValue ?? "",
-                    version: body.version, cases: body.cases, correctedFrom: body.correctedFrom,
-                    importedAt: event.at.date))
-        }
-        return rows
+        else { return nil }
+        return CasebookSummary(
+            name: body.name, steward: event.steward?.rawValue ?? "", version: body.version,
+            cases: body.cases, correctedFrom: body.correctedFrom, importedAt: event.at.date)
     }
 
     func lastEventDate() async throws -> Date {
-        try await sink.events(from: 1).last?.at.date ?? Date(timeIntervalSince1970: 0)
+        try facadeState().runtime.last?.at.date ?? Date(timeIntervalSince1970: 0)
     }
 }
 

@@ -279,7 +279,7 @@ extension Workspace {
     /// newest live run result that carried one. No items until a run reports a plan.
     public func plan(steward: String) async throws -> Plan {
         let id = try await existing(steward).id
-        if let event = try await sink.events(from: 1).last(where: {
+        if let event = try facadeState().runtime.last(where: {
             $0.type == PlanEventType.updated && $0.draft.steward == id
         }) {
             let body = try CanonicalJSON.decode(
@@ -297,7 +297,7 @@ extension Workspace {
         let live = Set(
             try await runBook().all.filter { $0.steward == id && $0.trigger != "case" }
                 .map(\.id))
-        guard let latest = RecordedResults(try reader.events()).latestPlan(among: live) else {
+        guard let latest = RecordedResults(try facadeState().events).latestPlan(among: live) else {
             return Plan(steward: id.rawValue, items: [], updatedAt: nil, reason: nil, run: nil)
         }
         let summary = latest.result.summary
@@ -318,7 +318,7 @@ extension Workspace {
     /// approvals, finished and failed runs, memory, routine, and charter changes.
     public func activity(steward: String, limit: Int = 50) async throws -> [ActivityItem] {
         let id = try await existing(steward).id
-        let items = try ActivityFeed(events: try reader.events(), steward: id).items
+        let items = try ActivityFeed(events: try facadeState().events, steward: id).items
         return Array(items.reversed().prefix(max(0, limit)))
     }
 
@@ -326,7 +326,7 @@ extension Workspace {
     /// everything). The app keeps that `seq`; the facade stores no per-person state.
     public func recap(steward: String, since seq: Int = 0) async throws -> Recap {
         let id = try await existing(steward).id
-        let events = try reader.events()
+        let events = try facadeState().events
         let feed = try ActivityFeed(events: events, steward: id).items.filter { $0.seq > seq }
         let pending = try await approvals().filter { $0.steward == id.rawValue }
         return Recap(

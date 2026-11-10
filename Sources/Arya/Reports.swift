@@ -62,7 +62,7 @@ extension Workspace {
             charter.report
             ?? ReportConfig(
                 to: charter.bindings.filter { $0.kind == .person }.map(\.id), cadence: .weekly)
-        let events = try reader.events()
+        let events = try facadeState().events
         let last = events.last {
             $0.steward == record.id && $0.type.rawValue == ReportSent.type
         }
@@ -132,8 +132,8 @@ extension Workspace {
     /// weekday for weekly reports) has passed and no report went out since.
     public func dueReports() async throws -> [String] {
         let now = now()
-        let events = try reader.events()
-        return try await lifecycle.book().all.compactMap { record in
+        let events = try facadeState().events
+        return try await stewardBook().all.compactMap { record in
             guard record.status == .active, let config = record.charter.report else { return nil }
             let slot = ReportSchedule.latestSlot(config, before: now)
             let sent = events.last {

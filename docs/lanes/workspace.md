@@ -229,3 +229,10 @@ M3:
   `ProposalSummary.impact`, `removed`, and `detail` (ProposalImpact moved from the app, plus
   autonomy raised), measured against the proposal's base version. `conversation(steward:
   person:)`. Next: incremental cached projections (CEO priority).
+- 2026-11-10: incremental facade reads (CEO priority, point 4 feel). `FacadeCache` keeps one
+  in-memory state per open workspace: run, steward, and approval books (seeded from the disk
+  projection cache, so compacted homes work), an action index for approvals, rehearsals,
+  casebooks, charter-change times, and the live events (all and per steward). A read stats the
+  ledger segments; unchanged means no work, otherwise only new events fold; a broken chain or
+  shorter ledger rebuilds. On a 50k-event home warm `approvals()`, `fleet()`, and `needsYou()`
+  each run under 20 ms (tested); a second read after N events folds exactly N (tested).

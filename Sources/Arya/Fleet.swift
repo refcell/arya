@@ -54,7 +54,7 @@ extension Workspace {
         let pending = Dictionary(grouping: try await approvals(), by: \.steward)
         let runs = try await runBook()
         var items: [FleetItem] = []
-        for record in try await lifecycle.book().all where record.status != .retired {
+        for record in try await stewardBook().all where record.status != .retired {
             let outcome = try await self.outcome(steward: record.id.rawValue)
             let last = runs.all.last {
                 $0.steward == record.id && !$0.rehearsal && $0.parent == nil

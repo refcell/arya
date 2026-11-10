@@ -89,13 +89,13 @@ extension Workspace {
     public func proposals(steward: String) async throws -> [ProposalSummary] {
         let id = try await existing(steward).id
         return try await measured(
-            ProposalBook(try await sink.events(from: 1)).all(steward: id).reversed())
+            ProposalBook(try facadeState().runtime).all(steward: id).reversed())
     }
 
     /// One proposal, or `nil`.
     public func proposal(_ id: String) async throws -> ProposalSummary? {
         guard
-            let record = try ProposalBook(try await sink.events(from: 1))
+            let record = try ProposalBook(try facadeState().runtime)
                 .records[ProposalID(unchecked: id)]
         else { return nil }
         return try await measured([record]).first
@@ -106,7 +106,7 @@ extension Workspace {
     func measured(_ records: [ProposalRecord]) async throws -> [ProposalSummary] {
         var book = StewardBook()
         var versions: [StewardID: [Int: Charter]] = [:]
-        for event in try await sink.events(from: 1) {
+        for event in try facadeState().runtime {
             try book.apply(event)
             guard let steward = event.draft.steward, let record = book.records[steward]
             else { continue }
@@ -177,7 +177,7 @@ extension Workspace {
         let id = try await existing(steward).id
         let book = try await self.casebook(for: steward, version: casebook)
         let proposal = ambient.newID(ProposalID.self)
-        let library = try RoutineLibrary(ledger: try reader.events())
+        let library = try RoutineLibrary(ledger: try facadeState().events)
         let outcome = try await routinePromoting {
             try await RoutineGatekeeper(
                 gate: RoutineRehearsalGate(sink: sink, rehearser: rehearser)
@@ -201,7 +201,7 @@ extension Workspace {
     ) async throws {
         guard !reason.isEmpty else { throw WorkspaceError.rejected("an override needs a reason") }
         let id = try await existing(steward).id
-        let library = try RoutineLibrary(ledger: try reader.events())
+        let library = try RoutineLibrary(ledger: try facadeState().events)
         let proposal = ambient.newID(ProposalID.self)
         let draft = try await routinePromoting {
             try RoutineGatekeeper.override(

@@ -44,7 +44,7 @@ extension Workspace {
     /// live memory notes about it.
     public func context(steward: String) async throws -> ContextSummary {
         let id = try await existing(steward).id
-        let events = try await sink.events(from: 1)
+        let events = try facadeState().runtime
         guard let context = try StewardContext(events, steward: id) else {
             throw WorkspaceError.notFound(steward)
         }

@@ -107,7 +107,7 @@ extension Workspace {
         let now = ambient.now()
         func time(_ date: Date) -> TimeText { TimeText(date, now: now.date, timeZone: timeZone) }
         let runs = try await runBook()
-        let stewards = try await lifecycle.book().all.filter { $0.status != .retired }
+        let stewards = try await stewardBook().all.filter { $0.status != .retired }
             .sorted {
                 $0.charter.name.localizedStandardCompare($1.charter.name) == .orderedAscending
             }
@@ -204,7 +204,7 @@ extension Workspace {
     ) async throws -> [ConversationEntry] {
         let id = try await existing(steward).id
         let now = now()
-        let thread = try InboxBook(try await sink.events(from: 1)).threads[id, default: []]
+        let thread = try InboxBook(try facadeState().runtime).threads[id, default: []]
         return thread.filter { person == nil || $0.person == person }.map {
             ConversationEntry(
                 direction: $0.direction.rawValue, person: $0.person, channel: $0.channel,

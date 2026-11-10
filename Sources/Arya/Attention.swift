@@ -126,7 +126,7 @@ extension Workspace {
                     link: .init(kind: "approval", id: approval.id),
                     time: time(approval.requestedAt)))
         }
-        let stewards = try await lifecycle.book().all.filter { $0.status != .retired }
+        let stewards = try await stewardBook().all.filter { $0.status != .retired }
         let runs = try await runBook().all.filter { $0.trigger != "case" && $0.parent == nil }
         for steward in stewards {
             guard let newest = runs.last(where: { $0.steward == steward.id }),
@@ -147,8 +147,8 @@ extension Workspace {
     private func staleRehearsals(
         _ stewards: [StewardRecord], time: (Date) -> TimeText
     ) async throws -> [NeedsYouItem] {
-        let events = try await sink.events(from: 1)
-        let book = try RehearsalBook(events)
+        let state = try facadeState()
+        let book = state.rehearsals
         let casebooks = try await casebookIndex()
         var items: [NeedsYouItem] = []
         for steward in stewards {
@@ -160,12 +160,7 @@ extension Workspace {
             if let newest {
                 if newest.request.charterVersion != steward.version {
                     reason = "Charter v\(steward.version) has not been rehearsed."
-                    since =
-                        events.last {
-                            $0.draft.steward == steward.id
-                                && ($0.type == StewardEventType.charterUpdated
-                                    || $0.type == StewardEventType.created)
-                        }?.at.date ?? since
+                    since = state.charterChanged[steward.id] ?? since
                 } else if newest.request.casebookVersion != casebook.version {
                     reason = "The newest casebook has not been rehearsed."
                 } else {
@@ -186,7 +181,7 @@ extension Workspace {
 
     /// One ledger event for the inspector, or `nil` when no event has this `seq`.
     public func event(seq: Int, timeZone: TimeZone = .current) async throws -> EventDetail? {
-        let events = try reader.events()
+        let events = try facadeState().events
         guard let event = events.first(where: { Int($0.seq) == seq }) else { return nil }
         var step: EventDetail.RunStep?
         if let run = event.run {

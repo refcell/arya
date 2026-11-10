@@ -99,7 +99,7 @@ extension Workspace {
         -> [MemorySummary]
     {
         let id = try await existing(steward).id
-        let projection = try MemoryProjection(ledger: try reader.events())
+        let projection = try MemoryProjection(ledger: try facadeState().events)
         return projection.allNotes(steward: id)
             .filter { includeRetracted || !$0.retracted }
             .map { MemorySummary($0.note, retracted: $0.retracted) }
@@ -148,7 +148,7 @@ extension Workspace {
 
     /// Notes every steward recalls; live ones only unless `includeRetracted`.
     public func sharedMemory(includeRetracted: Bool = false) async throws -> [MemorySummary] {
-        try MemoryProjection(ledger: try reader.events()).allNotes(steward: MemoryScope.shared)
+        try MemoryProjection(ledger: try facadeState().events).allNotes(steward: MemoryScope.shared)
             .filter { includeRetracted || !$0.retracted }
             .map { MemorySummary($0.note, retracted: $0.retracted) }
     }
@@ -156,7 +156,7 @@ extension Workspace {
     /// Live preferences about `person` (a binding id such as `person:alex`), shared and per
     /// steward, in ledger order.
     public func preferences(person: String) async throws -> [MemorySummary] {
-        let projection = try MemoryProjection(ledger: try reader.events())
+        let projection = try MemoryProjection(ledger: try facadeState().events)
         return projection.stewards.flatMap { projection.liveNotes(steward: $0) }
             .filter { $0.note.tags.contains("preference") && $0.note.tags.contains(person) }
             .sorted { $0.seq < $1.seq }
@@ -170,7 +170,7 @@ extension Workspace {
     public func retract(memory id: String, reason: String? = nil, by person: String = "local")
         async throws -> MemorySummary
     {
-        let events = try reader.events()
+        let events = try facadeState().events
         let projection = try MemoryProjection(ledger: events)
         var steward: StewardID?
         for event in events where event.type.rawValue == MemoryEventType.added {
@@ -200,7 +200,7 @@ extension Workspace {
     /// A steward's routines, sorted by name.
     public func routines(steward: String) async throws -> [RoutineSummary] {
         let id = try await existing(steward).id
-        return try RoutineLibrary(ledger: try reader.events()).overview(steward: id)
+        return try RoutineLibrary(ledger: try facadeState().events).overview(steward: id)
             .map(RoutineSummary.init)
     }
 
@@ -209,7 +209,7 @@ extension Workspace {
         -> RoutineDetail?
     {
         let id = try await existing(steward).id
-        let library = try RoutineLibrary(ledger: try reader.events())
+        let library = try RoutineLibrary(ledger: try facadeState().events)
         guard let found = library.version(steward: id, name: name, version: version) else {
             return nil
         }
@@ -230,7 +230,7 @@ extension Workspace {
         -> [RoutineHistoryItem]
     {
         let id = try await existing(steward).id
-        let events = try reader.events()
+        let events = try facadeState().events
         let times = Dictionary(
             events.map { (Int($0.seq), $0.at.date) }, uniquingKeysWith: { first, _ in first })
         return try RoutineLibrary(ledger: events).history(steward: id, name: name).map {

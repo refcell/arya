@@ -21,6 +21,8 @@ public actor Workspace {
     /// Where an encrypted home's key lives.
     let keys: any HomeKeyStore
     nonisolated let reader: LedgerReader
+    /// In-memory projections, caught up with only the new events on each read.
+    nonisolated let cache = FacadeCache()
     let ambient: Ambient
     let sink: LedgerEventSink
     let approvalQueue: ApprovalQueue
@@ -104,7 +106,7 @@ public actor Workspace {
 
     /// All stewards, sorted by id, including paused and retired ones.
     public func stewards() async throws -> [StewardSummary] {
-        try await lifecycle.book().all.map(StewardSummary.init)
+        try await stewardBook().all.map(StewardSummary.init)
     }
 
     /// One steward, or `nil` if no steward has this id.
@@ -197,14 +199,14 @@ public actor Workspace {
 
     /// Approvals, oldest first; pending only unless `includeDecided` is true.
     public func approvals(includeDecided: Bool = false) async throws -> [ApprovalSummary] {
-        let book = try await approvalQueue.book()
+        let book = try await approvalBook()
         return try await detailed(
             (includeDecided ? book.all : book.pending).map(ApprovalSummary.init))
     }
 
     /// One approval with its content, source item, and policy rule, or `nil`.
     public func approval(_ id: String) async throws -> ApprovalSummary? {
-        guard let record = try await approvalQueue.book().records[ApprovalID(unchecked: id)]
+        guard let record = try await approvalBook().records[ApprovalID(unchecked: id)]
         else { return nil }
         return try await detailed([ApprovalSummary(record)]).first
     }
@@ -212,47 +214,30 @@ public actor Workspace {
     /// Adds each approval's source item (its run's input) and the policy verdict that held it.
     func detailed(_ approvals: [ApprovalSummary]) async throws -> [ApprovalSummary] {
         guard !approvals.isEmpty else { return approvals }
-        let runs = try await runBook().records
-        let wanted = Set(approvals.map(\.run))
-        var reasons: [String: String] = [:]
-        var risks: [String: Risk] = [:]
-        var proposed: [String: ProposedAction] = [:]
-        var executed: [(seq: Int, action: ProposedAction)] = []
-        try reader.forEach { event in
-            guard let run = event.run?.rawValue else { return }
-            if event.type == .actionProposed {
-                let body = try event.payload(as: ActionProposed.self)
-                proposed["\(run):\(body.action.id)"] = body.action
-                guard wanted.contains(run) else { return }
-                reasons["\(run):\(body.action.id)"] = body.reason
-                risks["\(run):\(body.action.id)"] = body.risk
-            } else if event.type == .actionExecuted {
-                let body = try event.payload(as: ActionExecuted.self)
-                if let action = proposed["\(run):\(body.action)"] {
-                    executed.append((Int(event.seq), action))
-                }
-            }
-        }
-        let actionIDs = try await approvalQueue.book().records
-        let recorded = RecordedResults(try reader.events())
+        let state = try facadeState()
+        let runs = state.runs.records
+        let index = state.actions
+        let actionIDs = state.approvals.records
+        let recorded = index.results
         let charters = Dictionary(
-            try await lifecycle.book().all.map { ($0.id.rawValue, $0.charter) },
+            state.stewards.all.map { ($0.id.rawValue, $0.charter) },
             uniquingKeysWith: { first, _ in first })
         return approvals.map { approval in
             var out = approval
             let run = RunID(unchecked: approval.run)
             out.source = runs[run]?.input
             if case .action(let action)? = actionIDs[ApprovalID(unchecked: approval.id)]?.subject {
-                out.policyRule = reasons["\(approval.run):\(action.id)"]
+                let proposed = index.proposed["\(approval.run):\(action.id)"]
+                out.policyRule = proposed?.reason
                 out.policyText = out.policyRule.map {
                     Self.policyText(
                         $0, action: action, charter: charters[approval.steward])
                 }
                 let wire = recorded.action(action.id, run: run)
                 out.risk =
-                    risks["\(approval.run):\(action.id)"]?.rawValue ?? wire?.risk?.rawValue
+                    proposed?.risk?.rawValue ?? wire?.risk?.rawValue
                 out.why = wire?.why
-                out.change = Self.change(action, after: executed.map(\.action))
+                out.change = Self.change(action, after: index.executed)
                 let rule = charters[approval.steward]?.policy.approverRule(for: action)
                 out.approvers = rule?.people
                 out.approverNote = rule?.note
@@ -435,7 +420,7 @@ public actor Workspace {
 
     /// The `seq` of the newest event, or 0 for an empty ledger.
     public func lastSeq() async throws -> Int {
-        try await sink.events(from: 1).last?.seq ?? 0
+        try facadeState().runtime.last?.seq ?? 0
     }
 
     /// Verifies the hash chain, `seq` continuity, and envelopes.
@@ -453,12 +438,17 @@ public actor Workspace {
 
     var lifecycle: StewardLifecycle { StewardLifecycle(sink: sink) }
 
-    func runBook() async throws -> RunBook {
-        try await sink.book(RunBook.self)
-    }
+    func runBook() async throws -> RunBook { try facadeState().runs }
+
+    func stewardBook() async throws -> StewardBook { try facadeState().stewards }
+
+    func approvalBook() async throws -> ApprovalBook { try facadeState().approvals }
+
+    /// The cached projections, caught up with the ledger.
+    nonisolated func facadeState() throws -> FacadeState { try cache.current(home) }
 
     func record(_ id: String) async throws -> StewardRecord? {
-        try await lifecycle.book().records[StewardID(unchecked: id)]
+        try await stewardBook().records[StewardID(unchecked: id)]
     }
 
     func existing(_ id: String) async throws -> StewardRecord {

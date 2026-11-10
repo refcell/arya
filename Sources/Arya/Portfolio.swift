@@ -56,7 +56,7 @@ extension Workspace {
     {
         let fleet = try await self.fleet(timeZone: timeZone)
         let records = Dictionary(
-            try await lifecycle.book().all.map { ($0.id.rawValue, $0) },
+            try await stewardBook().all.map { ($0.id.rawValue, $0) },
             uniquingKeysWith: { first, _ in first })
         var items: [PortfolioItem] = []
         for entry in fleet {

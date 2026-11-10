@@ -7,7 +7,7 @@ extension Workspace {
     /// ran (no new runs): current against proposed per case, which improved and regressed, and
     /// metric deltas. `nil` until the proposal has been gated on a baseline.
     public func comparison(proposal id: String) async throws -> BacktestView? {
-        let events = try await sink.events(from: 1)
+        let events = try facadeState().runtime
         guard let found = try ProposalBook(events).records[ProposalID(unchecked: id)] else {
             throw WorkspaceError.notFound(id)
         }
