@@ -110,25 +110,48 @@ public struct ActionDispatcher: Sendable {
     private let sink: any EventSink
     private let approvals: ApprovalQueue
     private let executor: any ActionExecutor
+    private let access: AccessSource?
 
-    /// Creates a dispatcher.
-    public init(sink: any EventSink, approvals: ApprovalQueue, executor: any ActionExecutor) {
+    /// Creates a dispatcher. `access` supplies the grants enforced on actions taken on behalf
+    /// of a person (decision 0064); nil enforces none.
+    public init(
+        sink: any EventSink, approvals: ApprovalQueue, executor: any ActionExecutor,
+        access: AccessSource? = nil
+    ) {
         self.sink = sink
         self.approvals = approvals
         self.executor = executor
+        self.access = access
     }
 
     /// Disposes each action of a run in order: `action.proposed`, then execution,
     /// `approval.requested`, or `action.rejected`.
     /// `routines` are the live routine versions by name that the run started with.
+    /// `principal` is the person the run acts for (`Access.principal(of:)`); an action that
+    /// calls a connection without their use grant is rejected `access:use` and raised as a
+    /// finding.
     public func dispose(
         _ actions: [ProposedAction], charter: Charter, run: RunID,
-        routines: [String: String] = [:]
+        routines: [String: String] = [:], principal: String? = nil
     ) async throws -> [ActionDisposal] {
         let policy = ActionPolicy(charter: charter)
+        var grants: AccessGrants?
+        if let principal, !Access.isOwner(principal), let access {
+            grants = try await access(charter.id)
+        }
         var disposals: [ActionDisposal] = []
         for action in actions {
-            let verdict = policy.classify(action.policyAction(routines: routines))
+            var verdict = policy.classify(action.policyAction(routines: routines))
+            var refusal: String?
+            if let grants, let principal, verdict.disposition != .deny {
+                refusal = Access.refusal(
+                    grants, person: principal, action: action, charter: charter)
+                if refusal != nil {
+                    verdict = PolicyVerdict(
+                        disposition: .deny, reason: Access.useReason, risk: verdict.risk,
+                        autonomy: verdict.autonomy)
+                }
+            }
             try await append(
                 ActionEventType.proposed, charter.id, run, .steward(charter.id),
                 ActionProposed(
@@ -147,10 +170,32 @@ public struct ActionDispatcher: Sendable {
                     try await approvals.request(.action(action), steward: charter.id, run: run).id
             case .deny:
                 try await reject(action.id, charter.id, run, reason: verdict.reason)
+                if let refusal { try await raiseRefusal(refusal, action, charter.id, run) }
             }
             disposals.append(disposal)
         }
         return disposals
+    }
+
+    /// Raises a refused use as a finding (`finding.raised`), unless one with the same title is
+    /// open.
+    private func raiseRefusal(
+        _ refusal: String, _ action: ProposedAction, _ steward: StewardID, _ run: RunID
+    ) async throws {
+        let title = "Access refused: \(refusal)"
+        let open = try FindingBook(try await sink.events(from: 1)).open(steward)
+        guard !open.contains(where: { Findings.key($0.title) == Findings.key(title) }) else {
+            return
+        }
+        let raised = FindingRaised(
+            finding: "access-\(action.id)", kind: "problem", title: title,
+            evidence: [
+                "Action \(action.id) was not carried out."
+                    + " A use grant on the connection, tool, or steward lets it through."
+            ],
+            needsPerson: true)
+        try await append(
+            FindingEventType.raised.rawValue, steward, run, .system, raised)
     }
 
     /// Records `action.proposed` with its disposition for each action and nothing else: no

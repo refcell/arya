@@ -42,11 +42,12 @@ public actor Workspace {
         leases = wiring.leases
         sink = try LedgerEventSink(home: home, ambient: wiring.ambient)
         reader = LedgerReader(home: home)
-        approvalQueue = ApprovalQueue(sink: sink, ambient: wiring.ambient)
+        approvalQueue = ApprovalQueue(sink: sink, ambient: wiring.ambient, access: wiring.access)
         dispatcher = ActionDispatcher(
             sink: sink, approvals: approvalQueue,
             executor: RoutineActionExecutor(
-                home: home, fallback: wiring.executor, runner: wiring.routines))
+                home: home, fallback: wiring.executor, runner: wiring.routines),
+            access: wiring.access)
         engine = RunEngine(
             sink: sink, ambient: wiring.ambient, adapters: wiring.adapters, dispatcher: dispatcher,
             approvals: approvalQueue,
@@ -481,6 +482,7 @@ public actor Workspace {
             case .notFound(let id): throw WorkspaceError.notFound(id.rawValue)
             case .alreadyDecided(let id, let status):
                 throw WorkspaceError.rejected("\(id.rawValue) is already \(status.rawValue)")
+            case .notPermitted(_, let reason): throw WorkspaceError.rejected(reason)
             }
         } catch let error as RunError {
             switch error {
@@ -524,6 +526,9 @@ struct Wiring: Sendable {
     var sandbox = true
     /// Connects to a binding's server for onboarding (runtime decision 0059).
     var connect: BindingConnect = BindingActionExecutor.spawn
+    /// The grants enforced in the run path (runtime decision 0064); nil enforces none. The
+    /// workspace fills it from its grant data.
+    var access: AccessSource?
 }
 
 /// Errors the facade reports.

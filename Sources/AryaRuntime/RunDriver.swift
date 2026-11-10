@@ -439,7 +439,8 @@ final class RunDriver: @unchecked Sendable {
                 actions, charter: charter, run: run, routines: routines)
         case .live:
             return try await loop.dispatcher.dispose(
-                actions, charter: charter, run: run, routines: routines)
+                actions, charter: charter, run: run, routines: routines,
+                principal: Access.principal(of: request))
         case .rehearsal:
             return try await loop.dispatcher.recordOnly(
                 actions, charter: charter, run: run, routines: routines)

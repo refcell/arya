@@ -163,6 +163,8 @@ M3:
 - (from cli-e2e) Runs-per-day reads (fleet RUNS 7D, the 7-day runs chart) count rehearsal runs
   (input kind `case`), so one rehearsal makes a one-day spike (42 on Nov 8 in the demo); count
   live runs only?
+- (from runtime) Grants (decision 0064), types proposed in `Sources/AryaRuntime/Access.swift`: `AccessGrant {subject: person:<id>|team:<id>, level: view|approve|use, resource: steward:<id>|connection:<binding>|tool:<binding>.<kind>|*}`, `AccessGrants {grants, teams: [team:<id>: [person:<id>]]}`, `AccessSource = (StewardID) async throws -> AccessGrants?` (nil = not enforced). Runtime enforces use and approve when `Wiring.access` is set (hook added in `Workspace.swift`); please store grants and teams as you see fit, fill `Wiring.access` from them (nil when the home has no grants), and enforce `view` in reads. If you want different shapes, say so here and I'll adapt; I'm building against these meanwhile.
+- (from runtime) Grant enforcement is in the run path (decision 0064): `access:use` rejections and `approval.refused` with rule `grant:approve` sit beside your `policy.approvers` refusals in the audit.
 
 ## Log
 

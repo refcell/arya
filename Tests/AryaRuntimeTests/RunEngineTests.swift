@@ -47,12 +47,14 @@ struct RunHarness {
     init(
         script: FakeScript, timeouts: ConnectionTimeouts? = nil, stepMillis: Int64 = 1,
         secondsUnit: Duration = .seconds(1), proxy: BindingProxyLaunch? = nil,
-        workdirRoot: String = "scratch", sandbox: Bool = false, connect: BindingConnect? = nil
+        workdirRoot: String = "scratch", sandbox: Bool = false, connect: BindingConnect? = nil,
+        access: AccessSource? = nil
     ) {
         let ambient = Ambient.fixed(stepMillis: stepMillis)
         sink = MemoryEventSink(ambient: ambient)
-        approvals = ApprovalQueue(sink: sink, ambient: ambient)
-        let dispatcher = ActionDispatcher(sink: sink, approvals: approvals, executor: executor)
+        approvals = ApprovalQueue(sink: sink, ambient: ambient, access: access)
+        let dispatcher = ActionDispatcher(
+            sink: sink, approvals: approvals, executor: executor, access: access)
         var factory = FakeFactory(script: script)
         if let timeouts { factory.timeouts = timeouts }
         loop = RunEngine(

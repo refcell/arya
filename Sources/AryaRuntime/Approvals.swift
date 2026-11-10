@@ -106,6 +106,8 @@ public enum ApprovalError: Error, Equatable, Sendable {
     case notFound(ApprovalID)
     /// The approval was already decided or expired.
     case alreadyDecided(ApprovalID, ApprovalStatus)
+    /// The person has no approve grant covering the approval (decision 0064).
+    case notPermitted(ApprovalID, reason: String)
 }
 
 /// Folds approval events into records.
@@ -172,11 +174,14 @@ public struct ApprovalBook: RuntimeBook {
 public struct ApprovalQueue: Sendable {
     private let sink: any EventSink
     private let ambient: Ambient
+    private let access: AccessSource?
 
-    /// Creates a queue over a sink.
-    public init(sink: any EventSink, ambient: Ambient) {
+    /// Creates a queue over a sink. `access` supplies the approve grants checked when a person
+    /// decides an action approval (decision 0064); nil checks none.
+    public init(sink: any EventSink, ambient: Ambient, access: AccessSource? = nil) {
         self.sink = sink
         self.ambient = ambient
+        self.access = access
     }
 
     /// The current book.
@@ -236,6 +241,32 @@ public struct ApprovalQueue: Sendable {
         return expired
     }
 
+    /// Records `approval.refused` and throws when `person` has no approve grant covering an
+    /// action approval.
+    private func checkGrant(_ record: ApprovalRecord, person: RuntimeActor) async throws {
+        guard let access, !Access.isOwner(person.id), case .action(let action) = record.subject,
+            let grants = try await access(record.steward)
+        else { return }
+        var resources = ["steward:\(record.steward.rawValue)"]
+        if let charter = try await sink.book(StewardBook.self).records[record.steward]?.charter {
+            let touched = Access.resources(of: action, steward: record.steward, charter: charter)
+            if !touched.isEmpty { resources = touched }
+        }
+        let who = Access.person(person.id)
+        guard grants.grant(.approve, person: who, on: resources) == nil else { return }
+        let holders = grants.holders(.approve, on: resources)
+        let reason = "\(who) has no approve grant for \(action.kind) on \(record.steward.rawValue)"
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: ApprovalRefused.type.rawValue, steward: record.steward, run: record.run,
+                actor: person,
+                payload: try Payload.encode(
+                    ApprovalRefused(
+                        approval: record.id, by: person.id, people: holders,
+                        rule: Access.approveRule, note: reason))))
+        throw ApprovalError.notPermitted(record.id, reason: reason)
+    }
+
     private func decide(
         _ id: ApprovalID, type: String, actor: RuntimeActor, note: String? = nil
     ) async throws -> ApprovalRecord {
@@ -243,6 +274,7 @@ public struct ApprovalQueue: Sendable {
         guard record.status == .pending else {
             throw ApprovalError.alreadyDecided(id, record.status)
         }
+        if actor.kind == "human" { try await checkGrant(record, person: actor) }
         _ = try await sink.append(
             RuntimeEventDraft(
                 type: type, steward: record.steward, run: record.run, actor: actor,

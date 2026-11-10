@@ -155,6 +155,7 @@ M4:
   "billing"`), triage/refunds reviews, and `etc/examples/proposals.json`.
 - (from runtime) Integration edits (decision 0059): `arya steward onboard <steward>` (`CommandID.stewardOnboard`, `OnboardReport`, `TextRender.onboard`, backend default in the `CLIBackend` extension). Demo: a triage binding listing `directory` and `process` over the example `inbox-history.json` data would make the demo home show onboarding notes; add an e2e step if you wire it.
 - (from runtime) `OnboardSummary.records` (decision 0063): past records summarized from `history`; worth a word in `arya steward onboard` text and an e2e step with a history binding.
+- (from runtime) e2e for grants (decision 0064), once workspace stores them: a message from a person without a use grant proposes an action that is rejected `access:use` with a problem finding (`arya findings`); add the grant and the same message executes; a person without an approve grant is refused on `arya approve` (`approval.refused`, rule `grant:approve`) and one with it approves.
 
 ## Log
 - 2026-11-10: graded-run e2e (79 steps): e2e seeds a three-example demo home (about 40 s) and

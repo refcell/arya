@@ -704,3 +704,22 @@ plus the `history` tag; duplicates are skipped. `onboard.read` and `onboard.comp
 `records`. Why: the habits of a team live in its past tickets and messages; a new steward
 should start from them, without copying every record into memory.
 
+### 0064 — 2026-11-10 — Use and approve grants are enforced in the run path
+
+Context: governance needs access by person, team, and tool (M3.6 #13). The workspace owns grant
+data and its facade; the runtime enforces it. Decision: the runtime takes an `AccessSource`
+(steward to `AccessGrants`: `AccessGrant {subject: person:<id> | team:<id>, level: view |
+approve | use, resource: steward:<id> | connection:<binding> | tool:<binding>.<kind> | *}` and
+teams to members). A live run acts on behalf of a person: the sender of a message input, else
+the person who started it; schedules, triggers, crew children, and the local owner act for
+nobody and are not limited. An action of such a run that calls a connection (an MCP binding, or
+a person binding's relay) needs a `use` grant on that tool, connection, or steward, held by the
+person or one of their teams. Without one it is rejected before execution or approval
+(`action.proposed` deny, `action.rejected` reason `access:use`) and raised as a problem finding
+naming who lacked which grant, once while it is open. Deciding an action approval needs an
+`approve` grant covering it; otherwise `approval.refused` (rule `grant:approve`, `people` = who
+holds one, a plain note) is recorded and the decision is refused, so the approval stays pending.
+A nil source, or a source returning nil, enforces nothing, so homes without grants behave as
+before. `view` is the workspace's to enforce in reads. Why: a steward acting for someone must
+not reach further than that person may, and the refusal must be visible, not silent.
+

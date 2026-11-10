@@ -291,3 +291,10 @@ M4:
 - 2026-11-10: per-person memory (0061): `person:<id>` notes recalled only for runs acting for that person (sender, named bindings, `person:<id>` in the input), inbox corrections tagged with the sender, facade `personMemory`.
 - 2026-11-10: shared routines (0062): one version per content hash across stewards, followers and upgrades (`RoutineUpgrades`), upgrade is a gated adoption; facade `routineUses`, `routineUpgrades`, `upgradeRoutine`.
 - 2026-11-10: onboarding reads `history` (0063): up to 500 past records summarized into who-handles-what, routing, outcome, and resolution notes with provenance; `records` on read/completed/summary.
+- 2026-11-10: grants enforced (0064): `use` on actions taken for a person (rejected `access:use`, finding raised), `approve` on approval decisions (`approval.refused`, rule `grant:approve`); `AccessSource` via `Wiring.access`, data and `view` with workspace.
+- 2026-11-10: runtime features without an app surface (no use found in `Sources/AryaApp`), for routing:
+  per-person memory (`personMemory`, `preferences`, 0061); routine uses and upgrades
+  (`routineUses`, `routineUpgrades`, `upgradeRoutine`, 0062); history counts from onboarding
+  (`OnboardSummary.records`, 0063); follow-up checks per action (`checks(steward:)`,
+  `CheckSummary`, 0054); re-plan runs and why (0046, input kind `replan`); grant refusals and
+  approve refusals (0064). Findings, drafts, onboarding, steps, reports, and delegations are shown.
