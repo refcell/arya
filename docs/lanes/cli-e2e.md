@@ -157,6 +157,10 @@ M4:
 - (from runtime) `OnboardSummary.records` (decision 0063): past records summarized from `history`; worth a word in `arya steward onboard` text and an e2e step with a history binding.
 
 ## Log
+- 2026-11-10: `arya findings`, `arya finding resolve`, `arya template list|use`, with six e2e
+  steps (77): the triage script's "Sweep the inbox for patterns" raises a problem and an
+  opportunity; a person acts on the problem. ROADMAP 12 and 16 now name their e2e. Next: a
+  graded run for `steward trajectories` once eval seeds follow-up checks (#4).
 - 2026-11-10: `arya steward onboarding|gate|trajectories|metrics` (onboardingState, goLiveGate,
   trajectories, metricStatuses; `steward onboard` stays runtime's action), each with an e2e
   step (71 steps). The live steward re-plans three days before the seed's today, so its PLAN

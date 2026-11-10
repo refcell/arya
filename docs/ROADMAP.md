@@ -168,7 +168,8 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-10:
     steward or shared (618b1ce6); per-person preferences are read-only. e2e: a correction
     becomes a memory; retract.
 12. Persistent and proactive (runtime; app-outcome). Done: the scheduler, proactive findings
-    (afc02209), and overview findings (b4548d6e). e2e: none yet (findings need a served home).
+    (afc02209), and overview findings (b4548d6e). e2e: a sweep raises a problem and an
+    opportunity; `arya findings`, and a person acts on one (`arya finding resolve`).
 13. Governance: fine-grained access, attributable and auditable (governance). Partial: the
     ledger audit, approver rules enforced and recorded (9af3f91c), and a people directory with
     roles (cc50514f); access by organization, team, and tool is missing. e2e: a refused
@@ -180,7 +181,8 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-10:
     (5ebcf471), fleet by department (4f7e44ed), and the busy demo of eleven stewards
     (e93b1289). e2e: three stewards, pause and resume, `arya fleet`.
 16. Templates (workspace; app-shell). Done: templates in the facade (618b1ce6) and the
-    templates step in New steward (4f7e44ed). e2e: none yet.
+    templates step in New steward (4f7e44ed). e2e: `arya template list`, and `arya template
+    use` creates a steward from one.
 17. Reports to people (connect). Done: periodic reports (fc534a04), report runs to relay people
     (c385cd5d), and the reports pane with delivery (c8bd367a). e2e: report show and send.
 18. Abort and rollback (governance). Done: abort from any process (9af3f91c), undo through a
