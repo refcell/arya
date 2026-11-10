@@ -307,7 +307,7 @@ struct StewardPicker: View {
         } label: {
             Text("For steward: \(name) ▾").aryaText(AryaFont.body, AryaColor.ink)
         }
-        .menuStyle(.borderlessButton)
+        .aryaMenuButton()
         .menuIndicator(.hidden)
         .fixedSize()
         .accessibilityLabel("For steward: \(name)")
