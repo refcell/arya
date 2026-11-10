@@ -399,6 +399,10 @@ struct HomeGovernanceSection: View {
             importExport: {
                 guard let source, let folder = Self.chooseExport() else { return }
                 Task { await cache.importAudit(from: folder, source: source) }
+            },
+            reseal: {
+                guard let source else { return }
+                Task { await cache.resealHistory(from: source) }
             }
         )
         .task { if let source { await cache.loadHome(from: source) } }
@@ -425,7 +429,9 @@ struct HomeGovernancePanel: View {
     var encrypt: () -> Void
     var archive: () -> Void = {}
     var importExport: () -> Void = {}
+    var reseal: () -> Void = {}
     @AryaState private var confirm = false
+    @AryaState private var confirmReseal = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
@@ -478,9 +484,19 @@ struct HomeGovernancePanel: View {
                         Text(GovernanceText.keyLine(encryption))
                             .aryaText(AryaFont.monoSmall, AryaColor.ink)
                     }
-                    Text(GovernanceText.coverageLine(encryption))
-                        .aryaText(AryaFont.caption, AryaColor.inkMuted)
-                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                        Text(GovernanceText.coverageLine(encryption))
+                            .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        if encryption.clearEvents > 0, encryption.keyAvailable {
+                            Button("Seal earlier events…") { confirmReseal = true }
+                                .buttonStyle(.aryaSecondary)
+                                .popover(isPresented: $confirmReseal, arrowEdge: .bottom) {
+                                    resealConfirm.padding(AryaSpace.s3)
+                                }
+                        }
+                    }
                 } else {
                     HStack(spacing: AryaSpace.s2) {
                         Chip("off")
@@ -499,6 +515,26 @@ struct HomeGovernancePanel: View {
                 Text(problem).aryaText(AryaFont.caption, AryaColor.negative)
             }
         }
+    }
+
+    private var resealConfirm: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s2) {
+            Text("Seal earlier events?").aryaText(AryaFont.bodyStrong, AryaColor.ink)
+            Text(GovernanceText.resealWarning)
+                .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button("Cancel") { confirmReseal = false }.buttonStyle(.aryaTertiary)
+                    .keyboardShortcut(.cancelAction)
+                Button("Seal and rewrite") {
+                    confirmReseal = false
+                    reseal()
+                }
+                .buttonStyle(.aryaPrimary)
+            }
+        }
+        .frame(width: 300)
     }
 
     private var encryptConfirm: some View {
@@ -526,6 +562,11 @@ struct HomeGovernancePanel: View {
 
 /// The governance views' sentences, kept apart so tests pin them.
 enum GovernanceText {
+    static let resealWarning =
+        "The ledger is rewritten once with those payloads sealed: every hash from the first one "
+        + "on changes, checkpoints are re-signed, and the old-to-new hash map is kept. The clear "
+        + "copy is removed."
+
     static let encryptWarning =
         "A new key goes into your Keychain. New events, blobs, and caches are sealed with it; "
         + "without the key this home cannot be read. Events already written stay as written."

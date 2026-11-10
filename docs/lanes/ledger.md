@@ -124,9 +124,9 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   runs, actions, approvals), blobs, projection caches, and seeds (`HomeEncryption`,
   `system.encryption.enabled`, `encryption()`/`enableEncryption(as:)`); blobs, caches, and
   seeds migrate on enable. CLI, settings row, and e2e asked.
-- [ ] (G4b) Re-seal history written before encryption was enabled: rewrite those segments
-  into a sealed copy under a signed checkpoint that maps old to new hashes, once (14)
-  defines bundles; until then `encryption().clearEvents` counts them.
+- [x] (G4b) Re-seal history written before encryption: `Reseal.apply`, `resealHistory(as:)`,
+  `system.ledger.resealed`; "Seal earlier events…" in app settings when any remain. CLI
+  asked.
 - [x] (G1-G4a in the app) Abort, Undo, policy and approvers, retention, and encryption
   shown in the app with snapshot states (`Features/Governance/`, hooks in StreamTab,
   InspectorView, AppSettingsView).
@@ -201,6 +201,18 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   anyone holding the ledger can compare it. Revealed payloads are vouched for only by the
   signature, since their boxes need the home key. The export itself is recorded as
   `system.audit.exported {steward, count, head, manifest, revealed}` (actor: the person).
+- (G4b re-seal) A one-time rewrite of the live ledger under the append lock: every event
+  keeps its id, time, `seq`, actor, and type; clear payloads that encryption seals now are
+  sealed with the context of their own id and `seq`; hashes change from the first sealed
+  event on. Checkpoints are re-signed with the home's checkpoint key against the new heads
+  and segment digests (refused when one is signed by a key this home does not hold). The
+  staging copy is verified line by line as it is written and swapped in with one atomic
+  directory exchange (`RENAME_SWAP`); the clear copy is then removed, which is the point of
+  the operation and why the app asks first. The old-to-new hash map `{"v":1,"map":[[seq,
+  old, new]]}` goes to a blob named by `system.ledger.resealed {through, previousHead,
+  sealed, checkpoints, map, key}`, so audit exports and outside copies taken before stay
+  traceable. Projection caches are dropped (they name old hashes) and rebuild. A compacted
+  ledger is refused: archived segments are vouched for by digests a rewrite would break.
 - (14 import) Import builds on the signed export instead of a second bundle format: the
   manifest's signature and `keys.jsonl` stand in for the anchoring checkpoint (the signer is
   the home's checkpoint key either way). Importing re-records state, it does not splice
@@ -341,6 +353,13 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from runtime) Integration edit (decision 0056): `ActionExecuted.dryRun` (true or absent) so a dry run reads as drafted, not done; `Governance` undo treats a drafted undo as not executed.
 
 ## Log
+- 2026-11-10: (G4b) done locally: re-seal earlier clear history (chain rewrite, re-signed
+  checkpoints, hash map blob) and a "Seal earlier events…" control in settings. Not
+  published (holding for the CEO order); snapshot after the app-shell settle fix.
+- 2026-11-10: b79a593 (G3b, 13, 14) published out of the CEO order: I read "the lane before
+  you has landed" as runtime (#6, 8ca2ec1), but the order is strictly sequential from #1.
+  Holding further publishes until app-views, cli-e2e, workspace, app-outcome, and runtime
+  land; no full-suite or perf runs meanwhile. G4b continues locally.
 - 2026-11-10: batch of three commits (G3b retention, (13) probe, (14) import) rebased on
   origin/main 07401a4 and green on AryaLedgerTests, AryaTests, and AryaAppTests; held for
   the CEO publish order (governance is 7th, after runtime). The governance hooks survived

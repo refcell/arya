@@ -302,3 +302,17 @@ private func undoableCharterJSON(allowUnlabel: Bool = true) throws -> Data {
         _ = try await other.workspace.importAudit(from: bundle)
     }
 }
+
+@Test func resealingHistoryLeavesNoEarlierEventsInTheClear() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let enabled = try await workspace.enableEncryption()
+    #expect(enabled.clearEvents > 0)
+    let resealed = try await workspace.resealHistory()
+    #expect(resealed.clearEvents == 0)
+    #expect(try await opened.types().last == "system.ledger.resealed")
+    #expect(try await workspace.stewards().map(\.id) == ["st_inbox"])
+    #expect(try await workspace.verifyLedger().ok)
+}

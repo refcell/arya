@@ -20,6 +20,7 @@ protocol GovernanceSource: Sendable {
     func importAudit(from directory: URL, as person: String) async throws -> AuditImportSummary
     func encryption() async throws -> EncryptionSummary
     func enableEncryption(as person: String) async throws -> EncryptionSummary
+    func resealHistory(as person: String) async throws -> EncryptionSummary
     func exportAudit(steward: String?, to directory: URL, reveal: Bool, as person: String)
         async throws -> AuditExportSummary
 }
@@ -113,6 +114,12 @@ final class GovernanceCache {
     func applyRetention(from source: any GovernanceSource) async {
         if let state = await attempt({ try await source.applyRetention(as: "local") }) {
             retention = state
+        }
+    }
+
+    func resealHistory(from source: any GovernanceSource) async {
+        if let state = await attempt({ try await source.resealHistory(as: "local") }) {
+            encryption = state
         }
     }
 

@@ -425,6 +425,19 @@ extension Workspace {
             sealedBlobs: sealed, clearBlobs: plain)
     }
 
+    /// Re-seals history written before encryption was enabled: rewrites the live ledger with
+    /// those payloads sealed, re-signs its checkpoints, and records `system.ledger.resealed`
+    /// (actor: the person). A no-op when nothing is in the clear.
+    public func resealHistory(as person: String = "local") async throws -> EncryptionSummary {
+        let signer = try CheckpointKeys(home: home).ensure(store: sink.store)
+        do {
+            try Reseal.apply(store: sink.store, signer: signer, actor: .human(person))
+        } catch let error as ResealError {
+            throw WorkspaceError.rejected(error.description)
+        }
+        return try await encryption()
+    }
+
     /// Turns encryption on with a new key kept in this workspace's key store (the Keychain
     /// in the app and CLI), records `system.encryption.enabled` (actor: the person), and seals
     /// existing blobs and seeds. Enabling an encrypted home changes nothing.
