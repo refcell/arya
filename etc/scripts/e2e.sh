@@ -202,6 +202,14 @@ check_aborted() {
   expect run "$(get run)" "${long_run:-}" &&
     expect status "$(get status)" stopped && expect "actions" "$(get actions)" 0
 }
+check_facts() {
+  expect status "$(get status)" finished && expect drafted "$(get actionsDrafted)" 3 &&
+    expect waiting "$(get actionsWaiting)" 0 && expect "dry run" "$(get dryRun)" true
+}
+check_live_running() {
+  expect running "$(get running.run)" "${long_run:-}" && expect status "$(get running.status)" running
+}
+check_live_idle() { expect running "$(get running.run)" ""; }
 check_denied() { expect state "$(get state)" denied; }
 # Governance (ledger lane): policy and approvers, undo, retention, signed export and import.
 check_policy() {
@@ -239,8 +247,8 @@ check_readiness() {
     { echo "    $(get summary)"; return 1; }
 }
 check_crew() {
-  expect status "$(get status)" completed && expect "crew children" "$(get crew)" 1 &&
-    [ -n "$(get join)" ] || { echo "    no join run"; return 1; }
+  # In-run host/delegate: the child answers inside the parent run, so no join run follows.
+  expect status "$(get status)" completed && expect "crew children" "$(get crew)" 1 || return 1
   crew_parent=$(get run)
   crew_child=$(get crew.0)
 }
@@ -356,6 +364,7 @@ step "approve the reply" live setup check_approved approve "${approval_id:-unkno
   --note "looks right"
 step "the approved reply executed" live setup check_ledger \
   ledger tail --count 200 --steward st_triage
+step "run facts: 3 drafted, none waiting" live live check_facts run facts "${run_id:-unknown}"
 step "the run recorded its metric" metrics live check_metric_event \
   ledger tail --count 200 --steward st_triage
 step "metric series updated" metrics live check_metrics metrics st_triage
@@ -418,6 +427,8 @@ step "sam's correction is kept as memory" connect live check_message_kept \
 step "report: what it would send now" connect live check_report report show st_triage
 step "send the report" connect live check_report report send st_triage
 start_long_run
+step "steward live: the long run is running" abort live check_live_running \
+  steward live st_triage
 step "abort a long run from another process" abort live check_abort_requested \
   run abort "${long_run:-unknown}" --reason "the customer withdrew the request"
 # The aborted `arya run` exits non-zero; its end is checked through `run show`.
@@ -447,6 +458,7 @@ home="$work/imported"
 step "import it into a fresh home" governance live check_steward_imported \
   import "$work/export"
 home=$source_home
+step "steward live: nothing running now" abort live check_live_idle steward live st_triage
 script_step "docs-only publish skips the build" publish etc/scripts/test-publish.sh docs-only
 step "verify the ledger" setup - check_verify ledger verify
 

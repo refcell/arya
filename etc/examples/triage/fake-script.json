@@ -4308,13 +4308,6 @@
             "metric": "routed_within_1h",
             "value": 0.95
           }
-        ],
-        "delegations": [
-          {
-            "id": "draft-refund-reply",
-            "title": "Draft the refund reply",
-            "input": "Draft the refund reply for MSG-203: ORDER-1043 arrived with a cracked screen and a refund of 24.00 is proposed."
-          }
         ]
       },
       "steps": [
