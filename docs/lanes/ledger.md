@@ -268,6 +268,7 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from connect) FYI: added optional `name` and `role` to person `CharterBinding`s
   (omitted when unset, golden fixtures unchanged) with `PersonBindingTests`.
 - (from eval) FYI: added optional `CaseContext.plan` in core (omitted from JSON when empty).
+- (from eval) New eval event `case.reviewed` {casebook, case, verdict agreed|skipped}; PROTOCOL?
 
 ## Log
 - HANDOFF 2026-11-09 (governance session 1, ended near auto-compaction): (G1), (G2a), (G2b),

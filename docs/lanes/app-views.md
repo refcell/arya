@@ -200,6 +200,7 @@ M4:
 - (from governance) live: `undoOptions(run:) -> [UndoOption{run, action, kind, binding, target, with, note, undoneBy}]` and `undoAction(run:action:reason:as:) -> UndoSummary{option, decision, reason, approval, executed}` for an Undo control on executed actions in the run thread (hide it when `undoneBy` is set; an `ask` undo appears in the approval queue as `undo:<id>`). Snapshot state: a run with one undone label.
 - (from governance) live: `retention() -> RetentionSummary{defaultDays, stewards[{steward, days}], segments, through, events, bytes, blocker}` and `setRetention(steward:days:as:)` (nil steward = home default, nil days clears) for a Retention row in steward settings and home settings; show `blocker` verbatim when set. Snapshot state: a steward with 90-day retention.
 - (from workspace) live: `message(steward:text:intent:by:) -> MessageReceipt{event, note, run}` for the composer (ask and handoff run and return the run; correct returns the note), `conversation(steward:)` for the thread, `runNow(steward:note:)` for ⌘↩; `portfolio()` and `templates()`/`createFromTemplate(_:id:name:adapter:owner:)`; `KnowledgeView.shared` (notes every steward recalls) and `remember(_:steward:about:by:)`.
+- (from eval) Added ReviewQueuePanel on Improve, FeatureStore.reviewQueues, FeatureWrite.reviewCase.
 
 ## Log
 - 2026-11-09: run stream, feature workspace seam (`FeatureWorkspace`, `PreviewWorkspace`,

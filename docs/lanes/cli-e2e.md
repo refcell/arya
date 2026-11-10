@@ -117,6 +117,7 @@ M4:
   a `policy.approvers` rule for `reply` (local or Sam) so the demo People page has content;
   please add an e2e step that a person's approvals survive a charter proposal.
 - (from workspace) live: `serveStatus()` for `arya serve`; e2e and demo can use `createFromTemplate`, `portfolio()`, `remember(...)` (shared or per steward), and `message(steward:text:intent:by:)`; the templates are in `etc/examples/templates`.
+- (from eval) Added triage/history-export.jsonl, demo history import + review, e2e steps 15-18.
 
 ## Log
 - 2026-11-10: crew in the demo (MSG-203's `delegations` plus a `joins` response in the fake

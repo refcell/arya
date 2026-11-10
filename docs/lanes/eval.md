@@ -88,6 +88,17 @@ M2:
 Later:
 - [x] Judge-adapter scorer (an adapter scores a result against the expected one).
 
+Parity (CEO gap map):
+- [x] #3 History import: `HistoryImporter` turns past items plus what a person did into
+  `hist-<id>` cases with provenance in `source`, dedupe by id and input, a size cap (newest
+  first); from an export file or a binding read tool (`arya history import`, demo, e2e).
+- [x] #3 Review queue: `ReviewQueue` read (would have vs person did, pending disagreements
+  first, progress line), `case.reviewed` agree/skip, corrections count; `arya review`, Improve.
+- [ ] #9 Auto-built evaluations: rubric checks from corrections and labels, versioned, scored
+  with a one-sentence result.
+- [x] Live readiness counts a crew once (parent, children by delegation id, join) and compares
+  the whole tree; live cases carry adapter-reported tool reads so what-ifs do not leak.
+
 ## Decisions
 
 - Eval uses core types directly: `JSONValue`, `CanonicalJSON`, typed ids, `Case`, `ScorerSpec`
@@ -206,6 +217,20 @@ Later:
 - Readiness: `Readiness.markReady` records `steward.ready` (the runtime's event type, which its
   projection reads) with a person as actor and the reviewed rehearsal, casebook version, and
   mean score as evidence. It does not require a rehearsal: the person decides.
+- History import: an item is `{id, input, did, by?, at?, context?}`; a binding's history tool
+  must be one of its `read` tools, takes `{limit}`, and returns `{items}` (or MCP
+  `structuredContent.items`, or text JSON). Bad items are reported one by one and skipped;
+  duplicates (same case id or same normalized input) are skipped; at most `limit` (200) new
+  cases per import, newest first. Nothing is recorded when nothing is added.
+- Review queue: on the steward's newest casebook, answers from its newest finished live
+  rehearsal. Status is the latest `case.reviewed` (agree, skip) or `case.corrected` for the
+  case, by casebook name. Order: pending disagreements, pending unrehearsed, pending matches,
+  then reviewed. Progress: `N of M reviewed · K of M match what people did`.
+- Crews in live readiness and What if: a crew is one item, its parent. Children (by delegation
+  id, however started) and the join are not items; the tree's decisions and actions are
+  compared, and every member's tool reads are served back.
+- Live-run cases record adapter-reported `tool_call`/`tool_result` pairs as well as binding
+  proxy reads, because rehearsal counts an unrecorded adapter-reported call as a leak.
 
 ## Questions
 
@@ -251,3 +276,10 @@ Later:
 - 2026-11-09: Visual check (just snapshot, demo home): Improve lists the v2 proposal, "Score 0.96 against a
   baseline of 0.96", "Regressed: case-0005"; its title is the id because `arya propose` takes no title.
 - 2026-11-10: side-by-side BacktestView and comparison(proposal:), plans pinned in rehearsal
+- 2026-11-10: history import (#3) from file or binding tool, review queue read and writes,
+  `arya history import` / `arya review`, demo seeds 12 history cases, e2e steps 15-18
+- 2026-11-10: live readiness counts a crew once and compares the whole tree; live cases carry
+  adapter-reported reads (every demo what-if used to read as a leak, so "would fail")
+- 2026-11-10: Visual check (just snapshot, demo home): Improve lists hist-MSG-110..124 (18/20),
+  then REVIEW "2 of 20 reviewed · 18 of 20 match what people did" with hist-MSG-113 side by
+  side (how-to vs bug), its difference and provenance, and Agree, Skip, Correct.

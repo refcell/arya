@@ -27,6 +27,8 @@ final class FeatureStore: ObservableObject {
     @Published var now: Date
     /// The Knowledge screen per steward, kept so the tab draws at once on return.
     @Published var knowledge: [String: FeatureKnowledge] = [:]
+    /// The review queue by steward, once read (Improve loads it; snapshots preload it).
+    @Published var reviewQueues: [String: FeatureReviewQueue] = [:]
 
     init(workspace: any FeatureWorkspace, now: Date = Date()) {
         self.workspace = workspace

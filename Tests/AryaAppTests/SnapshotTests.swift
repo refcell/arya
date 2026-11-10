@@ -64,6 +64,11 @@ import Testing
         try write(
             "needs-you-autonomy", scheme: scheme,
             render(RootView(model: await autonomyModel()), dark: dark))
+        if let store = model.featureStore {
+            // The review queue is an async read; load it before drawing Improve.
+            store.reviewQueues[steward.id] = try? await store.workspace.reviewQueue(
+                steward: steward.id)
+        }
         try page("improve") { $0.tab = .improve }
         // Improve's proposals: one whose rehearsal regressed and one that passed (app-outcome).
         if let store = model.featureContext().store,
