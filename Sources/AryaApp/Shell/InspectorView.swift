@@ -154,15 +154,6 @@ enum RunFacts {
         "\(value) \(noun)\(value == 1 ? "" : "s")"
     }
 
-    /// "0.2 s", "42 s", "3m 05s", "1h 12m".
-    static func duration(_ seconds: TimeInterval) -> String {
-        if seconds < 10 { return String(format: "%.1f s", max(0, seconds)) }
-        let whole = Int(seconds)
-        if whole < 60 { return "\(whole) s" }
-        if whole < 3600 { return String(format: "%dm %02ds", whole / 60, whole % 60) }
-        return "\(whole / 3600)h \(whole % 3600 / 60)m"
-    }
-
     /// "$0.042" from micro-dollars; "$0" when free.
     static func cost(_ micros: Int) -> String {
         if micros == 0 { return "$0" }

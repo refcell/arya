@@ -42,10 +42,10 @@ import Testing
 }
 
 @Test func runFactsReadDurationAndCost() {
-    #expect(RunFacts.duration(0.2) == "0.2 s")
-    #expect(RunFacts.duration(42) == "42 s")
-    #expect(RunFacts.duration(185) == "3m 05s")
-    #expect(RunFacts.duration(4320) == "1h 12m")
+    #expect(FeatureTime.duration(0.2) == "200 ms")
+    #expect(FeatureTime.duration(42) == "42.0 s")
+    #expect(FeatureTime.duration(185) == "3m 5s")
+    #expect(FeatureTime.duration(4320) == "1h 12m")
     #expect(RunFacts.cost(0) == "$0")
     #expect(RunFacts.cost(42_000) == "$0.042")
     #expect(RunFacts.cost(2_500_000) == "$2.50")

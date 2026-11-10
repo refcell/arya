@@ -29,11 +29,18 @@ struct RootView: View {
         .ignoresSafeArea(.container, edges: .top)
         .frame(minWidth: AryaSize.windowMinWidth, minHeight: AryaSize.windowMinHeight)
         .background(AryaColor.canvas)
+        // Offscreen renders start tasks too. A still frame (tests, snapshots) never follows the
+        // ledger, or every render leaves two watchers that each reload the whole workspace on
+        // every new event, and a live run's events pile them up until rendering stalls.
         .task {
+            guard !AryaMotion.frozenByProcess else { return }
             await model.refresh()
             await model.watch()
         }
-        .task { await model.featureStore?.observe() }
+        .task {
+            guard !AryaMotion.frozenByProcess else { return }
+            await model.featureStore?.observe()
+        }
     }
 
     /// Sidebar | stream | inspector, hairline-separated on one canvas.

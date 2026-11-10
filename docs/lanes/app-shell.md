@@ -370,3 +370,17 @@ M4:
   test preloads the runs its pages open, so offscreen renders show the facade's numbers.
 - Visual check (`just snapshot` run, run-approval, overview): moves (4) the same title and
   step tally in breadcrumb, rail, inspector, and run header.
+- 2026-11-10 snapshot hang root cause (mine): offscreen renders start `.task`s, so every
+  RootView render began `watch()` and `observe()`, and every live RunStreamView began an
+  `observeRun` loop. None of them ended in the snapshot process, and each reloaded the
+  workspace on every event of the leased live run, so about 80 renders stalled the late states
+  (people-thread-live, overview-live). These loops now return when `AryaMotion.frozenByProcess`.
+  `SnapshotProgress` is one rolling 60 s watchdog over every state's setup and render, plus the
+  per-render one. Filtered-out states skip their setup. overview-live gets a fresh model.
+  Decision: the other pages share one model; it is read-only now, and each page resets
+  navigation. A fresh model per page would cost about 80 workspace opens and break the pages
+  that set state first (folded departments, palette, credentials).
+- Visual check (full `just snapshot`, 112 PNGs, 243 s, no hang sample): moves (4), a live run
+  no longer freezes the review.
+- One elapsed format: the inspector's own `RunFacts.duration` is gone; the status bar, NOW, and
+  the inspector all use `FeatureTime.duration`, which now reads "1h 12m" past an hour.

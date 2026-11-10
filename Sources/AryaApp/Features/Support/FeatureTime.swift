@@ -18,11 +18,13 @@ enum FeatureTime {
         AryaTime.absolute(date, timeZone: timeZone)
     }
 
-    /// A short duration: "850 ms", "4.2 s", "3m 5s".
+    /// A short duration, the one format for every elapsed clock (status bar, NOW, inspector):
+    /// "850 ms", "4.2 s", "3m 5s", "1h 12m".
     static func duration(_ seconds: Double) -> String {
-        if seconds < 1 { return "\(Int((seconds * 1000).rounded())) ms" }
+        if seconds < 1 { return "\(Int((max(0, seconds) * 1000).rounded())) ms" }
         if seconds < 60 { return String(format: "%.1f s", seconds) }
         let whole = Int(seconds.rounded())
+        if whole >= 3600 { return "\(whole / 3600)h \(whole % 3600 / 60)m" }
         return "\(whole / 60)m \(whole % 60)s"
     }
 }

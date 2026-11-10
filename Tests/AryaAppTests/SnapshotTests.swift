@@ -18,6 +18,8 @@ import Testing
 
     @Test(arguments: ["dark", "light"])
     func snapshots(scheme: String) async throws {
+        SnapshotProgress.begin("snapshots (\(scheme))")
+        defer { SnapshotProgress.end() }
         let dark = scheme == "dark"
         let model = try await makeModel()
         await model.refresh()
@@ -272,7 +274,9 @@ import Testing
         }
         // The same thread while a new hand-off's run is still going: only that message and run
         // are added, so every count and report stays the workspace's own.
-        if let store = model.featureStore {
+        if let store = model.featureStore, Self.wants("people-thread-live") {
+            let setup = SnapshotWatchdog("people-thread-live (setup)")
+            defer { setup.cancel() }
             let base = store.events.map(\.seq).max() ?? 0
             let live = PeopleFixtures.live(
                 steward: steward.id, person: "person:sam", start: store.now.addingTimeInterval(-90)
@@ -323,11 +327,21 @@ import Testing
         }
         // A run in progress (app-outcome): the steward the snapshot home is actually running
         // (snapshot.sh starts a lead follow-up run), with NOW read from stewardLive.
-        if let live = model.liveLines.first?.steward ?? model.stewards.first?.id {
+        // Its own fresh model, so nothing an earlier page left on the shared one carries over,
+        // and no setup at all when the filter leaves it out.
+        if Self.wants("overview-live") {
             let setup = SnapshotWatchdog("overview-live (setup)")
-            await loadOutcomeReads(model, steward: live)
+            let fresh = try await makeModel()
+            await fresh.refresh()
+            await fresh.featureStore?.reload()
+            if let live = fresh.liveLines.first?.steward ?? fresh.stewards.first?.id {
+                await loadOutcomeReads(fresh, steward: live)
+                setup.cancel()
+                fresh.navigation.select(steward: live)
+                try write(
+                    "overview-live", scheme: scheme, render(RootView(model: fresh), dark: dark))
+            }
             setup.cancel()
-            try page("overview-live") { $0.select(steward: live) }
         }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()
@@ -574,6 +588,7 @@ import Testing
     /// those states render: a bare name renders both schemes, `<name>-light` only the light one.
     private func write(_ name: String, scheme: String, _ png: @autoclosure () -> Data?) throws {
         let file = scheme == "dark" ? "\(name).png" : "\(name)-light.png"
+        SnapshotProgress.passed(file)
         guard Self.wanted(name, file: file) else { return }
         let watchdog = SnapshotWatchdog(file)
         defer { watchdog.cancel() }
@@ -585,7 +600,6 @@ import Testing
         try png.write(to: url)
     }
 
-    /// True when no state filter is set, or the filter names this state or file.
     /// A panel on the canvas at `size`, padded like a pane.
     static func card(_ view: some View, _ size: CGSize) -> some View {
         view.padding(AryaSpace.s5)
@@ -593,6 +607,12 @@ import Testing
             .background(AryaColor.canvas)
     }
 
+    /// True when the filter keeps `state` in either scheme; gates a state's setup.
+    static func wants(_ state: String) -> Bool {
+        wanted(state, file: "\(state).png") || wanted(state, file: "\(state)-light.png")
+    }
+
+    /// True when no state filter is set, or the filter names this state or file.
     static func wanted(_ name: String, file: String) -> Bool {
         let raw = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_STATES"] ?? ""
         let names = raw.split { $0 == "," || $0 == " " }.map(String.init)
@@ -640,6 +660,37 @@ import Testing
         }
         host.cacheDisplay(in: host.bounds, to: bitmap)
         return bitmap.representation(using: .png, properties: [:])
+    }
+}
+
+/// One watchdog over every state's setup and render: each state that finishes re-arms it, so
+/// any state (its setup included) that takes 60 s stops the run and is named by the state
+/// before it. Counts the running snapshot tests and stands down when the last one ends.
+enum SnapshotProgress {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var active = 0
+    nonisolated(unsafe) private static var current: SnapshotWatchdog?
+
+    static func begin(_ test: String) {
+        lock.withLock { active += 1 }
+        passed(test)
+    }
+
+    static func passed(_ state: String) {
+        lock.withLock {
+            current?.cancel()
+            current = active > 0 ? SnapshotWatchdog("after \(state)") : nil
+        }
+    }
+
+    static func end() {
+        lock.withLock {
+            active -= 1
+            if active == 0 {
+                current?.cancel()
+                current = nil
+            }
+        }
     }
 }
 

@@ -273,3 +273,9 @@ M4:
   - Review #15: one dry-run phrasing, the past conditional ("Dry run: would have labeled …, and sent …"), built from each drafted action's verb (`RunTitle.participle`). The caret is neutral ink. `FeatureRunFacts.elapsedText(now:)` and `FeatureRunFacts.elapsedText(_:running:)` are the one elapsed format for every lane (whole seconds while running), used by the progress line and the running counter.
   - New states: run-streaming and run-keys. Still open: the left pane is empty under short threads (item 4, dead space).
   - Visual check: run-streaming and run-keys via the state filter; moves points 3 and 4.
+- (from app-shell, 2026-11-10) Snapshot hang root cause: offscreen renders DO start `.task`s.
+  RootView's `watch()`/`observe()` and RunStreamView's `observeRun` loop never ended in the
+  snapshot process, and each reloaded the whole workspace on every event of the leased live
+  run, so the watchers piled up across about 80 renders. I added a one-line
+  `!AryaMotion.frozenByProcess` guard to your `observeRun` task, same as RootView's. Keep
+  any new ledger-following loop behind that guard.

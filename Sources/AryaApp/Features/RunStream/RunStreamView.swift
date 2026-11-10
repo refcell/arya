@@ -120,7 +120,8 @@ struct RunStreamView: View {
             .onAppear { if selection == nil { selection = initialSelection } }
             .task(id: run) { await store.loadRunFacts(run) }
             .task(id: stream.status == .running ? run : nil) {
-                guard stream.status == .running else { return }
+                // Still frames (tests, snapshots) never follow the ledger (see RootView).
+                guard stream.status == .running, !AryaMotion.frozenByProcess else { return }
                 // Steps appear and output appends as the ledger grows; ends with the run.
                 for await _ in store.workspace.observeRun(run) {
                     await store.reload()

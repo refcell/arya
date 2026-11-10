@@ -17,6 +17,8 @@ import Testing
 @MainActor @Suite struct GovernanceSnapshotTests {
     @Test(arguments: ["dark", "light"])
     func governanceSnapshots(scheme: String) async throws {
+        SnapshotProgress.begin("governance snapshots (\(scheme))")
+        defer { SnapshotProgress.end() }
         let dark = scheme == "dark"
         let cache = GovernanceCache.shared
         let environment = ProcessInfo.processInfo.environment
@@ -189,6 +191,7 @@ import Testing
         ])
 
     private func write(_ name: String, scheme: String, _ png: Data?) throws {
+        SnapshotProgress.passed(name)
         let png = try #require(png)
         guard let dir = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_DIR"] else { return }
         let file = scheme == "dark" ? "\(name).png" : "\(name)-light.png"
