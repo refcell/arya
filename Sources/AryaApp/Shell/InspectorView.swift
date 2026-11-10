@@ -13,6 +13,8 @@ enum InspectorFocus: Equatable {
     case connection(String)
     /// A person selected on the People page.
     case person(String)
+    /// A routine selected in the Routines library; "" is the library's first.
+    case routine(String)
     case run(String)
     case steward(String)
     /// The All stewards table: the fleet pulse.
@@ -32,6 +34,7 @@ enum InspectorFocus: Equatable {
         }
         // People always shows a person: "" stands for the directory's first person, so the
         // inspector is never empty on that page.
+        if navigation.destination == .routines { return .routine(navigation.routine ?? "") }
         if case .people(let steward) = navigation.destination {
             if navigation.peoplePane == .people { return .person(navigation.person ?? "") }
             // Channels and Reports are about the steward: show its context.
@@ -200,6 +203,7 @@ struct InspectorView: View {
         case .event: "Event"
         case .connection: "Connection"
         case .person: "Person"
+        case .routine: "Routine"
         case .run: "Run"
         case .steward: "Steward"
         case .fleet: "All stewards"
@@ -240,6 +244,8 @@ struct InspectorView: View {
             FeatureRegistry.connectionInspector(model.featureContext(), connection: id)
         case .person(let id):
             FeatureRegistry.personInspector(model.featureContext(), person: id)
+        case .routine(let name):
+            FeatureRegistry.routineInspector(model.featureContext(), routine: name)
         case .run:
             if let run = model.selectedRun { runContent(run) }
         case .steward:
@@ -268,6 +274,7 @@ struct InspectorView: View {
             ) { label, value in
                 fact(label, value)
             }
+            FeatureRegistry.crewFanout(model.featureContext(), run: run.id)
         }
         .task(id: run.id) { await model.featureStore?.loadRunFacts(run.id) }
     }

@@ -652,3 +652,11 @@ spawns binding servers), and on request: `Workspace.onboard(steward:)` and
 onboarding view. Why: the people and rules a team already has are the cheapest context a
 steward can get, and provenance lets a person see where each note came from and correct it.
 
+### 0060 — 2026-11-10 — A routine is shared by proposing it to the other steward
+
+The Routines library's Use in steward… copies a routine version into another steward as that
+steward's own `routine.proposed` (same content, same version, reason "Adopted from <steward>
+by <person>") and runs the target's routine gate, so it goes live only when the target's
+casebook still passes; a failing gate leaves it proposed for an override. Routines stay keyed by
+steward and name. Why: a routine that helps one steward can break another's cases, and a shared
+library outside the gate would let one steward change another's behavior unreviewed.

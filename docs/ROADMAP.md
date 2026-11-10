@@ -132,16 +132,20 @@ lanes: connect, governance). `e2e:` names what `just e2e` covers today.
    relay exist; conversation threads in the app, hand-off tasks, and attribution to many people
    are missing.
 7. Self-written routines in a versioned repository; repeatable work becomes reusable code
-   (app-views UI). Partial: routine proposals and versions exist; a browsable repository with
-   diffs and per-version stats is missing.
+   (app-views UI). Done (connect): the Routines library (Go ▸ Routines, ⇧⌘L) lists every
+   routine across stewards with its live version, stewards, pass rate, last run, and runs per
+   day; the inspector shows the newest diff and Use in steward…, gated on the target's casebook
+   (`Workspace.adoptRoutine`, decision 0060). e2e: `routines-library`.
 8. Custom policies; sensitive actions approved first. Done: charter policy, autonomy, and risk.
    e2e: a policy hold and an autonomy hold, each explained; approve and deny.
 9. Precise metrics, or evaluations it builds from its own work and expert judgment (eval).
    Partial: metrics and the rubric judge exist; evaluations built automatically from
    corrections and expert labels are missing. e2e: the run's metric and series.
 10. Fleets: fan out sub-agents across tasks and scale with the work (app-views UI). Partial:
-    crew delegation exists, and the demo seeds one crew run; a fleet view of active children and
-    parallel fan-out are missing. e2e: a crew run whose child only proposes, then a join.
+    crew delegation exists, and the demo seeds one crew run. Done (connect): the run inspector
+    shows a crew run's fan-out (host and delegates with status, step, duration, outcome),
+    following the run live. e2e: a crew run whose child only proposes, then a join;
+    `crew-fanout-live`.
 11. Organizational memory: preferences and best practices across people and runs, updated as it
     learns (workspace). Partial: memory with retract exists; per-person preferences and scope
     (one steward or shared) are missing. e2e: a correction becomes a memory; retract.

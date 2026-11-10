@@ -34,6 +34,8 @@ enum Destination: Hashable, Sendable {
     case connections(steward: String?)
     /// The People page for `steward`; nil is All stewards.
     case people(steward: String?)
+    /// The Routines library: every routine across stewards (connect).
+    case routines
 }
 
 /// Where the person is in the app. Selection rules live here so they are testable.
@@ -54,6 +56,8 @@ struct NavigationState: Hashable, Sendable {
     var person: String?
     /// People or Channels on the People page.
     var peoplePane = PeoplePane.people
+    /// The routine (by name) selected in the Routines library.
+    var routine: String?
     /// The ledger event whose inspector is open on the Ledger tab.
     var ledgerEvent: String?
 
@@ -125,6 +129,18 @@ struct NavigationState: Hashable, Sendable {
         }
     }
 
+    /// Shows the Routines library.
+    mutating func showRoutines() {
+        destination = .routines
+        run = nil
+    }
+
+    /// Selects a routine in the library and shows it in the inspector.
+    mutating func select(routine name: String) {
+        routine = name
+        inspector = true
+    }
+
     /// Selects a connection on the Connections page and shows it in the inspector.
     mutating func select(connection id: String) {
         connection = id
@@ -146,7 +162,9 @@ struct NavigationState: Hashable, Sendable {
     /// Keeps the selection valid after the steward list changes: a vanished steward falls back
     /// to the first one, and an empty list clears the selection.
     mutating func reconcile(stewards ids: [String], runs runIDs: [String]) {
-        if destination == .approvals || destination == .portfolio { return }
+        if destination == .approvals || destination == .portfolio || destination == .routines {
+            return
+        }
         if case .connections(let id) = destination {
             if let id, !ids.contains(id) { destination = .connections(steward: ids.first) }
             return

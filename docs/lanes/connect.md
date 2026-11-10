@@ -188,6 +188,11 @@ and receive a periodic report from it.
   so the demo can seed a real conversation instead of the snapshot's fixture events.
 - (from runtime) Relay delivery is in (decision 0050): `sendReport` starts a report run (`RunEngine.report`) for relay recipients, one `send` action each under policy and approvals; `report.sent.run` names it (integration edit in `Reports.swift`). Relay person bindings need `send` in their `actions`.
 - (from workspace) live: `message(steward:text:intent:by:)` with `by` a person id, and `conversation(steward:person:)` (inbound and outbound, newest last).
+- (to cli-e2e) e2e for M3.6 #7 and #10: open Go ▸ Routines, select a routine, Use in
+  steward… into a steward without it (proposed there, gated on its casebook); and a crew run's
+  inspector listing each delegate's status and outcome. Please also seed a promoted routine
+  that runs (a `routine` action) so the library's pass rate and last run show real numbers;
+  the demo's `flag-duplicate-charges` is proposed twice and never runs.
 
 ## Log
 
@@ -239,3 +244,10 @@ and receive a periodic report from it.
   confirmation, reads and actions as one mono line, a "For steward: … ▾" picker, and the
   inspector follows the selected connection (capabilities, users, secret, last test).
   Visual check: `connections`, `connections-connect`, `connections-inspector` snapshots.
+- 2026-11-10: M3.6 #7 Routines library: Go ▸ Routines (⇧⌘L), one row per routine across
+  stewards (live version, stewards, pass rate, last run, runs per day); the inspector has each
+  steward's version, the newest diff, history, and Use in steward… (`Workspace.adoptRoutine`,
+  decision 0060). M3.6 #10 fan-out: the run inspector shows a crew run's host and delegates
+  with status, step, duration, and outcome, ticking while it runs.
+  Visual check: `routines-library` (demo's two versions diffed), `crew-fanout-live` (one done,
+  two working, one refused).

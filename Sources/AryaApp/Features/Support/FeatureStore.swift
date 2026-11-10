@@ -41,6 +41,8 @@ final class FeatureStore: ObservableObject {
     /// Unified diffs of routines a run proposed, by work-diff id (the run pane loads them;
     /// snapshots preload them).
     @Published var routineDiffs: [String: String] = [:]
+    /// Routines library diffs by `RoutineLibrary.diffKey` (connect), loaded on selection.
+    @Published var libraryDiffs: [String: RoutineDiffState] = [:]
     /// Learned checks by steward, loaded by Improve (an async read).
     @Published var learnedChecks: [String: FeatureLearnedChecks] = [:]
 
@@ -90,6 +92,16 @@ final class FeatureStore: ObservableObject {
     }
 
     /// Loads a proposed routine against its previous version as unified diff text.
+    /// Loads the Routines library's diff for a routine (its default comparison) once.
+    func loadLibraryDiff(_ entry: RoutineLibrary.Entry) async {
+        guard let key = entry.diffKey, libraryDiffs[key] == nil,
+            let item = entry.diffable, let pair = item.defaultComparison
+        else { return }
+        libraryDiffs[key] = .loading
+        libraryDiffs[key] = await RoutineDiffLoader.load(
+            workspace, item: item, old: pair.old, new: pair.new)
+    }
+
     func loadRoutineDiff(_ diff: WorkDiff) async {
         guard let routine = diff.routine, routineDiffs[diff.id] == nil else { return }
         let after = try? await workspace.routineContent(

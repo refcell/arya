@@ -131,6 +131,13 @@ actor PreviewWorkspace: FeatureWorkspace {
             emit(
                 steward: steward, run: nil, "report.sent", .localUser,
                 ["cadence": "weekly", "text": "Weekly report.", "to": []])
+        case .adoptRoutine(let name, let version, let source, let target):
+            emit(
+                steward: target, run: nil, "routine.proposed", .localUser,
+                [
+                    "v": 1, "name": .string(name), "version": .string(version),
+                    "summary": "", "reason": .string("Adopted from \(source) by you."),
+                ])
         case .createSteward(let draft):
             emit(
                 steward: draft.id, run: nil, "steward.created", .localUser,

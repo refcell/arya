@@ -421,3 +421,70 @@ private func events() -> [FeatureEvent] {
         #expect(next > now && next.timeIntervalSince(now) <= 7 * 86_400)
     }
 }
+
+@Suite struct RoutineLibraryTests {
+    private let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+    @Test func oneEntryPerNameWithItsStewardsVersionsAndRuns() throws {
+        var log = FeatureEventBuilder(start: start)
+        for (steward, version) in [("st_a", "sha256:aaaa"), ("st_b", "sha256:bbbb")] {
+            log.add(
+                "routine.proposed", steward: steward,
+                ["name": "tag-billing", "version": .string(version), "summary": "Tag it"])
+        }
+        log.add(
+            "routine.promoted", steward: "st_a", actor: FeatureActor(kind: .system, id: "arya"),
+            ["name": "tag-billing", "version": "sha256:aaaa"])
+        for (index, outcome) in ["action.executed", "action.executed", "action.failed"].enumerated()
+        {
+            let run = "run_\(index)"
+            log.add(
+                "action.proposed", steward: "st_a", run: run,
+                ["action": ["id": "a1", "kind": "routine", "params": ["name": "tag-billing"]]])
+            log.add(outcome, steward: "st_a", run: run, ["action": "a1"])
+        }
+        let library = RoutineLibrary(events: log.events, now: start.addingTimeInterval(3600))
+        let entry = try #require(library.entries.first)
+        #expect(library.entries.count == 1)
+        #expect(entry.uses.compactMap(\.steward) == ["st_a", "st_b"])
+        #expect(entry.live.compactMap(\.steward) == ["st_a"])
+        #expect(RoutineLibraryText.runs(entry) == "67% pass · 3 runs")
+        #expect(RoutineLibraryText.version(entry) == "live aaaa")
+        #expect(entry.source?.steward == "st_a")
+        #expect(entry.source?.version == "sha256:aaaa")
+        #expect(entry.daily.reduce(0, +) == 3)
+    }
+}
+
+@Suite struct CrewFanoutTests {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    @Test func aCrewRunIsAHostWithEachDelegatesStatusStepAndOutcome() throws {
+        let fanout = try #require(
+            CrewFanout.build(
+                events: CrewFanoutFixtures.live(now: now), run: CrewFanoutFixtures.host, now: now))
+        #expect(fanout.host.state == .running)
+        #expect(fanout.children.map(\.state) == [.completed, .running, .running, .refused])
+        #expect(fanout.children[0].outcome == "Six refund threads, all duplicate charges.")
+        #expect(fanout.children[1].step == "step 2 · decided apologize")
+        #expect(fanout.children[2].step == "step 2 · tool billing.invoices…")
+        #expect(fanout.children[3].outcome == "adapter_not_allowed:browser")
+        #expect(CrewFanoutText.tally(fanout) == "2 running · 1 done · 1 failed or refused")
+        // A running delegate's duration runs to now; a settled one stops at its last event.
+        let running = try #require(fanout.children[1].seconds)
+        let later = try #require(
+            CrewFanout.build(
+                events: CrewFanoutFixtures.live(now: now), run: CrewFanoutFixtures.host,
+                now: now.addingTimeInterval(10)))
+        #expect(later.children[1].seconds == running + 10)
+        #expect(later.children[0].seconds == fanout.children[0].seconds)
+        #expect(CrewFanoutText.duration(65) == "1m 05s")
+    }
+
+    @Test func aRunThatDelegatedNothingHasNoFanout() {
+        #expect(
+            CrewFanout.build(
+                events: PreviewFixtures.live(now: now), run: PreviewFixtures.inProgressRun,
+                now: now) == nil)
+    }
+}

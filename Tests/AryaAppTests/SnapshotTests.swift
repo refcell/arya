@@ -209,6 +209,45 @@ import Testing
             $0.showPeople(steward: steward.id)
             $0.peoplePane = .reports
         }
+        // The Routines library (connect): every routine across stewards, the selected one's
+        // stewards, newest diff, and Use in steward…; the diff is loaded as a selection would.
+        if let store = model.featureStore,
+            let first = RoutineLibrary(events: store.events, now: store.now).entries.first
+        {
+            await store.loadLibraryDiff(first)
+            try page("routines-library") {
+                $0.showRoutines()
+                $0.select(routine: first.name)
+            }
+        }
+        // A crew run fanning out (connect): the host and four delegates in the run inspector,
+        // one done, two working, one refused; only the crew run's events are added to the home.
+        if Self.wanted("crew-fanout-live", file: "crew-fanout-live.png"),
+            let store = model.featureStore
+        {
+            let base = store.events.map(\.seq).max() ?? 0
+            let fan = CrewFanoutFixtures.live(now: store.now, steward: steward.id).map {
+                var event = $0
+                event.seq += base
+                return event
+            }
+            let fanStore = FeatureStore(
+                workspace: PreviewWorkspace(events: store.events + fan, now: store.now),
+                now: store.now)
+            await fanStore.reload()
+            let fanModel = AppModel(source: model.source, featureStore: fanStore)
+            await fanModel.refresh()
+            fanModel.runs[steward.id, default: []].insert(
+                RunSummary(
+                    id: CrewFanoutFixtures.host, steward: steward.id, trigger: "message",
+                    charterVersion: 1, status: .running,
+                    startedAt: store.now.addingTimeInterval(-90)), at: 0)
+            var navigation = NavigationState()
+            navigation.select(run: CrewFanoutFixtures.host, steward: steward.id)
+            fanModel.navigation = navigation
+            try write(
+                "crew-fanout-live", scheme: scheme, render(RootView(model: fanModel), dark: dark))
+        }
         // What stewards learned from Lee: his correction, kept by the triage steward.
         try page("people-learned") {
             $0.showPeople(steward: nil)

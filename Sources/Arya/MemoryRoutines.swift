@@ -225,6 +225,39 @@ extension Workspace {
         try await routine(steward: steward, name: name, version: version)?.content
     }
 
+    /// Uses one steward's routine version in another (the Routines library's "Use in
+    /// steward…"): proposes the same content to `target` (`routine.proposed`, reason naming the
+    /// source and the person) and runs `target`'s routine gate, so it goes live there only when
+    /// the target's casebook still passes. A version the target already has is only gated.
+    public func adoptRoutine(
+        name: String, version: String, from source: String, into target: String,
+        by person: String = "local"
+    ) async throws -> RoutineGateSummary {
+        let from = try await existing(source)
+        let into = try await existing(target).id
+        guard from.id != into else {
+            throw WorkspaceError.rejected("\(name) is already \(target)'s routine")
+        }
+        let library = try facadeState().routines
+        guard let found = library.version(steward: from.id, name: name, version: version) else {
+            throw WorkspaceError.notFound("\(name) \(version)")
+        }
+        let blobs = BlobStore(home: home)
+        let who = person == "local" ? "you" : person
+        let intake = try RoutineProposals.intake(
+            [
+                ProposedRoutine(
+                    name: name, language: found.language.rawValue,
+                    content: try found.content(from: blobs),
+                    reason: "Adopted from \(from.charter.name) by \(who).")
+            ], steward: into, run: nil, library: library, store: blobs)
+        if let rejected = intake.rejected.first {
+            throw WorkspaceError.rejected("\(rejected.name): \(rejected.error)")
+        }
+        for draft in intake.drafts { _ = try await sink.append(RuntimeEventDraft(draft)) }
+        return try await gateRoutine(steward: target, name: name, version: version)
+    }
+
     /// A routine's proposals, promotions, and retirements in ledger order.
     public func routineHistory(steward: String, name: String) async throws
         -> [RoutineHistoryItem]

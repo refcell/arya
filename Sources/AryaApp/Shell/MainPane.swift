@@ -35,6 +35,8 @@ struct MainPane: View {
             FeatureRegistry.connections(model.featureContext())
         case .people:
             FeatureRegistry.people(model.featureContext())
+        case .routines:
+            FeatureRegistry.routines(model.featureContext())
         case .portfolio:
             PortfolioView(model: model, now: model.featureStore?.now ?? Date())
         case .steward:

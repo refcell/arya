@@ -39,6 +39,9 @@ enum FeatureWrite: Hashable, Sendable {
     case sendReport(steward: String)
     /// Creates a steward from the New steward flow (`steward.created`, version 1).
     case createSteward(StewardDraft)
+    /// Uses one steward's routine version in another (`adoptRoutine`): proposed there and run
+    /// through that steward's routine gate, so it goes live only when its casebook passes.
+    case adoptRoutine(name: String, version: String, from: String, into: String)
 }
 
 /// The result of checking the ledger's hash chain.

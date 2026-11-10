@@ -121,3 +121,35 @@ private func proposeRoutine(_ opened: Opened, _ body: String) async throws -> St
     #expect(promoted.actorKind == "human")
     #expect(try await workspace.ledger().last?.payload.contains("urgent label fix") == true)
 }
+
+@Test func aRoutineIsUsedInAnotherStewardThroughThatStewardsGate() async throws {
+    let opened = try await gatedHome()
+    let workspace = opened.workspace
+    var twin = inboxCharter()
+    twin.id = StewardID(unchecked: "st_twin")
+    twin.name = "Inbox twin"
+    twin.scorer = .exact(fields: ["decisions.choice"])
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(twin))
+    _ = try await workspace.importCasebook(
+        steward: "st_twin", data: try casebookLines(), name: "inbox")
+    let version = try await proposeRoutine(opened, "echo v1\n")
+
+    let adopted = try await workspace.adoptRoutine(
+        name: "tag-billing", version: version, from: "st_inbox", into: "st_twin", by: "person:sam")
+
+    #expect(adopted.promoted == adopted.verdict.passed)
+    let proposed = try #require(
+        try await workspace.ledger().last {
+            $0.type == "routine.proposed" && $0.steward == "st_twin"
+        })
+    #expect(proposed.payload.contains("Adopted from"))
+    #expect(proposed.payload.contains("person:sam"))
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.adoptRoutine(
+            name: "tag-billing", version: version, from: "st_inbox", into: "st_inbox")
+    }
+    await #expect(throws: WorkspaceError.notFound("tag-billing missing")) {
+        try await workspace.adoptRoutine(
+            name: "tag-billing", version: "missing", from: "st_inbox", into: "st_twin")
+    }
+}

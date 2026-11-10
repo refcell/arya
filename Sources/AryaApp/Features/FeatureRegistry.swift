@@ -303,6 +303,36 @@ enum FeatureRegistry {
         return PeopleDirectory(events: store.events, steward: steward).people.first?.id
     }
 
+    /// A crew run's fan-out (host and delegates) for the run inspector; empty for a run that
+    /// delegated nothing.
+    @ViewBuilder
+    static func crewFanout(_ context: FeatureContext, run: String) -> some View {
+        if let store = context.store { CrewFanoutView(store: store, run: run) }
+    }
+
+    /// The Routines library (Go menu): every routine across stewards.
+    @ViewBuilder
+    static func routines(_ context: FeatureContext) -> some View {
+        let model = context.model
+        if let store = context.store {
+            RoutinesLibraryView(
+                store: store, stewards: model.stewards,
+                selected: model.navigation.routine
+                    ?? RoutineLibrary(events: store.events, now: store.now).entries.first?.name,
+                select: { model.navigation.select(routine: $0) })
+        } else {
+            EmptyState("No routines yet.", guidance: "Routines stewards propose appear here.")
+        }
+    }
+
+    /// The inspector content for a routine in the library.
+    @ViewBuilder
+    static func routineInspector(_ context: FeatureContext, routine: String) -> some View {
+        if let store = context.store {
+            RoutineInspector(store: store, stewards: context.model.stewards, routine: routine)
+        }
+    }
+
     /// Questions to person bindings across all stewards, for the rail's inbox entry.
     @ViewBuilder
     static func inbox(_ context: FeatureContext) -> some View {

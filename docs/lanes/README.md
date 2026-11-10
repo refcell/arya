@@ -19,7 +19,7 @@ lanes read it to find interfaces. `Tests/<Module>Tests` belongs to the lane that
 | app-views | [app-views.md](app-views.md) | `Sources/AryaApp/Features` (shares `Tests/AryaAppTests` with app-shell) |
 | app-outcome | [app-outcome.md](app-outcome.md) | `Sources/AryaApp/Features/Outcome`, `Sources/AryaApp/Features/Onboarding`, their `Tests/AryaAppTests` files |
 | cli-e2e | [cli-e2e.md](cli-e2e.md) | `Sources/AryaCLI`, `etc/examples`, `just e2e`, `just demo`, `README.md`, `etc/scripts/tidy.sh` |
-| connect | [connect.md](connect.md) | `Sources/AryaApp/Features/Connections`, `Sources/AryaApp/Features/People`, `Sources/Arya/Connections.swift`, their tests |
+| connect | [connect.md](connect.md) | `Sources/AryaApp/Features/Connections`, `Sources/AryaApp/Features/People`, `Sources/AryaApp/Features/Crew`, `Sources/AryaApp/Features/Routines/RoutineLibrary.swift`, `Sources/AryaApp/Features/Routines/RoutinesLibraryView.swift`, `Sources/Arya/Connections.swift`, their tests |
 
 Shared files (`Package.swift`, `Justfile`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`,
 `docs/ROADMAP.md`, `AGENTS.md`) take small, additive edits from any lane; keep both sides on
