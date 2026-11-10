@@ -295,8 +295,7 @@ struct NewStewardFields: View {
                     placeholder: "One sentence for the proposal", text: $draft.whyChange)
             }
             if !draft.changedFields().isEmpty {
-                let title = CharterText.title(draft.changedFields())
-                Text("\(title). It goes live once its gate passes.")
+                Text(NewStewardDraft.changeLine(draft.changedFields()))
                     .aryaText(AryaFont.caption, AryaColor.inkFaint)
             }
         }

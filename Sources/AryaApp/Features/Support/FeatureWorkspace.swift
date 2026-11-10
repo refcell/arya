@@ -123,6 +123,19 @@ struct CaseCorrection: Hashable, Sendable {
     var run: String?
 }
 
+/// A proposal's backtest against the live charter (eval's live readiness), shown verbatim.
+struct FeatureLiveReadiness: Hashable, Sendable {
+    var ready: Bool
+    /// One sentence, for example `Not ready: case-0005 would regress`.
+    var summary: String
+    /// One line per regressed case.
+    var regressions: [String]
+    /// Ids of cases that would improve.
+    var improved: [String]
+    /// Recent live runs replayed under the proposal.
+    var runsChecked: Int
+}
+
 /// The result of checking the ledger's hash chain.
 enum FeatureVerifyResult: Hashable, Sendable {
     case intact(events: Int)
@@ -155,6 +168,8 @@ protocol FeatureWorkspace: Sendable {
     func eventDetail(seq: Int) async throws -> FeatureEventDetail?
     /// The Knowledge screen for one steward, written by the workspace.
     func knowledge(steward: String) async throws -> FeatureKnowledge
+    /// A charter proposal backtested against the live charter, for Improve.
+    func liveReadiness(proposal: String) async throws -> FeatureLiveReadiness
     /// Yields once whenever new events may be available.
     func changes() -> AsyncStream<Void>
 }
@@ -185,6 +200,12 @@ extension FeatureWorkspace {
     /// the ledger itself.
     func improveSummary(steward: String) async throws -> FeatureImproveSummary {
         throw FeatureReadError.unavailable("improve summary")
+    }
+
+    /// Workspaces without a backtest read report it unavailable; the proposal then shows only
+    /// its gate.
+    func liveReadiness(proposal: String) async throws -> FeatureLiveReadiness {
+        throw FeatureReadError.unavailable("backtest")
     }
 
     /// Workspaces without a Knowledge read report it unavailable.

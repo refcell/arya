@@ -126,6 +126,15 @@ extension NewStewardDraft {
         .map(\.0)
     }
 
+    /// "This changes the outcome and sign-off. It goes live after rehearsal passes."
+    static func changeLine(_ fields: [String]) -> String {
+        let list =
+            fields.count < 2
+            ? fields.joined()
+            : fields.dropLast().joined(separator: ", ") + " and " + (fields.last ?? "")
+        return "This changes the \(list). It goes live after rehearsal passes."
+    }
+
     /// The gated proposal for the edit.
     func proposal() -> CharterProposal? {
         guard let editing else { return nil }

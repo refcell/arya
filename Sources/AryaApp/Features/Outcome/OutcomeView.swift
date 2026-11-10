@@ -103,6 +103,8 @@ struct OverviewTab: View {
                 OutcomeActivitySection(
                     activity: snapshot.activity, now: store.now, openRun: openRun,
                     openApprovals: openApprovals)
+                let context = OutcomeContext.build(events: events, steward: steward)
+                if !context.isEmpty { OutcomeContextSection(context: context) }
                 OutcomeDetails(state: snapshot.state, now: store.now)
                 if let error = store.writeError {
                     Text(error).aryaText(AryaFont.caption, AryaColor.negative)

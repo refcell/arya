@@ -147,9 +147,8 @@ struct CharterFields: View {
     }
 
     private func decisionPicker(_ selection: Binding<String>) -> some View {
-        Picker("Decision", selection: selection) {
-            ForEach(CharterDraft.decisions, id: \.self) { Text($0).tag($0) }
-        }
-        .pickerStyle(.segmented).labelsHidden().fixedSize()
+        NewStewardChoice(selection: selection, options: CharterDraft.decisions.map { ($0, $0) })
+            .fixedSize()
+            .accessibilityLabel("Decision")
     }
 }

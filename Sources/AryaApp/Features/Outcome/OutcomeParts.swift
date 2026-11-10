@@ -45,7 +45,7 @@ struct OutcomeStatusPill: View {
         case .onTrack: AryaColor.positive
         case .offTrack: AryaColor.negative
         case .atRisk: AryaColor.ink
-        case .noTarget, .noData: AryaColor.inkFaint
+        case .noTarget, .noData, .paused: AryaColor.inkFaint
         }
     }
 }

@@ -28,10 +28,12 @@ struct ImproveView: View {
                     FeatureWriteErrorLine(store: store)
                     rehearsal(RehearsalList.build(events: events, steward: steward), events: events)
                     AryaHairline()
-                    ImproveProposals(
+                    // Proposal review (app-outcome): change and why, rehearsal case by case,
+                    // and Reject or Accept by what the rehearsal found.
+                    OutcomeProposalsSection(
                         store: store, list: ChangeList.build(events: events, steward: steward),
-                        latestRun: ImproveText.latestLiveRun(events, steward: steward),
-                        gates: summary?.gates ?? [:])
+                        events: events,
+                        latestRun: ImproveText.latestLiveRun(events, steward: steward))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, AryaSpace.s4)
@@ -251,90 +253,4 @@ private struct CaseLine: View {
     }
 
     private var steward: String { item.steward ?? "" }
-}
-
-/// Proposed changes to the charter and routines, under the rehearsal: open ones with their
-/// gate and quiet Accept and Reject, then one muted line for the closed count.
-private struct ImproveProposals: View {
-    @ObservedObject var store: FeatureStore
-    var list: ChangeList
-    /// The steward's newest live run, which What if replays under a proposal's charter.
-    var latestRun: String?
-    /// The workspace's gate sentence by proposal id.
-    var gates: [String: String]
-    @AryaState private var whatIf: [String: String] = [:]
-    @AryaState private var asking: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s3) {
-            Text("Proposals").aryaText(AryaFont.overline, AryaColor.inkFaint)
-            if list.open.isEmpty {
-                Text(
-                    list.closed.isEmpty
-                        ? "No proposed changes."
-                        : "No open proposals. \(list.closed.count) decided."
-                )
-                .aryaText(AryaFont.body, AryaColor.inkMuted)
-            }
-            ForEach(list.open) { item in row(item) }
-        }
-    }
-
-    private func row(_ item: ProposalItem) -> some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s1) {
-            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                Text(item.title).aryaText(AryaFont.bodyStrong, AryaColor.ink)
-                Spacer(minLength: AryaSpace.s2)
-                if let latestRun {
-                    Button(asking == item.id ? "Running…" : "What if…") {
-                        ask(item.id, run: latestRun)
-                    }
-                    .buttonStyle(.aryaTertiary)
-                    .disabled(asking != nil)
-                    .help("Run the latest run again under this proposal's charter, without acting.")
-                }
-                Button("Reject") { decide(.rejectProposal(item.id, reason: "")) }
-                    .buttonStyle(.aryaSecondary)
-                if item.canOverride {
-                    Button("Accept anyway") {
-                        decide(.overrideProposal(item.id, reason: "accepted over a failed gate"))
-                    }
-                    .buttonStyle(.aryaSecondary)
-                    .help(
-                        "Accept although the gate failed. The override is recorded with your name.")
-                }
-                Button("Accept") { decide(.acceptProposal(item.id)) }
-                    .buttonStyle(.aryaSecondary)
-                    .disabled(!item.canAccept)
-            }
-            if !item.reason.isEmpty {
-                Text(item.reason).aryaText(AryaFont.body, AryaColor.inkMuted)
-            }
-            Text(gates[item.id] ?? ChangesText.gate(item.gate))
-                .aryaText(AryaFont.caption, AryaColor.inkFaint)
-            if let answer = whatIf[item.id] {
-                Text(answer).aryaText(AryaFont.body, AryaColor.inkMuted).textSelection(.enabled)
-            }
-            if let regressions = ChangesText.regressions(item.gate) {
-                Text(regressions).aryaText(AryaFont.monoSmall, AryaColor.negative)
-            }
-        }
-        .padding(.vertical, AryaSpace.s1)
-    }
-
-    private func decide(_ write: FeatureWrite) {
-        Task { await store.perform(write) }
-    }
-
-    private func ask(_ proposal: String, run: String) {
-        asking = proposal
-        Task {
-            do {
-                whatIf[proposal] = try await store.workspace.whatIf(run: run, proposal: proposal)
-            } catch {
-                whatIf[proposal] = FeatureStore.describe(error)
-            }
-            asking = nil
-        }
-    }
 }

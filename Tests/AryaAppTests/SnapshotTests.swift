@@ -56,6 +56,22 @@ import Testing
             "needs-you-autonomy", scheme: scheme,
             render(RootView(model: await autonomyModel()), dark: dark))
         try page("improve") { $0.tab = .improve }
+        // Improve's proposals: one whose rehearsal regressed and one that passed (app-outcome).
+        if let store = model.featureContext().store,
+            let live = LiveCharter.find(events: store.events, steward: steward.id)?.charter
+        {
+            let events =
+                store.events
+                + ProposalFixtures.events(live: live, steward: steward.id, start: store.now)
+            let section = OutcomeProposalsSection(
+                store: store, list: ChangeList.build(events: events, steward: steward.id),
+                events: events, latestRun: nil
+            )
+            .padding(AryaSpace.s5)
+            .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+            .background(AryaColor.canvas)
+            try write("improve-proposals", scheme: scheme, render(section, dark: dark))
+        }
         // Offscreen renders run no tasks, so load what the Knowledge tab would.
         if let store = model.featureStore {
             store.knowledge[steward.id] = try? await store.workspace.knowledge(steward: steward.id)

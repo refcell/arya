@@ -39,6 +39,8 @@ protocol WorkspaceSource: Sendable {
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge
     /// A run replayed under a proposal's charter, in one line.
     func whatIfSummary(run: String, proposal: String) async throws -> String
+    /// A proposal backtested against the live charter.
+    func liveReadinessSummary(proposal: String) async throws -> FeatureLiveReadiness
     /// Each pending approval's policy sentence and change line.
     func approvalTexts() async throws -> [String: FeatureApprovalText]
     /// Starts a connection's server with its secret and lists its tools (the Test button).
@@ -79,6 +81,10 @@ extension WorkspaceSource {
 
     func whatIfSummary(run: String, proposal: String) async throws -> String {
         throw FeatureReadError.unavailable("What if")
+    }
+
+    func liveReadinessSummary(proposal: String) async throws -> FeatureLiveReadiness {
+        throw FeatureReadError.unavailable("backtest")
     }
 
     func approvalTexts() async throws -> [String: FeatureApprovalText] {
@@ -229,6 +235,13 @@ extension Workspace: WorkspaceSource {
 
     func whatIfSummary(run: String, proposal: String) async throws -> String {
         try await whatIf(run: run, proposal: proposal).summary
+    }
+
+    func liveReadinessSummary(proposal: String) async throws -> FeatureLiveReadiness {
+        let found = try await liveReadiness(proposal: proposal)
+        return FeatureLiveReadiness(
+            ready: found.ready, summary: found.summary, regressions: found.regressions,
+            improved: found.improved, runsChecked: found.runsChecked)
     }
 
     func approvalTexts() async throws -> [String: FeatureApprovalText] {

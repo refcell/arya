@@ -3,10 +3,12 @@ import Foundation
 
 /// How a steward is doing against its target, as the Outcome tab's status pill shows it.
 enum OutcomeStatus: String, Hashable, Sendable {
-    case onTrack, atRisk, offTrack, noTarget, noData
+    /// `paused` replaces the target status while the steward takes no live triggers.
+    case onTrack, atRisk, offTrack, noTarget, noData, paused
 
     var word: String {
         switch self {
+        case .paused: "paused"
         case .onTrack: "on track"
         case .atRisk: "at risk"
         case .offTrack: "off track"
@@ -223,11 +225,13 @@ struct OutcomeState: Hashable, Sendable {
         let series = MetricSeries.build(events: events, steward: steward)
         let metric = series?.definition
         let points = series?.points ?? []
-        let status =
+        let wake = OutcomeWake.build(events: events, steward: steward, charter: charter, now: now)
+        let measured =
             metric.map {
                 OutcomeStatus.of(
                     value: points.last?.value, target: $0.target, direction: $0.direction)
             } ?? .noTarget
+        let status: OutcomeStatus = wake == .paused ? .paused : measured
         var trend = points.map(\.value)
         if trend.count < 2, let name = metric?.name {
             trend = events.compactMap { event in
@@ -243,8 +247,7 @@ struct OutcomeState: Hashable, Sendable {
             success: charter?["success"]?.string ?? OutcomeText.success(metric),
             readiness: OutcomeReadiness.build(events: events, steward: steward),
             autonomy: OutcomeAutonomy.build(charter: charter),
-            wake: OutcomeWake.build(events: events, steward: steward, charter: charter, now: now),
-            triggers: OutcomeWake.triggers(events: events, steward: steward),
+            wake: wake, triggers: OutcomeWake.triggers(events: events, steward: steward),
             trend: trend)
     }
 }
