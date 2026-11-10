@@ -229,6 +229,27 @@ check_metric_statuses() {
   expect role "$(get 0.role)" primary && expect metric "$(get 0.name)" routed_within_1h &&
     case "$(get 0.line)" in *"on track"*) ;; *) echo "    $(get 0.line)"; return 1 ;; esac
 }
+check_swept() { expect status "$(get status)" completed; }
+# Newest first: the opportunity (f2), then the problem (f1) that needs a person.
+check_findings() {
+  expect count "$([ -n "$(get 1.id)" ] && [ -z "$(get 2.id)" ] && echo 2)" 2 &&
+    expect "first" "$(get 0.kind)" opportunity && expect "second" "$(get 1.kind)" problem &&
+    expect "needs a person" "$(get 1.needsPerson)" true || return 1
+  finding_id=$(get 1.id)
+}
+check_finding_acted() {
+  expect resolution "$(get resolution)" acted && expect id "$(get id)" "${finding_id:-}"
+}
+check_one_finding_open() {
+  expect "open" "$(get 0.kind)" opportunity && expect "only one" "$(get 1.id)" ""
+}
+check_templates() {
+  expect "fifth" "$([ -n "$(get 4.id)" ] && echo yes)" yes && expect "sixth" "$(get 5.id)" ""
+  grep -q '"lead_follow_up"' "$out" || { echo "    no lead_follow_up template"; return 1; }
+}
+check_from_template() {
+  expect id "$(get summary.id)" st_leads && expect state "$(get summary.state)" draft
+}
 check_denied() { expect state "$(get state)" denied; }
 # Governance (ledger lane): policy and approvers, undo, retention, signed export and import.
 check_policy() {
@@ -499,6 +520,17 @@ step "import it into a fresh home" governance live check_steward_imported \
 home=$source_home
 step "steward live: nothing running now" abort live check_live_idle steward live st_triage
 script_step "docs-only publish skips the build" publish etc/scripts/test-publish.sh docs-only
+step "sweep: a wake raises two findings" findings live check_swept \
+  run st_triage --input "Sweep the inbox for patterns"
+step "findings: a problem that needs you" findings live check_findings \
+  findings --steward st_triage
+step "sam acts on the problem" findings live check_finding_acted \
+  finding resolve "${finding_id:-unknown}" acted --as person:sam --note "rerouted"
+step "only the opportunity stays open" findings live check_one_finding_open \
+  findings --steward st_triage
+step "templates: five examples to start from" templates setup check_templates template list
+step "start a steward from a template" templates setup check_from_template \
+  template use lead_follow_up --id st_leads --owner person:priya
 step "verify the ledger" setup - check_verify ledger verify
 
 case "$state" in

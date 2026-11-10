@@ -4915,6 +4915,45 @@
           }
         ]
       }
+    },
+    "Sweep the inbox for patterns": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading the week's messages"
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Swept the inbox: one problem and one opportunity.",
+        "findings": [
+          {
+            "id": "f1",
+            "kind": "problem",
+            "title": "Duplicate-charge messages doubled this week",
+            "evidence": [
+              "8 messages mention a duplicate charge this week",
+              "4 last week"
+            ],
+            "suggestion": {
+              "id": "s1",
+              "kind": "route",
+              "binding": "inbox",
+              "target": "inbox:MSG-201"
+            },
+            "needsPerson": true
+          },
+          {
+            "id": "f2",
+            "kind": "opportunity",
+            "title": "Password-reset questions could get the help-center link automatically",
+            "evidence": [
+              "11 password-reset questions this week, all answered the same way"
+            ]
+          }
+        ]
+      }
     }
   },
   "default": {
