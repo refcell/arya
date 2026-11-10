@@ -153,3 +153,57 @@ private func proposeRoutine(_ opened: Opened, _ body: String) async throws -> St
             name: "tag-billing", version: "missing", from: "st_inbox", into: "st_twin")
     }
 }
+
+@Test func aFollowerTakesTheNewerVersionAsAGatedUpgrade() async throws {
+    let opened = try await gatedHome()
+    let workspace = opened.workspace
+    var twin = inboxCharter()
+    twin.id = StewardID(unchecked: "st_twin")
+    twin.name = "Inbox twin"
+    twin.scorer = .exact(fields: ["decisions.choice"])
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(twin))
+    _ = try await workspace.importCasebook(
+        steward: "st_twin", data: try casebookLines(), name: "inbox")
+    let first = try await proposeRoutine(opened, "echo v1\n")
+    try await workspace.overrideRoutine(
+        steward: "st_inbox", name: "tag-billing", version: first, reason: "start")
+    let adopted = try await workspace.adoptRoutine(
+        name: "tag-billing", version: first, from: "st_inbox", into: "st_twin")
+    if !adopted.promoted {
+        try await workspace.overrideRoutine(
+            steward: "st_twin", name: "tag-billing", version: first, reason: "adopt")
+    }
+    let uses = try await workspace.routineUses(name: "tag-billing")
+    #expect(uses.map(\.steward) == ["st_inbox", "st_twin"])
+    #expect(uses.map(\.liveVersion) == [first, first])
+    #expect(uses.map(\.follows) == [nil, "st_inbox"])
+    #expect(try await workspace.routineUpgrades().isEmpty)
+
+    // The originator moves on; the follower sees an upgrade and nothing changes until it takes it.
+    let second = try await proposeRoutine(opened, "echo v2\n")
+    try await workspace.overrideRoutine(
+        steward: "st_inbox", name: "tag-billing", version: second, reason: "fix")
+    let upgrades = try await workspace.routineUpgrades(steward: "st_twin")
+    #expect(
+        upgrades == [
+            RoutineUpgradeSummary(
+                steward: "st_twin", name: "tag-billing", fromVersion: first, toVersion: second,
+                source: "st_inbox", pending: false)
+        ])
+    #expect(try await workspace.routines(steward: "st_twin").first?.liveVersion == first)
+
+    let taken = try await workspace.upgradeRoutine(steward: "st_twin", name: "tag-billing")
+    let proposed = try #require(
+        try await workspace.ledger().last {
+            $0.type == "routine.proposed" && $0.steward == "st_twin"
+        })
+    #expect(proposed.payload.contains(second))
+    if taken.promoted {
+        #expect(try await workspace.routineUpgrades(steward: "st_twin").isEmpty)
+    } else {
+        #expect(try await workspace.routineUpgrades(steward: "st_twin").first?.pending == true)
+    }
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.upgradeRoutine(steward: "st_inbox", name: "tag-billing")
+    }
+}

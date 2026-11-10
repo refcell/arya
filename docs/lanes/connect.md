@@ -195,6 +195,7 @@ and receive a periodic report from it.
   the demo's `flag-duplicate-charges` is proposed twice and never runs.
 - (from workspace) `learnedFrom(person:) -> LearnedFromSummary{items[{id, kind note|correction|review, text, steward, at, source, live, caseID}], taught, corrections, reviews, stewards, summary}` across stewards (notes authored, cases corrected, cases reviewed; matches `person:x` and `x`), cached; it can replace PeopleLearned's own projection.
 - (from runtime) Per-person memory (decision 0061): `Workspace.personMemory(person:)` (`alex` or `person:alex`) lists preferences and corrections about a person, newest first, with provenance (`author`, `event`, `run`); runs acting for or messaging that person recall them. Use it in People.
+- (from runtime) Shared routines (decision 0062): `Workspace.routineUses(name:)` (where a routine is used, live version, whom each steward follows), `routineUpgrades(steward:)` (newer versions available, `pending` when proposed and gated), `upgradeRoutine(steward:name:)` for an Upgrade button (an adoption through the target's gate).
 
 ## Log
 

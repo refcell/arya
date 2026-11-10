@@ -676,3 +676,17 @@ and the event is the message. `Workspace.personMemory(person:)` lists what arya 
 about a person for the People view. Why: what one person prefers should shape what a steward
 does for them, and should not leak into what it does for everyone else.
 
+### 0062 — 2026-11-10 — One routine version, used by many stewards, upgraded by proposal
+
+Context: 0060 lets one steward adopt another's routine version through its own gate, but
+nothing said where a routine is used or when a newer version exists. Decision: a version is its
+content hash, so an adopted version keeps its id and every steward running it references the
+same version. A steward follows the steward that proposed its live version first. When the
+followed steward promotes a newer version, the follower has an upgrade available
+(`RoutineUpgrades.available`); it stays on its version until a person takes the upgrade, which
+is an adoption of the newer version (0060): `routine.proposed` to the follower and its routine
+gate, so it goes live only if the follower's casebook still passes, and stays pending
+otherwise. The facade has `routineUses(name:)` (each steward's live version and whom it
+follows), `routineUpgrades(steward:)`, and `upgradeRoutine(steward:name:)`. Why: a fix to a
+shared routine should reach every steward that uses it, but only through each one's own gate.
+
