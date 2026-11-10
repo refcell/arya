@@ -123,7 +123,7 @@ M4:
 - 2026-11-10: crew in the demo (MSG-203's `delegations` plus a `joins` response in the fake
   script, keyed by delegation id); `arya run show` lists crew and join; `arya readiness`; e2e 37
   steps (editor proposal and readiness, crew run); ROADMAP M3.6 parity map. Readiness on crew
-  runs asked of eval.
+  runs asked of eval. Published as b8d0b5a.
 - 2026-11-09: `arya run correct` (a run becomes a case and a memory), `arya retract`, and
   `heldBy`/`heldBecause` on `arya approvals`; `just e2e` grows to 33 steps (about 30 s), with
   `test-publish.sh docs-only` as its publish step; ROADMAP M3.5 refreshed.
