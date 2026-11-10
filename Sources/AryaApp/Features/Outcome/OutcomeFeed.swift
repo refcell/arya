@@ -138,7 +138,15 @@ struct OutcomeActivity: Hashable, Sendable, Identifiable {
 /// Builds the activity feed: every action from live runs (rehearsals left out), newest first.
 enum OutcomeActivityFeed {
     static func build(events: [FeatureEvent], steward: String) -> [OutcomeActivity] {
-        let mine = events.filter { $0.steward == steward }
+        let names = OutcomePeople.names(events: events, steward: steward)
+        return build(mine: events.filter { $0.steward == steward }).map {
+            var item = $0
+            item.target = item.target.map { names[$0] ?? $0 }
+            return item
+        }
+    }
+
+    private static func build(mine: [FeatureEvent]) -> [OutcomeActivity] {
         let rehearsals = OutcomeRuns.rehearsalRuns(mine)
         var items: [String: OutcomeActivity] = [:]
         var order: [String] = []
@@ -307,5 +315,30 @@ struct OutcomeRecap: Hashable, Sendable {
                 target: action["target"]?.string,
                 rationale: action["rationale"]?.string ?? "")
         }
+    }
+}
+
+/// People by name: "person:sam" reads "Sam", from the charter's person bindings.
+enum OutcomePeople {
+    static func names(events: [FeatureEvent], steward: String) -> [String: String] {
+        var out: [String: String] = [:]
+        let charter = LiveCharter.find(events: events, steward: steward)?.charter
+        for binding in charter?["bindings"]?.array ?? [] where binding["kind"]?.string == "person" {
+            guard let id = binding["id"]?.string else { continue }
+            out[id] = binding["name"]?.string ?? name(id)
+        }
+        for event in events where event.steward == steward {
+            for key in ["from", "to", "person"] {
+                if let id = event.payload[key]?.string, id.hasPrefix("person:"), out[id] == nil {
+                    out[id] = name(id)
+                }
+            }
+        }
+        return out
+    }
+
+    /// "person:priya" → "Priya".
+    static func name(_ id: String) -> String {
+        id.hasPrefix("person:") ? String(id.dropFirst("person:".count)).capitalized : id
     }
 }

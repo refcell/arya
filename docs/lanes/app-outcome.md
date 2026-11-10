@@ -135,6 +135,9 @@ is. Fix these five first; this lane owns its share:
 - "Version 1 missed" reads "The current charter missed"; "held for you" is ink, not orange;
   NOW's last line wraps to two lines with the full text on hover.
 - Snapshot `overview-live`: a run in progress with the progress bar and adapter step.
+- Review #10: NOW reads the shell's live runs (`StatusBarLine.lines`, same as rail and status
+  bar): title, step N, elapsed, `AryaProgressBar`, latest step; next run only when idle.
+  IMPACT zero reads "±0.00" muted; RECENT and CONTEXT show people by name (`OutcomePeople`).
 - Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
   next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
   (live feel) and 2 (no dead space).

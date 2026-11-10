@@ -31,7 +31,9 @@ struct OutcomeContext: Hashable, Sendable {
         for binding in charter?["bindings"]?.array ?? [] {
             guard let id = binding["id"]?.string else { continue }
             if binding["kind"]?.string == "person" {
-                let name = id.hasPrefix("person:") ? String(id.dropFirst(7)) : id
+                let name =
+                    binding["name"]?.string
+                    ?? (id.hasPrefix("person:") ? String(id.dropFirst(7)).capitalized : id)
                 out.people.append(
                     Line(
                         id: id, key: name,

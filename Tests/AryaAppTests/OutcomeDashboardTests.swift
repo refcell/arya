@@ -158,3 +158,31 @@ private func log() -> [FeatureEvent] {
     #expect(
         texts.contains { $0.contains("missed its target") } == (snapshot.state.missed > 0))
 }
+
+/// NOW shows what the rail and status bar show: a run the workspace reports live, with its
+/// step count and latest step, even before the ledger projection sees it.
+@Test func nowShowsTheShellsLiveRuns() {
+    let events = log()
+    let state = OutcomeState.build(events: events, steward: steward, now: now)
+    let line = LiveLine(
+        run: "run_shell", steward: steward, name: "Triage", steps: 3,
+        lastStep: "Labeling MSG-212", progress: 0.4, started: now.addingTimeInterval(-30))
+    let other = LiveLine(
+        run: "run_other", steward: "st_other", name: "Other", steps: 1, lastStep: nil,
+        progress: nil, started: now)
+    let built = OutcomeNow.build(
+        events: events, steward: steward, state: state, now: now, running: [line, other])
+    let live = built.live.first { $0.run == "run_shell" }
+    #expect(live?.steps == 3)
+    #expect(live?.doing == "Labeling MSG-212")
+    #expect(live?.progress == 0.4)
+    #expect(live?.elapsed == 30)
+    #expect(!built.live.contains { $0.run == "run_other" })
+    #expect(OutcomeDashboardText.credit(0.001) == "±0.00")
+}
+
+/// People read by name, never as raw ids.
+@Test func peopleReadByName() {
+    #expect(OutcomePeople.name("person:priya") == "Priya")
+    #expect(OutcomePeople.name("inbox:MSG-1") == "inbox:MSG-1")
+}

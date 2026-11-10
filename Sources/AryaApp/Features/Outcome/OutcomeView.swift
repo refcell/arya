@@ -48,6 +48,8 @@ struct OverviewTab: View {
     let rehearse: () -> Void
     /// Starts the scheduler from the app; nil where the shell cannot.
     var startServing: (() -> Void)?
+    /// Runs going now, from the shell (the list the rail and status bar show).
+    var running: [LiveLine] = []
     /// The seq the person had seen before this visit; read once per steward.
     @AryaState private var lastSeen: Int?
     @AryaState private var visited: String?
@@ -112,7 +114,7 @@ struct OverviewTab: View {
                         OutcomeNowSection(
                             now: OutcomeNow.build(
                                 events: events, steward: steward, state: snapshot.state,
-                                now: store.now),
+                                now: store.now, running: running),
                             openRun: openRun, startServing: startServing)
                         if let plan = snapshot.plan, !plan.steps.isEmpty {
                             OutcomePlanSection(plan: plan, now: store.now, openRun: openRun)

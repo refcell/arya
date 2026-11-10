@@ -139,6 +139,8 @@ struct OutcomeNow: Hashable, Sendable {
         var elapsed: TimeInterval
         /// 0…1, elapsed against the typical run; nil without finished runs to compare.
         var progress: Double?
+        /// Steps taken so far, when the workspace counts them (`liveRuns`).
+        var steps: Int?
         var id: String { run }
     }
 
@@ -150,7 +152,8 @@ struct OutcomeNow: Hashable, Sendable {
     var stopped = false
 
     static func build(
-        events: [FeatureEvent], steward: String, state: OutcomeState, now: Date
+        events: [FeatureEvent], steward: String, state: OutcomeState, now: Date,
+        running: [LiveLine] = []
     ) -> OutcomeNow {
         let ledger = OutcomeLedger(events: events, steward: steward)
         let durations = ledger.runs.compactMap { started -> TimeInterval? in
@@ -159,7 +162,28 @@ struct OutcomeNow: Hashable, Sendable {
         }
         .sorted()
         let typical = durations.isEmpty ? nil : durations[durations.count / 2]
-        let live = ledger.runs.filter { ledger.finished[$0.run ?? ""] == nil }.map { started in
+        let titles = Dictionary(
+            ledger.runs.compactMap { started -> (String, String)? in
+                guard let run = started.run,
+                    let title = started.payload["input"]?["text"]?.string
+                        ?? started.payload["title"]?.string
+                else { return nil }
+                return (run, title)
+            }, uniquingKeysWith: { $1 })
+        // The shell's live runs (the rail and status bar read the same list) come first.
+        let shell = running.filter { $0.steward == steward }.map { line -> Live in
+            let elapsed = max(0, now.timeIntervalSince(line.started))
+            return Live(
+                run: line.run, title: titles[line.run] ?? line.lastStep ?? "Run in progress",
+                doing: line.lastStep ?? ledger.status[line.run], elapsed: elapsed,
+                progress: line.progress
+                    ?? typical.map { $0 > 0 ? min(0.95, elapsed / $0) : 0.95 },
+                steps: line.steps)
+        }
+        let known = Set(shell.map(\.run))
+        let projected = ledger.runs.filter {
+            ledger.finished[$0.run ?? ""] == nil && !known.contains($0.run ?? $0.id)
+        }.map { started in
             let run = started.run ?? started.id
             let elapsed = max(0, now.timeIntervalSince(started.at))
             return Live(
@@ -169,6 +193,7 @@ struct OutcomeNow: Hashable, Sendable {
                 doing: ledger.status[run], elapsed: elapsed,
                 progress: typical.map { $0 > 0 ? min(0.95, elapsed / $0) : 0.95 })
         }
+        let live = shell + projected
         let last = ledger.runs.last { ledger.finished[$0.run ?? ""] != nil }.flatMap {
             ledger.finished[$0.run ?? ""]
         }
@@ -341,6 +366,12 @@ struct OutcomeImpact: Hashable, Sendable {
 
     func helped(_ credit: Double) -> Bool { direction == .up ? credit >= 0 : credit <= 0 }
 
+    /// Green for help, red for harm, muted for a change that rounds to zero.
+    func tone(_ credit: Double) -> Color {
+        if abs(credit) < 0.005 { return AryaColor.inkMuted }
+        return helped(credit) ? AryaColor.positive : AryaColor.negative
+    }
+
     /// The one honest line when nothing can be split: "Metric +0.17 over 29 actions; label
     /// and route always ran together, so the change is not split by action."
     var summary: String {
@@ -486,10 +517,16 @@ struct OutcomeNowSection: View {
                             StatusDot(.running)
                             Text(live.title).aryaText(AryaFont.body, AryaColor.ink).lineLimit(1)
                             Spacer(minLength: AryaSpace.s2)
+                            if let steps = live.steps {
+                                Text("step \(steps)")
+                                    .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                            }
                             Text(FeatureTime.duration(live.elapsed))
                                 .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                         }
-                        if let progress = live.progress { OutcomeBar(value: progress) }
+                        if let progress = live.progress {
+                            AryaProgressBar(progress, isLive: true)
+                        }
                         if let doing = live.doing {
                             Text(doing).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                                 .lineLimit(1)
@@ -577,10 +614,7 @@ struct OutcomeImpactSection: View {
                     Text(row.kind).aryaText(AryaFont.mono, AryaColor.ink)
                         .frame(width: AryaSize.outcomeSeriesLabel, alignment: .leading)
                     Text(OutcomeDashboardText.credit(row.credit))
-                        .aryaText(
-                            AryaFont.mono,
-                            impact.helped(row.credit) ? AryaColor.positive : AryaColor.negative
-                        )
+                        .aryaText(AryaFont.mono, impact.tone(row.credit))
                         .monospacedDigit()
                     Text(
                         "\(row.actions) \(row.actions == 1 ? "action" : "actions") in "
@@ -610,8 +644,10 @@ enum OutcomeDashboardText {
     }
 
     /// "+0.12", "−0.03".
+    /// "+0.17", "−0.03", or "±0.00" when it rounds to zero.
     static func credit(_ value: Double) -> String {
-        (value < 0 ? "−" : "+") + MetricText.value(abs(value))
+        if abs(value) < 0.005 { return "±" + MetricText.value(0) }
+        return (value < 0 ? "−" : "+") + MetricText.value(abs(value))
     }
 
     static func chart(_ metrics: OutcomeMetrics) -> String {

@@ -107,6 +107,7 @@ M4:
 - `just publish` quotes its filter, so regex filters work (`'Arya(App|Design)Tests'`).
 
 ## Questions
+- (from app-outcome) StewardPulse "Next wake"/"Running": please build state with `OutcomeState.build(serve: model.featureStore?.serve)`, format with `AryaTime.upcoming` ("due 10:19" when `state.serving == false`), and count running from `StatusBarLine.lines(live:...)`, so it matches NOW and the status bar.
 
 - From memory: `AryaDesignTests` crashed intermittently (signal 6/11) when AppKit color and
   font tests ran in parallel; the two AppKit suites are now `@MainActor`. Keep new AppKit tests
