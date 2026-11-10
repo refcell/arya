@@ -26,15 +26,33 @@ struct ImproveView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AryaSpace.s4) {
                     FeatureWriteErrorLine(store: store)
-                    rehearsal(RehearsalList.build(events: events, steward: steward), events: events)
-                    if let queue = store.reviewQueues[steward] {
-                        ReviewQueuePanel(store: store, steward: steward, queue: queue)
-                    }
-                    if let checks = store.learnedChecks[steward] {
-                        LearnedChecksPanel(checks: checks)
-                    }
-                    if let worked = store.trajectories[steward] {
-                        WhatWorkedPanel(trajectories: worked)
+                    let list = RehearsalList.build(events: events, steward: steward)
+                    header(list)
+                    // Two columns so the pane has no blank half: what to review and the
+                    // cases on the left, the checks and what worked tables on the right.
+                    HStack(alignment: .top, spacing: AryaSpace.s4) {
+                        VStack(alignment: .leading, spacing: AryaSpace.s4) {
+                            if let queue = store.reviewQueues[steward] {
+                                ReviewQueuePanel(store: store, steward: steward, queue: queue)
+                            }
+                            cases(list, events: events)
+                        }
+                        .frame(
+                            minWidth: AryaSize.inspectorNarrowWidth, maxWidth: .infinity,
+                            alignment: .topLeading)
+                        if hasEvidence {
+                            VStack(alignment: .leading, spacing: AryaSpace.s4) {
+                                if let checks = store.learnedChecks[steward] {
+                                    LearnedChecksPanel(checks: checks)
+                                }
+                                if let worked = store.trajectories[steward] {
+                                    WhatWorkedPanel(trajectories: worked)
+                                }
+                            }
+                            .frame(
+                                minWidth: AryaSize.inspectorNarrowWidth, maxWidth: .infinity,
+                                alignment: .topLeading)
+                        }
                     }
                     AryaHairline()
                     // Proposal review (app-outcome): change and why, rehearsal case by case,
@@ -65,9 +83,38 @@ struct ImproveView: View {
         }
     }
 
+    /// The right column's tables, when the workspace has read any.
+    private var hasEvidence: Bool {
+        store.learnedChecks[steward] != nil || store.trajectories[steward] != nil
+    }
+
+    private func shown(_ list: RehearsalList) -> RehearsalItem? {
+        list.rehearsals.first(where: { $0.id == chosen }) ?? list.rehearsals.first
+    }
+
+    /// The shown rehearsal's cases, each expanding in place.
     @ViewBuilder
-    private func rehearsal(_ list: RehearsalList, events: [FeatureEvent]) -> some View {
-        if let item = list.rehearsals.first(where: { $0.id == chosen }) ?? list.rehearsals.first {
+    private func cases(_ list: RehearsalList, events: [FeatureEvent]) -> some View {
+        if let item = shown(list) {
+            let written = summary?.rehearsal == item.id ? summary : nil
+            VStack(alignment: .leading, spacing: 0) {
+                Text("CASES").aryaText(AryaFont.overline, AryaColor.inkFaint)
+                let scores = ImproveText.showsScores(item)
+                ForEach(item.cases) { result in
+                    CaseLine(
+                        store: store, item: item, result: result, events: events,
+                        reviewed: written?.cases.first { $0.id == result.id }, showsScore: scores,
+                        isExpanded: expanded == result.id
+                    ) { expanded = expanded == result.id ? nil : result.id }
+                }
+            }
+        }
+    }
+
+    /// The newest rehearsal in one line with Rehearse and Mark ready, full width.
+    @ViewBuilder
+    private func header(_ list: RehearsalList) -> some View {
+        if let item = shown(list) {
             let mark = list.readyMark(steward: item.steward, charterVersion: item.charterVersion)
             let written = summary?.rehearsal == item.id ? summary : nil
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -91,16 +138,6 @@ struct ImproveView: View {
                     ForEach(written.readinessReasons, id: \.self) { reason in
                         Text(reason).aryaText(AryaFont.caption, AryaColor.inkMuted)
                     }
-                }
-            }
-            VStack(alignment: .leading, spacing: 0) {
-                let scores = ImproveText.showsScores(item)
-                ForEach(item.cases) { result in
-                    CaseLine(
-                        store: store, item: item, result: result, events: events,
-                        reviewed: written?.cases.first { $0.id == result.id }, showsScore: scores,
-                        isExpanded: expanded == result.id
-                    ) { expanded = expanded == result.id ? nil : result.id }
                 }
             }
         } else {

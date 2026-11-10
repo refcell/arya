@@ -356,3 +356,8 @@ Parity (CEO gap map):
   reads "460 of 819 runs have checked outcomes: 336 good, 124 reopened; 359 still open", the
   same numbers as the tally; label 336/399, route 357/439, choices 4-9 day lags; onboarding-gate
   unchanged (1 of 3 met).
+- 2026-11-10 Visual check (point 2, no dead space): Improve is two columns under the full-width
+  rehearsal line: review (next case, would-have vs person did) and cases on the left, CHECKS and
+  WHAT WORKED tables on the right; What worked rows fit a half column (name gives way, bar
+  fills). The improve state now renders at 1280 x 800 with its reads preloaded: 34% of the
+  stream pane is flat canvas (16-pt tiles), from most of the lower half blank before.

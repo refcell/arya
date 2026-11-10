@@ -68,27 +68,39 @@ struct WhatWorkedPanel: View {
     }
 
     private func row(_ credit: FeatureTrajectories.Credit) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
+        // A dense table row that fits a half-width column: the name gives way first, the bar
+        // takes what is left.
+        HStack(alignment: .center, spacing: AryaSpace.s2) {
             Text(credit.name).aryaText(AryaFont.mono, AryaColor.ink)
                 .lineLimit(1).truncationMode(.tail)
-                .frame(minWidth: 140, alignment: .leading)
+                .frame(minWidth: 56, maxWidth: 140, alignment: .leading)
             Text(WhatWorkedText.outcome(credit))
                 .aryaText(AryaFont.monoSmall, WhatWorkedText.outcomeColor(credit))
                 .monospacedDigit()
-                .frame(minWidth: 72, alignment: .trailing)
+                .frame(minWidth: 52, alignment: .trailing)
             Text(WhatWorkedText.lag(credit)).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                 .monospacedDigit()
-                .frame(minWidth: 40, alignment: .trailing)
-            Chip(
-                WhatWorkedText.confidence(credit),
-                textColor: WhatWorkedText.sparse(credit)
-                    ? AryaColor.inkFaint : WhatWorkedText.confidenceColor(credit)
-            )
-            .frame(minWidth: 180, alignment: .leading)
-            TrajectoryBar(
-                resolved: credit.resolved, reopened: credit.reopened, open: credit.pending)
-            Spacer(minLength: 0)
+                .frame(minWidth: 28, alignment: .trailing)
+            if WhatWorkedText.sparse(credit) {
+                // Plain words, no chip or bar: too few outcomes to grade, and it fits a half
+                // column.
+                Text(WhatWorkedText.confidence(credit))
+                    .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    .lineLimit(1).fixedSize()
+                Spacer(minLength: 0)
+            } else {
+                Chip(
+                    WhatWorkedText.confidence(credit),
+                    textColor: WhatWorkedText.confidenceColor(credit)
+                )
+                .fixedSize()
+                // One chip column, so every bar starts at the same x.
+                .frame(minWidth: 88, alignment: .leading)
+                TrajectoryBar(
+                    resolved: credit.resolved, reopened: credit.reopened, open: credit.pending)
+            }
         }
+        .frame(minHeight: AryaSize.rowHeight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(credit.line)
         .help(credit.line)
@@ -157,27 +169,31 @@ enum WhatWorkedText {
     }
 }
 
-/// Resolved, reopened, and still-open outcomes as one proportional bar.
+/// Resolved, reopened, and still-open outcomes as one proportional bar filling its row.
 struct TrajectoryBar: View {
     var resolved: Int
     var reopened: Int
     var open: Int
-    static let width: CGFloat = 240
 
     var body: some View {
-        let total = CGFloat(max(1, resolved + reopened + open))
-        HStack(spacing: 0) {
-            segment(resolved, total, AryaColor.positive)
-            segment(reopened, total, AryaColor.negative)
-            segment(open, total, AryaColor.rule)
+        GeometryReader { box in
+            let total = CGFloat(max(1, resolved + reopened + open))
+            HStack(spacing: 0) {
+                segment(resolved, total, box.size.width, AryaColor.positive)
+                segment(reopened, total, box.size.width, AryaColor.negative)
+                segment(open, total, box.size.width, AryaColor.rule)
+            }
         }
-        .frame(width: Self.width, height: AryaSpace.s1, alignment: .leading)
+        .frame(minWidth: AryaSize.rowHeight * 2, maxWidth: .infinity)
+        .frame(height: AryaSpace.s1)
         .background(AryaColor.sunken)
         .clipShape(Capsule())
         .accessibilityHidden(true)
     }
 
-    private func segment(_ count: Int, _ total: CGFloat, _ color: Color) -> some View {
-        Rectangle().fill(color).frame(width: Self.width * CGFloat(count) / total)
+    private func segment(
+        _ count: Int, _ total: CGFloat, _ width: CGFloat, _ color: Color
+    ) -> some View {
+        Rectangle().fill(color).frame(width: width * CGFloat(count) / total)
     }
 }

@@ -102,7 +102,23 @@ import Testing
             store.learnedChecks[steward.id] = try? await store.workspace.learnedChecks(
                 steward: steward.id)
         }
-        try page("improve") { $0.tab = .improve }
+        // Improve at 1280 x 800 (the dead-space bar): its reads load first, as `.task` would.
+        if let store = model.featureStore, Self.wanted("improve", file: "improve.png") {
+            store.reviewQueues[steward.id] = try? await store.workspace.reviewQueue(
+                steward: steward.id)
+            store.learnedChecks[steward.id] = try? await store.workspace.learnedChecks(
+                steward: steward.id)
+            store.trajectories[steward.id] = try? await store.workspace.trajectories(
+                steward: steward.id)
+            var navigation = NavigationState()
+            navigation.select(steward: steward.id)
+            navigation.tab = .improve
+            model.navigation = navigation
+            let laptop = CGSize(width: 1280, height: 800)
+            try write(
+                "improve", scheme: scheme,
+                render(RootView(model: model), dark: dark, size: laptop))
+        }
         // Improve's proposals: one whose rehearsal regressed and one that passed (app-outcome).
         if let store = model.featureContext().store,
             let live = LiveCharter.find(events: store.events, steward: steward.id)?.charter
