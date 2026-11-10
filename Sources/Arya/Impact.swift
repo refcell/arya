@@ -1,4 +1,5 @@
 import AryaCore
+import AryaEval
 import AryaMemory
 import AryaRuntime
 import Foundation
@@ -26,6 +27,9 @@ public struct ImpactSummary: Sendable, Hashable, Codable {
         public var confidenceLevel: String
         /// Resolved among settled follow-up checks of these kinds, when any settled.
         public var successRate: Double?
+        /// Eval's trajectory credit for these kinds (outcomes checked after their runs), one
+        /// line per kind; nil without graded trajectories or in older summaries.
+        public var trajectory: String?
         /// "label: +0.040 over 12 actions in 5 of 7 windows, medium confidence".
         public var line: String
         public var id: String { label }
@@ -117,9 +121,12 @@ extension Workspace {
         let rates = Dictionary(
             try await effectiveness(steward: steward).map { ($0.kind, $0) },
             uniquingKeysWith: { a, _ in a })
+        let graded = try await trajectories(steward: steward).credits.filter { $0.axis == "kind" }
         var summary = Self.attribute(
             windows, steward: steward, metric: metric, readings: readings, rates: rates,
-            limit: limit)
+            limit: limit,
+            trajectories: Dictionary(
+                graded.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first }))
         let days = window.count
         summary.period = days == 1 ? "today" : "the last \(days) days"
         if let period = summary.period { summary.summary += " over \(period)" }
@@ -128,7 +135,8 @@ extension Workspace {
 
     static func attribute(
         _ windows: [(delta: Double, counts: [String: Int])], steward: String, metric: Metric,
-        readings: Int, rates: [String: EffectSummary], limit: Int
+        readings: Int, rates: [String: EffectSummary], limit: Int,
+        trajectories: [String: TrajectoryCredit] = [:]
     ) -> ImpactSummary {
         var signature: [String: [Int]] = [:]
         for (index, window) in windows.enumerated() {
@@ -164,7 +172,15 @@ extension Workspace {
                     : Double(settled.reduce(0) { $0 + $1.resolved })
                         / Double(max(1, settled.reduce(0) { $0 + $1.resolved + $1.reopened }))
                 var confidence = support * consistency
-                if let rate { confidence = 0.8 * confidence + 0.2 * rate }
+                // Eval's trajectory grades (n-aware) weigh outcomes checked after the runs;
+                // without them, the plain success rate of settled checks.
+                let graded = group.compactMap { trajectories[$0] }
+                if !graded.isEmpty {
+                    let mean = graded.reduce(0) { $0 + $1.confidence } / Double(graded.count)
+                    confidence = 0.7 * confidence + 0.3 * mean
+                } else if let rate {
+                    confidence = 0.8 * confidence + 0.2 * rate
+                }
                 let level = confidence >= 0.66 ? "high" : confidence >= 0.33 ? "medium" : "low"
                 let label = group.joined(separator: " + ")
                 let noun = count == 1 ? "action" : "actions"
@@ -172,6 +188,7 @@ extension Workspace {
                     kinds: group, label: label, credit: credit, helped: good(credit) >= 0,
                     actions: count, windows: shares.count, confidence: confidence,
                     confidenceLevel: level, successRate: rate,
+                    trajectory: graded.isEmpty ? nil : graded.map(\.line).joined(separator: "; "),
                     line: "\(label): \(signed(credit)) over \(count) \(noun) in "
                         + "\(shares.count) of \(windows.count) windows, \(level) confidence")
             }

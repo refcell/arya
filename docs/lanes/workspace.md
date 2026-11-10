@@ -273,3 +273,7 @@ M3:
 - 2026-11-10: run facts count tool records the way the TOOLS tab does (steps, else proxy
   records, else adapter notifications); `learnedFrom(person:)` (notes, corrections, reviews by
   a person) and debug `timings()` with `timed(_:_:)` and cache fold/rebuild timings.
+- 2026-11-10: onboardingState folds runtime's onboard run and eval's go-live gate; impact blends
+  eval's trajectory confidence per kind; `onboarding(steward:)` on the cache. Busy-home test:
+  copies the newest shared seed (`arya-demo-homes/<stamp>`) and checks runFacts tool counts
+  equal distinct step records on its runs (skips where no seed exists).

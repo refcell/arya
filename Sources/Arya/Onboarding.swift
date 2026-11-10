@@ -42,6 +42,11 @@ public struct OnboardingState: Sendable, Hashable, Codable {
     public var ready: Bool
     /// One line, shown verbatim: `4 of 7 steps done; next: import history.`
     public var summary: String
+    /// The latest onboard run (runtime): what it read from directory and process bindings;
+    /// nil before one ran or in older summaries.
+    public var onboard: OnboardSummary?
+    /// Eval's go-live gate behind the `ready` step; nil in older summaries.
+    public var goLive: GoLiveSummary?
 }
 
 extension Workspace {
@@ -53,25 +58,38 @@ extension Workspace {
         let context = try await self.context(steward: steward)
         let routines = try await self.routines(steward: steward)
         let review = try await reviewQueue(steward: steward)
-        let readiness = try await ReadinessReports(sink: readSink).report(record.id)
+        let onboard = try await onboarding(steward: steward)
+        let gate = try await goLiveGate(steward: steward)
         var historyCases = 0
         if let newest = try await casebookIndex().last(where: { $0.steward == steward }) {
             let book = try await casebookSource.casebook(version: newest.version)
             historyCases = book.cases.filter { $0.id.rawValue.hasPrefix("hist-") }.count
         }
 
-        let systems = context.connections.filter { $0.toolCalls > 0 || $0.actionsExecuted > 0 }
+        // Systems it used in runs, plus those the onboard run read without error.
+        let used = context.connections.filter { $0.toolCalls > 0 || $0.actionsExecuted > 0 }
+            .map(\.id)
+        let systems = used + (onboard?.sources ?? []).filter { !used.contains($0) }
         let people = context.people.map(\.id)
+        let peopleFound = max(people.count, onboard?.people ?? 0)
         let notes = Set(
             context.people.flatMap(\.notes) + context.connections.flatMap(\.notes))
-        let contextNotes = notes.count
+        // Notes about its people and systems, plus the notes the onboard run wrote (each with
+        // the onboard run as its provenance).
+        let contextNotes = notes.count + (onboard?.notes ?? 0)
+        let found = onboard.map { ($0.queues, $0.rules, $0.documents) } ?? (0, 0, 0)
+        var foundParts: [String] = []
+        if found.0 > 0 { foundParts.append(Self.count(found.0, "queue", "queues")) }
+        if found.1 > 0 { foundParts.append(Self.count(found.1, "rule", "rules")) }
+        if found.2 > 0 { foundParts.append(Self.count(found.2, "document", "documents")) }
+        let processCount = routines.count + found.0 + found.1 + found.2
         func list(_ names: [String]) -> String {
             names.isEmpty
                 ? ""
                 : ": " + names.prefix(4).joined(separator: ", ")
                     + (names.count > 4 ? ", and \(names.count - 4) more" : "")
         }
-        let total = context.connections.count
+        let total = max(context.connections.count, systems.count)
         let steps: [OnboardingState.Step] = [
             .init(
                 key: "systems", title: "Read its systems", done: total > 0 && !systems.isEmpty,
@@ -79,20 +97,25 @@ extension Workspace {
                 detail: total == 0
                     ? "No systems connected yet."
                     : "Read \(systems.count) of \(total) "
-                        + "\(total == 1 ? "system" : "systems")\(list(systems.map(\.id)))."),
+                        + "\(total == 1 ? "system" : "systems")\(list(systems))."),
             .init(
-                key: "people", title: "Find its people", done: !people.isEmpty,
-                count: people.count, total: nil,
-                detail: people.isEmpty
+                key: "people", title: "Find its people", done: peopleFound > 0,
+                count: peopleFound, total: nil,
+                detail: peopleFound == 0
                     ? "No people found yet."
-                    : "Knows \(Self.count(people.count, "person", "people"))\(list(people))."),
+                    : "Knows \(Self.count(peopleFound, "person", "people"))\(list(people))."),
             .init(
-                key: "processes", title: "Learn its processes", done: !routines.isEmpty,
-                count: routines.count, total: nil,
-                detail: routines.isEmpty
-                    ? "No routines learned yet."
-                    : "Learned \(Self.count(routines.count, "routine", "routines"))"
-                        + "\(list(routines.map(\.name)))."),
+                key: "processes", title: "Learn its processes", done: processCount > 0,
+                count: processCount, total: nil,
+                detail: processCount == 0
+                    ? "No routines or processes found yet."
+                    : ([
+                        routines.isEmpty
+                            ? nil
+                            : "Learned \(Self.count(routines.count, "routine", "routines"))"
+                                + list(routines.map(\.name)),
+                        foundParts.isEmpty ? nil : "found " + foundParts.joined(separator: ", "),
+                    ].compactMap { $0 }.joined(separator: "; ").capitalizedFirst) + "."),
             .init(
                 key: "notes", title: "Write context notes", done: contextNotes > 0,
                 count: contextNotes, total: nil,
@@ -112,23 +135,28 @@ extension Workspace {
                 count: review?.reviewed ?? 0, total: review?.total,
                 detail: review.map(\.progressText) ?? "Nothing to review yet."),
             .init(
-                key: "ready", title: "Ready to go live", done: readiness.ready,
-                count: readiness.ready ? 1 : 0, total: 1, detail: readiness.summary),
+                key: "ready", title: "Ready to go live", done: gate.ready,
+                count: gate.conditions.filter(\.met).count, total: gate.conditions.count,
+                detail: gate.summary),
         ]
         let done = steps.filter(\.done).count
         let next = steps.first { !$0.done }
         return OnboardingState(
             steward: record.id.rawValue, steps: steps, done: done,
             progress: Double(done) / Double(steps.count), next: next,
-            systems: systems.map(\.id), people: people, processes: routines.map(\.name),
+            systems: systems, people: people, processes: routines.map(\.name),
             contextNotes: contextNotes, historyCases: historyCases, review: review,
-            ready: readiness.ready,
+            ready: gate.ready,
             summary: next.map {
                 "\(done) of \(steps.count) steps done; next: \($0.title.lowercased())."
-            } ?? "Onboarded: all \(steps.count) steps done.")
+            } ?? "Onboarded: all \(steps.count) steps done.", onboard: onboard, goLive: gate)
     }
 
     static func count(_ n: Int, _ one: String, _ many: String) -> String {
         "\(n) \(n == 1 ? one : many)"
     }
+}
+
+extension String {
+    fileprivate var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
 }

@@ -97,6 +97,11 @@ import Testing
     #expect(review.detail.hasPrefix("1 of 4 reviewed"))
     #expect(state.done == fresh.done + 1)
     #expect(state.progress == Double(state.done) / 7)
+    // The ready step is eval's go-live gate; no onboard run has happened here.
+    let gate = try #require(state.goLive)
+    let ready = try #require(state.steps.last)
+    #expect(ready.key == "ready" && ready.done == gate.ready && ready.detail == gate.summary)
+    #expect(ready.total == gate.conditions.count && state.onboard == nil)
 }
 
 /// A refunds binding has no `get`: history records are served as its own read, so a rehearsal

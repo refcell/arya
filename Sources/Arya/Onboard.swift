@@ -47,7 +47,7 @@ extension Workspace {
     /// `steward`'s latest onboarding, or nil if it never onboarded.
     public func onboarding(steward: String) async throws -> OnboardSummary? {
         let id = try await existing(steward).id
-        guard let latest = try Onboarding.latest(id, in: try await sink.events(from: 1)) else {
+        guard let latest = try Onboarding.latest(id, in: facadeState().bySteward[id] ?? []) else {
             return nil
         }
         let done = latest.completed
