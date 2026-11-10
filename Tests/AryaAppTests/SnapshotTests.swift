@@ -112,7 +112,25 @@ import Testing
         }
         // Connections: secrets come from memory, never the Keychain, in tests (connect lane).
         model.credentials = MemoryCredentialStore(["inbox": "demo-secret"])
-        try page("connections") { $0.showConnections() }
+        try page("connections") {
+            $0.showConnections()
+            $0.inspector = false
+        }
+        // A steward missing a connection: Connect is the page's one primary action.
+        if let digest = model.stewards.first(where: { $0.id == "st_digest" }) {
+            try page("connections-connect") {
+                $0.showConnections(steward: digest.id)
+                $0.inspector = false
+            }
+        }
+        // A tested connection selected: the inspector follows it.
+        model.connectionTests.results["inbox"] = ConnectionTest(
+            ok: true, server: "inbox-mcp", tools: ["search", "get", "label", "route", "reply"],
+            latencyMilliseconds: 14)
+        try page("connections-inspector") {
+            $0.showConnections()
+            $0.select(connection: "inbox")
+        }
         try page("people") { $0.showPeople() }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()

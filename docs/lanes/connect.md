@@ -76,3 +76,7 @@ and receive a periodic report from it.
   Visual check: `people` snapshot on the demo home shows Sam (support lead, inbox, approves
   reply, no messages yet), Edit, Remove, and Add person.
 - 2026-11-10: Test now uses the adapters probe (`ConnectionTest` over `ConnectionProbe.binding`).
+- 2026-11-10: Review R3/R7: Test quiet, Connect the one primary, Disconnect behind More with a
+  confirmation, reads and actions as one mono line, a "For steward: … ▾" picker, and the
+  inspector follows the selected connection (capabilities, users, secret, last test).
+  Visual check: `connections`, `connections-connect`, `connections-inspector` snapshots.

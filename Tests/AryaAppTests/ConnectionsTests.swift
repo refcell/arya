@@ -109,6 +109,30 @@ private func events() -> [FeatureEvent] {
                 == "connection tests is not available here")
     }
 
+    @Test func capabilitiesReadAsOneMonoLine() throws {
+        let catalog = ConnectionsCatalog(events: events())
+        let tracker = try #require(catalog.entries.first)
+        #expect(
+            ConnectionsText.capabilities(tracker)
+                == "reads: search, get · does: label (low), comment (medium), assign (high)")
+        #expect(ConnectionsText.lastTest(nil) == "Not tested yet")
+        #expect(
+            ConnectionsText.lastTest(ConnectionTest(ok: false, problem: "could not start"))
+                == "Failed · could not start")
+    }
+
+    @Test func theInspectorFollowsTheSelectedConnection() {
+        var state = NavigationState()
+        state.select(steward: "st_a")
+        state.showConnections()
+        #expect(InspectorFocus.of(state) == InspectorFocus.none)
+        state.select(connection: "tracker")
+        #expect(state.inspector)
+        #expect(InspectorFocus.of(state) == .connection("tracker"))
+        state.select(steward: "st_a")
+        #expect(InspectorFocus.of(state) == .steward("st_a"))
+    }
+
     @Test func navigationKeepsTheConnectionsStewardValid() {
         var state = NavigationState()
         state.select(steward: "st_a")

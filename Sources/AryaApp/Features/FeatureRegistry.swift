@@ -1,3 +1,4 @@
+import Arya
 import AryaDesign
 import SwiftUI
 
@@ -171,27 +172,47 @@ enum FeatureRegistry {
             openDemo: { model.stewardSheet = .example })
     }
 
-    /// The Connections page (Settings, Go menu): systems, their actions and risk, per-steward
+    /// The Connections page (Settings, Go menu): systems, what they read and do, per-steward
     /// Connect and Disconnect as gated proposals, a connection test, and Keychain secrets.
     @ViewBuilder
     static func connections(_ context: FeatureContext) -> some View {
         let model = context.model
         if let store = context.store {
-            let steward = model.navigation.pageSteward
-            let source = model.source
             ConnectionsView(
-                store: store, stewards: model.stewards,
-                steward: steward ?? model.stewards.first?.id, credentials: model.credentials,
+                store: store, tests: model.connectionTests, stewards: model.stewards,
+                steward: model.navigation.pageSteward ?? model.stewards.first?.id,
+                selected: model.navigation.connection, credentials: model.credentials,
                 selectSteward: { model.navigation.showConnections(steward: $0) },
-                probe: { entry, secret in
-                    try await source.probeConnection(
-                        command: entry.command, args: entry.args, declared: entry.declared,
-                        secret: secret)
-                })
+                select: { model.navigation.select(connection: $0) },
+                probe: connectionProbe(model))
         } else {
             EmptyState(
                 "No connections yet.",
                 guidance: "Connections a steward's charter binds appear here.")
+        }
+    }
+
+    /// The inspector content for a connection selected on the Connections page.
+    @ViewBuilder
+    static func connectionInspector(_ context: FeatureContext, connection: String) -> some View {
+        let model = context.model
+        if let store = context.store {
+            ConnectionInspector(
+                store: store, tests: model.connectionTests, connection: connection,
+                steward: model.navigation.pageSteward ?? model.stewards.first?.id,
+                stewards: model.stewards, credentials: model.credentials,
+                probe: connectionProbe(model))
+        }
+    }
+
+    private static func connectionProbe(_ model: AppModel)
+        -> @Sendable (ConnectionsCatalog.Entry, String?) async throws -> ConnectionTest
+    {
+        let source = model.source
+        return { entry, secret in
+            try await source.probeConnection(
+                command: entry.command, args: entry.args, declared: entry.declared,
+                secret: secret)
         }
     }
 

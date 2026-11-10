@@ -2,38 +2,41 @@ import Arya
 import AryaDesign
 import SwiftUI
 
-/// The Connections page: every system a steward can be bound to, what it can read and do (each
+/// The Connections page: every system a steward can be bound to, what it reads and does (each
 /// action with its risk), which stewards use it, a connection test, and its secret, kept only in
-/// the credential store (the Keychain in the app). Connect and Disconnect propose a charter
-/// change that goes live through the gate on Improve.
+/// the credential store (the Keychain in the app). Test is the quiet default; Connect is the one
+/// primary action; Disconnect sits behind More with a confirmation. Connect and Disconnect
+/// propose a charter change that goes live through the gate on Improve. Selecting a row shows
+/// the connection in the inspector.
 struct ConnectionsView: View {
     @ObservedObject var store: FeatureStore
+    @ObservedObject var tests: ConnectionTestStore
     let stewards: [StewardSummary]
     /// The steward Connect and Disconnect act on.
     let steward: String?
+    /// The connection the inspector shows.
+    let selected: String?
     let credentials: any CredentialStore
     let selectSteward: (String) -> Void
-    /// Tests a connection with its secret; returns the tools it lists.
+    let select: (String) -> Void
+    /// Tests a connection with its secret.
     let probe: @Sendable (ConnectionsCatalog.Entry, String?) async throws -> ConnectionTest
 
-    @AryaState private var results: [String: Result<ConnectionTest, ConnectionsFailure>] = [:]
-    @AryaState private var testing: Set<String> = []
     @AryaState private var secrets: [String: String] = [:]
     @AryaState private var stored: [String: Bool] = [:]
     @AryaState private var note: String?
+    @AryaState private var confirming: String?
 
     var body: some View {
         let catalog = ConnectionsCatalog(events: store.events)
         ScrollView {
-            VStack(alignment: .leading, spacing: AryaSpace.s5) {
+            VStack(alignment: .leading, spacing: AryaSpace.s4) {
                 PageTitle(
                     title: "Connections",
                     subtitle: "Systems stewards read from and act in. Secrets stay in the Keychain."
                 )
-                if stewards.count > 1, let steward {
-                    ChoiceRow(stewards.map { ($0.id, $0.name) }, selection: steward) {
-                        selectSteward($0)
-                    }
+                if let steward {
+                    StewardPicker(stewards: stewards, selected: steward, select: selectSteward)
                 }
                 if let note { Text(note).aryaText(AryaFont.caption, AryaColor.inkMuted) }
                 if let error = store.writeError {
@@ -44,10 +47,11 @@ struct ConnectionsView: View {
                         "No connections yet.",
                         guidance: "Connections a steward's charter binds appear here.")
                 } else {
-                    label("Systems")
-                    ForEach(catalog.entries) { entry in
-                        row(catalog.entry(entry, for: steward), catalog: catalog)
-                        AryaHairline()
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(catalog.entries) { entry in
+                            row(catalog.entry(entry, for: steward), catalog: catalog)
+                            AryaHairline()
+                        }
                     }
                 }
                 if !catalog.adapters.isEmpty { adapters(catalog.adapters) }
@@ -57,59 +61,81 @@ struct ConnectionsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityLabel("Connections")
+        .confirmationDialog(
+            confirmTitle, isPresented: confirmBinding, titleVisibility: .visible
+        ) {
+            if let id = confirming, let steward,
+                let entry = catalog.entries.first(where: { $0.id == id })
+            {
+                Button("Propose disconnecting", role: .destructive) {
+                    propose(catalog.disconnectProposal(entry, steward: steward))
+                }
+            }
+            Button("Cancel", role: .cancel) { confirming = nil }
+        } message: {
+            Text("The steward keeps it until the proposal passes the gate on Improve.")
+        }
     }
 
     private func row(_ entry: ConnectionsCatalog.Entry, catalog: ConnectionsCatalog) -> some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s2) {
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
                 Text(entry.id).aryaText(AryaFont.monoStrong, AryaColor.ink)
                 Text(entry.commandLine).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     .lineLimit(1)
-                if entry.network { Chip("network") }
+                if entry.network {
+                    Text("network").aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                }
                 Spacer()
                 controls(entry, catalog: catalog)
             }
-            if !entry.read.isEmpty {
-                field("Reads") { ForEach(entry.read, id: \.self) { Chip($0) } }
+            Text(ConnectionsText.capabilities(entry))
+                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
+                Text("used by: " + names(entry.connected))
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                credential(entry)
             }
-            if !entry.actions.isEmpty {
-                field("Actions") {
-                    ForEach(entry.actions, id: \.kind) { action in
-                        Chip(
-                            "\(action.kind) · \(action.risk)",
-                            textColor: Self.color(action.risk))
-                    }
-                }
+            if let test = tests.results[entry.id] {
+                Text(ConnectionsText.lastTest(test))
+                    .aryaText(AryaFont.monoSmall, Self.color(test))
             }
-            field("Used by") {
-                Text(names(entry.connected))
-                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
-            }
-            credential(entry)
-            if let result = results[entry.id] { testLine(result) }
         }
-        .padding(.vertical, AryaSpace.s2)
+        .padding(.vertical, AryaSpace.s3)
+        .padding(.horizontal, AryaSpace.s2)
+        .background(
+            selected == entry.id ? AryaColor.selection : Color.clear,
+            in: RoundedRectangle(cornerRadius: AryaRadius.small)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { select(entry.id) }
+        .accessibilityAddTraits(selected == entry.id ? .isSelected : [])
     }
 
     @ViewBuilder
     private func controls(_ entry: ConnectionsCatalog.Entry, catalog: ConnectionsCatalog)
         -> some View
     {
-        Button(testing.contains(entry.id) ? "Testing…" : "Test") { test(entry) }
+        let running = tests.testing.contains(entry.id)
+        Button(running ? "Testing…" : "Test") { test(entry) }
             .buttonStyle(.aryaTertiary)
-            .disabled(testing.contains(entry.id))
+            .disabled(running)
         if let steward {
             if catalog.isConnected(entry, steward: steward) {
+                Text("connected").aryaText(AryaFont.monoSmall, AryaColor.positive)
                 let blocker = catalog.disconnectBlocker(entry, steward: steward)
-                Button("Disconnect") {
-                    propose(catalog.disconnectProposal(entry, steward: steward))
+                Menu("More") {
+                    Button("Disconnect…") { confirming = entry.id }
+                        .disabled(blocker != nil)
+                    if let blocker { Text(blocker) }
                 }
-                .buttonStyle(.aryaQuiet)
-                .disabled(blocker != nil)
-                .help(blocker ?? "Propose removing it from the charter.")
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("More actions for \(entry.id)")
             } else {
                 Button("Connect") { propose(catalog.connectProposal(entry, steward: steward)) }
-                    .buttonStyle(.aryaSecondary)
+                    .buttonStyle(.aryaPrimary)
                     .help("Propose adding it to the charter; it goes live through the gate.")
             }
         }
@@ -117,80 +143,49 @@ struct ConnectionsView: View {
 
     @ViewBuilder
     private func credential(_ entry: ConnectionsCatalog.Entry) -> some View {
-        let has = stored[entry.id] ?? credentials.hasCredential(for: entry.id)
-        field("Secret") {
-            if has {
-                Text("Stored in Keychain").aryaText(AryaFont.caption, AryaColor.positive)
-                Button("Remove") { removeSecret(entry.id) }.buttonStyle(.aryaTertiary)
-            } else {
-                SecureField("Token or password", text: secretBinding(entry.id))
-                    .textFieldStyle(.plain)
-                    .aryaText(AryaFont.mono, AryaColor.ink)
-                    .padding(AryaSpace.s1)
-                    .background(
-                        AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small)
-                    )
-                    .frame(maxWidth: 260)
-                Button("Save") { saveSecret(entry.id) }
-                    .buttonStyle(.aryaTertiary)
-                    .disabled((secrets[entry.id] ?? "").isEmpty)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func testLine(_ result: Result<ConnectionTest, ConnectionsFailure>) -> some View {
-        switch result {
-        case .success(let test) where test.ok:
-            Text(ConnectionTestText.line(test))
-                .aryaText(
-                    AryaFont.monoSmall, test.complete ? AryaColor.positive : AryaColor.warning)
-        case .success(let test):
-            Text("Failed · " + (test.problem ?? "no answer"))
-                .aryaText(AryaFont.monoSmall, AryaColor.negative)
-        case .failure(let failure):
-            Text("Failed · " + failure.text).aryaText(AryaFont.monoSmall, AryaColor.negative)
+        if stored[entry.id] ?? credentials.hasCredential(for: entry.id) {
+            Text("secret: in Keychain").aryaText(AryaFont.monoSmall, AryaColor.positive)
+            Button("Remove") { removeSecret(entry.id) }.buttonStyle(.aryaTertiary)
+        } else {
+            SecureField("secret (token or password)", text: secretBinding(entry.id))
+                .textFieldStyle(.plain)
+                .aryaText(AryaFont.monoSmall, AryaColor.ink)
+                .padding(AryaSpace.s1)
+                .background(AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small))
+                .frame(maxWidth: 240)
+            Button("Save") { saveSecret(entry.id) }
+                .buttonStyle(.aryaTertiary)
+                .disabled((secrets[entry.id] ?? "").isEmpty)
         }
     }
 
     private func adapters(_ adapters: [ConnectionsCatalog.Adapter]) -> some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s2) {
-            label("Adapters")
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            Text("ADAPTERS").aryaText(AryaFont.label, AryaColor.inkFaint)
             ForEach(adapters, id: \.name) { adapter in
-                HStack(spacing: AryaSpace.s3) {
-                    Text(adapter.name).aryaText(AryaFont.monoStrong, AryaColor.ink)
-                    Text(names(adapter.stewards)).aryaText(AryaFont.caption, AryaColor.inkMuted)
-                }
+                Text("\(adapter.name) · used by: \(names(adapter.stewards))")
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
             }
         }
     }
 
-    private func label(_ text: String) -> some View {
-        Text(text.uppercased()).aryaText(AryaFont.label, AryaColor.inkFaint)
-    }
-
-    private func field<Content: View>(_ title: String, @ViewBuilder content: () -> Content)
-        -> some View
-    {
-        HStack(alignment: .center, spacing: AryaSpace.s2) {
-            Text(title.uppercased()).aryaText(AryaFont.label, AryaColor.inkFaint)
-                .frame(width: 72, alignment: .leading)
-            content()
-        }
-    }
-
     private func names(_ ids: [String]) -> String {
-        guard !ids.isEmpty else { return "No steward" }
+        guard !ids.isEmpty else { return "no steward" }
         return ids.map { id in stewards.first { $0.id == id }?.name ?? id }
             .joined(separator: ", ")
     }
 
-    static func color(_ risk: String) -> Color {
-        switch risk {
-        case "high": AryaColor.negative
-        case "medium": AryaColor.warning
-        default: AryaColor.inkMuted
-        }
+    static func color(_ test: ConnectionTest) -> Color {
+        test.complete ? AryaColor.positive : test.ok ? AryaColor.warning : AryaColor.negative
+    }
+
+    private var confirmTitle: String {
+        let name = stewards.first { $0.id == steward }?.name ?? steward ?? "this steward"
+        return "Disconnect \(confirming ?? "") from \(name)?"
+    }
+
+    private var confirmBinding: Binding<Bool> {
+        Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } })
     }
 
     private func secretBinding(_ id: String) -> Binding<String> {
@@ -219,19 +214,12 @@ struct ConnectionsView: View {
     }
 
     private func test(_ entry: ConnectionsCatalog.Entry) {
-        testing.insert(entry.id)
-        let secret = (try? credentials.credential(for: entry.id)) ?? nil
-        Task {
-            do {
-                results[entry.id] = .success(try await probe(entry, secret))
-            } catch {
-                results[entry.id] = .failure(ConnectionsFailure(error))
-            }
-            testing.remove(entry.id)
-        }
+        select(entry.id)
+        tests.run(entry, secret: (try? credentials.credential(for: entry.id)) ?? nil, probe: probe)
     }
 
     private func propose(_ proposal: CharterProposal?) {
+        confirming = nil
         guard let proposal else { return }
         Task {
             if await store.perform(.proposeCharter(proposal)) {
@@ -240,6 +228,101 @@ struct ConnectionsView: View {
                     + "on Improve."
             }
         }
+    }
+}
+
+/// "For steward: Support inbox triage ▾", a menu of the stewards.
+struct StewardPicker: View {
+    let stewards: [StewardSummary]
+    let selected: String
+    let select: (String) -> Void
+
+    var body: some View {
+        let name = stewards.first { $0.id == selected }?.name ?? selected
+        Menu {
+            ForEach(stewards, id: \.id) { steward in
+                Button(steward.name) { select(steward.id) }
+            }
+        } label: {
+            Text("For steward: \(name) ▾").aryaText(AryaFont.body, AryaColor.ink)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel("For steward: \(name)")
+    }
+}
+
+/// The inspector for the selected connection: what it reads and does, the stewards using it,
+/// its secret's status, and the last test, with Test.
+struct ConnectionInspector: View {
+    @ObservedObject var store: FeatureStore
+    @ObservedObject var tests: ConnectionTestStore
+    let connection: String
+    let steward: String?
+    let stewards: [StewardSummary]
+    let credentials: any CredentialStore
+    let probe: @Sendable (ConnectionsCatalog.Entry, String?) async throws -> ConnectionTest
+
+    var body: some View {
+        let catalog = ConnectionsCatalog(events: store.events)
+        if let found = catalog.entries.first(where: { $0.id == connection }) {
+            let entry = catalog.entry(found, for: steward)
+            VStack(alignment: .leading, spacing: AryaSpace.s3) {
+                VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                    Text(entry.id).aryaText(AryaFont.monoStrong, AryaColor.ink)
+                    Text(entry.commandLine).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
+                fact("Reads", entry.read.isEmpty ? "nothing" : entry.read.joined(separator: ", "))
+                fact(
+                    "Does",
+                    entry.actions.isEmpty
+                        ? "nothing"
+                        : entry.actions.map { "\($0.kind) (\($0.risk))" }.joined(separator: ", "))
+                fact("Network", entry.network ? "allowed when sandboxed" : "none")
+                fact(
+                    "Used by",
+                    entry.connected.isEmpty
+                        ? "no steward"
+                        : entry.connected.map { id in stewards.first { $0.id == id }?.name ?? id }
+                            .joined(separator: ", "))
+                fact(
+                    "Secret",
+                    credentials.hasCredential(for: entry.id) ? "in Keychain" : "none stored")
+                VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                    Text("LAST TEST").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    Text(ConnectionsText.lastTest(tests.results[entry.id]))
+                        .aryaText(
+                            AryaFont.monoSmall,
+                            tests.results[entry.id].map(ConnectionsView.color) ?? AryaColor.inkMuted
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let tools = tests.results[entry.id]?.tools, !tools.isEmpty {
+                        Text("tools: " + tools.joined(separator: ", "))
+                            .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                let running = tests.testing.contains(entry.id)
+                Button(running ? "Testing…" : "Test connection") {
+                    tests.run(
+                        entry, secret: (try? credentials.credential(for: entry.id)) ?? nil,
+                        probe: probe)
+                }
+                .buttonStyle(.aryaQuiet)
+                .disabled(running)
+            }
+        }
+    }
+
+    private func fact(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+            Text(label.uppercased()).aryaText(AryaFont.label, AryaColor.inkFaint)
+                .frame(width: 72, alignment: .leading)
+            Text(value).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

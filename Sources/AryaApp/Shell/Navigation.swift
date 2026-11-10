@@ -46,6 +46,8 @@ struct NavigationState: Hashable, Sendable {
     var sidebar = true
     /// The approval selected in Needs you; nil follows the oldest.
     var approval: String?
+    /// The connection selected on the Connections page; the inspector shows it.
+    var connection: String?
     /// The ledger event whose inspector is open on the Ledger tab.
     var ledgerEvent: String?
 
@@ -109,6 +111,12 @@ struct NavigationState: Hashable, Sendable {
         case .connections(let id), .people(let id): id
         default: nil
         }
+    }
+
+    /// Selects a connection on the Connections page and shows it in the inspector.
+    mutating func select(connection id: String) {
+        connection = id
+        inspector = true
     }
 
     /// Switches the steward the Connections page acts on.

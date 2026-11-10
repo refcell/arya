@@ -9,12 +9,17 @@ enum InspectorFocus: Equatable {
     /// An approval in Needs you: nil until the queue has one.
     case approval(String?)
     case event(String)
+    /// A connection selected on the Connections page.
+    case connection(String)
     case run(String)
     case steward(String)
     case none
 
     static func of(_ navigation: NavigationState) -> InspectorFocus {
         if navigation.destination == .approvals { return .approval(navigation.approval) }
+        if case .connections = navigation.destination, let connection = navigation.connection {
+            return .connection(connection)
+        }
         if navigation.tab == .ledger, navigation.steward != nil,
             let event = navigation.ledgerEvent
         {
@@ -141,6 +146,7 @@ struct InspectorView: View {
         switch focus {
         case .approval: "Approval"
         case .event: "Event"
+        case .connection: "Connection"
         case .run: "Run"
         case .steward: "Steward"
         case .none: "Inspector"
@@ -164,6 +170,8 @@ struct InspectorView: View {
             }
         case .event(let id):
             FeatureRegistry.eventInspector(model.featureContext(), event: id)
+        case .connection(let id):
+            FeatureRegistry.connectionInspector(model.featureContext(), connection: id)
         case .run:
             if let run = model.selectedRun { runContent(run) }
         case .steward:

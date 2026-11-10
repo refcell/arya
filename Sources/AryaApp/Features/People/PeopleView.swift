@@ -23,8 +23,8 @@ struct PeopleView: View {
                     title: "People",
                     subtitle: "Who a steward works with, how it reaches them, and what they "
                         + "may approve.")
-                if stewards.count > 1, let steward {
-                    ChoiceRow(stewards.map { ($0.id, $0.name) }, selection: steward) {
+                if let steward {
+                    StewardPicker(stewards: stewards, selected: steward) {
                         editing = nil
                         selectSteward($0)
                     }
