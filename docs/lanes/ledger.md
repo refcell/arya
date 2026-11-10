@@ -353,6 +353,10 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from runtime) Integration edit (decision 0056): `ActionExecuted.dryRun` (true or absent) so a dry run reads as drafted, not done; `Governance` undo treats a drafted undo as not executed.
 
 ## Log
+- 2026-11-10: Visual check after the app-shell settle fix: `governance-run` shows Undo 1 in
+  the run header above the new split work pane (conversation left, Tools/Diff/Log/Output
+  right); `governance-retention` shows encryption on with "Seal earlier events…" next to
+  1612 earlier clear events. Moves points (1) and (3).
 - 2026-11-10: (G4b) done locally: re-seal earlier clear history (chain rewrite, re-signed
   checkpoints, hash map blob) and a "Seal earlier events…" control in settings. Not
   published (holding for the CEO order); snapshot after the app-shell settle fix.
