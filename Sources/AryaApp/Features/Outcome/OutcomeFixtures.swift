@@ -150,7 +150,9 @@ enum ProposalFixtures {
                 "charter": charter(
                     (live["outcome"]?.string ?? "")
                         .replacingOccurrences(of: "one hour", with: "four hours"),
-                    target: (live["metric"]?["target"]?.number).map { $0 - 0.05 }),
+                    target: (live["metric"]?["target"]?.number).map {
+                        (($0 - 0.05) * 100).rounded() / 100
+                    }),
                 "reason": "Relax the routing window\nOvernight messages miss the hour.",
             ])
         rehearsal(

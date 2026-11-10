@@ -166,6 +166,10 @@ protocol ImprovementBackend: Sendable {
         async throws(CLIError) -> CorrectionReport
     func markReady(steward: String) async throws(CLIError) -> StewardDetail
     func propose(steward: String, charterPath: String) async throws(CLIError) -> ProposalRow
+    /// A proposal with the title and why approvers read (a requirement, so calls through
+    /// `any CLIBackend` reach the real backend).
+    func propose(steward: String, charterPath: String, title: String?, reason: String?)
+        async throws(CLIError) -> ProposalRow
     func listProposals(steward: String?) async throws(CLIError) -> [ProposalRow]
     /// Whether a proposal is ready to go live: casebook gate plus recent runs replayed under it.
     func readiness(proposal: String) async throws(CLIError) -> ReadinessReport

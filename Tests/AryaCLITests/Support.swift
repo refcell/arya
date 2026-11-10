@@ -187,6 +187,18 @@ extension FakeBackend {
         record("ready \(steward)")
         return Self.detail
     }
+    func propose(steward: String, charterPath: String, title: String?, reason: String?)
+        async throws(CLIError) -> ProposalRow
+    {
+        guard title != nil || reason != nil else {
+            return try await propose(steward: steward, charterPath: charterPath)
+        }
+        record("propose \(steward) \(charterPath) title=\(title ?? "-") reason=\(reason ?? "-")")
+        return ProposalRow(
+            id: "prop_1", steward: steward, kind: "charter", state: .passed, baseline: 0.875,
+            candidate: 1, regressions: [])
+    }
+
     func propose(steward: String, charterPath: String) async throws(CLIError) -> ProposalRow {
         record("propose \(steward) \(charterPath)")
         return ProposalRow(
