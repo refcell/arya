@@ -92,6 +92,16 @@ enum FeatureRegistry {
         }
     }
 
+    /// The inspector for a selected approval (Needs you).
+    @ViewBuilder
+    static func approvalInspector(_ context: FeatureContext, approval: String) -> some View {
+        if let store = context.store {
+            ApprovalInspector(store: store, approval: approval) { run, steward in
+                context.model.navigation.select(run: run, steward: steward)
+            }
+        }
+    }
+
     /// A run's transcript: the selected run, else the newest.
     @ViewBuilder
     static func transcript(_ context: FeatureContext) -> some View {

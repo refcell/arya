@@ -116,3 +116,14 @@ private struct DetailWorkspace: FeatureWorkspace {
     let names = StewardNames.build(events: PreviewFixtures.triage(now: FeatureTestClock.now))
     #expect(names[PreviewFixtures.steward] == "Issue triage")
 }
+
+@Test func approvalInspectorNamesStewardRunRiskAndEarlierDecisions() throws {
+    let events = PreviewFixtures.triage(now: FeatureTestClock.now)
+    let facts = try #require(
+        ApprovalFacts.build(
+            events: events, approval: PreviewFixtures.pendingApproval, now: FeatureTestClock.now))
+    #expect(facts.steward == "Issue triage")
+    #expect(facts.run == PreviewFixtures.finishedRun)
+    #expect(facts.risk == "medium")
+    #expect(ApprovalFacts.build(events: events, approval: "ap_missing") == nil)
+}

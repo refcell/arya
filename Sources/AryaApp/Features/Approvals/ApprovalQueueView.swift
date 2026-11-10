@@ -6,6 +6,8 @@ struct ApprovalQueueView: View {
     @ObservedObject var store: FeatureStore
     /// Limits the queue to one steward; nil shows every steward's approvals.
     var steward: String?
+    /// The selected approval, shared with the inspector when the shell passes one.
+    var selection: Binding<String?>? = nil
 
     var body: some View {
         switch store.state {
@@ -20,7 +22,17 @@ struct ApprovalQueueView: View {
         }
     }
 
-    @AryaState private var selected: String?
+    @AryaState private var localSelection: String?
+    private var selected: String? {
+        get { selection?.wrappedValue ?? localSelection }
+        nonmutating set {
+            if let selection {
+                selection.wrappedValue = newValue
+            } else {
+                localSelection = newValue
+            }
+        }
+    }
 
     @ViewBuilder
     private func content(_ queue: ApprovalQueue, events: [FeatureEvent]) -> some View {

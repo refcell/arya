@@ -7,7 +7,9 @@ import Testing
     let facts = RunMetrics(
         adapter: "fake-triage", effort: "medium", seconds: 2.4, tokens: 12_840, costMicros: 1_200)
     #expect(facts.text == "fake-triage · effort medium · 2.4 s · 12,840 tokens · $0.0012")
-    #expect(RunMetrics().text.isEmpty)
+    #expect(RunMetrics().text == "duration — · cost —")
+    #expect(RunMetrics.count(1, "decision") == "1 decision")
+    #expect(RunMetrics.count(4, "tool") == "4 tools")
     #expect(RunMetrics.dollars(250_000) == "$0.25")
 }
 
@@ -16,9 +18,14 @@ import Testing
     log.add("run.started", run: "r1", ["adapter": "fake", "effort": "low"])
     log.add(
         "run.finished", run: "r1", after: 3,
-        ["status": "completed", "cost": ["costMicros": 0, "inputTokens": 100, "outputTokens": 20]])
+        [
+            "status": "completed", "counts": ["decisions": 1, "actions": 3],
+            "cost": ["costMicros": 0, "inputTokens": 100, "outputTokens": 20],
+        ])
     let facts = RunStream.build(events: log.events, run: "r1").facts
-    #expect(facts.text == "fake · effort low · 3.0 s · 120 tokens · $0.00")
+    let expected =
+        "fake · effort low · 3.0 s · 1 decision · 3 actions · 120 tokens" + " · cost —"
+    #expect(facts.text == expected)
 }
 
 @Test func toolAndActionLinesShowArgumentAndShortResult() {

@@ -262,6 +262,8 @@ private struct RunStreamProjector {
                 facts.tokens = Int(tokens)
                 facts.costMicros = cost["costMicros"]?.number.map(Int.init)
             }
+            facts.decisions = p["counts"]?["decisions"]?.number.map(Int.init)
+            facts.actions = p["counts"]?["actions"]?.number.map(Int.init)
             add(event, .finished(status: state, summary: summary))
         case "run.failed":
             let detail = p["detail"]?.string.map { " (\($0))" } ?? ""
@@ -528,18 +530,31 @@ struct RunMetrics: Hashable, Sendable {
     var seconds: Double?
     var tokens: Int?
     var costMicros: Int?
+    var decisions: Int?
+    var actions: Int?
 
-    /// "fake-triage · effort medium · 2.4 s · 1,280 tokens · $0.0012"; empty parts drop out.
+    /// "fake-triage · effort medium · 2.4 s · 1 decision · 3 actions · 12,840 tokens ·
+    /// $0.0012". Duration and cost read "—" when unknown (a running run, an adapter that
+    /// reports no usage), never "0.0 s" or "$0".
     var text: String {
         var parts: [String] = []
         if let adapter { parts.append(adapter) }
         if let effort { parts.append("effort \(effort)") }
-        if let seconds { parts.append(FeatureTime.duration(seconds)) }
-        if let tokens {
-            parts.append("\(RunMetrics.grouped(tokens)) tokens")
+        parts.append(seconds.map(FeatureTime.duration) ?? "duration —")
+        if let decisions { parts.append(RunMetrics.count(decisions, "decision")) }
+        if let actions { parts.append(RunMetrics.count(actions, "action")) }
+        if let tokens, tokens > 0 { parts.append("\(RunMetrics.grouped(tokens)) tokens") }
+        if let costMicros, costMicros > 0 {
+            parts.append(RunMetrics.dollars(costMicros))
+        } else {
+            parts.append("cost —")
         }
-        if let costMicros { parts.append(RunMetrics.dollars(costMicros)) }
         return parts.joined(separator: " · ")
+    }
+
+    /// "1 decision", "3 actions".
+    static func count(_ number: Int, _ noun: String) -> String {
+        "\(number) \(noun)\(number == 1 ? "" : "s")"
     }
 
     /// 12840 -> "12,840".

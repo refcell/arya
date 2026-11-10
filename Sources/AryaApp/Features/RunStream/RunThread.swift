@@ -43,15 +43,15 @@ struct RunThread: View {
 
     /// Trigger and start time only; the summary is the last step, shown once.
     private var header: some View {
-        HStack(alignment: .center, spacing: AryaSpace.s2) {
-            if case .running = stream.status { StatusDot(.running) }
-            Text(RunThreadText.meta(stream)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-            if !stream.facts.text.isEmpty {
-                Text("· " + stream.facts.text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            HStack(alignment: .center, spacing: AryaSpace.s2) {
+                if case .running = stream.status { StatusDot(.running) }
+                Text(RunThreadText.meta(stream)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                Spacer(minLength: AryaSpace.s3)
+                accessory
             }
-            Spacer(minLength: AryaSpace.s3)
-            accessory
+            Text(stream.facts.text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
         }
     }
 }
@@ -64,10 +64,14 @@ private struct ThreadLine: View {
     @AryaState private var toggled = false
     @Environment(\.crewOpenByDefault) private var crewOpen
 
-    /// Crew lines can start open (offscreen snapshots); a click flips either default.
+    /// Tool calls start open, so their output reads inline (folded after four lines); crew
+    /// lines can start open (offscreen snapshots). A click flips either default.
     private var open: Bool {
-        guard case .delegated = step.kind, crewOpen else { return toggled }
-        return !toggled
+        switch step.kind {
+        case .toolCall(let call) where call.output != nil: return !toggled
+        case .delegated where crewOpen: return !toggled
+        default: return toggled
+        }
     }
 
     var body: some View {
