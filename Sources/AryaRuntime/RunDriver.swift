@@ -274,7 +274,7 @@ final class RunDriver: @unchecked Sendable {
     /// Records `finding.raised` for each well-formed finding not already open (decision 0055).
     private func recordFindings(_ findings: [RunResult.Finding]) async throws {
         guard !findings.isEmpty else { return }
-        let open = try FindingBook(try await loop.sink.events(from: 1)).open(charter.id)
+        let open = try await loop.start.current(loop.sink).findings.open(charter.id)
         var titles = Set(open.map { Findings.key($0.title) })
         for finding in findings {
             guard let raised = FindingRaised(finding),
@@ -288,7 +288,7 @@ final class RunDriver: @unchecked Sendable {
     /// Records `plan.updated` when the result carries a plan that differs from the current one.
     private func recordPlan(_ result: RunResult) async throws {
         guard let plan = PlanBook.plan(in: result) else { return }
-        let current = try PlanBook(try await loop.sink.events(from: 1)).plans[charter.id]
+        let current = try await loop.start.current(loop.sink).plans.plans[charter.id]
         guard PlanBook.differs(plan, current) else { return }
         var reason = result.summary.isEmpty ? nil : result.summary
         if request.input.kind == .replan {
@@ -305,7 +305,7 @@ final class RunDriver: @unchecked Sendable {
     /// drops duplicates of live notes and invalid notes).
     private func recordMemories(_ memories: [RunResult.Memory]) async throws {
         guard !memories.isEmpty else { return }
-        let view = try MemoryView(try await loop.sink.events(from: 1))
+        let view = try await loop.start.current(loop.sink).memory
         let intake = try MemoryIntake.notes(
             memories.map { ProposedNote(text: $0.text, tags: $0.tags) }, steward: charter.id,
             run: run, live: view.memory, ambient: loop.ambient)

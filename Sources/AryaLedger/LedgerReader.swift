@@ -94,6 +94,7 @@ public struct LedgerReader: Sendable {
                     event, _, _ in try deliver(event)
                 }
             } catch is RescanSegment {
+                LineMarks.shared.forget(segment.url.path)
                 try scan(segment, sieve: sieve) { event, _, _ in try deliver(event) }
             }
         }
@@ -273,9 +274,21 @@ public struct LedgerReader: Sendable {
         defer { close(fd) }
         let size = try FileIO.size(fd, name: segment.name)
         var buffer: [UInt8] = []
-        var bufferStart: Int64 = 0
         var readOffset: Int64 = 0
         var number = 0
+        // A tail read resumes where the last full scan of this segment ended instead of
+        // counting every line again. The mark is trusted only when it is not past the lines to
+        // skip, fits the file, and follows a newline; the caller's first-line seq check
+        // (`expectFirst`) still catches a segment that changed underneath it.
+        if skipLines > 0, let mark = LineMarks.shared.nearest(segment.url.path, atMost: skipLines),
+            mark.offset <= size,
+            try mark.offset == 0
+                || FileIO.read(fd, at: mark.offset - 1, count: 1, name: segment.name) == [0x0A]
+        {
+            readOffset = mark.offset
+            number = mark.line
+        }
+        var bufferStart = readOffset
         while readOffset < size {
             let chunk = try FileIO.read(
                 fd, at: readOffset, count: Int(min(1 << 20, size - readOffset)),
@@ -294,6 +307,7 @@ public struct LedgerReader: Sendable {
             }
             buffer.removeFirst(lineStart)
             bufferStart += Int64(lineStart)
+            LineMarks.shared.note(segment.url.path, line: number, offset: bufferStart)
         }
     }
 
@@ -315,6 +329,42 @@ public struct LedgerReader: Sendable {
 }
 
 private struct RescanSegment: Error {}
+
+/// Line starts seen while scanning each segment, one per 1 MiB chunk read: how many complete
+/// lines come before a byte offset. Process-wide, so every reader of a home shares them.
+private final class LineMarks: @unchecked Sendable {
+    static let shared = LineMarks()
+    private static let limit = 4096
+    private let lock = NSLock()
+    /// Per segment path, sorted by line.
+    private var marks: [String: [(line: Int, offset: Int64)]] = [:]
+
+    /// The mark with the most lines before it, at most `line`.
+    func nearest(_ path: String, atMost line: Int) -> (line: Int, offset: Int64)? {
+        lock.withLock { marks[path]?.last { $0.line <= line } }
+    }
+
+    func forget(_ path: String) {
+        lock.withLock { marks[path] = nil }
+    }
+
+    func note(_ path: String, line: Int, offset: Int64) {
+        lock.withLock {
+            var list = marks[path] ?? []
+            if let at = list.firstIndex(where: { $0.line >= line }) {
+                if list[at].line == line {
+                    list[at] = (line, offset)
+                } else {
+                    list.insert((line, offset), at: at)
+                }
+            } else {
+                list.append((line, offset))
+            }
+            if list.count > Self.limit { list.removeFirst(list.count - Self.limit) }
+            marks[path] = list
+        }
+    }
+}
 
 /// A line that failed its hash or envelope check while reading.
 public struct LedgerReadError: Error, Hashable, Sendable, CustomStringConvertible {

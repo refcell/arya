@@ -109,10 +109,10 @@ extension RunEngine {
         -> RunOutcome?
     {
         guard !setbacks.isEmpty else { return nil }
-        let events = try await sink.events(from: 1)
-        guard let record = try StewardBook(events).records[steward], record.status == .active
+        guard let record = try await sink.book(StewardBook.self).records[steward],
+            record.status == .active
         else { return nil }
-        let book = try RunBook(events)
+        let book = try await sink.book(RunBook.self)
         // A report run's setback is a report not sent; it never starts a re-plan (0050).
         if book.records[run]?.trigger == RunTriggerKind.report.rawValue { return nil }
         let origin = Replans.origin(of: run, in: book)

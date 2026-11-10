@@ -38,11 +38,23 @@ struct MemoryView {
     var routines: RoutineLibrary
 
     init(_ events: [RuntimeEvent]) throws {
-        let records = try events.filter {
-            $0.type.hasPrefix("memory.") || $0.type.hasPrefix("routine.")
-        }.map(MemoryEventRecord.init)
-        memory = try MemoryProjection(events: records.filter { $0.type.hasPrefix("memory.") })
-        routines = try RoutineLibrary(events: records.filter { $0.type.hasPrefix("routine.") })
+        self.init()
+        for event in events { try apply(event) }
+    }
+
+    /// An empty view.
+    init() {
+        memory = MemoryProjection()
+        routines = RoutineLibrary()
+    }
+
+    /// Folds one event.
+    mutating func apply(_ event: RuntimeEvent) throws {
+        if event.type.hasPrefix("memory.") {
+            try memory.apply(try MemoryEventRecord(event))
+        } else if event.type.hasPrefix("routine.") {
+            try routines.apply(try MemoryEventRecord(event))
+        }
     }
 
     /// The memory context of a run of `steward` on `input`, with `candidate` in place of the

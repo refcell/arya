@@ -170,6 +170,8 @@ public struct RunEngine: Sendable {
     let workdir: @Sendable (RunID) throws -> String
     let questionPoll: Duration
     let leases: any RunLeases
+    /// Plans, memory, findings, and effects as of the last seq read (decision 0057).
+    let start = StartCache()
     let secondsUnit: Duration
     let proxy: BindingProxyLaunch?
     /// Confine binding servers (through the proxies) to the run's workdir (decision 0040).
@@ -229,8 +231,22 @@ public struct RunEngine: Sendable {
     {
         let lease = try leases.acquire(run)
         defer { lease.release() }
-        let events = try await sink.events(from: 1)
-        let context = try MemoryView(events).context(
+        let (instructions, context) = try await prepare(request, charter)
+        try await recordStart(run, request, charter, version, instructions, context)
+        let driver = RunDriver(
+            loop: self, request: request, charter: charter, run: run, instructions: instructions,
+            routines: context.routineVersions)
+        return try await driver.drive()
+    }
+
+    /// The instructions and memory context of a run of `request` under `charter`: the work a
+    /// run start does before it records `run.started`. It reads only the events appended since
+    /// the engine's last start (decision 0057).
+    func prepare(_ request: RunRequest, _ charter: Charter) async throws
+        -> (instructions: String, context: RunMemoryContext)
+    {
+        let state = try await start.current(sink)
+        let context = state.memory.context(
             steward: request.steward, input: request.input.text,
             caseID: request.rehearsal?.caseID, candidate: request.routine)
         // A rehearsal shows the plan its case recorded, never the steward's live plan, so the
@@ -241,19 +257,15 @@ public struct RunEngine: Sendable {
                 try? CanonicalJSON.decode(PlanItem.self, from: try CanonicalJSON.encode($0))
             }
         } else {
-            plan = try PlanBook(events).plans[request.steward] ?? []
+            plan = state.plans.plans[request.steward] ?? []
         }
         var inputs = InstructionInputs(charter: charter, context: context, plan: plan)
         // A rehearsal sees no live results, so a case composes the same way every time.
         if case .live = request.mode {
-            inputs.effects = try Effectiveness.of(request.steward, in: events)
+            inputs.effects = state.effects.effects(request.steward, metric: charter.metric)
         }
         let instructions = InstructionComposer.compose(inputs)
-        try await recordStart(run, request, charter, version, instructions, context)
-        let driver = RunDriver(
-            loop: self, request: request, charter: charter, run: run, instructions: instructions,
-            routines: context.routineVersions)
-        return try await driver.drive()
+        return (instructions, context)
     }
 
     /// What `run.started.sandbox` records, or nil (not `.null`) when unsandboxed.

@@ -282,3 +282,4 @@ M4:
 - 2026-11-10: learn from results (0054): follow-up `outcome` checks → `action.checked`, per-kind effectiveness with windowed metric credit, "What has worked" in live instructions, facade `effectiveness`/`checks`.
 - 2026-11-10: proactive findings (0055): `findings` in results → `finding.raised` once while open, `finding.resolved` by a person, facade `findings`/`resolveFinding`.
 - 2026-11-10: drafts (0056, CEO review #10): `ExecutionOutcome.drafted` → `action.executed` with `dryRun: true`; skipped by follow-ups and credit; facade shows "Drafted, not sent".
+- 2026-11-10: run start O(new events) (0057, CEO): `StartCache` on the engine (plans, memory, findings, effects by last seq), incremental `EffectFold`, ledger tail reads from line marks; warm start on 50k events about 5 ms (probe, `ARYA_PERF=1`).

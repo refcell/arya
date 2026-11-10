@@ -77,10 +77,15 @@ public struct PlanBook: Sendable {
 
     /// Builds the book from events in ledger order.
     public init(_ events: [RuntimeEvent]) throws {
-        for event in events where event.type == PlanEventType.updated {
-            guard let steward = event.draft.steward else { continue }
-            plans[steward] = try Payload.decode(PlanUpdated.self, event.payload).items
+        for event in events { try apply(event) }
+    }
+
+    /// Folds one event.
+    public mutating func apply(_ event: RuntimeEvent) throws {
+        guard event.type == PlanEventType.updated, let steward = event.draft.steward else {
+            return
         }
+        plans[steward] = try Payload.decode(PlanUpdated.self, event.payload).items
     }
 
     /// The plan a run result carries, or nil when it has none or it is malformed (an empty or

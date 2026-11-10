@@ -142,3 +142,31 @@ private func weeksHome() throws -> (TempHome, Timestamp) {
     #expect(verify / 50_000 < base * 1.25)
     #expect(cold / 50_000 < base * 1.25)
 }
+
+/// A tail read resumes from a remembered line start, and a segment rewritten underneath it
+/// (same path, different lines) still reads correctly.
+@Test func tailReadsSurviveARewrittenSegment() throws {
+    let home = try TempHome()
+    defer { home.cleanup() }
+    let store = try LedgerStore(home: home.url, ambient: .fixed())
+    let big: JSONValue = ["text": .string(String(repeating: "x", count: 4000))]
+    try store.append(
+        (0..<600).map { _ in EventDraft(type: .runDecision, actor: .local, payload: big) })
+    let reader = LedgerReader(home: home.url)
+    #expect(try reader.events().count == 600)
+    // Over 1 MiB chunks, so the tail reads resume from remembered line starts.
+    #expect(try reader.events(from: 550).map(\.seq) == Array(550...600))
+    #expect(try reader.events(from: 300).first?.seq == 300)
+    // Rewrite the home with lines of another length at the same segment path.
+    let other = try TempHome()
+    defer { other.cleanup() }
+    let longer = try LedgerStore(home: other.url, ambient: .fixed())
+    let payload: JSONValue = ["text": .string(String(repeating: "y", count: 4321))]
+    try longer.append(
+        (0..<580).map { _ in EventDraft(type: .runDecision, actor: .local, payload: payload) })
+    let ledger = home.url.appendingPathComponent("ledger")
+    try FileManager.default.removeItem(at: ledger)
+    try FileManager.default.copyItem(at: other.url.appendingPathComponent("ledger"), to: ledger)
+    #expect(try reader.events(from: 550).map(\.seq) == Array(550...580))
+    #expect(try reader.events(from: 300).first?.seq == 300)
+}

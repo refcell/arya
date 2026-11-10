@@ -106,25 +106,30 @@ public struct FindingRecord: Sendable, Hashable {
 /// Findings projected from the ledger, in the order they were raised.
 public struct FindingBook: Sendable {
     public private(set) var all: [FindingRecord] = []
+    private var index: [String: Int] = [:]
+
+    /// An empty book.
+    public init() {}
 
     public init(_ events: [RuntimeEvent]) throws {
-        var index: [String: Int] = [:]
-        for event in events {
-            guard let run = event.draft.run, let steward = event.draft.steward else { continue }
-            switch event.type {
-            case FindingEventType.raised.rawValue:
-                let body = try Payload.decode(FindingRaised.self, event.payload)
-                index[Self.key(run, body.finding)] = all.count
-                all.append(
-                    FindingRecord(steward: steward, run: run, raised: body, raisedAt: event.at))
-            case FindingEventType.resolved.rawValue:
-                let body = try Payload.decode(FindingResolved.self, event.payload)
-                guard let at = index[Self.key(run, body.finding)], all[at].isOpen else { continue }
-                all[at].resolution = body.resolution
-                all[at].resolvedBy = event.draft.actor
-            default:
-                continue
-            }
+        for event in events { try apply(event) }
+    }
+
+    /// Folds one event.
+    public mutating func apply(_ event: RuntimeEvent) throws {
+        guard let run = event.draft.run, let steward = event.draft.steward else { return }
+        switch event.type {
+        case FindingEventType.raised.rawValue:
+            let body = try Payload.decode(FindingRaised.self, event.payload)
+            index[Self.key(run, body.finding)] = all.count
+            all.append(FindingRecord(steward: steward, run: run, raised: body, raisedAt: event.at))
+        case FindingEventType.resolved.rawValue:
+            let body = try Payload.decode(FindingResolved.self, event.payload)
+            guard let at = index[Self.key(run, body.finding)], all[at].isOpen else { return }
+            all[at].resolution = body.resolution
+            all[at].resolvedBy = event.draft.actor
+        default:
+            return
         }
     }
 

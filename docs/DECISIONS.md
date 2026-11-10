@@ -607,3 +607,19 @@ drafts (nothing changed), and effectiveness and context count them apart (`draft
 not sent)", and live steps read "Drafted, not sent:". Why: the ledger is the truth the person
 reads; a draft shown as done is a lie about the world.
 
+### 0057 — 2026-11-10 — A run start reads only the events since the last one
+
+Context: every run start folded the whole ledger for the steward's plan, memory, routines, and
+what has worked, so a start cost the home's history (a 50,000-event home spent about 50 ms
+per start warm, and the busy demo seed paid it on every seeded run). Decision: the engine keeps
+those projections (`StartState`: plans, memory and routines, findings, effects) in memory,
+keyed by the last seq folded, and each start, and each end-of-run plan, memory, and finding
+check, reads only the events appended since. It is a cache of the ledger, never a source of
+truth: a new process folds once. Effectiveness became an incremental fold that keeps metric
+credit raw per metric name and applies the charter's direction when read, so a charter edit
+needs no refold. Re-plans read the cached steward and run books. In the ledger reader, a tail
+read resumes from a remembered line start (one per 1 MiB chunk scanned) instead of counting
+every line of the segment; the existing first-line seq check still catches a segment that
+changed underneath it, and a mismatch forgets the segment's marks and rescans. A probe
+(`ARYA_PERF=1`) measures a warm start on a 50,000-event home: about 5 ms, target 10 ms.
+

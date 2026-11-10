@@ -265,65 +265,104 @@ public enum Effectiveness {
     /// Effects per action kind for `steward`, by kind name; kinds it never executed are absent.
     public static func of(_ steward: StewardID, in events: [RuntimeEvent]) throws -> [KindEffect] {
         guard let record = try StewardBook(events).records[steward] else { return [] }
-        let metric = record.charter.metric
+        var fold = EffectFold()
+        for event in events { fold.apply(event) }
+        return fold.effects(steward, metric: record.charter.metric)
+    }
+}
+
+/// The running tally behind `Effectiveness`, folded one event at a time so a run start reads
+/// only the events appended since the last one (decision 0057). Metric credit is kept raw per
+/// metric name and turned into "good" by the charter's direction when read, so a charter edit
+/// never needs a refold.
+public struct EffectFold: Sendable {
+    private struct Tally: Sendable {
         var kinds: [String: String] = [:]  // run/action -> kind
+        var counts: [String: (executed: Int, failed: Int, drafted: Int)] = [:]
+        var latest: [String: ActionChecked] = [:]  // run/action -> latest check
+        var executed: [String] = []  // kinds of real executions, in order
+        var readings: [String: (value: Double, mark: Int)] = [:]  // metric -> last, window start
+        var credit: [String: [String: (sum: Double, count: Int)]] = [:]  // metric -> kind
+    }
+
+    private var tallies: [StewardID: Tally] = [:]
+
+    public init() {}
+
+    /// Folds one event.
+    public mutating func apply(_ event: RuntimeEvent) {
+        guard let steward = event.draft.steward else { return }
+        let run = event.draft.run?.rawValue ?? ""
+        switch event.type {
+        case ActionEventType.proposed:
+            if let body = try? Payload.decode(ActionProposed.self, event.payload) {
+                tallies[steward, default: Tally()].kinds[run + "/" + body.action.id] =
+                    body.action.kind
+            }
+        case ActionEventType.executed, ActionEventType.failed:
+            guard let id = event.payload["action"]?.stringValue,
+                let kind = tallies[steward]?.kinds[run + "/" + id]
+            else { return }
+            var count = tallies[steward]?.counts[kind] ?? (0, 0, 0)
+            if event.type == ActionEventType.failed {
+                count.failed += 1
+            } else if event.payload["dryRun"] == true {
+                count.drafted += 1
+            } else {
+                count.executed += 1
+                tallies[steward]?.executed.append(kind)
+            }
+            tallies[steward]?.counts[kind] = count
+        case OutcomeEventType.checked.rawValue:
+            if let body = try? Payload.decode(ActionChecked.self, event.payload) {
+                tallies[steward, default: Tally()].latest[run + "/" + body.action] = body
+            }
+        case MetricEventType.recorded:
+            guard let body = try? Payload.decode(MetricRecorded.self, event.payload),
+                body.value.isFinite
+            else { return }
+            var tally = tallies[steward] ?? Tally()
+            let end = tally.executed.count
+            if let previous = tally.readings[body.metric], previous.mark < end {
+                let window = tally.executed[previous.mark..<end]
+                let share = (body.value - previous.value) / Double(window.count)
+                for kind in window {
+                    let old = tally.credit[body.metric]?[kind] ?? (0, 0)
+                    tally.credit[body.metric, default: [:]][kind] = (old.sum + share, old.count + 1)
+                }
+            }
+            tally.readings[body.metric] = (body.value, end)
+            tallies[steward] = tally
+        default:
+            return
+        }
+    }
+
+    /// Effects per action kind for `steward` under `metric`.
+    public func effects(_ steward: StewardID, metric: Metric) -> [KindEffect] {
+        guard let tally = tallies[steward] else { return [] }
         var effects: [String: KindEffect] = [:]
-        var latest: [String: ActionChecked] = [:]
-        var window: [String] = []  // kinds executed since the last reading
-        var lastReading: Double?
         func effect(_ kind: String) -> KindEffect {
             effects[kind]
                 ?? KindEffect(
                     kind: kind, executed: 0, failed: 0, resolved: 0, reopened: 0, pending: 0,
                     credit: 0, credited: 0)
         }
-        for event in events where event.draft.steward == steward {
-            let run = event.draft.run?.rawValue ?? ""
-            switch event.type {
-            case ActionEventType.proposed:
-                if let body = try? Payload.decode(ActionProposed.self, event.payload) {
-                    kinds[run + "/" + body.action.id] = body.action.kind
-                }
-            case ActionEventType.executed, ActionEventType.failed:
-                guard let id = event.payload["action"]?.stringValue,
-                    let kind = kinds[run + "/" + id]
-                else { continue }
-                var e = effect(kind)
-                if event.type == ActionEventType.executed, event.payload["dryRun"] == true {
-                    e.drafted += 1
-                } else if event.type == ActionEventType.executed {
-                    e.executed += 1
-                    window.append(kind)
-                } else {
-                    e.failed += 1
-                }
-                effects[kind] = e
-            case OutcomeEventType.checked.rawValue:
-                if let body = try? Payload.decode(ActionChecked.self, event.payload) {
-                    latest[run + "/" + body.action] = body
-                }
-            case MetricEventType.recorded:
-                guard let body = try? Payload.decode(MetricRecorded.self, event.payload),
-                    body.metric == metric.name, body.value.isFinite
-                else { continue }
-                if let previous = lastReading, !window.isEmpty {
-                    let change = body.value - previous
-                    let good = metric.direction == .down ? -change : change
-                    let share = good / Double(window.count)
-                    for kind in window {
-                        var e = effect(kind)
-                        e.credit += share
-                        e.credited += 1
-                        effects[kind] = e
-                    }
-                }
-                lastReading = body.value
-                window = []
-            default:
-                continue
-            }
+        for (kind, count) in tally.counts {
+            var e = effect(kind)
+            e.executed = count.executed
+            e.failed = count.failed
+            e.drafted = count.drafted
+            effects[kind] = e
         }
-        for check in latest.values {
+        let sign: Double = metric.direction == .down ? -1 : 1
+        for (kind, credit) in tally.credit[metric.name] ?? [:] {
+            var e = effect(kind)
+            e.credit = sign * credit.sum
+            e.credited = credit.count
+            effects[kind] = e
+        }
+        for check in tally.latest.values {
             var e = effect(check.kind)
             switch check.status {
             case "resolved": e.resolved += 1
