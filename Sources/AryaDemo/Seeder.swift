@@ -48,6 +48,10 @@ struct DemoSeeder {
                 from: examples.appendingPathComponent("\(name)/fake-script.json"))
             scripts["fake-\(name)"] = script
         }
+        if var triage = scripts["fake-triage"] {
+            try reshapeTriage(&triage)
+            scripts["fake-triage"] = triage
+        }
         for steward in generated { scripts[steward.adapter] = steward.script }
         try writeProfiles(generated)
 
@@ -68,6 +72,30 @@ struct DemoSeeder {
         let pending = try await workspace.approvals().count
         let stewards = try await workspace.stewards().count
         return "\(stewards) stewards, \(runs) runs, \(pending) approvals waiting"
+    }
+
+    /// Gives triage's history the fleet's shape: steady, the bad week (days 15-21 ago) and a
+    /// recovery, instead of the example's smooth rise (its runs on day `29 - index`).
+    private func reshapeTriage(_ script: inout FakeScript) throws {
+        let history = try lines(examples.appendingPathComponent("triage/history.txt"))
+        for (index, message) in history.enumerated() {
+            guard var response = script.responses[message],
+                case .object(var result) = response.result,
+                case .array(let measurements) = result["measurements"]
+            else { continue }
+            let day = 29 - index
+            let base = day > 21 ? 0.88 : day >= 15 ? 0.72 : 0.96 - Double(day) * 0.012
+            let jitter = Double((index * 37) % 7 - 3) / 100
+            let value = (min(1, base + jitter) * 100).rounded() / 100
+            result["measurements"] = .array(
+                measurements.map { measurement in
+                    guard case .object(var fields) = measurement else { return measurement }
+                    fields["value"] = .double(value)
+                    return .object(fields)
+                })
+            response.result = .object(result)
+            script.responses[message] = response
+        }
     }
 
     /// Every step with its time, sorted.
@@ -271,9 +299,11 @@ struct DemoSeeder {
             try JSONEncoder().encode(steward.script).write(to: file)
             profiles[steward.adapter] = profile(file.path)
         }
+        // Plain slashes, so `demo-current.sh` can move a cached home with `sed`.
         let document: [String: Any] = ["v": 1, "profiles": profiles]
         try JSONSerialization.data(
-            withJSONObject: document, options: [.sortedKeys, .prettyPrinted]
+            withJSONObject: document,
+            options: [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes]
         )
         .write(to: home.appendingPathComponent("adapters.json"))
     }

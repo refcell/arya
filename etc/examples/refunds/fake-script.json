@@ -1136,7 +1136,7 @@
       ],
       "status": "completed",
       "result": {
-        "summary": "Noted ORDER-1043, drafted the customer reply for approval, and told Priya.",
+        "summary": "Noted ORDER-1043; the customer reply from yesterday's check still waits on approval. Told Priya.",
         "plan": [
           {
             "id": "p1",
@@ -1150,7 +1150,7 @@
           },
           {
             "id": "p3",
-            "text": "Draft the customer reply",
+            "text": "Check the customer reply",
             "status": "done"
           }
         ],
@@ -1169,23 +1169,11 @@
             "binding": "billing",
             "target": "billing:ORDER-1043",
             "params": {
-              "text": "Customer not notified; follow-up drafted."
+              "text": "Customer not notified; the reply waits on approval."
             },
             "rationale": "record the check",
             "risk": "low",
             "why": "A note shows the team the order was followed up."
-          },
-          {
-            "id": "a2",
-            "kind": "reply",
-            "binding": "inbox",
-            "target": "inbox:ORDER-1043",
-            "params": {
-              "text": "Your refund for ORDER-1043 was approved and should reach your card within five business days."
-            },
-            "rationale": "tell the customer",
-            "risk": "high",
-            "why": "The customer was never told; a sent reply cannot be recalled."
           },
           {
             "id": "a3",
@@ -1193,7 +1181,7 @@
             "binding": "person:priya",
             "target": "person:priya",
             "params": {
-              "text": "ORDER-1043: billing never told the customer. I noted the order and drafted the reply; it waits on approval."
+              "text": "ORDER-1043: billing never told the customer. I noted the order; the reply I drafted yesterday still waits on approval."
             },
             "rationale": "answer the person",
             "risk": "low",
