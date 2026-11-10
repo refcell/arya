@@ -96,6 +96,14 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.historyImport(steward: steward, binding: binding)
     }
 
+    func onboarding(steward: String) async throws -> FeatureOnboarding {
+        try await source.onboardingSummary(steward: steward)
+    }
+
+    func runOnboarding(steward: String) async throws -> String {
+        try await source.onboardRun(steward: steward)
+    }
+
     func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
         try await source.eventDetail(seq: seq)
     }

@@ -84,8 +84,9 @@ struct OverviewTab: View {
         let live = try? await store.workspace.stewardLive(steward: steward)
         let findings = try? await store.workspace.overviewFindings(steward: steward)
         let impact = try? await store.workspace.impact(steward: steward)
+        let onboarding = try? await store.workspace.onboarding(steward: steward)
         store.outcomeReads[steward] = OutcomeReads(
-            live: live, findings: findings, impact: impact ?? nil)
+            live: live, findings: findings, impact: impact ?? nil, onboarding: onboarding)
         if let queue = try? await store.workspace.reviewQueue(steward: steward) {
             store.reviewQueues[steward] = queue
         }
@@ -106,11 +107,19 @@ struct OverviewTab: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: AryaSpace.s4) {
                 if !snapshot.state.readiness.isReady {
-                    OnboardingPanel(
-                        store: store, steward: steward,
-                        steps: OnboardingSteps.build(
-                            events: events, steward: steward,
-                            queue: store.reviewQueues[steward]))
+                    if let onboarding = store.outcomeReads[steward]?.onboarding {
+                        OnboardingPanel(
+                            store: store, steward: steward,
+                            steps: OnboardingSteps.build(
+                                onboarding: onboarding, events: events, steward: steward))
+                    } else if case .notReady(let reason) = snapshot.state.readiness {
+                        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                            Text("Not ready: \(reason).")
+                                .aryaText(AryaFont.body, AryaColor.inkMuted)
+                            Button("Rehearse on past work", action: rehearse)
+                                .buttonStyle(.aryaTertiary)
+                        }
+                    }
                 }
                 if let recap = OutcomeRecapText.paragraph(
                     snapshot.recap, seenAt: seenAt, now: store.now)

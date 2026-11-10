@@ -176,6 +176,15 @@ is. Fix these five first; this lane owns its share:
   history@v1", step 2 open with the case, its difference in red and Agree/Skip/Correct, step 3
   waiting. Moves points 5 (busy, real content) and 2 (no dead space at the top of a new
   steward).
+- Onboarding follow-ups (CEO): the panel reads one workspace source, `onboarding(steward:)`
+  (`onboardingState`, the latest `onboarding` run, context notes, `goLiveGate`), mapped into
+  four steps: 1 read your systems (the notes it wrote, named; Run onboarding through
+  `Workspace.onboard` while none exist), 2 learn from past work, 3 review, 4 go live. Mark
+  ready is enabled only when the go-live gate passes; otherwise its one sentence shows. Person
+  ids in workspace text read as names (`OutcomePeople.humanize`). eval's GoLiveGateRow card
+  replaces the step 4 sentence when it lands.
+- Visual check: onboarding (dark): step 1 checked with four notes ("Ana  Support lead…",
+  "inbox  Queue 'vip' routes to Ana first."), 2 checked, 3 open with the case, 4 waiting.
 - Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
   next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
   (live feel) and 2 (no dead space).

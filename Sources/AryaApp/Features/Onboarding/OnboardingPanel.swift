@@ -8,7 +8,8 @@ struct OnboardingPanel: View {
     let steward: String
     let steps: OnboardingSteps
     @AryaState private var importing: String?
-    @AryaState private var imported: String?
+    @AryaState private var working = false
+    @AryaState private var result: String?
 
     var body: some View {
         OutcomeSection("Getting to know your team", trailing: progress) {
@@ -31,7 +32,11 @@ struct OnboardingPanel: View {
                         Spacer(minLength: 0)
                     }
                     .frame(minHeight: AryaSize.rowHeight)
-                    if step.stage == steps.current { action(step.stage) }
+                    if step.stage == steps.current
+                        || (step.stage == .systems && !steps.notes.isEmpty)
+                    {
+                        action(step.stage)
+                    }
                 }
             }
         }
@@ -44,6 +49,31 @@ struct OnboardingPanel: View {
     @ViewBuilder private func action(_ stage: OnboardingSteps.Stage) -> some View {
         Group {
             switch stage {
+            case .systems:
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(steps.notes.suffix(6).enumerated()), id: \.offset) { _, note in
+                        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                            Text(note.about).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                            Text(note.text).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                                .lineLimit(1).help(note.text)
+                        }
+                        .frame(minHeight: AryaSize.rowHeight)
+                    }
+                    if steps.current == .systems {
+                        HStack(spacing: AryaSpace.s2) {
+                            if steps.notes.isEmpty {
+                                Button(working ? "Reading…" : "Run onboarding", action: onboard)
+                                    .buttonStyle(.aryaPrimary).disabled(working)
+                            } else {
+                                Button(working ? "Reading…" : "Read again", action: onboard)
+                                    .buttonStyle(.aryaTertiary).disabled(working)
+                            }
+                            if let result {
+                                Text(result).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                            }
+                        }
+                    }
+                }
             case .learn:
                 HStack(spacing: AryaSpace.s2) {
                     ForEach(steps.historyBindings, id: \.self) { binding in
@@ -53,8 +83,8 @@ struct OnboardingPanel: View {
                         .buttonStyle(.aryaPrimary)
                         .disabled(importing != nil)
                     }
-                    if let imported {
-                        Text(imported).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    if let result {
+                        Text(result).aryaText(AryaFont.caption, AryaColor.inkMuted)
                     }
                 }
             case .review:
@@ -63,7 +93,7 @@ struct OnboardingPanel: View {
                 }
             case .live:
                 HStack(spacing: AryaSpace.s2) {
-                    if steps.passed, let rehearsal = steps.rehearsal,
+                    if steps.canMarkReady, let rehearsal = steps.rehearsal,
                         let version = steps.charterVersion
                     {
                         Button("Mark ready") {
@@ -77,7 +107,7 @@ struct OnboardingPanel: View {
                         .buttonStyle(.aryaPrimary)
                     }
                     let title = steps.rehearsal == nil ? "Rehearse on past work" : "Rehearse again"
-                    if steps.passed {
+                    if steps.canMarkReady {
                         Button(title, action: rehearse).buttonStyle(.aryaTertiary)
                     } else {
                         Button(title, action: rehearse).buttonStyle(.aryaPrimary)
@@ -97,14 +127,35 @@ struct OnboardingPanel: View {
         importing = binding
         Task {
             do {
-                imported = try await store.workspace.importHistory(
+                result = try await store.workspace.importHistory(
                     steward: steward, binding: binding)
             } catch {
-                imported = "The import failed: \(error.localizedDescription)"
+                result = "The import failed: \(error.localizedDescription)"
             }
             importing = nil
-            await store.reload()
-            store.reviewQueues[steward] = try? await store.workspace.reviewQueue(steward: steward)
+            await refresh()
+        }
+    }
+
+    private func onboard() {
+        working = true
+        Task {
+            do {
+                result = try await store.workspace.runOnboarding(steward: steward)
+            } catch {
+                result = "Onboarding failed: \(error.localizedDescription)"
+            }
+            working = false
+            await refresh()
+        }
+    }
+
+    /// Reloads the ledger, the review queue, and the onboarding read after a step ran.
+    private func refresh() async {
+        await store.reload()
+        store.reviewQueues[steward] = try? await store.workspace.reviewQueue(steward: steward)
+        if let onboarding = try? await store.workspace.onboarding(steward: steward) {
+            store.outcomeReads[steward, default: OutcomeReads()].onboarding = onboarding
         }
     }
 }

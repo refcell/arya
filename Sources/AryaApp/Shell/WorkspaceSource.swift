@@ -55,6 +55,10 @@ protocol WorkspaceSource: Sendable {
     func impactSummary(steward: String) async throws -> FeatureImpact?
     /// Imports a binding's past items as cases (`Workspace.importHistory`); its summary line.
     func historyImport(steward: String, binding: String) async throws -> String
+    /// `onboardingState`, the latest onboard run, context notes, and `goLiveGate`.
+    func onboardingSummary(steward: String) async throws -> FeatureOnboarding
+    /// `Workspace.onboard(steward:)`, as one line.
+    func onboardRun(steward: String) async throws -> String
     /// One person's thread with a steward, oldest first.
     func conversationEntries(steward: String, person: String) async throws
         -> [FeatureConversationEntry]
@@ -163,6 +167,14 @@ extension WorkspaceSource {
 
     func historyImport(steward: String, binding: String) async throws -> String {
         throw FeatureReadError.unavailable("history import")
+    }
+
+    func onboardingSummary(steward: String) async throws -> FeatureOnboarding {
+        throw FeatureReadError.unavailable("onboarding")
+    }
+
+    func onboardRun(steward: String) async throws -> String {
+        throw FeatureReadError.unavailable("onboarding")
     }
 
     func conversationEntries(steward: String, person: String) async throws
@@ -431,6 +443,35 @@ extension Workspace: WorkspaceSource {
 
     func historyImport(steward: String, binding: String) async throws -> String {
         try await importHistory(steward: steward, binding: binding).summary
+    }
+
+    func onboardingSummary(steward: String) async throws -> FeatureOnboarding {
+        let state = try await onboardingState(steward: steward)
+        let context = try await context(steward: steward)
+        let notes =
+            context.people.flatMap { person in
+                person.notes.map { FeatureOnboarding.Note(about: person.id, text: $0) }
+            }
+            + context.connections.flatMap { connection in
+                connection.notes.map { FeatureOnboarding.Note(about: connection.id, text: $0) }
+            }
+        let gate = try? await goLiveGate(steward: steward)
+        return FeatureOnboarding(
+            steps: state.steps.map {
+                FeatureOnboarding.Step(
+                    key: $0.key, title: $0.title, done: $0.done, detail: $0.detail)
+            },
+            summary: state.summary, notes: notes,
+            onboardedAt: try await onboarding(steward: steward)?.at,
+            gate: gate.map { FeatureOnboarding.Gate(ready: $0.ready, summary: $0.summary) })
+    }
+
+    func onboardRun(steward: String) async throws -> String {
+        guard let done = try await onboard(steward: steward) else {
+            return "No connection lists people or processes to read."
+        }
+        return "Read \(done.sources.joined(separator: ", ")): \(done.notes) new notes, "
+            + "\(done.people) people, \(done.queues) queues, \(done.rules) routing rules."
     }
 
     func impactSummary(steward: String) async throws -> FeatureImpact? {

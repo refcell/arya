@@ -41,36 +41,85 @@ func onboardingQueue(total: Int, reviewed: Int) -> FeatureReviewQueue {
                 source: "inbox history, Oct 14", status: "pending") : nil)
 }
 
-/// A new steward starts at learning, offering the inbox's history import.
-@Test func newStewardStartsByLearningFromPastWork() {
-    let steps = OnboardingSteps.build(events: onboardingEvents(), steward: steward, queue: nil)
-    #expect(steps.current == .learn)
-    #expect(steps.historyBindings == ["inbox"])
-    #expect(steps.steps[0].detail == "Import past items from inbox.")
+/// The workspace's onboarding read for the fixture steward: `done` names the finished steps.
+func onboardingRead(
+    done: Set<String>, notes: [FeatureOnboarding.Note] = [],
+    gate: FeatureOnboarding.Gate? = nil
+) -> FeatureOnboarding {
+    let details = [
+        ("systems", "Read its systems", "Read 1 of 2 systems: inbox."),
+        ("people", "Find its people", "Knows 3 people: person:ana, person:ben, person:cy."),
+        ("processes", "Learn its processes", "Learned 1 routine: refund-routing."),
+        ("notes", "Write context notes", "Wrote 4 notes about its people and systems."),
+        ("history", "Import history", "Imported 40 cases from history."),
+        ("review", "Review what it would do", "12 of 40 reviewed"),
+        ("ready", "Ready to go live", "Not ready: never rehearsed on past work."),
+    ]
+    return FeatureOnboarding(
+        steps: details.map {
+            FeatureOnboarding.Step(
+                key: $0.0, title: $0.1, done: done.contains($0.0),
+                detail: done.contains($0.0) || $0.0 == "review" || $0.0 == "ready"
+                    ? $0.2 : "Nothing yet for \($0.0).")
+        },
+        summary: "\(done.count) of 7 steps done", notes: notes, onboardedAt: nil, gate: gate)
+}
+
+let onboardingNotes = [
+    FeatureOnboarding.Note(about: "person:ana", text: "Support lead; owns refunds over 200."),
+    FeatureOnboarding.Note(about: "person:ben", text: "Billing; answers double-charge questions."),
+    FeatureOnboarding.Note(about: "inbox", text: "Queue 'vip' routes to person:ana first."),
+    FeatureOnboarding.Note(about: "inbox", text: "Refund requests over 30 days go to billing."),
+]
+
+/// A new steward starts by reading its systems, with Run onboarding and no notes.
+@Test func newStewardStartsByReadingItsSystems() {
+    let steps = OnboardingSteps.build(
+        onboarding: onboardingRead(done: []), events: onboardingEvents(), steward: steward)
+    #expect(steps.current == .systems)
+    #expect(steps.notes.isEmpty)
+    #expect(steps.steps[0].detail == "Nothing yet for systems.")
+    #expect(steps.steps[1].detail == "Import past items from inbox.")
     #expect(!steps.steps.contains { $0.done })
 }
 
-/// Imported but not reviewed: the review queue is the current step.
-@Test func importedHistoryMovesToReview() {
+/// Onboarded and imported: the notes show and the review queue is the current step.
+@Test func onboardedStewardMovesToReview() {
     let steps = OnboardingSteps.build(
-        events: onboardingEvents(), steward: steward,
-        queue: onboardingQueue(total: 40, reviewed: 12))
+        onboarding: onboardingRead(
+            done: ["systems", "people", "processes", "notes", "history"], notes: onboardingNotes),
+        events: onboardingEvents(), steward: steward)
     #expect(steps.current == .review)
-    #expect(steps.steps[0].detail == "40 past items in casebook history@v1")
-    #expect(steps.steps[1].detail == "12 of 40 reviewed")
+    #expect(steps.notes.count == 4)
+    #expect(
+        steps.steps[0].detail
+            == "Wrote 4 notes about its people and systems. "
+            + "Knows 3 people: Ana, Ben, Cy.")
+    #expect(steps.notes[2] == .init(about: "inbox", text: "Queue 'vip' routes to Ana first."))
+    #expect(steps.notes[0].about == "Ana")
+    #expect(steps.steps[1].detail == "Imported 40 cases from history.")
+    #expect(steps.steps[2].detail == "12 of 40 reviewed")
 }
 
-/// Reviewed and rehearsed with every case passing: Mark ready is offered with the rehearsal.
-@Test func passingRehearsalOffersMarkReady() {
-    let steps = OnboardingSteps.build(
-        events: onboardingEvents(rehearsed: 4), steward: steward,
-        queue: onboardingQueue(total: 4, reviewed: 4))
-    #expect(steps.current == .live)
-    #expect(steps.passed)
-    #expect(steps.rehearsal == "rh_1")
-    #expect(steps.charterVersion == 1)
+/// Mark ready follows the go-live gate: its sentence while it fails, enabled once it passes.
+@Test func markReadyFollowsTheGoLiveGate() {
+    let all: Set = ["systems", "people", "processes", "notes", "history", "review"]
     let failing = OnboardingSteps.build(
-        events: onboardingEvents(rehearsed: 3), steward: steward,
-        queue: onboardingQueue(total: 4, reviewed: 4))
-    #expect(!failing.passed)
+        onboarding: onboardingRead(
+            done: all,
+            gate: .init(ready: false, summary: "Not ready: 4 more agreed reviews needed.")),
+        events: onboardingEvents(rehearsed: 4), steward: steward)
+    #expect(failing.current == .live)
+    #expect(!failing.canMarkReady)
+    #expect(failing.steps[3].detail == "Not ready: 4 more agreed reviews needed.")
+    let passing = OnboardingSteps.build(
+        onboarding: onboardingRead(
+            done: all, gate: .init(ready: true, summary: "Ready to go live: 10 agreed.")),
+        events: onboardingEvents(rehearsed: 4), steward: steward)
+    #expect(passing.canMarkReady)
+    #expect(passing.rehearsal == "rh_1")
+    let unrehearsed = OnboardingSteps.build(
+        onboarding: onboardingRead(done: all, gate: .init(ready: true, summary: "")),
+        events: onboardingEvents(), steward: steward)
+    #expect(!unrehearsed.canMarkReady)
 }

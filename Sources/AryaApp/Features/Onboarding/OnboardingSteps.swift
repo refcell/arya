@@ -1,10 +1,11 @@
 import Foundation
 
-/// GETTING TO KNOW YOUR TEAM: the three steps a new steward takes before it goes live. It
-/// learns from past work (history imported into a casebook), a person reviews what it would
-/// have done, and a passing rehearsal lets the person mark it ready.
+/// GETTING TO KNOW YOUR TEAM: the four steps a new steward takes before it goes live, grouped
+/// from the workspace's onboarding steps. It reads its systems (people, queues, and routing
+/// notes), learns from past work (history imported as cases), a person reviews what it would
+/// have done, and the go-live gate lets the person mark it ready.
 struct OnboardingSteps: Hashable, Sendable {
-    enum Stage: Int, Hashable, Sendable { case learn, review, live }
+    enum Stage: Int, Hashable, Sendable { case systems, learn, review, live }
 
     struct Step: Hashable, Sendable, Identifiable {
         var stage: Stage
@@ -17,17 +18,21 @@ struct OnboardingSteps: Hashable, Sendable {
     var steps: [Step]
     /// The first step not done; nil once the steward is ready.
     var current: Stage?
+    /// The notes its onboard run wrote, newest last.
+    var notes: [FeatureOnboarding.Note]
     /// Bindings that can page their past items (`history` among their reads).
     var historyBindings: [String]
-    /// The finished rehearsal of the live charter, when there is one, for Mark ready.
+    /// Mark ready is enabled only when the go-live gate passes; otherwise its sentence shows.
+    var gate: FeatureOnboarding.Gate?
+    /// The finished rehearsal of the live charter, which Mark ready records.
     var rehearsal: String?
     var charterVersion: Int?
-    /// The rehearsal passed every case, so Mark ready is the primary action.
-    var passed = false
 
-    static func build(
-        events: [FeatureEvent], steward: String, queue: FeatureReviewQueue?
-    ) -> OnboardingSteps {
+    var canMarkReady: Bool { gate?.ready == true && rehearsal != nil && charterVersion != nil }
+
+    static func build(onboarding: FeatureOnboarding, events: [FeatureEvent], steward: String)
+        -> OnboardingSteps
+    {
         let live = LiveCharter.find(events: events, steward: steward)
         let bindings = (live?.charter["bindings"]?.array ?? []).compactMap { binding -> String? in
             guard let id = binding["id"]?.string,
@@ -35,22 +40,33 @@ struct OnboardingSteps: Hashable, Sendable {
             else { return nil }
             return id
         }
-        let readiness = OutcomeReadiness.build(events: events, steward: steward)
-        let total = queue?.total ?? 0
-        let learned = total > 0
-        let learnDetail =
-            learned
-            ? "\(total) past \(total == 1 ? "item" : "items") in casebook "
-                + (queue?.casebookVersion ?? "")
-            : bindings.isEmpty
-                ? "No connection here can list past items; add cases in Improve."
-                : "Import past items from \(bindings.joined(separator: ", "))."
-        let reviewed = learned && (queue?.reviewed ?? 0) >= total
-        let reviewDetail =
-            learned
-            ? (queue?.progressText ?? "")
-            : "Once past items are in, compare what it would have done with what you did."
-        // The rehearsal of the live charter, when one finished.
+        func done(_ key: String) -> Bool { onboarding.step(key)?.done ?? false }
+        let names = OutcomePeople.names(events: events, steward: steward)
+        func detail(_ key: String) -> String {
+            OutcomePeople.humanize(onboarding.step(key)?.detail ?? "", names: names)
+        }
+        let read = ["systems", "people", "processes", "notes"]
+        let systemsDetail =
+            done("notes")
+            ? [detail("notes"), detail("people")].joined(separator: " ")
+            : read.first { !done($0) }.map(detail) ?? ""
+        let steps = [
+            Step(
+                stage: .systems, title: "Read your systems", detail: systemsDetail,
+                done: read.allSatisfy(done)),
+            Step(
+                stage: .learn, title: "Learn from past work",
+                detail: done("history") || bindings.isEmpty
+                    ? detail("history")
+                    : "Import past items from \(bindings.joined(separator: ", ")).",
+                done: done("history")),
+            Step(
+                stage: .review, title: "Review what it would have done", detail: detail("review"),
+                done: done("review")),
+            Step(
+                stage: .live, title: "Rehearse and go live",
+                detail: onboarding.gate?.summary ?? detail("ready"), done: done("ready")),
+        ]
         let version = live?.version
         let started = events.last {
             $0.steward == steward && $0.type == "rehearsal.started"
@@ -58,28 +74,17 @@ struct OnboardingSteps: Hashable, Sendable {
                 && $0.payload["proposal"] == nil
         }
         let id = started?.payload["rehearsal"]?.string
-        let finished = events.last {
+        let finished = events.contains {
             $0.type == "rehearsal.finished" && id != nil && $0.payload["rehearsal"]?.string == id
         }
-        let cases = Int(started?.payload["cases"]?.number ?? 0)
-        let passedCount = Int(finished?.payload["passed"]?.number ?? 0)
-        let liveDetail: String =
-            switch readiness {
-            case .ready(let version): "Live on charter v\(version)."
-            case .notReady(let reason): "Not ready: \(reason)."
-            }
-        let steps = [
-            Step(stage: .learn, title: "Learn from past work", detail: learnDetail, done: learned),
-            Step(
-                stage: .review, title: "Review what it would have done", detail: reviewDetail,
-                done: reviewed),
-            Step(
-                stage: .live, title: "Rehearse and go live", detail: liveDetail,
-                done: readiness.isReady),
-        ]
         return OnboardingSteps(
-            steps: steps, current: steps.first { !$0.done }?.stage, historyBindings: bindings,
-            rehearsal: finished == nil ? nil : id, charterVersion: version,
-            passed: finished != nil && cases > 0 && passedCount == cases)
+            steps: steps, current: steps.first { !$0.done }?.stage,
+            notes: onboarding.notes.map {
+                .init(
+                    about: OutcomePeople.humanize($0.about, names: names),
+                    text: OutcomePeople.humanize($0.text, names: names))
+            },
+            historyBindings: bindings, gate: onboarding.gate, rehearsal: finished ? id : nil,
+            charterVersion: version)
     }
 }

@@ -51,4 +51,38 @@ struct OutcomeReads: Hashable, Sendable {
     var live: FeatureStewardLive?
     var findings: [FeatureOverviewFinding]?
     var impact: FeatureImpact?
+    var onboarding: FeatureOnboarding?
+}
+
+/// A steward's onboarding as the workspace reports it (`onboardingState`, the latest onboard
+/// run, the notes it wrote, and the go-live gate); the app shows each line verbatim.
+struct FeatureOnboarding: Hashable, Sendable {
+    struct Step: Hashable, Sendable {
+        /// `systems`, `people`, `processes`, `notes`, `history`, `review`, or `ready`.
+        var key: String
+        var title: String
+        var done: Bool
+        var detail: String
+    }
+
+    /// One context note: who or what it is about, and its text.
+    struct Note: Hashable, Sendable {
+        var about: String
+        var text: String
+    }
+
+    struct Gate: Hashable, Sendable {
+        var ready: Bool
+        /// `Not ready: 4 more agreed reviews needed; 2 checks fail.`
+        var summary: String
+    }
+
+    var steps: [Step]
+    var summary: String
+    var notes: [Note]
+    /// When it last ran an onboard run, if ever.
+    var onboardedAt: Date?
+    var gate: Gate?
+
+    func step(_ key: String) -> Step? { steps.first { $0.key == key } }
 }

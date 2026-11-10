@@ -186,6 +186,10 @@ protocol FeatureOutcomeReads: Sendable {
     func impact(steward: String) async throws -> FeatureImpact?
     /// Imports a binding's past items into the steward's casebook; the workspace's one line.
     func importHistory(steward: String, binding: String) async throws -> String
+    /// The steward's onboarding steps, notes, and go-live gate.
+    func onboarding(steward: String) async throws -> FeatureOnboarding
+    /// Runs an onboard run now (it reads people and process); the workspace's one line.
+    func runOnboarding(steward: String) async throws -> String
 }
 
 extension FeatureOutcomeReads {
@@ -250,5 +254,13 @@ extension FeatureOutcomeReads {
 
     func importHistory(steward: String, binding: String) async throws -> String {
         throw FeatureReadError.unavailable("history import")
+    }
+
+    func onboarding(steward: String) async throws -> FeatureOnboarding {
+        throw FeatureReadError.unavailable("onboarding")
+    }
+
+    func runOnboarding(steward: String) async throws -> String {
+        throw FeatureReadError.unavailable("onboarding")
     }
 }

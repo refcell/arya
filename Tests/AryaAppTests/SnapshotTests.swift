@@ -305,6 +305,10 @@ import Testing
                 now: FeatureTestClock.now)
             await store.reload()
             store.reviewQueues["st_new"] = onboardingQueue(total: 40, reviewed: 12)
+            store.outcomeReads["st_new"] = OutcomeReads(
+                onboarding: onboardingRead(
+                    done: ["systems", "people", "processes", "notes", "history"],
+                    notes: onboardingNotes))
             try write(
                 "onboarding", scheme: scheme,
                 render(

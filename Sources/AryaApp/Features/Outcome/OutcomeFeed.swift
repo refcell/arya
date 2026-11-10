@@ -337,6 +337,22 @@ enum OutcomePeople {
         return out
     }
 
+    /// Workspace text with every person id named: "Knows person:ana" → "Knows Ana".
+    static func humanize(_ text: String, names: [String: String]) -> String {
+        guard text.contains("person:") else { return text }
+        var out = ""
+        var rest = Substring(text)
+        while let range = rest.range(of: "person:") {
+            out += rest[..<range.lowerBound]
+            let tail = rest[range.upperBound...]
+            let slug = tail.prefix { $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" }
+            let id = "person:" + slug
+            out += names[id] ?? name(id)
+            rest = tail.dropFirst(slug.count)
+        }
+        return out + rest
+    }
+
     /// "person:priya" → "Priya".
     static func name(_ id: String) -> String {
         id.hasPrefix("person:") ? String(id.dropFirst("person:".count)).capitalized : id
