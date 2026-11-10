@@ -460,3 +460,28 @@ extension WorkspaceBackend {
         }
     }
 }
+
+extension WorkspaceBackend {
+    func message(steward: String, text: String, intent: String, by person: String)
+        async throws(CLIError) -> MessageReceipt
+    {
+        let workspace = try await open()
+        return try await call("message", rejection: { .invalidInput($0) }) {
+            try await workspace.message(steward: steward, text: text, intent: intent, by: person)
+        }
+    }
+
+    func reportDigest(steward: String) async throws(CLIError) -> ReportDigest {
+        let workspace = try await open()
+        return try await call("reportDigest") {
+            try await workspace.reportDigest(steward: steward)
+        }
+    }
+
+    func sendReport(steward: String) async throws(CLIError) -> ReportDigest {
+        let workspace = try await open()
+        return try await call("sendReport", rejection: { .invalidInput($0) }) {
+            try await workspace.sendReport(steward: steward)
+        }
+    }
+}

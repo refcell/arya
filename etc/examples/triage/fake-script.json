@@ -3923,6 +3923,301 @@
           }
         ]
       }
+    },
+    "person:sam asks: How many refund requests came in this week?": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "counting refund requests"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.search",
+          "input": {
+            "query": "label:billing refund newer_than:7d"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "messages": [
+              {
+                "id": "MSG-201"
+              },
+              {
+                "id": "MSG-203"
+              },
+              {
+                "id": "MSG-128"
+              },
+              {
+                "id": "MSG-134"
+              },
+              {
+                "id": "MSG-124"
+              },
+              {
+                "id": "MSG-130"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "Six refund requests this week; four trace back to the duplicate-charge bug."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Counted six refund requests this week and answered Sam.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Search billing messages from the last 7 days",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Group them by cause",
+            "status": "done"
+          },
+          {
+            "id": "p3",
+            "text": "Answer Sam",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "answered",
+            "rationale": "six requests, four from one bug",
+            "why": "six requests, four from one bug"
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "reply",
+            "binding": "person:sam",
+            "target": "person:sam",
+            "params": {
+              "text": "Six this week. Four are the duplicate-charge bug (MSG-201, MSG-134, MSG-128, MSG-130), all routed to billing; the other two are a damaged order and an annual plan."
+            },
+            "rationale": "answer the person",
+            "risk": "low",
+            "why": "They asked, so they hear back in the same thread."
+          }
+        ]
+      }
+    },
+    "person:sam hands this to you: Take MSG-140 and close it out with the customer.": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "reading MSG-140"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.get",
+          "input": {
+            "id": "MSG-140"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "id": "MSG-140",
+            "from": "customer:c-140",
+            "subject": "Still waiting on my refund",
+            "body": "You said my refund was on its way a week ago. Where is it?"
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "MSG-140 is a refund follow-up; billing owns it and the customer needs an answer."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Labeled and routed MSG-140 to billing, drafted the customer reply for sign-off, and told Sam.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Read MSG-140",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Label and route it to billing",
+            "status": "done"
+          },
+          {
+            "id": "p3",
+            "text": "Draft the customer reply",
+            "status": "done"
+          },
+          {
+            "id": "p4",
+            "text": "Send it once Sam signs off",
+            "status": "pending"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "billing",
+            "rationale": "a refund follow-up",
+            "why": "a refund follow-up"
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "label",
+            "binding": "inbox",
+            "target": "inbox:MSG-140",
+            "params": {
+              "label": "billing"
+            },
+            "rationale": "category",
+            "risk": "low",
+            "why": "Labels let the team filter messages by category."
+          },
+          {
+            "id": "a2",
+            "kind": "route",
+            "binding": "inbox",
+            "target": "inbox:MSG-140",
+            "params": {
+              "queue": "billing"
+            },
+            "rationale": "owning queue",
+            "risk": "low",
+            "why": "The billing queue owns refund follow-ups."
+          },
+          {
+            "id": "a3",
+            "kind": "reply",
+            "binding": "inbox",
+            "target": "inbox:MSG-140",
+            "params": {
+              "text": "Sorry for the wait. Your refund was approved and billing is confirming it went out; we will write again within a day."
+            },
+            "rationale": "close it out",
+            "risk": "high",
+            "why": "The customer has waited a week; a sent reply cannot be recalled."
+          },
+          {
+            "id": "a4",
+            "kind": "reply",
+            "binding": "person:sam",
+            "target": "person:sam",
+            "params": {
+              "text": "Took MSG-140: labeled and routed to billing, and the customer reply is drafted. It waits on your sign-off in Needs you."
+            },
+            "rationale": "answer the person",
+            "risk": "low",
+            "why": "They asked, so they hear back in the same thread."
+          }
+        ]
+      }
+    },
+    "person:priya hands this to you: Check that every duplicate-charge refund went out.": {
+      "events": [
+        {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking duplicate-charge refunds"
+        },
+        {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "inbox.search",
+          "input": {
+            "query": "label:billing duplicate charge"
+          }
+        },
+        {
+          "kind": "tool_result",
+          "id": "t1",
+          "isError": false,
+          "output": {
+            "messages": [
+              {
+                "id": "MSG-201"
+              },
+              {
+                "id": "MSG-134"
+              },
+              {
+                "id": "MSG-128"
+              },
+              {
+                "id": "MSG-130"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "message",
+          "role": "assistant",
+          "text": "Three of four duplicate-charge refunds are confirmed; MSG-130 has no refund yet."
+        }
+      ],
+      "status": "completed",
+      "result": {
+        "summary": "Checked four duplicate-charge refunds: three went out, MSG-130 is still open; told Priya.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Find duplicate-charge messages",
+            "status": "done"
+          },
+          {
+            "id": "p2",
+            "text": "Check each refund",
+            "status": "done"
+          },
+          {
+            "id": "p3",
+            "text": "Report back to Priya",
+            "status": "done"
+          }
+        ],
+        "decisions": [
+          {
+            "id": "d1",
+            "choice": "open",
+            "rationale": "MSG-130 has no refund",
+            "why": "MSG-130 has no refund"
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "reply",
+            "binding": "person:priya",
+            "target": "person:priya",
+            "params": {
+              "text": "Three of four went out (MSG-201, MSG-134, MSG-128). MSG-130 has no refund yet: the upgrade was charged at the old price, so it needs a partial refund from you."
+            },
+            "rationale": "answer the person",
+            "risk": "low",
+            "why": "They asked, so they hear back in the same thread."
+          }
+        ]
+      }
     }
   },
   "default": {

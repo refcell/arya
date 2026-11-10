@@ -110,6 +110,8 @@ enum CLI {
             try await dispatchImprovement(invocation, backend: backend, output: output)
         case .historyImport, .review:
             try await dispatchHistory(invocation, backend: backend, output: output)
+        case .message, .reportShow, .reportSend:
+            try await dispatchPeople(invocation, backend: backend, output: output)
         case .serve:
             try await backend.serve(every: try Self.every(invocation))
         case .serveInstall:

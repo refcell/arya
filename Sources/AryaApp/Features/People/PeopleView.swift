@@ -20,6 +20,8 @@ struct PeopleView: View {
     @AryaState private var editing: String?
     @AryaState private var draft = PersonDraft()
     @AryaState private var note: String?
+    /// The person whose removal waits on confirmation.
+    @AryaState private var removing: String?
 
     var body: some View {
         ScrollView {
@@ -51,6 +53,25 @@ struct PeopleView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityLabel("People")
+        .confirmationDialog(
+            removeTitle,
+            isPresented: Binding(
+                get: { removing != nil }, set: { if !$0 { removing = nil } })
+        ) {
+            Button("Propose removal", role: .destructive) {
+                if let steward, let id = removing {
+                    propose(
+                        PeopleDirectory(events: store.events, steward: steward).removeProposal(id))
+                }
+                removing = nil
+            }
+            Button("Cancel", role: .cancel) { removing = nil }
+        } message: {
+            Text(
+                "The steward stops messaging them and drops their approvals once the change "
+                    + "passes the gate."
+            )
+        }
     }
 
     @ViewBuilder
@@ -65,8 +86,11 @@ struct PeopleView: View {
             } else {
                 row(person, directory: directory)
                 if selected == person.id {
-                    PersonThreadView(store: store, steward: steward, person: person)
-                        .padding(.bottom, AryaSpace.s2)
+                    PersonThreadView(
+                        store: store, steward: steward, person: person,
+                        stewardName: directory.live?.charter["name"]?.string ?? steward
+                    )
+                    .padding(.bottom, AryaSpace.s2)
                 }
             }
             AryaHairline()
@@ -89,28 +113,35 @@ struct PeopleView: View {
                 if let role = person.role {
                     Text(role).aryaText(AryaFont.caption, AryaColor.inkMuted)
                 }
-                Text(person.id).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 Spacer()
-                Button(selected == person.id ? "Conversation" : "Message") {
-                    select(person.id)
+                if selected != person.id {
+                    Button("Message") { select(person.id) }
+                        .buttonStyle(.aryaPrimary)
+                        .help("Open the conversation and write as \(person.name)")
                 }
-                .buttonStyle(.aryaTertiary)
-                .disabled(selected == person.id)
-                Button("Edit") {
-                    draft = PersonDraft(person)
-                    editing = person.id
+                Menu("More") {
+                    Button("Edit…") {
+                        draft = PersonDraft(person)
+                        editing = person.id
+                    }
+                    Button("Remove…", role: .destructive) { removing = person.id }
                 }
-                .buttonStyle(.aryaTertiary)
-                Button("Remove") { propose(directory.removeProposal(person.id)) }
-                    .buttonStyle(.aryaQuiet)
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                .accessibilityLabel("More for \(person.name)")
             }
             field("Reach") { Text(person.reach).aryaText(AryaFont.monoSmall, AryaColor.ink) }
             field("Approves") {
                 if person.approves.isEmpty {
                     Text("Nothing").aryaText(AryaFont.caption, AryaColor.inkFaint)
-                }
-                ForEach(person.approves, id: \.self) {
-                    Chip($0 == "*" ? "any action" : $0, textColor: AryaColor.ink)
+                } else {
+                    Text(
+                        person.approves.map { $0 == "*" ? "any action" : $0 }.joined(
+                            separator: ", ")
+                    )
+                    .aryaText(AryaFont.monoSmall, AryaColor.ink)
                 }
             }
             field("Messages") {
@@ -158,6 +189,14 @@ struct PeopleView: View {
             }
         }
         .padding(.vertical, AryaSpace.s2)
+    }
+
+    private var removeTitle: String {
+        guard let steward, let id = removing else { return "Remove?" }
+        let name =
+            PeopleDirectory(events: store.events, steward: steward).people.first { $0.id == id }?
+            .name ?? PeopleDirectory.displayName(id)
+        return "Remove \(name)?"
     }
 
     private func field<Content: View>(_ title: String, @ViewBuilder content: () -> Content)

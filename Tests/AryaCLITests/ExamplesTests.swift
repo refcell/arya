@@ -103,7 +103,9 @@ private func bindingActions(_ charter: Object) -> [String: [String]] {
     let charter = try object("charter.json")
     let rules = objects((charter["policy"] as? Object)?["rules"])
     let decision = { (kind: String) in
-        rules.first { $0["action"] as? String == kind }?["decision"] as? String ?? "ask"
+        // Rules scoped to a person binding (answers to the team) do not cover customers.
+        rules.first { $0["action"] as? String == kind && $0["binding"] == nil }?["decision"]
+            as? String ?? "ask"
     }
     let responses = try scriptRuns()
     let live = try #require(responses["New message MSG-201: Refund for a duplicate charge"])

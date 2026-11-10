@@ -77,12 +77,20 @@ extension Workspace {
                 person: id, name: binding.name, channel: binding.channel ?? "inbox",
                 via: binding.via)
         }
+        // People read names, not binding ids: "Reply to Sam", not "Reply person:sam".
+        let names = Dictionary(
+            charter.bindings.compactMap { binding in binding.name.map { (binding.id, $0) } },
+            uniquingKeysWith: { first, _ in first })
+        let lines = ReportText.lines(
+            name: charter.name, cadence: config.cadence, from: from, through: through,
+            outcome: outcome, recap: recap, since: from
+        ).map { line in
+            names.reduce(line) { $0.replacingOccurrences(of: $1.key, with: $1.value) }
+        }
         return ReportDigest(
             steward: record.id.rawValue, cadence: config.cadence.rawValue, from: from,
             through: through, sinceSeq: sinceSeq, throughSeq: recap.through,
-            lines: ReportText.lines(
-                name: charter.name, cadence: config.cadence, from: from, through: through,
-                outcome: outcome, recap: recap, since: from),
+            lines: lines,
             to: to, configured: charter.report != nil)
     }
 

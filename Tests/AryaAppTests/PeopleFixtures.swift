@@ -1,9 +1,45 @@
 import Foundation
 
+@testable import AryaApp
+
 /// A conversation between a person and a steward, shaped like the runtime records it, for the
 /// `people-thread` snapshot and tests: a question and the steward's reply, a correction, a
-/// hand-off its run finished, a weekly report, and a hand-off whose run waits on an approval.
+/// hand-off its run finished, a weekly report, a hand-off whose run waits on an approval, and
+/// one whose run is still going.
 enum PeopleFixtures {
+    /// Only a new hand-off and its run still going, for the `people-thread-live` snapshot over
+    /// the demo home: no approvals or reports, so every count stays the workspace's own.
+    static func live(steward: String, person: String, start: Date) -> [FeatureEvent] {
+        var log = FeatureEventBuilder(start: start)
+        log.add(
+            "inbox.message", steward: steward, actor: FeatureActor(kind: .human, id: person),
+            after: 0,
+            [
+                "from": .string(person), "channel": "inbox", "intent": "handoff",
+                "text": "Pull the export crash reports from this week into one list.",
+            ])
+        let message = log.events.last?.id ?? ""
+        log.add(
+            "run.started", steward: steward, run: "run_live", after: 1,
+            [
+                "input": [
+                    "kind": "message", "text": "\(person) hands this to you: export crashes",
+                    "attachments": [
+                        ["kind": "inbox", "message": .string(message), "from": .string(person)]
+                    ],
+                ]
+            ])
+        for event: FeatureJSON in [
+            ["kind": "status", "state": "working", "detail": "reading the crash reports"],
+            ["kind": "tool_call", "id": "t1", "tool": "inbox.search"],
+        ] {
+            log.add(
+                "run.adapter.event", steward: steward, run: "run_live", after: 2,
+                ["message": ["method": "run/event", "params": ["event": event]]])
+        }
+        return log.events
+    }
+
     static func events(steward: String, person: String, start: Date) -> [FeatureEvent] {
         var log = FeatureEventBuilder(start: start)
         let who = FeatureActor(kind: .human, id: person)
@@ -22,7 +58,9 @@ enum PeopleFixtures {
                 [
                     "input": [
                         "kind": "message", "text": "Message from \(person)",
-                        "attachments": [["kind": "inbox", "message": .string(message)]],
+                        "attachments": [
+                            ["kind": "inbox", "message": .string(message), "from": .string(person)]
+                        ],
                     ]
                 ])
         }
@@ -65,7 +103,16 @@ enum PeopleFixtures {
         log.add(
             "approval.requested", steward: steward, run: "run_pt3", after: 20,
             ["approval": "ap_pt3", "action": ["kind": "refund", "target": "order:4417"]])
-        _ = message("Also look at the export crash reports when you can.", "handoff")
+        let crash = message("Also look at the export crash reports when you can.", "handoff")
+        // Still going: the working line shows what the steward is doing now.
+        run("run_pt4", for: crash)
+        func adapter(_ event: FeatureJSON) {
+            log.add(
+                "run.adapter.event", steward: steward, run: "run_pt4", after: 3,
+                ["message": ["method": "run/event", "params": ["event": event]]])
+        }
+        adapter(["kind": "status", "state": "working", "detail": "reading the crash reports"])
+        adapter(["kind": "tool_call", "id": "t1", "tool": "inbox.search"])
         return log.events
     }
 }

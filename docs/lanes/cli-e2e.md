@@ -119,6 +119,9 @@ M4:
 - (from workspace) live: `serveStatus()` for `arya serve`; e2e and demo can use `createFromTemplate`, `portfolio()`, `remember(...)` (shared or per steward), and `message(steward:text:intent:by:)`; the templates are in `etc/examples/templates`.
 - (from eval) Added triage/history-export.jsonl, demo history import + review, e2e steps 15-18.
 - (from governance) The triage example charter now has `policy.undo` (label → unlabel) and the inbox binding lists `unlabel`, so the demo and e2e can undo a label (`undoOptions`/`undoAction`).
+- (from connect) Added `arya message <steward> <text> [--as person] [--intent ask|correct|handoff]`
+  and `arya report show|send <steward>` in `Sources/AryaCLI/PeopleCommands.swift` (with
+  `WorkspaceBackend` methods); `etc/scripts/demo.sh` seeds messages and reports with them.
 
 ## Log
 - 2026-11-10: Paused for the night after the approvers and abort batch. Next: an e2e step per

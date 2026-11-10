@@ -51,7 +51,19 @@ struct PeopleThread: Hashable, Sendable {
         var status: Status
     }
 
+    /// A run answering this person that is still going: what the steward is doing right now.
+    struct Working: Hashable, Sendable {
+        var run: String
+        var since: Date
+        /// The adapter's latest status or tool call, for example "calling inbox.search".
+        var doing: String
+        /// Steps the run has recorded so far.
+        var steps: Int
+    }
+
     var person: String
+    /// The newest active run started by this person's message, nil when none is.
+    var working: Working?
     /// Oldest first.
     var entries: [Entry]
     /// Newest first.
@@ -65,6 +77,12 @@ struct PeopleThread: Hashable, Sendable {
         var runFor: [String: String] = [:]
         var ended: [String: Bool] = [:]
         var pending: [String: Set<String>] = [:]
+        // Runs started by this person's messages, oldest first, and what each is doing.
+        var theirs: [(run: String, at: Date)] = []
+        var doing: [String: String] = [:]
+        var steps: [String: Int] = [:]
+        // Actions addressed to this person (binding is their id), by run and action id.
+        var addressed: [String: FeatureJSON] = [:]
         for event in events where event.steward == steward {
             switch event.type {
             case "inbox.message" where event.payload["from"]?.string == person:
@@ -74,18 +92,27 @@ struct PeopleThread: Hashable, Sendable {
                     text: event.payload["text"]?.string ?? "")
                 entries.append(entry)
                 if entry.intent == "handoff" { handoffs.append(entry) }
+            case "action.proposed":
+                if let run = event.run, let action = event.payload["action"],
+                    action["binding"]?.string == person, let id = action["id"]?.string
+                {
+                    addressed["\(run)/\(id)"] = action
+                }
             case "action.executed":
-                guard let output = event.payload["output"],
-                    output["inbox"]?.string == person
-                else { continue }
-                let params = output["params"]
+                // The proposed action says who it was for (dry runs and relays record no inbox
+                // entry); an older executor's output may name the inbox instead.
+                let id = event.payload["action"]?.string ?? ""
+                let proposed = event.run.flatMap { addressed["\($0)/\(id)"] }
+                let output = event.payload["output"]
+                guard proposed != nil || output?["inbox"]?.string == person else { continue }
+                let params = proposed?["params"] ?? output?["params"]
                 let text = ["text", "body", "message"].lazy.compactMap { params?[$0]?.string }
                     .first
                 entries.append(
                     Entry(
                         id: event.id, seq: event.seq, at: event.at, inbound: false, intent: nil,
-                        text: text ?? output["target"]?.string ?? "",
-                        run: event.run, action: event.payload["action"]?.string))
+                        text: text ?? "",
+                        run: event.run, action: proposed?["kind"]?.string ?? id))
             case "report.sent":
                 let to = event.payload["to"]?.array?.compactMap { $0["person"]?.string } ?? []
                 guard to.contains(person) else { continue }
@@ -97,6 +124,18 @@ struct PeopleThread: Hashable, Sendable {
                 guard let run = event.run else { continue }
                 for attachment in event.payload["input"]?["attachments"]?.array ?? [] {
                     if let message = attachment["message"]?.string { runFor[message] = run }
+                    if attachment["from"]?.string == person { theirs.append((run, event.at)) }
+                }
+            case "run.adapter.event":
+                guard let run = event.run,
+                    let inner = event.payload["message"]?["params"]?["event"]
+                else { continue }
+                steps[run, default: 0] += 1
+                switch inner["kind"]?.string {
+                case "status": doing[run] = inner["detail"]?.string ?? doing[run]
+                case "tool_call": doing[run] = inner["tool"]?.string.map { "calling \($0)" }
+                case "thinking": doing[run] = "thinking"
+                default: break
                 }
             case "run.finished": if let run = event.run { ended[run] = true }
             case "run.failed": if let run = event.run { ended[run] = false }
@@ -112,14 +151,21 @@ struct PeopleThread: Hashable, Sendable {
             }
         }
         self.entries = entries
+        working = theirs.last { ended[$0.run] == nil && (pending[$0.run]?.isEmpty ?? true) }
+            .map {
+                Working(
+                    run: $0.run, since: $0.at, doing: doing[$0.run] ?? "starting",
+                    steps: steps[$0.run] ?? 0)
+            }
         tasks = handoffs.reversed().map { message in
             let run = runFor[message.id]
             let status: Status =
                 switch run.map({ (ended[$0], pending[$0]?.isEmpty ?? true) }) {
                 case nil: .queued
-                case (true?, _)?: .done
                 case (false?, _)?: .failed
-                case (nil, false)?: .waiting
+                // A run may finish with its action still held for a person.
+                case (_, false)?: .waiting
+                case (true?, true)?: .done
                 case (nil, true)?: .running
                 }
             return Task(

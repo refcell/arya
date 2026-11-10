@@ -8,40 +8,67 @@ struct PersonThreadView: View {
     @ObservedObject var store: FeatureStore
     let steward: String
     let person: PeopleDirectory.Person
+    /// The steward's name, for its lines.
+    let stewardName: String
 
     @AryaState private var text = ""
     @AryaState private var intent = MessageIntent.ask
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let thread = PeopleThread(events: store.events, steward: steward, person: person.id)
+        let titles = LedgerTable.runTitles(store.events)
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             if thread.entries.isEmpty {
                 Text(PeopleThreadText.empty(person.name))
                     .aryaText(AryaFont.caption, AryaColor.inkFaint)
             }
-            ForEach(thread.entries) { entry(person, $0) }
+            ForEach(thread.entries) {
+                entry(person, $0, titles: titles)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+            if let working = thread.working { workingLine(working) }
             composer
         }
         .padding(.leading, AryaSpace.s4)
         .overlay(alignment: .leading) {
             Rectangle().fill(AryaColor.rule).frame(width: 1)
         }
+        .animation(AryaMotion.appear(reduceMotion: reduceMotion), value: thread.entries.count)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Conversation with \(person.name)")
     }
 
-    private func entry(_ person: PeopleDirectory.Person, _ entry: PeopleThread.Entry)
-        -> some View
-    {
+    /// The steward at work on this person's message: a live dot, what it is doing, the run,
+    /// and how long it has been going.
+    private func workingLine(_ working: PeopleThread.Working) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+            StatusDot(.running)
+            Text(stewardName).aryaText(AryaFont.bodyStrong, AryaColor.accent)
+            Text(working.doing + "…").aryaText(AryaFont.mono, AryaColor.inkMuted)
+            Text("step \(working.steps)")
+                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            Spacer()
+            Text(FeatureTime.relative(working.since, now: store.now))
+                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Steward is working: \(working.doing)")
+    }
+
+    private func entry(
+        _ person: PeopleDirectory.Person, _ entry: PeopleThread.Entry, titles: [String: String]
+    ) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                Text(entry.inbound ? person.name : "Steward")
+                Text(entry.inbound ? person.name : stewardName)
                     .aryaText(AryaFont.bodyStrong, entry.inbound ? AryaColor.ink : AryaColor.accent)
                 if let tag = PeopleThreadText.tag(entry) {
-                    Chip(tag, textColor: AryaColor.inkMuted)
+                    Text(tag).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                 }
-                if let run = entry.run {
-                    Text(run).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                if let title = entry.run.flatMap({ titles[$0] }) {
+                    Text(title).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
                 }
                 Spacer()
                 Text(FeatureTime.relative(entry.at, now: store.now))
@@ -99,9 +126,10 @@ struct PersonInspector: View {
             VStack(alignment: .leading, spacing: AryaSpace.s3) {
                 VStack(alignment: .leading, spacing: AryaSpace.s1) {
                     Text(found.name).aryaText(AryaFont.bodyStrong, AryaColor.ink)
-                    Text(found.id).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    if let role = found.role {
+                        Text(role).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    }
                 }
-                fact("Role", found.role ?? "none")
                 fact("Reach", found.reach)
                 fact(
                     "Approves",
@@ -117,7 +145,9 @@ struct PersonInspector: View {
                     }
                     ForEach(thread.tasks) { task in
                         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                            Chip(task.status.label, textColor: Self.color(task.status))
+                            Text(task.status.label)
+                                .aryaText(AryaFont.monoSmall, Self.color(task.status))
+                                .frame(width: 96, alignment: .leading)
                             Text(task.text).aryaText(AryaFont.caption, AryaColor.ink)
                                 .lineLimit(2)
                         }

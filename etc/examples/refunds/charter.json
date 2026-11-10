@@ -37,6 +37,16 @@
       "actions": [
         "reply"
       ]
+    },
+    {
+      "id": "person:priya",
+      "kind": "person",
+      "channel": "inbox",
+      "name": "Priya",
+      "role": "billing lead",
+      "actions": [
+        "reply"
+      ]
     }
   ],
   "triggers": [
@@ -51,6 +61,12 @@
   "policy": {
     "default": "ask",
     "rules": [
+      {
+        "action": "reply",
+        "binding": "person:priya",
+        "decision": "auto",
+        "note": "Answers to Priya stay inside the team, so they go out on their own."
+      },
       {
         "action": "note",
         "decision": "auto",
@@ -84,5 +100,12 @@
   "gate": {
     "samples": 1,
     "tolerance": 0.0
+  },
+  "report": {
+    "cadence": "daily",
+    "to": [
+      "person:priya"
+    ],
+    "hour": 17
   }
 }

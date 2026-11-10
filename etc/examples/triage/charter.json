@@ -48,7 +48,16 @@
       "kind": "person",
       "channel": "inbox",
       "name": "Sam",
-      "role": "support lead"
+      "role": "support lead",
+      "actions": ["reply"]
+    },
+    {
+      "id": "person:priya",
+      "kind": "person",
+      "channel": "inbox",
+      "name": "Priya",
+      "role": "billing lead",
+      "actions": ["reply"]
     }
   ],
   "triggers": [
@@ -70,6 +79,18 @@
       }
     ],
     "rules": [
+      {
+        "action": "reply",
+        "binding": "person:sam",
+        "decision": "auto",
+        "note": "Answers to Sam stay inside the team, so they go out on their own."
+      },
+      {
+        "action": "reply",
+        "binding": "person:priya",
+        "decision": "auto",
+        "note": "Answers to Priya stay inside the team, so they go out on their own."
+      },
       {
         "action": "label",
         "decision": "auto",
@@ -128,8 +149,6 @@
   },
   "report": {
     "cadence": "weekly",
-    "to": [
-      "person:sam"
-    ]
+    "to": ["person:sam", "person:priya"]
   }
 }

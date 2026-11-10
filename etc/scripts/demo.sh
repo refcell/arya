@@ -113,6 +113,20 @@ event "$((yesterday + 60))" st_triage run "New message MSG-202: Where is my pack
 event "$((yesterday + 120))" st_triage run "New message MSG-203: Damaged order, please refund"
 # A quiet check about 2 h ago: the person's last look (app/visits.json below) lands right after.
 event "$(($(date -u +%s) - 7200))" st_refunds run "Check approved refunds"
+# People at work (connect lane): Sam and Priya ask, correct, and hand off work; reports go out.
+# A message is PERSON|INTENT|TEXT; the fake scripts answer the asks and hand-offs.
+event "$((today - 3 * 86400 + 10 * 3600))" st_triage message \
+  "person:sam|ask|How many refund requests came in this week?"
+event "$((today - 3 * 86400 + 11 * 3600))" st_triage message \
+  "person:sam|correct|Duplicate charges always go to billing, even when shipping is mentioned."
+event "$((today - 2 * 86400 + 17 * 3600))" st_refunds report -
+event "$((today - 2 * 86400 + 14 * 3600))" st_refunds message \
+  "person:priya|ask|Which approved refunds are still unconfirmed?"
+event "$((today - 86400 + 9 * 3600))" st_triage report -
+event "$((today - 86400 + 11 * 3600))" st_refunds message \
+  "person:priya|handoff|Follow up on ORDER-1043 with the customer."
+event "$((today - 86400 + 16 * 3600))" st_triage message \
+  "person:priya|handoff|Check that every duplicate-charge refund went out."
 
 while IFS=$'\t' read -r when steward what arg; do
   base=$when
@@ -120,6 +134,12 @@ while IFS=$'\t' read -r when steward what arg; do
   case "$what" in
     run) seed "$steward: ${arg#New message }" run "$steward" --input "$arg" ;;
     pause) seed "pause $steward" steward pause "$steward" ;;
+    report) seed "$steward: send its report" report send "$steward" ;;
+    message)
+      IFS='|' read -r person intent text <<<"$arg"
+      seed "$steward: $person ${intent}s" message "$steward" "$text" --as "$person" \
+        --intent "$intent"
+      ;;
     setup)
       seed "define $steward" steward create --charter "$arg/charter.json"
       seed "import its casebook" casebook import "$steward" "$arg/casebook.jsonl"
@@ -131,6 +151,8 @@ done < <(sort -n -s -k1,1 "$timeline")
 base=""
 seed "st_triage: MSG-201 Refund for a duplicate charge, now" run st_triage \
   --input "New message MSG-201: Refund for a duplicate charge"
+seed "st_triage: Sam hands off MSG-140, now" message st_triage \
+  "Take MSG-140 and close it out with the customer." --as person:sam --intent handoff
 
 # A recent last look, about 2 h before the newest activity, so the Overview recap reads "Since
 # you looked …". The app reads `app/visits.json` (newest seq seen, per steward) in the home.

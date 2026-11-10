@@ -24,6 +24,13 @@
       "actions": [
         "post"
       ]
+    },
+    {
+      "id": "person:sam",
+      "kind": "person",
+      "channel": "inbox",
+      "name": "Sam",
+      "role": "support lead"
     }
   ],
   "triggers": [
@@ -65,5 +72,12 @@
   "gate": {
     "samples": 1,
     "tolerance": 0.0
+  },
+  "report": {
+    "cadence": "weekly",
+    "to": [
+      "person:sam"
+    ],
+    "weekday": 5
   }
 }

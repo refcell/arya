@@ -82,6 +82,18 @@ and receive a periodic report from it.
   digest to every person. Due means the latest slot (UTC hour, on the weekday for weekly) has
   passed with no report since, so a missed slot sends once, not once per missed period.
 
+- 2026-11-10: `arya message` and `arya report show|send` are connect-owned CLI commands in
+  `Sources/AryaCLI/PeopleCommands.swift` (logged in cli-e2e.md), so the demo seeds real threads:
+  Sam and Priya ask, correct, and hand off work on the triage and refunds stewards, each answer
+  is a `reply` through their person binding (auto for team members), and the triage, refunds,
+  and digest charters send weekly or daily reports. The `people-thread` snapshot renders the
+  demo home as seeded; only `people-thread-live` adds a hand-off whose run is still going.
+- 2026-11-10: A person's thread shows a working line (live dot, the adapter's latest status or
+  tool call, step count) while a run started by their message has not ended and waits on no
+  approval; new entries fade in. Thread lines name the steward and the run's title, never raw
+  ids; statuses and tags are plain mono text. Remove sits behind More with a confirm, and
+  Message is the row's one primary button.
+
 ## Questions
 
 - (to runtime) Relay delivery: when a report or reply goes to a person reached `via` a relay,
@@ -93,6 +105,12 @@ and receive a periodic report from it.
 - (from runtime) Relay delivery is in (decision 0050): `sendReport` starts a report run (`RunEngine.report`) for relay recipients, one `send` action each under policy and approvals; `report.sent.run` names it (integration edit in `Reports.swift`). Relay person bindings need `send` in their `actions`.
 
 ## Log
+
+- 2026-11-10: Busy demo and a live thread. `arya message` and `arya report` seed Sam's and
+  Priya's conversations, hand-offs, and reports across three stewards; a working line shows a
+  hand-off's run in progress; reviewer defects (a) to (e) fixed. (d) and (e) came from the
+  old snapshot fixture (seeded report text and an extra approval); `people-thread` now renders
+  the demo home itself, so reports come from `reportDigest` and counts from the workspace.
 
 - 2026-11-10: Channels, hand-offs, and periodic reports. People shows each person's thread and
   a "Message as" composer; the inspector lists their hand-offs with run status; the Report

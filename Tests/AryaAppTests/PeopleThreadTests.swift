@@ -26,8 +26,8 @@ import Testing
 
     @Test func handoffsAreTasksWithTheirRunsStatusNewestFirst() {
         let tasks = thread().tasks
-        #expect(tasks.map(\.status) == [.queued, .waiting, .done])
-        #expect(tasks.map(\.run) == [nil, "run_pt3", "run_pt2"])
+        #expect(tasks.map(\.status) == [.running, .waiting, .done])
+        #expect(tasks.map(\.run) == ["run_pt4", "run_pt3", "run_pt2"])
         #expect(thread().open == 2)
     }
 
@@ -43,7 +43,31 @@ import Testing
             return event
         }
         let tasks = PeopleThread(events: events, steward: "st_triage", person: "person:sam").tasks
-        #expect(tasks.map(\.status) == [.queued, .running, .failed])
+        #expect(tasks.map(\.status) == [.running, .running, .failed])
+    }
+
+    @Test func anActiveRunForTheirMessageShowsWhatTheStewardIsDoing() throws {
+        let working = try #require(thread().working)
+        #expect(working.run == "run_pt4")
+        #expect(working.doing == "calling inbox.search")
+        #expect(working.steps == 2)
+        let live = PeopleThread(
+            events: PeopleFixtures.live(steward: "st_triage", person: "person:sam", start: start),
+            steward: "st_triage", person: "person:sam")
+        #expect(live.working?.run == "run_live")
+        #expect(live.tasks.map(\.status) == [.running])
+        #expect(thread("person:alex").working == nil)
+    }
+
+    @Test func aMessageWithoutARunIsQueuedAndNotWorking() {
+        var log = FeatureEventBuilder(start: start)
+        log.add(
+            "inbox.message",
+            ["from": "person:sam", "intent": "handoff", "text": "Sort the backlog"])
+        let thread = PeopleThread(
+            events: log.events, steward: PreviewFixtures.steward, person: "person:sam")
+        #expect(thread.tasks.map(\.status) == [.queued])
+        #expect(thread.working == nil)
     }
 
     @Test func otherPeopleSeeOnlyTheirOwnThread() {
