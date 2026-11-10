@@ -111,6 +111,8 @@ yesterday=$((today - 86400 + 15 * 3600))
 event "$yesterday" st_triage run "New message MSG-102: App crashes on export"
 event "$((yesterday + 60))" st_triage run "New message MSG-202: Where is my package?"
 event "$((yesterday + 120))" st_triage run "New message MSG-203: Damaged order, please refund"
+# A quiet check about 2 h ago: the person's last look (app/visits.json below) lands right after.
+event "$(($(date -u +%s) - 7200))" st_refunds run "Check approved refunds"
 
 while IFS=$'\t' read -r when steward what arg; do
   base=$when
@@ -129,5 +131,18 @@ done < <(sort -n -s -k1,1 "$timeline")
 base=""
 seed "st_triage: MSG-201 Refund for a duplicate charge, now" run st_triage \
   --input "New message MSG-201: Refund for a duplicate charge"
+
+# A recent last look, about 2 h before the newest activity, so the Overview recap reads "Since
+# you looked …". The app reads `app/visits.json` (newest seq seen, per steward) in the home.
+mkdir -p "$home/app"
+"$bin/arya" --home "$home" ledger tail --count 100000 --json | python3 -c '
+import datetime, json, sys
+def at(e): return datetime.datetime.fromisoformat(e["at"].replace("Z", "+00:00")).timestamp()
+events = json.load(sys.stdin)
+cutoff = max(map(at, events)) - 2 * 3600
+seen = max(e["seq"] for e in events if at(e) <= cutoff)
+stewards = sorted({e["steward"] for e in events if e.get("steward")})
+json.dump({"v": 1, "lastSeen": {s: seen for s in stewards}}, sys.stdout, sort_keys=True)
+' >"$home/app/visits.json"
 
 echo "demo: seeded $home; render it with \`just snapshot\` (offscreen, no window)"

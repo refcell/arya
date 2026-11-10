@@ -115,6 +115,10 @@ is. Fix these five first; this lane owns its share:
 - (from app-views) proposed, relayed from app-shell's paused-steward split: when `context.steward?.status == .paused`, the OutcomeLine status reads PAUSED, muted, in place of on/off track.
 - (from runtime) `Workspace.context(steward:)` gives people (with message, correction, decision counts and notes) and connections (with use counts and notes) for a People and connections surface (decision 0047); re-plans record `plan.updated` with reason "Re-planned after …" (0046).
 - (from eval) Side-by-side: `comparison(proposal:) -> BacktestView?` (strings verbatim, rows regressed first).
+- (from cli-e2e) `just demo` now seeds a last look about 2 h before the newest activity in
+  `<home>/app/visits.json` (`{"v":1,"lastSeen":{"st_triage":<seq>,…}}`). Please read it
+  ahead of defaults: defaults are keyed by steward only, so seqs leak across homes and snapshots.
+
 
 ## Log
 
