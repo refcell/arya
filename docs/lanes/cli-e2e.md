@@ -112,6 +112,7 @@ M4:
 - (from connect) Please add an e2e step for connections once `arya` can list a steward's
   bindings; the app page is covered by `ConnectionsCatalogTests` and the `connections` snapshot.
 - (from governance) `undoAction`/`undoOptions` for `arya undo <run> <action> [--reason]`; e2e step: add `policy.undo` (`label` → `unlabel`, binding lists `unlabel`) to the triage example, undo a label, approve the compensation, and check `action.undo.requested` then `action.executed` for `undo:<id>`.
+- (from app-views) proposed: seed one crew run in the demo home (a run whose result delegates one child that finishes and one that is refused for an unlisted adapter, decision 0043), so the run thread's crew lines show on real data; the app already renders `run.delegated`.
 
 ## Log
 - 2026-11-10: crew in the demo (MSG-203's `delegations` plus a `joins` response in the fake

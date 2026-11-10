@@ -160,6 +160,9 @@ extension Workspace: WorkspaceSource {
             } catch WorkspaceError.notFound {}
         case .startRun(let steward, let input):
             _ = try await startRun(steward: steward, input: input)
+        case .message:
+            // Waits on a facade call that posts `inbox.message` as the local person.
+            throw FeatureReadError.unavailable("messaging a steward")
         case .rehearse(let steward, let casebook):
             _ = try await rehearse(steward: steward, casebook: casebook)
         case .answer(let approval, let text):

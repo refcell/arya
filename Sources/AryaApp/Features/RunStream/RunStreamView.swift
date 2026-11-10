@@ -27,14 +27,18 @@ struct RunStreamView: View {
                 "No steps yet.",
                 guidance: "Steps appear here as the run reads, decides, and proposes.")
         } else {
-            ScrollView {
-                RunThread(
-                    stream: stream, now: store.now, context: context(stream), accessory: accessory
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, AryaSpace.s4)
-                .padding(.vertical, AryaSpace.s4)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(spacing: 0) {
+                ScrollView {
+                    RunThread(
+                        stream: stream, now: store.now, context: context(stream),
+                        accessory: accessory
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, AryaSpace.s4)
+                    .padding(.vertical, AryaSpace.s4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if let steward = stream.steward { Composer(store: store, steward: steward) }
             }
             .background(AryaColor.canvas)
         }

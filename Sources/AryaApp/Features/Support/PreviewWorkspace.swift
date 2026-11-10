@@ -108,6 +108,13 @@ actor PreviewWorkspace: FeatureWorkspace {
                     expected: ["decisions": [["choice": .string(choice)]]], rehearsal: nil,
                     run: run))
         case .proposeCharter(let proposal): try propose(proposal)
+        case .message(let steward, let text, let intent):
+            emit(
+                steward: steward, run: nil, "inbox.message", .localUser,
+                [
+                    "v": 1, "from": "person:local", "channel": "app",
+                    "intent": .string(intent.rawValue), "text": .string(text),
+                ])
         case .startRun(let steward, let input):
             let run = "run_w\(nextID)"
             emit(

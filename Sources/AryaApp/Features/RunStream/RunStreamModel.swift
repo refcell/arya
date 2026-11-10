@@ -162,6 +162,8 @@ struct RunStream: Hashable, Sendable {
     var status: RunStatus
     /// The text the run started with, for example the message it acts on.
     var input: String? = nil
+    /// Adapter, effort, duration, tokens, and cost, for the run header.
+    var facts = RunMetrics()
 
     /// The run in one line: its summary once finished, else its input, else its id.
     var title: String {
@@ -189,9 +191,14 @@ struct RunStream: Hashable, Sendable {
             filled.kind = .delegated(delegation)
             return filled
         }
+        var facts = projector.facts
+        let times = events.lazy.filter { $0.run == run }.map(\.at)
+        if projector.status != .running, let first = times.min(), let last = times.max() {
+            facts.seconds = last.timeIntervalSince(first)
+        }
         return RunStream(
             run: run, steward: projector.steward, steps: steps,
-            status: projector.status, input: projector.input)
+            status: projector.status, input: projector.input, facts: facts)
     }
 
     /// The approval ids in this run still waiting for a person.
@@ -214,6 +221,7 @@ private struct RunStreamProjector {
     var status: RunStatus = .running
     var steward: String?
     var input: String?
+    var facts = RunMetrics()
     private var toolIndex: [String: Int] = [:]
     private var actionIndex: [String: Int] = [:]
     private var approvalAction: [String: String] = [:]
@@ -226,6 +234,8 @@ private struct RunStreamProjector {
         case "run.started":
             // `trigger` is a string; newer runs record `input: {kind, text}` instead.
             input = p["input"]?["text"]?.string ?? p["input"]?.string
+            facts.adapter = p["adapter"]?.string
+            facts.effort = p["effort"]?.string
             let trigger = p["trigger"]?.string ?? p["input"]?["kind"]?.string ?? "manual"
             add(event, .started(trigger: trigger))
         case "run.adapter.event": applyAdapter(event)
@@ -246,6 +256,12 @@ private struct RunStreamProjector {
             let state = p["status"]?.string ?? "completed"
             let summary = p["summary"]?.string ?? ""
             status = .finished(status: state, summary: summary)
+            if let cost = p["cost"] {
+                let tokens =
+                    (cost["inputTokens"]?.number ?? 0) + (cost["outputTokens"]?.number ?? 0)
+                facts.tokens = Int(tokens)
+                facts.costMicros = cost["costMicros"]?.number.map(Int.init)
+            }
             add(event, .finished(status: state, summary: summary))
         case "run.failed":
             let detail = p["detail"]?.string.map { " (\($0))" } ?? ""
@@ -502,5 +518,44 @@ enum CrewText {
         case "unknown_effort": return "unknown effort \(parts[1])"
         default: return reason
         }
+    }
+}
+
+/// What a run ran with and what it took, shown in mono in the run header.
+struct RunMetrics: Hashable, Sendable {
+    var adapter: String?
+    var effort: String?
+    var seconds: Double?
+    var tokens: Int?
+    var costMicros: Int?
+
+    /// "fake-triage · effort medium · 2.4 s · 1,280 tokens · $0.0012"; empty parts drop out.
+    var text: String {
+        var parts: [String] = []
+        if let adapter { parts.append(adapter) }
+        if let effort { parts.append("effort \(effort)") }
+        if let seconds { parts.append(FeatureTime.duration(seconds)) }
+        if let tokens {
+            parts.append("\(RunMetrics.grouped(tokens)) tokens")
+        }
+        if let costMicros { parts.append(RunMetrics.dollars(costMicros)) }
+        return parts.joined(separator: " · ")
+    }
+
+    /// 12840 -> "12,840".
+    static func grouped(_ number: Int) -> String {
+        var digits = String(number)
+        var index = digits.count - 3
+        while index > 0 {
+            digits.insert(",", at: digits.index(digits.startIndex, offsetBy: index))
+            index -= 3
+        }
+        return digits
+    }
+
+    static func dollars(_ micros: Int) -> String {
+        let value = Double(micros) / 1_000_000
+        return value > 0 && value < 0.01
+            ? String(format: "$%.4f", value) : String(format: "$%.2f", value)
     }
 }

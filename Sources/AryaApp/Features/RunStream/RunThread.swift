@@ -46,6 +46,10 @@ struct RunThread: View {
         HStack(alignment: .center, spacing: AryaSpace.s2) {
             if case .running = stream.status { StatusDot(.running) }
             Text(RunThreadText.meta(stream)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            if !stream.facts.text.isEmpty {
+                Text("· " + stream.facts.text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    .lineLimit(1)
+            }
             Spacer(minLength: AryaSpace.s3)
             accessory
         }
@@ -98,11 +102,21 @@ private struct ThreadLine: View {
         case .toolCall(let call):
             MarkGlyph(mark: StreamStepText.mark(step.kind))
             Text(call.tool).aryaText(AryaFont.mono, AryaColor.ink)
+            if let argument = RunThreadText.argument(call.input) {
+                Text(argument).aryaText(AryaFont.mono, AryaColor.inkMuted)
+                    .lineLimit(1).truncationMode(.middle)
+            }
+            if let output = call.output, let result = RunThreadText.arrow(output) {
+                Text("→ \(result)").aryaText(AryaFont.mono, AryaColor.inkMuted).lineLimit(1)
+            }
             Text(RunThreadText.toolMeta(call)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
         case .action(let action):
             MarkGlyph(mark: StreamStepText.mark(step.kind))
             Text("\(action.kind) \(action.target)").aryaText(AryaFont.mono, AryaColor.ink)
                 .lineLimit(1).truncationMode(.middle)
+            if let result = RunThreadText.arrow(action.params) {
+                Text("→ \(result)").aryaText(AryaFont.mono, AryaColor.inkMuted).lineLimit(1)
+            }
             if let note = RunThreadText.actionNote(action) {
                 Text(note).aryaText(
                     AryaFont.monoSmall,
@@ -305,6 +319,47 @@ enum RunThreadText {
         return parts.joined(separator: " · ")
     }
 
+    /// A call's main argument in one short token: its first scalar input, e.g. `MSG-202`.
+    static func argument(_ input: FeatureJSON) -> String? {
+        guard let value = firstScalar(input), value.count <= 40 else { return nil }
+        return value
+    }
+
+    /// A short result after an arrow: a scalar, or an object's one short scalar field
+    /// (`billing` for `{label: billing}`); nil when the value needs the expanded view.
+    static func arrow(_ value: FeatureJSON) -> String? {
+        switch value {
+        case .string(let text): return text.count <= 32 && !text.contains("\n") ? text : nil
+        case .number, .bool: return value.compactText
+        case .object(let members):
+            let scalars = members.keys.sorted().compactMap { key -> String? in
+                switch members[key] {
+                case .string(let text)? where text.count <= 32 && !text.contains("\n"): text
+                case .number?, .bool?: members[key]?.compactText
+                default: nil
+                }
+            }
+            return members.count == 1 ? scalars.first : nil
+        default: return nil
+        }
+    }
+
+    private static func firstScalar(_ value: FeatureJSON) -> String? {
+        switch value {
+        case .string(let text): return text
+        case .number, .bool: return value.compactText
+        case .object(let members):
+            return members.keys.sorted().lazy.compactMap { key -> String? in
+                switch members[key] {
+                case .string(let text)?: text
+                case .number?, .bool?: members[key]?.compactText
+                default: nil
+                }
+            }.first
+        default: return nil
+        }
+    }
+
     /// "via tracker · live · 1.2 s".
     static func toolMeta(_ call: ToolCallStep) -> String {
         var parts = [call.binding.map { "via \($0)" }, call.source.map(StreamStepText.sourceWord)]
@@ -368,16 +423,34 @@ enum RunThreadText {
 /// Machine output as plain mono text that wraps within the pane and can be selected.
 struct MachineText: View {
     var text: String
+    @AryaState private var expanded = false
 
     init(_ text: String) { self.text = text }
 
+    /// Lines shown before the rest folds behind "· N lines hidden".
+    static let foldedLines = 4
+
     var body: some View {
-        Text(text)
-            .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-            .textSelection(.enabled)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        let folds = lines.count > Self.foldedLines + 1 && !expanded
+        VStack(alignment: .leading, spacing: 0) {
+            Text(folds ? lines.prefix(Self.foldedLines).joined(separator: "\n") : text)
+                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+            if lines.count > Self.foldedLines + 1 {
+                Button(expanded ? "· fold" : MachineText.hidden(lines.count - Self.foldedLines)) {
+                    expanded.toggle()
+                }
+                .buttonStyle(.plain)
+                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
+
+    /// "· 38 lines hidden".
+    static func hidden(_ count: Int) -> String { "· \(count) lines hidden" }
 }
 
 /// One sentence for what an action would do, composed from its kind, target, and params when
