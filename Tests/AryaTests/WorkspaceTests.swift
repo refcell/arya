@@ -178,7 +178,10 @@ struct Opened {
     let denied = try await workspace.deny(approval.id, note: "not yet")
 
     #expect(denied.status == .denied)
-    #expect(try await opened.types().suffix(2) == ["approval.denied", "action.rejected"])
+    await workspace.settle()  // the denial starts a re-plan run (decision 0045)
+    let types = try await opened.types()
+    let index = try #require(types.firstIndex(of: "approval.denied"))
+    #expect(types[index + 1] == "action.rejected")
     await #expect(throws: WorkspaceError.notFound("ap_missing")) {
         try await workspace.deny("ap_missing")
     }
@@ -537,4 +540,25 @@ struct Opened {
     #expect(types.contains("plan.updated"))
     let runs = try await workspace.runs(steward: "st_inbox")
     #expect(runs.contains { $0.trigger == "replan" })
+}
+
+@Test func contextListsPeopleAndConnections() async throws {
+    let opened = try await Opened([FakeScript.Run(result: liveResult)])
+    let workspace = opened.workspace
+    var charter = inboxCharter()
+    charter.id = StewardID(unchecked: "st_inbox")
+    charter.bindings = [
+        .mcp("inbox", command: "inbox-mcp", read: ["get"], actions: ["label", "route", "reply"]),
+        .person("alex", channel: "local"),
+    ]
+    charter.policy = Policy(rules: [Policy.Rule(action: "label", decision: .auto)])
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    _ = try await workspace.startRun(steward: "st_inbox", input: "New message MSG-9")
+    let context = try await workspace.context(steward: "st_inbox")
+    #expect(context.people.map(\.id) == ["alex"])
+    #expect(context.connections.map(\.id) == ["inbox"])
+    #expect(context.connections[0].actionsExecuted == 1)
+    await #expect(throws: WorkspaceError.notFound("st_none")) {
+        try await workspace.context(steward: "st_none")
+    }
 }

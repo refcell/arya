@@ -268,3 +268,4 @@ M4:
 - 2026-11-09: default risk by action kind (`Risk.defaults`), `Workspace.risk` read (0037)
 - 2026-11-09: crew children with bounded adapter, effort, and limits; `run.delegated` (0043)
 - 2026-11-09: re-planning after failed, denied, or expired actions, bounded per chain (0046)
+- 2026-11-09: steward context read model (`StewardContext`, `Workspace.context`) (0047)

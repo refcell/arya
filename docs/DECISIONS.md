@@ -469,3 +469,15 @@ run that hit the setback. Only active stewards re-plan, and never from rehearsal
 children, or replay (a re-plan is replayed as its own recorded run). Re-plan runs propose
 actions through policy as usual. Why: a steward that owns an outcome must react when its
 plan meets reality, but must not loop.
+
+### 0047 — 2026-11-09 — A steward's context: the people and connections it knows
+
+`StewardContext` projects, per steward, the people it knows and the connections it uses.
+People are its person bindings (with channel and relay) plus anyone who messaged it or
+decided one of its approvals, with message, correction, and decision counts and when they
+were last seen. Connections are its MCP bindings with tool-call, executed, and failed action
+counts and when last used. Each carries the live memory notes that name it (binding id or
+channel address, case-insensitive) or, for a person, that they wrote. The workspace exposes it
+as `Workspace.context(steward:)` with note texts, for the app's people and connections
+surfaces. It is a read model: nothing new is recorded. Why: a steward that owns an outcome
+should show who and what it works with, and what it has learned about each.
