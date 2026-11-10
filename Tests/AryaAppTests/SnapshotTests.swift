@@ -35,6 +35,9 @@ import Testing
             try write(name, scheme: scheme, render(RootView(model: model), dark: dark))
         }
         try page("overview") { $0.tab = .overview }
+        // Nothing selected: the inspector lists the steward's context, Settings last.
+        try page("overview-with-inspector") { $0.tab = .overview }
+        try page("overview-no-inspector") { $0.inspector = false }
         model.navigation = NavigationState()
         model.navigation.select(steward: steward.id)
         try write("window", scheme: scheme, renderInWindow(RootView(model: model), dark: dark))

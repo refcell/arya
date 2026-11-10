@@ -55,16 +55,19 @@ and removed diff lines only. Older names map onto these: `surface` and `sunken` 
 
 | Role | Token | Face | Size / line | Weight |
 | --- | --- | --- | --- | --- |
-| page title (steward name) | `title` | sans | 20 / 26 | semibold |
-| section heading | `heading` | sans | 13 / 19 | semibold |
-| interface and prose | `body` | sans | 13 / 19 | regular |
-| emphasis, buttons, tabs | `bodyStrong` | sans | 13 / 19 | semibold |
-| secondary prose | `caption` | sans | 11 / 16 | regular |
-| metadata label | `label` | sans | 10.5 / 14 | semibold, UPPERCASE, tracking 0.6 |
-| machine text | `mono` | mono | 12 / 17 | regular |
-| machine emphasis | `monoStrong` | mono | 12 / 17 | semibold |
-| times, counts, gutters | `monoSmall` | mono | 11 / 15 | regular |
-| KPI value | `metric` | mono | 20 / 24 | medium |
+| page title (steward name) | `title` | sans | 15 / 20 | semibold |
+| section heading | `heading` | sans | 12 / 16 | semibold |
+| interface text and list rows | `body` | sans | 12 / 16 | regular |
+| reading text (messages, summaries) | `prose` | sans | 12 / 17.5 | regular |
+| emphasis, buttons, tabs | `bodyStrong` | sans | 12 / 16 | semibold |
+| secondary text, run threads | `caption` | sans | 11 / 15 | regular |
+| metadata label | `label` | sans | 9.5 / 12 | semibold, UPPERCASE, tracking 0.6 |
+| machine text | `mono` | mono | 11 / 15 | regular |
+| machine emphasis | `monoStrong` | mono | 11 / 15 | semibold |
+| times, counts, gutters | `monoSmall` | mono | 10.5 / 14 | regular |
+| KPI value | `metric` | mono | 16 / 20 | medium |
+
+The scale is dense on purpose (decision 0044): lists show many rows per screen.
 
 Machine text means commands, tool names, paths, ids, hashes, diffs, logs, times, counts, and
 metric values.
@@ -72,17 +75,18 @@ metric values.
 ## Space and size
 
 Spacing tokens on a 4 pt grid: `s1` 4, `s2` 8, `s3` 12, `s4` 16, `s5` 20, `s6` 24, `s7` 32.
+Section gaps are `s3` or `s4` (12 to 16); `s5` and up are for sheets only.
 
 | Size | pt |
 | --- | --- |
-| sidebar width | 240 (resizable 200–320) |
-| inspector width | 320 |
+| sidebar width | 232 (resizable 200–320) |
+| inspector width | 340 |
 | row height (sidebar, thread, step, table) | 24 |
 | control height | 26 |
 | tab bar height | 32 |
 | title-bar inset (content starts below the traffic lights) | 40 |
 | page padding | 24 horizontal, 20 top |
-| reading width (prose and transcripts) | 680 |
+| reading width (sheets only; lists and threads fill the stream) | 680 |
 | status dot | 6 |
 | sparkline | 80 × 20 |
 | window minimum | 960 × 600 |
@@ -108,7 +112,7 @@ display scale (`1 / displayScale` pt) in `rule`.
 ```
 
 - **Window**: hidden title bar, full-size content, no title text. Everything is `canvas`.
-- **Sidebar**: 240 pt, starts 40 pt from the top beside the traffic lights. First row: the
+- **Sidebar**: 232 pt, starts 40 pt from the top beside the traffic lights. First row: the
   `arya` wordmark in `monoStrong` and a quiet `+` (New steward). Then a "Needs you" row with an
   `accent` count when approvals are pending (hidden otherwise). Then the `STEWARDS` label and
   one row per steward; the selected steward's runs nest beneath as threads. A gear at the
@@ -116,10 +120,13 @@ display scale (`1 / displayScale` pt) in `rule`.
 - **Main pane**: no header band. The page starts at the title-bar inset with the steward's name
   (`title`) and outcome (`body`/`inkMuted`), the outcome line, the one primary action
   right-aligned on the name's line, then the tab bar.
-- **Inspector**: 320 pt on the right, the same `canvas`, one hairline on its left, toggled with
-  Option-Command-I or by selecting something with detail (a ledger row, a tool call). It holds
-  raw events, payloads, hashes, large charts, and steward settings (effort, charter, home,
-  appearance).
+- **Stream**: the main zone fills the width between the sidebar and the inspector; lists,
+  threads, and tables never sit in a narrow column.
+- **Inspector**: 340 pt on the right, persistent, the same `canvas`, one hairline on its left,
+  hidden with Option-Command-I. It follows the selection: a ledger event (payload, hash,
+  prev), a run (status, trigger, timing, cost, steps), else the steward's context (plan,
+  schedule, policy, connections, people, effort, Edit charter, Pause). Settings (home,
+  appearance) is always its last section.
 
 ## Components
 

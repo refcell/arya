@@ -6,7 +6,7 @@ struct CharterFields: View {
     @Binding var draft: CharterDraft
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s6) {
+        VStack(alignment: .leading, spacing: AryaSpace.s4) {
             section("Outcome") {
                 CharterTextField(placeholder: "What the steward owns", text: $draft.outcome)
             }

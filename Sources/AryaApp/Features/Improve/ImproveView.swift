@@ -24,7 +24,7 @@ struct ImproveView: View {
                 action: { Task { await store.reload() } })
         case .loaded(let events):
             ScrollView {
-                VStack(alignment: .leading, spacing: AryaSpace.s5) {
+                VStack(alignment: .leading, spacing: AryaSpace.s4) {
                     FeatureWriteErrorLine(store: store)
                     rehearsal(RehearsalList.build(events: events, steward: steward), events: events)
                     AryaHairline()
@@ -33,8 +33,8 @@ struct ImproveView: View {
                         latestRun: ImproveText.latestLiveRun(events, steward: steward),
                         gates: summary?.gates ?? [:])
                 }
-                .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
-                .padding(.horizontal, AryaSpace.s5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, AryaSpace.s4)
                 .padding(.vertical, AryaSpace.s4)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -159,7 +159,7 @@ private struct CaseLine: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("\(result.id), \(RehearsalsText.status(result))")
-            if isExpanded { detail.padding(.leading, AryaSpace.s5).padding(.bottom, AryaSpace.s3) }
+            if isExpanded { detail.padding(.leading, AryaSpace.s4).padding(.bottom, AryaSpace.s3) }
         }
         .task(id: "\(isExpanded)/\(result.corrections.count)") {
             guard isExpanded, reviewed == nil else { return }

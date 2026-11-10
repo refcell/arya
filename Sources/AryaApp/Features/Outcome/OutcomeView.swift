@@ -81,7 +81,7 @@ struct OverviewTab: View {
             events: events, steward: steward, now: store.now, lastSeen: lastSeen)
         let seenAt = lastSeen.flatMap { seq in events.last { $0.seq <= seq }?.at }
         return ScrollView {
-            VStack(alignment: .leading, spacing: AryaSpace.s5) {
+            VStack(alignment: .leading, spacing: AryaSpace.s4) {
                 if case .notReady(let reason) = snapshot.state.readiness {
                     HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                         Text("Not ready: \(reason).").aryaText(AryaFont.body, AryaColor.inkMuted)
@@ -108,9 +108,9 @@ struct OverviewTab: View {
                     Text(error).aryaText(AryaFont.caption, AryaColor.negative)
                 }
             }
-            .padding(.horizontal, AryaSpace.s5)
+            .padding(.horizontal, AryaSpace.s4)
             .padding(.vertical, AryaSpace.s4)
-            .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

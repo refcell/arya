@@ -26,7 +26,7 @@ struct InboxView: View {
                 guidance: "When a steward asks a person binding something, it appears here.")
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: AryaSpace.s6) {
+                VStack(alignment: .leading, spacing: AryaSpace.s4) {
                     FeatureWriteErrorLine(store: store)
                     ForEach(list.people, id: \.self) { person in
                         let items = list.items(for: person)
@@ -40,8 +40,8 @@ struct InboxView: View {
                         }
                     }
                 }
-                .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
-                .padding(AryaSpace.s5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(AryaSpace.s4)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(AryaColor.canvas)

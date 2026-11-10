@@ -34,8 +34,8 @@ struct ApprovalQueueView: View {
                 }
                 if !queue.decided.isEmpty { decided(queue.decided) }
             }
-            .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
-            .padding(.horizontal, AryaSpace.s5)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, AryaSpace.s4)
             .padding(.vertical, AryaSpace.s4)
             .frame(maxWidth: .infinity, alignment: .leading)
         }

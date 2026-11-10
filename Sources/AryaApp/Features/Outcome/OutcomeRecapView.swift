@@ -137,7 +137,7 @@ struct OutcomeActivityRow: View {
             }
             Button(item.run) { openRun(item.run) }.buttonStyle(.aryaTertiary)
         }
-        .padding(.leading, AryaSpace.s5)
+        .padding(.leading, AryaSpace.s4)
     }
 
     private var markColor: Color {

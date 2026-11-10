@@ -56,7 +56,7 @@ struct KnowledgeTab: View {
                     }
                 }
                 section("Routines", count: knowledge.routines.count)
-                    .padding(.top, AryaSpace.s6)
+                    .padding(.top, AryaSpace.s4)
                 if knowledge.routines.isEmpty {
                     quiet("No routines yet. When a steward repeats work, it proposes one.")
                 }
@@ -70,9 +70,9 @@ struct KnowledgeTab: View {
                     }
                 }
             }
-            .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, AryaSize.pagePadding)
-            .padding(.vertical, AryaSpace.s5)
+            .padding(.vertical, AryaSpace.s4)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -169,7 +169,7 @@ private struct RoutineRow: View {
                         }
                         Spacer(minLength: 0)
                     }
-                    .padding(.leading, AryaSpace.s5)
+                    .padding(.leading, AryaSpace.s4)
                     .padding(.vertical, AryaSpace.s1)
                 }
             }

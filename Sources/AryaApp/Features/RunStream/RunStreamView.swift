@@ -31,8 +31,8 @@ struct RunStreamView: View {
                 RunThread(
                     stream: stream, now: store.now, context: context(stream), accessory: accessory
                 )
-                .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
-                .padding(.horizontal, AryaSpace.s5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, AryaSpace.s4)
                 .padding(.vertical, AryaSpace.s4)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

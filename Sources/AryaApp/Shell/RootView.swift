@@ -33,7 +33,7 @@ struct RootView: View {
             MainPane(model: model)
             if model.navigation.inspector {
                 AryaHairline(.vertical)
-                InspectorView(model: model)
+                InspectorView(model: model, now: now())
             }
         }
         .ignoresSafeArea(.container, edges: .top)

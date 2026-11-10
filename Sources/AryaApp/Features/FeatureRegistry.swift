@@ -58,17 +58,36 @@ enum FeatureRegistry {
                     selection: Binding(
                         get: { context.model.navigation.ledgerEvent },
                         set: { event in
-                            // One right-hand panel at a time: an event closes settings.
-                            if event != nil { context.model.navigation.inspector = false }
+                            // The shell's one inspector shows the event's payload and hash.
+                            if event != nil { context.model.navigation.inspector = true }
                             context.model.navigation.ledgerEvent = event
                         }),
                     openRun: { run, steward in
                         context.model.navigation.select(run: run, steward: steward)
-                    })
+                    },
+                    inlineInspector: false)
             } else {
                 EmptyState(
                     "The ledger is empty.",
                     guidance: "Every event this steward records appears here.")
+            }
+        }
+    }
+
+    /// A ledger event's detail (payload, hash, its run) for the shell's inspector.
+    @ViewBuilder
+    static func eventInspector(_ context: FeatureContext, event id: String) -> some View {
+        if let store = context.store, case .loaded(let events) = store.state,
+            let event = events.first(where: { $0.id == id })
+        {
+            let table = LedgerTable.build(events: events, filter: .all)
+            LedgerInspector(
+                store: store, event: event, title: event.run.flatMap { table.runTitles[$0] },
+                openRun: { run, steward in
+                    context.model.navigation.select(run: run, steward: steward)
+                }
+            ) {
+                context.model.navigation.ledgerEvent = nil
             }
         }
     }
@@ -155,7 +174,7 @@ enum FeatureRegistry {
         } else {
             Text("Nothing needs you right now.")
                 .aryaText(AryaFont.body, AryaColor.inkMuted)
-                .padding(AryaSpace.s5)
+                .padding(AryaSpace.s4)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }

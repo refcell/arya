@@ -36,8 +36,8 @@ struct NavigationState: Hashable, Sendable {
     /// The run selected in the rail, within the selected steward.
     var run: String?
     var tab: StewardTab = .overview
-    /// Whether the right-hand inspector (settings and detail) is open.
-    var inspector = false
+    /// Whether the right-hand inspector (selection detail, steward context, settings) shows.
+    var inspector = true
     /// The ledger event whose inspector is open on the Ledger tab.
     var ledgerEvent: String?
 

@@ -36,13 +36,13 @@ struct CharterEditorView: View {
                 draft = $0; proposed = false
             })
         return ScrollView {
-            VStack(alignment: .leading, spacing: AryaSpace.s6) {
+            VStack(alignment: .leading, spacing: AryaSpace.s4) {
                 Text("Charter v\(live.version)").aryaText(AryaFont.title, AryaColor.ink)
                 CharterFields(draft: binding)
                 footer(live, binding.wrappedValue)
             }
-            .frame(maxWidth: AryaSize.readingWidth, alignment: .leading)
-            .padding(AryaSpace.s5)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(AryaSpace.s4)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(AryaColor.canvas)

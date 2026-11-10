@@ -429,3 +429,17 @@ there (`adapter_not_allowed:<name>`, `unknown_effort:<value>`) and reported to t
 `refused:<reason>`. The child's `run.started` records its parent and the adapter, effort, and
 limits it ran with, so replay rebuilds the same child. Why: sub-agents are only safe to hand
 work to when they can never get more budget, reach, or authority than the run that asked.
+
+### 0044 — 2026-11-09 — Dense keyboard-first workspace
+
+The app reads as a dense, keyboard-first developer workspace. The type scale is smaller: 12 pt
+UI text at about 1.35 line height in lists, a `prose` role at 1.45 for reading text, 11 pt
+mono, 10.5 pt gutters and metadata, 9.5 pt uppercase labels, a 15 pt steward title, and a
+16 pt KPI value. Rows are 24 pt and section gaps 12 to 16 pt. The window has three zones on
+one canvas: the sidebar (232 pt), the stream (it fills the width between the sidebar and the
+inspector, with no max-width cap on lists or threads), and a persistent inspector (340 pt,
+hairline-separated, Option-Command-I hides it). The inspector follows the selection: a ledger
+event's payload and hash, a run's facts and cost, else the steward's context (plan, schedule,
+policy, connections, people, effort), with Settings as its last section. A command palette
+and a status bar follow. Why: the larger, column-bound layout left most of the window empty
+and hid function behind navigation.

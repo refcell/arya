@@ -13,6 +13,9 @@ struct LedgerView: View {
     var selection: Binding<String?>?
     /// Opens a run's thread (run, steward) from the inspector.
     var openRun: ((String, String) -> Void)?
+    /// Draws the selected event's inspector beside the table; off when the shell's one
+    /// right-hand inspector shows it instead.
+    var inlineInspector = true
     @AryaState private var filter = LedgerFilter.all
     /// On a steward's Ledger tab: show every event (all stewards and the system) instead.
     @AryaState private var allEvents = false
@@ -51,13 +54,15 @@ struct LedgerView: View {
                     store: store, table: table, filter: $filter,
                     allEvents: steward == nil ? nil : $allEvents
                 )
-                .padding(.horizontal, AryaSpace.s5)
+                .padding(.horizontal, AryaSpace.s4)
                 .padding(.vertical, AryaSpace.s3)
                 LedgerRows(
                     table: table, showsSteward: steward == nil || allEvents, selected: selected,
                     showAll: { allEvents = true })
             }
-            if let event = table.rows.first(where: { $0.id == selected.wrappedValue }) {
+            if inlineInspector,
+                let event = table.rows.first(where: { $0.id == selected.wrappedValue })
+            {
                 AryaHairline(.vertical)
                 LedgerInspector(
                     store: store, event: event, title: event.run.flatMap { table.runTitles[$0] },
@@ -231,7 +236,7 @@ private struct LedgerRows: View {
         if table.rows.isEmpty {
             Text("No events match. Clear the search or a filter to see more.")
                 .aryaText(AryaFont.body, AryaColor.inkMuted)
-                .padding(AryaSpace.s5)
+                .padding(AryaSpace.s4)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else {
             ScrollView {
@@ -303,7 +308,7 @@ private struct LedgerRows: View {
 /// The selected event: what it is in words (type, time, actor, its place in a run with a link
 /// there), then the machine detail (payload pretty-printed, hash, prev). The detail comes from
 /// the workspace's event read, else from the event already loaded.
-private struct LedgerInspector: View {
+struct LedgerInspector: View {
     @ObservedObject var store: FeatureStore
     var event: FeatureEvent
     var title: String?

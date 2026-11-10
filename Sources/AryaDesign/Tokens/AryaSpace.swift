@@ -16,10 +16,10 @@ public enum AryaSpace {
 
 /// Fixed sizes in `docs/STYLE.md`.
 public enum AryaSize {
-    public static let sidebarWidth: CGFloat = 240
+    public static let sidebarWidth: CGFloat = 232
     public static let sidebarMinWidth: CGFloat = 200
     public static let sidebarMaxWidth: CGFloat = 320
-    public static let inspectorWidth: CGFloat = 320
+    public static let inspectorWidth: CGFloat = 340
     /// Sidebar rows, threads, steps, and table rows.
     public static let rowHeight: CGFloat = 24
     public static let controlHeight: CGFloat = 26

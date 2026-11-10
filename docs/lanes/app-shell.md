@@ -231,3 +231,11 @@ M4:
   12/17.5, mono 11, monoSmall 10.5, label 9.5, caption 11/15.
 - Visual check (`just snapshot` overview): every view picks up the smaller scale; feature list
   rows still carry their own vertical padding (R7 next); R1-R5 pass.
+- 2026-11-09 (R7, decision 0044): three zones. The stream fills between the sidebar (232) and
+  a persistent inspector (340) that follows the selection: event payload and hash, run facts
+  and cost, else steward context (plan, schedule, policy, connections, people, effort) with
+  Settings last. The settings pane grew into it; no raw steward id. Features drop the
+  `readingWidth` cap on lists and threads, and section gaps are `s4` at most.
+- Visual check (`just snapshot` overview-with-inspector, run, ledger-inspector, needs-you):
+  lists and threads fill the stream; the inspector shows steward context, run facts, and the
+  event payload in one place; R1-R5 pass.

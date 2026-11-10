@@ -21,7 +21,7 @@ struct StreamTab: View {
                 Text("No runs yet. A run starts when a trigger fires or you start one here.")
                     .aryaText(AryaFont.body, AryaColor.inkMuted)
             }
-            .padding(AryaSpace.s5)
+            .padding(AryaSpace.s4)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
