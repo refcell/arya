@@ -21,6 +21,8 @@ final class FeatureStore: ObservableObject {
     /// The workspace's policy sentence and change line for each pending approval, by id;
     /// empty when the workspace cannot provide them.
     @Published private(set) var approvalTexts: [String: FeatureApprovalText] = [:]
+    /// Each loaded run's numbers from the workspace, by run id.
+    @Published private(set) var runFacts: [String: FeatureRunFacts] = [:]
     /// Event details read from the workspace (payload text, hash, prev, run step), by seq.
     @Published private(set) var eventDetails: [Int: FeatureEventDetail] = [:]
     /// The reference time for relative timestamps. Tests and previews pin it.
@@ -57,6 +59,11 @@ final class FeatureStore: ObservableObject {
         } catch {
             state = .failed(FeatureStore.describe(error))
         }
+    }
+
+    /// Loads one run's numbers; keeps the last ones when the read fails.
+    func loadRunFacts(_ run: String) async {
+        if let facts = try? await workspace.runFacts(run: run) { runFacts[run] = facts }
     }
 
     /// Reloads once now, then on every change until the task is cancelled.

@@ -210,6 +210,26 @@ protocol FeatureWorkspace: Sendable {
     func conversation(steward: String, person: String) async throws -> [FeatureConversationEntry]
     /// Yields once whenever new events may be available.
     func changes() -> AsyncStream<Void>
+    /// One run's numbers from the workspace (`Workspace.runFacts`), the one source for counts,
+    /// start, elapsed time, and progress; nil when the workspace has none.
+    func runFacts(run: String) async throws -> FeatureRunFacts?
+}
+
+/// One run's numbers as the workspace counts them (`Workspace.runFacts`).
+struct FeatureRunFacts: Hashable, Sendable {
+    var running: Bool
+    var started: Date
+    var elapsedSeconds: Double
+    var decisions: Int
+    var toolCalls: Int
+    var actionsProposed: Int
+    var actionsApplied: Int
+    var actionsDrafted: Int
+    var actionsWaiting: Int
+    var stepIndex: Int
+    var estimatedSteps: Int?
+    /// True when the run drafted actions and applied none.
+    var dryRun: Bool
 }
 
 /// One message in a person's thread: theirs (inbound) or the steward's delivery (outbound).
@@ -224,6 +244,9 @@ struct FeatureConversationEntry: Hashable, Sendable {
 }
 
 extension FeatureWorkspace {
+    /// Workspaces without run facts leave the numbers to the ledger projection.
+    func runFacts(run: String) async throws -> FeatureRunFacts? { nil }
+
     /// Workspaces without a ledger watch never yield; the run shows as of its last reload.
     func observeRun(_ run: String) -> AsyncStream<Void> {
         AsyncStream { $0.finish() }

@@ -22,6 +22,10 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.routineBody(steward: steward, name: name, version: version)
     }
 
+    func runFacts(run: String) async throws -> FeatureRunFacts? {
+        try await source.featureRunFacts(run: run)
+    }
+
     func observeRun(_ run: String) -> AsyncStream<Void> {
         source.observeRun(run)
     }

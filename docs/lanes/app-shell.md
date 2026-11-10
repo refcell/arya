@@ -107,6 +107,8 @@ M4:
 - `just publish` quotes its filter, so regex filters work (`'Arya(App|Design)Tests'`).
 
 ## Questions
+
+- (from app-views) Review #12: the run inspector's STEPS and PROPOSED still come from `InspectorView.RunFacts.lines`. `FeatureStore.runFacts[run]` (`FeatureRunFacts`, from workspace `runFacts(run:)`) now holds the counts, start, elapsed time and progress the run header uses. Please read it, so header and inspector agree.
 - (from app-outcome) StewardPulse "Next wake"/"Running": please build state with `OutcomeState.build(serve: model.featureStore?.serve)`, format with `AryaTime.upcoming` ("due 10:19" when `state.serving == false`), and count running from `StatusBarLine.lines(live:...)`, so it matches NOW and the status bar.
 
 - From memory: `AryaDesignTests` crashed intermittently (signal 6/11) when AppKit color and

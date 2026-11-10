@@ -57,6 +57,24 @@ struct RunHeader: View {
     var stream: RunStream
     var accessory = AnyView(EmptyView())
     var now = Date()
+    /// The workspace's numbers; when set they replace the projection's counts and progress.
+    var facts: FeatureRunFacts? = nil
+
+    private var metrics: RunMetrics {
+        var metrics = stream.facts
+        guard let facts else { return metrics }
+        metrics.seconds = facts.running ? nil : facts.elapsedSeconds
+        metrics.decisions = facts.decisions
+        metrics.actions = facts.actionsProposed
+        return metrics
+    }
+
+    private var progress: RunProgress? {
+        guard let facts else { return stream.progress }
+        guard facts.running else { return nil }
+        return RunProgress(
+            done: facts.stepIndex, expected: facts.estimatedSteps, started: facts.started)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -66,9 +84,9 @@ struct RunHeader: View {
                 Spacer(minLength: AryaSpace.s3)
                 accessory
             }
-            Text(stream.facts.text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            Text(metrics.text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
-            if let progress = stream.progress {
+            if let progress {
                 HStack(spacing: AryaSpace.s2) {
                     AryaSpinner()
                     Text(progress.text(now: now)).aryaText(AryaFont.monoSmall, AryaColor.ink)

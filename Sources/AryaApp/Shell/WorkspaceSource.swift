@@ -50,6 +50,8 @@ protocol WorkspaceSource: Sendable {
     func liveReadinessSummary(proposal: String) async throws -> FeatureLiveReadiness
     /// Each pending approval's policy sentence and change line.
     func approvalTexts() async throws -> [String: FeatureApprovalText]
+    /// One run's numbers (`Workspace.runFacts`); nil when unknown.
+    func featureRunFacts(run: String) async throws -> FeatureRunFacts?
     /// Whether a process (this app or `arya serve`) fires this home's triggers; nil when the
     /// source cannot tell.
     func schedulerServing() async -> Bool?
@@ -68,6 +70,7 @@ protocol WorkspaceSource: Sendable {
 
 extension WorkspaceSource {
     func observeRun(_ run: String) -> AsyncStream<Void> { AsyncStream { $0.finish() } }
+    func featureRunFacts(run: String) async throws -> FeatureRunFacts? { nil }
 
     func schedulerServing() async -> Bool? { nil }
     func serveSchedule() async -> FeatureServe? { nil }
@@ -136,6 +139,17 @@ extension WorkspaceSource {
 }
 
 extension Workspace: WorkspaceSource {
+    func featureRunFacts(run: String) async throws -> FeatureRunFacts? {
+        guard let facts = try await runFacts(run: run) else { return nil }
+        return FeatureRunFacts(
+            running: facts.status == "running", started: facts.started.date,
+            elapsedSeconds: facts.elapsedSeconds, decisions: facts.decisions,
+            toolCalls: facts.toolCalls, actionsProposed: facts.actionsProposed,
+            actionsApplied: facts.actionsApplied, actionsDrafted: facts.actionsDrafted,
+            actionsWaiting: facts.actionsWaiting, stepIndex: facts.stepIndex,
+            estimatedSteps: facts.estimatedSteps, dryRun: facts.dryRun)
+    }
+
     nonisolated func observeRun(_ run: String) -> AsyncStream<Void> {
         let updates = observe(run: run)
         return AsyncStream { continuation in

@@ -341,6 +341,8 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 
 ## Questions
 
+- (from app-views) Review #12: the run Undo button (GovernanceViews) should be hidden when the run applied nothing: read `runFacts(run:).actionsApplied == 0`, or leave drafted actions out of the undo options. The run header now reads "Dry run: would have …" for these runs.
+
 - (G3) To apply retention, every `sink.events(from: 1)` fold in runtime and eval must start
   from a checkpoint seed (`ProjectionCache.current`) instead of the first event, or read the
   archive too. Asked in runtime.md and eval.md; until then retention plans but never moves.

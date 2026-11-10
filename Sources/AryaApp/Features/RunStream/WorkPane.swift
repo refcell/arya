@@ -170,13 +170,47 @@ private struct WorkDiffView: View {
             if text.isEmpty {
                 Text("Loading…").aryaText(AryaFont.caption, AryaColor.inkFaint)
             } else {
-                DiffBlock(text)
+                WrappedDiff(text: text)
             }
         }
         .padding(.vertical, AryaSpace.s2)
         .padding(.horizontal, AryaSpace.s2)
         .background(selected ? AryaColor.selection : .clear)
         .task(id: diff.id) { await store.loadRoutineDiff(diff) }
+    }
+}
+
+/// A unified diff whose long lines wrap, so nothing is cut at the pane's right edge.
+private struct WrappedDiff: View {
+    var text: String
+
+    static func mark(_ line: DiffLine) -> Color? {
+        switch line.kind {
+        case .added: AryaColor.positive
+        case .removed: AryaColor.negative
+        default: nil
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(DiffLine.parse(text).enumerated()), id: \.offset) { _, line in
+                HStack(alignment: .firstTextBaseline, spacing: 0) {
+                    if let mark = WrappedDiff.mark(line) {
+                        Text(String(line.text.prefix(1))).aryaText(AryaFont.mono, mark)
+                    }
+                    let body =
+                        WrappedDiff.mark(line) == nil ? line.text : String(line.text.dropFirst())
+                    Text(body.isEmpty ? " " : body)
+                        .aryaText(AryaFont.mono, line.textToken.color)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .textSelection(.enabled)
+        .padding(AryaSpace.s3)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.medium))
     }
 }
 

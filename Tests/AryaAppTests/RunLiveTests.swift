@@ -88,3 +88,26 @@ import Testing
     #expect(diff.title == "src/a.txt")
     #expect(diff.countText == "+1 −1")
 }
+
+@Test func messageInputsReadInPeoplesWords() {
+    #expect(
+        RunInput.message("person:priya hands this to you: Close ISSUE-9")
+            == "Priya handed this to you: Close ISSUE-9")
+    #expect(RunInput.message("person:sam-lee asks: Why?") == "Sam Lee asked: Why?")
+    #expect(RunInput.message("New message MSG-1") == "New message MSG-1")
+}
+
+@Test func dryRunsDoNotClaimEffects() {
+    #expect(
+        RunStream.dryRunSummary("Moved a message to spam.")
+            == "Dry run: would have moved a message to spam.")
+    var drafted = ProposedActionStep(
+        actionID: "a1", kind: "label", target: "inbox:MSG-1", summary: "", rationale: "",
+        policy: "auto", outcome: .executed(output: ""))
+    drafted.dryRun = true
+    let step = StreamStep(id: "e", number: 1, at: FeatureTestClock.now, kind: .action(drafted))
+    #expect(RunStream.isDryRun([step]))
+    drafted.dryRun = false
+    let real = StreamStep(id: "e", number: 1, at: FeatureTestClock.now, kind: .action(drafted))
+    #expect(!RunStream.isDryRun([real]))
+}

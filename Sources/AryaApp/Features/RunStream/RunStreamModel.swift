@@ -216,10 +216,46 @@ struct RunStream: Hashable, Sendable {
             ? RunProgress.build(
                 events: events, run: run, steward: projector.steward,
                 done: RunThreadText.visible(steps).count, reported: projector.reported) : nil
+        var status = projector.status
+        var shown = steps
+        // A run that drafted and applied nothing does not claim effects (same rule as the
+        // workspace's `dryRun`).
+        if case .finished(let state, let summary) = status, !summary.isEmpty,
+            RunStream.isDryRun(steps)
+        {
+            let words = RunStream.dryRunSummary(summary)
+            status = .finished(status: state, summary: words)
+            shown = steps.map { step in
+                guard case .finished = step.kind else { return step }
+                var copy = step
+                copy.kind = .finished(status: state, summary: words)
+                return copy
+            }
+        }
         return RunStream(
-            run: run, steward: projector.steward, steps: steps,
-            status: projector.status, input: projector.input, facts: facts, reading: reading,
+            run: run, steward: projector.steward, steps: shown,
+            status: status, input: projector.input, facts: facts, reading: reading,
             progress: progress)
+    }
+
+    /// True when the run drafted actions (dry run) and applied none.
+    static func isDryRun(_ steps: [StreamStep]) -> Bool {
+        var drafted = 0
+        for step in steps {
+            guard case .action(let action) = step.kind, case .executed = action.outcome else {
+                continue
+            }
+            if !action.dryRun { return false }
+            drafted += 1
+        }
+        return drafted > 0
+    }
+
+    /// "Labeled MSG-1 as spam." -> "Dry run: would have labeled MSG-1 as spam."
+    static func dryRunSummary(_ summary: String) -> String {
+        guard !summary.hasPrefix("Dry run") else { return summary }
+        let lowered = summary.prefix(1).lowercased() + summary.dropFirst()
+        return "Dry run: would have \(lowered)"
     }
 
     /// The approval ids in this run still waiting for a person.
@@ -674,7 +710,7 @@ struct RunInput: Hashable, Sendable {
             try? JSONDecoder().decode(FeatureJSON.self, from: $0)
         }
         guard let json, case .object(let members) = json else {
-            return RunInput(body: .text(text))
+            return RunInput(body: .text(message(text)))
         }
         if kind == "join" || members["children"] != nil,
             case .array(let list)? = members["children"]
@@ -691,6 +727,30 @@ struct RunInput: Hashable, Sendable {
                 raw: RunInput.pretty(text))
         }
         return RunInput(body: .structured(summary(members)), raw: RunInput.pretty(text))
+    }
+
+    /// A message's run input in people's words: "person:priya hands this to you: …" reads
+    /// "Priya handed this to you: …".
+    static func message(_ text: String) -> String {
+        let forms = [
+            (" hands this to you: ", "handed this to you"), (" asks: ", "asked"),
+            (" corrects you (kept in memory): ", "corrected you (kept in memory)"),
+        ]
+        for (marker, words) in forms {
+            guard let range = text.range(of: marker) else { continue }
+            let sender = String(text[..<range.lowerBound])
+            guard !sender.contains(" ") else { continue }
+            let rest = text[range.upperBound...]
+            return "\(person(sender)) \(words): \(rest)"
+        }
+        return text
+    }
+
+    /// "person:priya-shah" -> "Priya Shah".
+    static func person(_ id: String) -> String {
+        let name = id.split(separator: ":").last.map(String.init) ?? id
+        return name.split(separator: "-").map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .joined(separator: " ")
     }
 
     private static func child(_ value: FeatureJSON) -> Child {
