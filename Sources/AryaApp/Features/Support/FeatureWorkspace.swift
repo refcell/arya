@@ -110,6 +110,8 @@ struct FeatureLearnedChecks: Hashable, Sendable {
         var found: String
         /// `corrected` or `agreed`.
         var origin: String
+        /// The result in one line: `Breaks “…” on case-0006: choice: bug, not billing.`
+        var result: String = ""
     }
 
     var version: Int

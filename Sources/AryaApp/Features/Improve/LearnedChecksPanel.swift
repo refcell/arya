@@ -58,7 +58,9 @@ struct LearnedChecksPanel: View {
             Spacer(minLength: AryaSpace.s2)
             Chip(line.origin)
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(line.result)
+        .help(line.result)
     }
 }
 

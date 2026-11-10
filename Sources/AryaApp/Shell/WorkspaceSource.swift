@@ -422,7 +422,8 @@ extension Workspace: WorkspaceSource {
             lines: checks.results.map { line in
                 FeatureLearnedChecks.Line(
                     id: line.check.id, caseID: line.check.caseID.rawValue, text: line.check.text,
-                    passed: line.passed, found: line.found, origin: line.check.origin.rawValue)
+                    passed: line.passed, found: line.found, origin: line.check.origin.rawValue,
+                    result: line.result)
             })
     }
 

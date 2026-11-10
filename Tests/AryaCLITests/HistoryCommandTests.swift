@@ -32,7 +32,8 @@ import Testing
     let json = """
         {"steward":"st_triage","version":2,"total":1,"scored":1,"passed":0,"added":[],
          "removed":[],"sentence":"Checks v2: passes 0 of 1.","results":[{"passed":false,
-         "found":"choice: bug","check":{"id":"c2/x","case":"c2","origin":"corrected",
+         "found":"choice: bug","result":"Breaks “Features” on c2: choice: bug, not feature.",
+         "check":{"id":"c2/x","case":"c2","origin":"corrected",
          "by":"local","text":"Feature requests are features.",
          "check":{"kind":"equals","path":"decisions.choice","value":"feature","weight":1}}}]}
         """
@@ -40,7 +41,7 @@ import Testing
     #expect(
         HistoryText.checks(view) == [
             "Checks v2: passes 0 of 1.",
-            "  FAIL  c2  Feature requests are features. (choice: bug)",
+            "  FAIL  Breaks “Features” on c2: choice: bug, not feature.",
         ])
 }
 

@@ -136,8 +136,7 @@ enum HistoryText {
         [checks.sentence]
             + checks.results.map { line in
                 let mark = line.passed.map { $0 ? "pass" : "FAIL" } ?? "-   "
-                let found = line.passed == false ? " (\(line.found))" : ""
-                return "  \(mark)  \(line.check.caseID.rawValue)  \(line.check.text)\(found)"
+                return "  \(mark)  \(line.result)"
             }
     }
 

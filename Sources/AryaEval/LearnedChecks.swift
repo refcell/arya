@@ -69,6 +69,10 @@ public struct LearnedCheckResult: Hashable, Sendable, Codable {
     public var passed: Bool?
     /// What the steward did on that field: `choice: billing`, or `not rehearsed`.
     public var found: String
+    /// The result in one line, shown verbatim: `Keeps “…” on case-0006.`,
+    /// `Breaks “…” on case-0006: choice: bug, not billing.`, or
+    /// `“…” on case-0006: not rehearsed yet.`
+    public var result: String
 }
 
 /// A steward's learned checks, scored: what the app's Improve tab and `arya checks` show.
@@ -148,15 +152,20 @@ public struct LearnedChecks: Sendable {
         rehearsal: String?
     ) -> LearnedChecksView {
         let results = built.checks.map { learned -> LearnedCheckResult in
+            let quoted = "“\(quote(learned.text))” on \(learned.caseID.rawValue)"
             guard let actual = answers[learned.caseID] else {
-                return LearnedCheckResult(check: learned, passed: nil, found: "not rehearsed")
+                return LearnedCheckResult(
+                    check: learned, passed: nil, found: "not rehearsed",
+                    result: "\(quoted): not rehearsed yet.")
             }
             let holds = learned.check.holds(expected: .null, actual: actual)
             let found = actual.values(at: learned.check.path)
             let name = RubricCheck.name(learned.check.path)
+            let phrase = learned.check.phrase(holds: false, found: found)
             return LearnedCheckResult(
                 check: learned, passed: holds,
-                found: found.isEmpty ? "no \(name)" : "\(name): \(CaseScore.words(found))")
+                found: found.isEmpty ? "no \(name)" : "\(name): \(CaseScore.words(found))",
+                result: holds ? "Keeps \(quoted)." : "Breaks \(quoted): \(phrase).")
         }
         func rank(_ item: LearnedCheckResult) -> Int {
             switch item.passed {
@@ -197,12 +206,14 @@ public struct LearnedChecks: Sendable {
                 : "\(head): passes \(passed) of \(results.count)\(rest)."
         }
         let more = failing.count > 1 ? " and \(failing.count - 1) more" : ""
-        let quoted =
-            first.check.text.hasSuffix(".")
-            ? String(first.check.text.dropLast())
-            : first.check.text
+        let quoted = quote(first.check.text)
         return "\(head): passes \(passed) of \(results.count)\(rest); misses “\(quoted)” on "
             + "\(first.check.caseID.rawValue)\(more)."
+    }
+
+    /// The text without its closing period, for quoting inside a sentence.
+    static func quote(_ text: String) -> String {
+        text.hasSuffix(".") ? String(text.dropLast()) : text
     }
 
     /// The newest `checks.built` of a steward.

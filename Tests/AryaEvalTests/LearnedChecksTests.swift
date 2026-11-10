@@ -69,6 +69,11 @@ private let learnCharter = Charter(
     #expect(view.results.map(\.passed) == [false, true])
     #expect(view.results[0].found == "choice: bug")
     #expect(
+        view.results.map(\.result) == [
+            "Breaks “Feature requests are features” on c2: choice: bug, not feature.",
+            "Keeps “Chooses bug (agreed)” on c1.",
+        ])
+    #expect(
         view.sentence
             == "Checks v1: passes 1 of 2; misses “Feature requests are features” on c2.")
 
@@ -91,8 +96,8 @@ private let learnCharter = Charter(
         id: "c/x", caseID: CaseID(rawValue: "c")!, text: "Chooses bug (agreed)",
         check: RubricCheck(kind: .equals, path: "decisions.choice", value: "bug"),
         origin: .agreed, by: "local")
-    let pass = LearnedCheckResult(check: check, passed: true, found: "choice: bug")
-    let open = LearnedCheckResult(check: check, passed: nil, found: "not rehearsed")
+    let pass = LearnedCheckResult(check: check, passed: true, found: "choice: bug", result: "")
+    let open = LearnedCheckResult(check: check, passed: nil, found: "not rehearsed", result: "")
     #expect(
         LearnedChecks.sentence(version: 3, results: [], scored: 0)
             == "Checks v3: none yet; correct or agree with cases in the review queue.")
