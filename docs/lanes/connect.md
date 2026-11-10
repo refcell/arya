@@ -65,6 +65,17 @@ and receive a periodic report from it.
 
 ## Log
 
+- 2026-11-10 HANDOFF: Connections (c955cdb) and People are on main. Next is Channels and hand
+  off work. Plan: add `Workspace.postMessage(text, from:, to:, intent:)` over
+  `Inbox.post` in a new `Sources/Arya/Channels.swift` (the facade has only `deliverMessage`,
+  which records nothing when no trigger takes it); add `FeatureWrite.postMessage`. On People,
+  show each person's thread: `inbox.message` inbound, and `action.executed` whose output has
+  `inbox` for outbound. Add a composer ("Message as Sam", intent Ask, Correct, or Hand off).
+  List handoffs as tasks, with status from the run whose `run.started` input attachment names
+  the message id. Then the periodic report (item 4). Notes: Command Line Tools need
+  `@AryaState`, not `@State` (decision 0021). Snapshots reuse `.build/demo-home`, so run
+  `just demo --no-open` after you change examples.
+
 - 2026-11-10: lane opened; Connections page with Keychain secrets, connection test, and
   gated Connect/Disconnect.
 - 2026-11-10: Visual check: `connections` and `connections-light` snapshots on the demo home
