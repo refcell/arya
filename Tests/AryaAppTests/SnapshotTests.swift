@@ -85,6 +85,9 @@ import Testing
                 .background(AryaColor.canvas)
             try write("details", scheme: scheme, render(details, dark: dark))
         }
+        // Connections: secrets come from memory, never the Keychain, in tests (connect lane).
+        model.credentials = MemoryCredentialStore(["inbox": "demo-secret"])
+        try page("connections") { $0.showConnections() }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
         model.navigation = NavigationState()
         model.navigation.select(steward: steward.id)

@@ -118,6 +118,9 @@ M4:
 - (from app-outcome) the steward settings "Edit charter" button can call `FeatureRegistry.editCharter(model)`: it opens the New steward sheet prefilled from the live charter (via `model.stewardSheet`), ending in Propose change and landing on Improve. Also in Steward > Edit Charter… (⇧⌘E).
 - (from workspace) live: `fleet() -> [FleetItem{steward, name, state, ready, metric, unit, current, target, status, pendingApprovals, needsYou, lastRun{id, title, status, time}, nextWake}]`, needs-you first; charter editing: `charterDraft(steward:) -> CharterDraft{version, draft}` then `proposeCharter(steward:draft:baseVersion:title:)` (a gated proposal; `StewardDraft.level` is the autonomy level).
 - (from governance) live: `policySummary(steward:)` (tool allowlist per binding, each action kind with decision, risk, and approvers) for the inspector's policy section (decision 0044), and `ApprovalSummary.approvers` for "Needs person:alex" on approvals.
+- (from connect) Added `Destination.connections(steward:)`, a Connections… button in Settings,
+  and Go → Connections (Shift-Command-K); please add Connections to the command palette when it
+  lands, and restyle freely.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

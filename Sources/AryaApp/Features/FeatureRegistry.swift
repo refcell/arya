@@ -154,6 +154,33 @@ enum FeatureRegistry {
             openDemo: { model.stewardSheet = .example })
     }
 
+    /// The Connections page (Settings, Go menu): systems, their actions and risk, per-steward
+    /// Connect and Disconnect as gated proposals, a connection test, and Keychain secrets.
+    @ViewBuilder
+    static func connections(_ context: FeatureContext) -> some View {
+        let model = context.model
+        if let store = context.store {
+            let steward: String? = {
+                if case .connections(let id) = model.navigation.destination { return id }
+                return nil
+            }()
+            let source = model.source
+            ConnectionsView(
+                store: store, stewards: model.stewards,
+                steward: steward ?? model.stewards.first?.id, credentials: model.credentials,
+                selectSteward: { model.navigation.showConnections(steward: $0) },
+                probe: { entry, secret in
+                    try await source.probeConnection(
+                        command: entry.command, args: entry.args, declared: entry.declared,
+                        secret: secret)
+                })
+        } else {
+            EmptyState(
+                "No connections yet.",
+                guidance: "Connections a steward's charter binds appear here.")
+        }
+    }
+
     /// Questions to person bindings across all stewards, for the rail's inbox entry.
     @ViewBuilder
     static func inbox(_ context: FeatureContext) -> some View {

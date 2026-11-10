@@ -41,9 +41,18 @@ protocol WorkspaceSource: Sendable {
     func whatIfSummary(run: String, proposal: String) async throws -> String
     /// Each pending approval's policy sentence and change line.
     func approvalTexts() async throws -> [String: FeatureApprovalText]
+    /// Starts a connection's server with its secret and lists its tools (the Test button).
+    func probeConnection(command: String, args: [String], declared: [String], secret: String?)
+        async throws -> ConnectionProbe
 }
 
 extension WorkspaceSource {
+    func probeConnection(command: String, args: [String], declared: [String], secret: String?)
+        async throws -> ConnectionProbe
+    {
+        throw FeatureReadError.unavailable("connection tests")
+    }
+
     func routineBody(steward: String, name: String, version: String) async throws -> String? {
         throw FeatureReadError.unavailable("routine bodies")
     }
@@ -79,6 +88,16 @@ extension WorkspaceSource {
 
 extension Workspace: WorkspaceSource {
     nonisolated var label: String { home.lastPathComponent }
+
+    func probeConnection(command: String, args: [String], declared: [String], secret: String?)
+        async throws -> ConnectionProbe
+    {
+        // The app's own environment (for PATH), plus the secret; nothing is recorded.
+        try await ConnectionProbe.run(
+            command: command, args: args, declared: declared,
+            environment: ConnectionCredential.environment(
+                ProcessInfo.processInfo.environment, secret: secret))
+    }
 
     func efforts() async throws -> [String: String] {
         var efforts: [String: String] = [:]

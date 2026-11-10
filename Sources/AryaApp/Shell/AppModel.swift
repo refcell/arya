@@ -39,6 +39,8 @@ final class AppModel {
     /// Where new approvals are announced, if anywhere.
     var notifications: (any NotificationPosting)?
     @ObservationIgnored private var notifier = ApprovalNotifier()
+    /// Where connection secrets are kept: the Keychain, or memory in tests and snapshots.
+    @ObservationIgnored var credentials: any CredentialStore = KeychainCredentialStore()
 
     init(source: any WorkspaceSource, featureStore: FeatureStore? = nil) {
         self.source = source

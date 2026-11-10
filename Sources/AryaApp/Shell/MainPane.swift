@@ -31,6 +31,8 @@ struct MainPane: View {
                 FeatureRegistry.approvals(model.featureContext())
             }
             .padding(.top, AryaSize.titleBarInset)
+        case .connections:
+            FeatureRegistry.connections(model.featureContext())
         case .steward:
             if let steward = model.selectedSteward {
                 StewardPage(model: model, steward: steward)

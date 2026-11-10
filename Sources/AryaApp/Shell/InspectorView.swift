@@ -211,6 +211,9 @@ struct InspectorView: View {
             ForEach(context.connections, id: \.self) {
                 Text($0).aryaText(AryaFont.monoSmall, AryaColor.ink)
             }
+            Button("Connections…") { model.navigation.showConnections() }
+                .buttonStyle(.aryaQuiet)
+                .help("Connect systems, test them, and keep their secrets (Shift-Command-K)")
         }
         section("People") {
             if context.people.isEmpty {
