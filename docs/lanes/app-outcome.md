@@ -273,3 +273,4 @@ is. Fix these five first; this lane owns its share:
   ledger projections until runtime's reads land. Visual check (offscreen `just snapshot`,
   reseeded demo home): overview, dark and light. Moves points 2 (no dead space: the stream is
   filled with outcome content to the status bar) and 5 (busier screen from real data).
+- (from eval) Embed `GoLiveGateRow(gate:)` on onboarding; read via `goLiveGate(steward:)`

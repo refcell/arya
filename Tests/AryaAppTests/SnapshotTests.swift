@@ -128,6 +128,23 @@ import Testing
             try write(
                 "improve-proposal-full", scheme: scheme, render(demo, dark: dark, size: tall))
         }
+        // What worked (eval): the real trajectory read, or a sample when the demo has no
+        // follow-up checks yet; and the go-live gate card onboarding embeds, from the real read.
+        if let store = model.featureStore {
+            let real = try? await store.workspace.trajectories(steward: steward.id)
+            let worked = real.flatMap { $0.credits.isEmpty ? nil : $0 } ?? WhatWorkedSample.value
+            let wide = CGSize(width: Self.size.width, height: 420)
+            try write(
+                "improve-trajectories", scheme: scheme,
+                render(
+                    Self.card(WhatWorkedPanel(trajectories: worked), wide), dark: dark, size: wide))
+            if let gate = try? await store.workspace.goLiveGate(steward: steward.id) {
+                let short = CGSize(width: Self.size.width, height: 200)
+                try write(
+                    "onboarding-gate", scheme: scheme,
+                    render(Self.card(GoLiveGateRow(gate: gate), short), dark: dark, size: short))
+            }
+        }
         // Offscreen renders run no tasks, so load what the Knowledge tab would.
         if let store = model.featureStore {
             store.knowledge[steward.id] = try? await store.workspace.knowledge(steward: steward.id)
@@ -536,6 +553,13 @@ import Testing
     }
 
     /// True when no state filter is set, or the filter names this state or file.
+    /// A panel on the canvas at `size`, padded like a pane.
+    static func card(_ view: some View, _ size: CGSize) -> some View {
+        view.padding(AryaSpace.s5)
+            .frame(width: size.width, height: size.height, alignment: .topLeading)
+            .background(AryaColor.canvas)
+    }
+
     static func wanted(_ name: String, file: String) -> Bool {
         let raw = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_STATES"] ?? ""
         let names = raw.split { $0 == "," || $0 == " " }.map(String.init)
@@ -613,4 +637,35 @@ final class SnapshotWatchdog: @unchecked Sendable {
     }
 
     func cancel() { item.cancel() }
+}
+
+/// A What worked sample for the snapshot while the demo has no follow-up checks: two kinds
+/// with enough outcomes, one sparse, and two choices.
+enum WhatWorkedSample {
+    static let value = FeatureTrajectories(
+        good: 14, bad: 3, pending: 5,
+        sentence: "Graded 17 runs on later outcomes: 14 good, 3 reopened, 5 still open; best "
+            + "evidence: label: resolved 12 of 13, checked a median 9 days later.",
+        credits: [
+            credit("kind", "label", 12, 1, 2, 0.67, 9),
+            credit("kind", "route", 9, 3, 1, 0.47, 11),
+            credit("kind", "reply", 1, 0, 2, 0.21, 4),
+            credit("choice", "billing", 8, 1, 1, 0.57, 9),
+            credit("choice", "bug", 4, 2, 2, 0.30, 12),
+            credit("choice", "spam", 2, 0, 2, 0.34, 2),
+        ])
+
+    static func credit(
+        _ axis: String, _ name: String, _ resolved: Int, _ reopened: Int, _ pending: Int,
+        _ confidence: Double, _ lag: Double
+    ) -> FeatureTrajectories.Credit {
+        let settled = resolved + reopened
+        return FeatureTrajectories.Credit(
+            id: axis + ":" + name, axis: axis, name: name, resolved: resolved,
+            reopened: reopened, pending: pending, rate: Double(resolved) / Double(settled),
+            confidence: confidence, medianLagDays: lag,
+            line: "\(name): resolved \(resolved) of \(settled), checked a median "
+                + "\(Int(lag)) days later"
+        )
+    }
 }

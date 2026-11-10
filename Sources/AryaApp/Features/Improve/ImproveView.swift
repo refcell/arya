@@ -33,6 +33,9 @@ struct ImproveView: View {
                     if let checks = store.learnedChecks[steward] {
                         LearnedChecksPanel(checks: checks)
                     }
+                    if let worked = store.trajectories[steward] {
+                        WhatWorkedPanel(trajectories: worked)
+                    }
                     AryaHairline()
                     // Proposal review (app-outcome): change and why, rehearsal case by case,
                     // and Reject or Accept by what the rehearsal found.
@@ -54,6 +57,9 @@ struct ImproveView: View {
                 }
                 if let checks = try? await store.workspace.learnedChecks(steward: steward) {
                     store.learnedChecks[steward] = checks
+                }
+                if let worked = try? await store.workspace.trajectories(steward: steward) {
+                    store.trajectories[steward] = worked
                 }
             }
         }

@@ -337,4 +337,10 @@ Parity (CEO gap map):
   to action kinds (own actions) and decision choices (the run's outcome), median lag in days,
   and a Wilson lower-bound confidence so little evidence stays low. Workspace asked to feed it
   into Impact confidence.
+- 2026-11-10: Improve gets WHAT WORKED (`WhatWorkedPanel`: kinds and choices, resolved of
+  settled, median lag, confidence chip, outcome bar; dashes and "low confidence: N outcomes"
+  when sparse) and an embeddable `GoLiveGateRow` for onboarding. Reads in FeatureOutcomeReads.
+  Review queue progress bar is neutral now (no orange on progress). Visual check:
+  improve-trajectories (sample data; the demo has no follow-up checks yet) and onboarding-gate
+  (real demo read: 1 of 3 met) rendered and viewed; point 5 (busy) and point 3 (real controls).
 

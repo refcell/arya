@@ -68,6 +68,14 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.learnedChecksSummary(steward: steward)
     }
 
+    func trajectories(steward: String) async throws -> FeatureTrajectories {
+        try await source.trajectorySummary(steward: steward)
+    }
+
+    func goLiveGate(steward: String) async throws -> FeatureGoLiveGate {
+        try await source.goLiveGateSummary(steward: steward)
+    }
+
     func knowledge(steward: String) async throws -> FeatureKnowledge {
         try await source.knowledgeSummary(steward: steward)
     }

@@ -19,7 +19,7 @@ struct ReviewQueuePanel: View {
                 Spacer(minLength: AryaSpace.s2)
                 ProgressView(value: Double(queue.reviewed), total: Double(max(queue.total, 1)))
                     .progressViewStyle(.linear)
-                    .tint(AryaColor.accent)
+                    .tint(AryaColor.inkMuted)
                     .frame(width: 96)
                     .accessibilityLabel(queue.progressText)
             }

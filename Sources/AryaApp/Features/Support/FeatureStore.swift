@@ -45,6 +45,10 @@ final class FeatureStore: ObservableObject {
     @Published var libraryDiffs: [String: RoutineDiffState] = [:]
     /// Learned checks by steward, loaded by Improve (an async read).
     @Published var learnedChecks: [String: FeatureLearnedChecks] = [:]
+    /// What worked per steward (eval's trajectory grading), loaded by Improve.
+    @Published var trajectories: [String: FeatureTrajectories] = [:]
+    /// The go-live gate per steward, loaded by whoever shows `GoLiveGateRow`.
+    @Published var goLiveGates: [String: FeatureGoLiveGate] = [:]
 
     init(workspace: any FeatureWorkspace, now: Date = Date()) {
         self.workspace = workspace

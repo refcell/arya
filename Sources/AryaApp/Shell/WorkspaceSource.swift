@@ -41,6 +41,10 @@ protocol WorkspaceSource: Sendable {
     func reviewQueueSummary(steward: String) async throws -> FeatureReviewQueue?
     /// The learned checks, scored, or nil before anyone reviewed a case.
     func learnedChecksSummary(steward: String) async throws -> FeatureLearnedChecks?
+    /// What worked (`Workspace.trajectories`).
+    func trajectorySummary(steward: String) async throws -> FeatureTrajectories
+    /// The go-live gate (`Workspace.goLiveGate`).
+    func goLiveGateSummary(steward: String) async throws -> FeatureGoLiveGate
     /// The Knowledge screen's notes and routines.
     func knowledgeSummary(steward: String) async throws -> FeatureKnowledge
     /// What a steward is doing now (`Workspace.stewardLive`).
@@ -173,6 +177,14 @@ extension WorkspaceSource {
 
     func learnedChecksSummary(steward: String) async throws -> FeatureLearnedChecks? {
         throw FeatureReadError.unavailable("learned checks")
+    }
+
+    func trajectorySummary(steward: String) async throws -> FeatureTrajectories {
+        throw FeatureReadError.unavailable("trajectories")
+    }
+
+    func goLiveGateSummary(steward: String) async throws -> FeatureGoLiveGate {
+        throw FeatureReadError.unavailable("go-live gate")
     }
 
     func whatIfSummary(run: String, proposal: String) async throws -> String {
@@ -499,6 +511,27 @@ extension Workspace: WorkspaceSource {
 
     func whatIfSummary(run: String, proposal: String) async throws -> String {
         try await whatIf(run: run, proposal: proposal).summary
+    }
+
+    func trajectorySummary(steward: String) async throws -> FeatureTrajectories {
+        let view = try await trajectories(steward: steward)
+        return FeatureTrajectories(
+            good: view.good, bad: view.bad, pending: view.pending, sentence: view.sentence,
+            credits: view.credits.map {
+                FeatureTrajectories.Credit(
+                    id: $0.id, axis: $0.axis, name: $0.name, resolved: $0.resolved,
+                    reopened: $0.reopened, pending: $0.pending, rate: $0.rate,
+                    confidence: $0.confidence, medianLagDays: $0.medianLagDays, line: $0.line)
+            })
+    }
+
+    func goLiveGateSummary(steward: String) async throws -> FeatureGoLiveGate {
+        let gate = try await goLiveGate(steward: steward)
+        return FeatureGoLiveGate(
+            ready: gate.ready, summary: gate.summary,
+            conditions: gate.conditions.map {
+                FeatureGoLiveGate.Condition(key: $0.key, met: $0.met, detail: $0.detail)
+            })
     }
 
     func liveReadinessSummary(proposal: String) async throws -> FeatureLiveReadiness {

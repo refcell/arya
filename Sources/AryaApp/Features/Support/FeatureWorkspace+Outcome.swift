@@ -80,6 +80,50 @@ struct FeatureLearnedChecks: Hashable, Sendable {
     var lines: [Line]
 }
 
+/// What worked (eval's trajectory grading): runs graded on follow-up checks that came later,
+/// with credit for action kinds and decision choices. Every string is shown verbatim.
+struct FeatureTrajectories: Hashable, Sendable {
+    struct Credit: Hashable, Sendable, Identifiable {
+        var id: String
+        /// `kind` or `choice`.
+        var axis: String
+        var name: String
+        var resolved: Int
+        var reopened: Int
+        var pending: Int
+        /// resolved / settled, nil until one settles.
+        var rate: Double?
+        /// 0...1, the lower end of the 95% interval on `rate`.
+        var confidence: Double
+        var medianLagDays: Double?
+        /// `label: resolved 10 of 12, checked a median 9 days later`.
+        var line: String
+    }
+
+    var good: Int
+    var bad: Int
+    var pending: Int
+    var sentence: String
+    /// Kinds, then choices, each by confidence.
+    var credits: [Credit]
+}
+
+/// Whether a steward is ready to go live after onboarding (eval's go-live gate): agreed
+/// reviews, a passing rehearsal, and green checks, with the one sentence of what is missing.
+struct FeatureGoLiveGate: Hashable, Sendable {
+    struct Condition: Hashable, Sendable, Identifiable {
+        /// `review`, `rehearsal`, or `checks`.
+        var key: String
+        var met: Bool
+        var detail: String
+        var id: String { key }
+    }
+
+    var ready: Bool
+    var summary: String
+    var conditions: [Condition]
+}
+
 /// A proposed charter change from the editor.
 struct CharterProposal: Hashable, Sendable {
     var steward: String
@@ -130,6 +174,10 @@ protocol FeatureOutcomeReads: Sendable {
     func learnedChecks(steward: String) async throws -> FeatureLearnedChecks?
     /// A charter proposal backtested against the live charter, for Improve.
     func liveReadiness(proposal: String) async throws -> FeatureLiveReadiness
+    /// What worked: runs graded on later outcomes, credit by kind and choice (eval).
+    func trajectories(steward: String) async throws -> FeatureTrajectories
+    /// The go-live gate for onboarding (eval).
+    func goLiveGate(steward: String) async throws -> FeatureGoLiveGate
     /// What the steward is doing now (app-outcome's NOW).
     func stewardLive(steward: String) async throws -> FeatureStewardLive
     /// The Overview's findings, the steward's own first (app-outcome's FINDINGS).
@@ -176,6 +224,16 @@ extension FeatureOutcomeReads {
     /// Workspaces without learned checks report them unavailable; Improve then hides them.
     func learnedChecks(steward: String) async throws -> FeatureLearnedChecks? {
         throw FeatureReadError.unavailable("learned checks")
+    }
+
+    /// Workspaces without trajectory grading report it unavailable; Improve then hides it.
+    func trajectories(steward: String) async throws -> FeatureTrajectories {
+        throw FeatureReadError.unavailable("trajectories")
+    }
+
+    /// Workspaces without the go-live gate report it unavailable; onboarding then hides it.
+    func goLiveGate(steward: String) async throws -> FeatureGoLiveGate {
+        throw FeatureReadError.unavailable("go-live gate")
     }
 
     func stewardLive(steward: String) async throws -> FeatureStewardLive {
