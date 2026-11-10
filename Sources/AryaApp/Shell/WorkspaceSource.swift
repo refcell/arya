@@ -438,7 +438,7 @@ extension Workspace: WorkspaceSource {
             running: facts, run: live.running?.run,
             title: live.running?.title, progress: live.running?.progress,
             alsoRunning: live.alsoRunning, schedule: live.schedule,
-            nextWake: live.nextWake?.date, serving: live.serving, readAt: Date())
+            nextWake: live.nextWake?.date, serving: live.serving)
     }
 
     func overviewFindingLines(steward: String) async throws -> [FeatureOverviewFinding] {

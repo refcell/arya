@@ -161,7 +161,8 @@ struct OutcomeNow: Hashable, Sendable {
         var title: String
         /// The adapter's latest step line, when it sent one.
         var doing: String?
-        var elapsed: TimeInterval
+        /// "8 s", "2m 4s": app-views' one elapsed format.
+        var elapsed: String
         var progress: Double?
         /// "step 3 of ~7", from the workspace's step count and usual steps.
         var steps: String
@@ -187,12 +188,10 @@ struct OutcomeNow: Hashable, Sendable {
         let running = live.flatMap { live in
             live.running.map { facts in (facts, live.run ?? "", live.title, live.progress) }
         }.map { facts, run, title, progress in
-            // The status bar's arithmetic (`LiveLine.elapsed(at:)`): the workspace's elapsed
-            // plus the seconds since it was read, so both read `now - started`.
-            let since = live?.readAt.map { now.timeIntervalSince($0) } ?? 0
-            return Live(
+            // app-views' one elapsed clock and format (`FeatureRunFacts.elapsedText`).
+            Live(
                 run: run, title: title ?? "Run in progress", doing: ledger.status[run],
-                elapsed: max(0, facts.elapsedSeconds + since), progress: progress,
+                elapsed: facts.elapsedText(now: now), progress: progress,
                 steps: "step \(facts.stepIndex)"
                     + (facts.estimatedSteps.map { " of ~\($0)" } ?? ""))
         }
@@ -427,7 +426,7 @@ struct OutcomeNowSection: View {
                             Text(live.title).aryaText(AryaFont.body, AryaColor.ink).lineLimit(1)
                             Spacer(minLength: AryaSpace.s2)
                             Text(live.steps).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                            Text(FeatureTime.duration(live.elapsed))
+                            Text(live.elapsed)
                                 .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                         }
                         if let progress = live.progress {

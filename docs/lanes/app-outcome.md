@@ -192,6 +192,12 @@ is. Fix these five first; this lane owns its share:
   actions", "Maya · person"). The header's missed window waits for workspace's outcomeWindow.
 - Visual check: overview-live: NOW "step 9 of ~9 · 5m 47s" equals the status bar; NEXT WAKE
   17:00 equals SCHEDULE "Next run 17:00".
+- Step 4 embeds eval's GoLiveGateRow; Mark ready reads `store.goLiveGates` (the one gate read),
+  enabled only when it passes. NOW's elapsed is app-views' `FeatureRunFacts.elapsedText(now:)`.
+- M3.6 #1: METRICS shows guardrail metrics from `metricStatuses(steward:windows: 14)` under
+  GUARDRAILS (value against its bound, target line on the sparkline, red when off track, the
+  workspace's line on hover); the ledger's other-metric rows give way to the read. Next: the
+  wizard and charter editor take guardrail metrics and an owner.
 - Visual check: overview, overview-live (dark, light): status bar, inspector and NOW all read
   next due 09:25; Start serving beside it; RECOVERING with missed 3 of 5. Moves points 4
   (live feel) and 2 (no dead space).
