@@ -41,160 +41,6 @@ enum FeatureWrite: Hashable, Sendable {
     case createSteward(StewardDraft)
 }
 
-/// What the workspace says about a pending approval: why policy held it, in a sentence (a
-/// charter rule's note, a generated sentence, or an autonomy explanation), and what the action
-/// would change ("label: none → billing").
-struct FeatureApprovalText: Hashable, Sendable {
-    var policy: String?
-    var change: String?
-}
-
-/// The Improve screen as the workspace writes it: the rehearsal and readiness in sentences,
-/// and each case's result, expectation, and difference in words.
-struct FeatureImproveSummary: Hashable, Sendable {
-    struct Case: Hashable, Sendable {
-        var id: String
-        var wouldHave: String
-        var expected: String
-        var diff: String
-        var passed: Bool
-        var leak: Bool
-    }
-
-    var rehearsal: String?
-    var rehearsalText: String
-    var ready: Bool
-    var markedReady: Bool
-    var readinessText: String
-    var readinessReasons: [String]
-    var cases: [Case]
-    /// Gate text by proposal id.
-    var gates: [String: String]
-}
-
-/// The review queue as the workspace writes it: what the steward would have done next to what
-/// the person did, case by case, with progress. Every string is shown verbatim.
-struct FeatureReviewQueue: Hashable, Sendable {
-    struct Item: Hashable, Sendable, Identifiable {
-        var id: String
-        var input: String
-        var wouldHave: String
-        var personDid: String
-        /// Whether the steward matched; nil before the case was rehearsed.
-        var matches: Bool?
-        var difference: String
-        var source: String
-        /// `pending`, `agreed`, `corrected`, or `skipped`.
-        var status: String
-    }
-
-    var casebookVersion: String
-    var rehearsal: String?
-    var progressText: String
-    var total: Int
-    var reviewed: Int
-    var next: Item?
-}
-
-/// The checks people taught a steward by correcting and agreeing, scored on its newest live
-/// rehearsal. Every string is shown verbatim.
-struct FeatureLearnedChecks: Hashable, Sendable {
-    struct Line: Hashable, Sendable, Identifiable {
-        var id: String
-        var caseID: String
-        /// The person's note for a correction, else the expectation in words.
-        var text: String
-        /// nil when the rehearsal has no answer for the case.
-        var passed: Bool?
-        /// What the steward did on that field: `choice: bug`, or `not rehearsed`.
-        var found: String
-        /// `corrected` or `agreed`.
-        var origin: String
-        /// The result in one line: `Breaks “…” on case-0006: choice: bug, not billing.`
-        var result: String = ""
-    }
-
-    var version: Int
-    var sentence: String
-    var total: Int
-    var scored: Int
-    var passed: Int
-    /// Failing first, then unscored, then passing.
-    var lines: [Line]
-}
-
-/// One event as the inspector shows it.
-struct FeatureEventDetail: Hashable, Sendable {
-    /// Where the event sits in its run: its position from 1, the run's event count, and title.
-    struct Step: Hashable, Sendable {
-        var run: String
-        var index: Int
-        var count: Int
-        var title: String
-    }
-
-    var payloadText: String
-    var hash: String
-    var prev: String
-    var step: Step?
-}
-
-/// The result of replaying a run from the ledger alone.
-struct FeatureReplayResult: Hashable, Sendable {
-    /// Where a replay first differed from the recording.
-    struct Divergence: Hashable, Sendable {
-        /// Position among the run's events, from 0.
-        var index: Int
-        var seq: Int?
-        var type: String
-        /// Dotted path of the first differing field, for example `payload.status`.
-        var field: String
-        /// Recorded and replayed events as canonical JSON, or empty.
-        var recorded: String
-        var replayed: String
-    }
-
-    var run: String
-    /// Events compared.
-    var events: Int
-    /// Empty when the replay matched the recording exactly.
-    var divergences: [Divergence]
-}
-
-/// A proposed charter change from the editor.
-struct CharterProposal: Hashable, Sendable {
-    var steward: String
-    /// The live version the draft started from.
-    var baseVersion: Int
-    var charter: FeatureJSON
-    var title: String
-    var reason: String
-}
-
-/// A correction of one rehearsed case.
-struct CaseCorrection: Hashable, Sendable {
-    var steward: String
-    var casebook: String
-    var caseID: String
-    var text: String
-    var expected: FeatureJSON?
-    var rehearsal: String?
-    var run: String?
-}
-
-/// A proposal's backtest against the live charter (eval's live readiness), shown verbatim.
-struct FeatureLiveReadiness: Hashable, Sendable {
-    var ready: Bool
-    /// One sentence, for example `Not ready: case-0005 would regress`.
-    var summary: String
-    /// One line per regressed case.
-    var regressions: [String]
-    /// Ids of cases that would improve.
-    var improved: [String]
-    /// Recent live runs replayed under the proposal.
-    var runsChecked: Int
-}
-
 /// The result of checking the ledger's hash chain.
 enum FeatureVerifyResult: Hashable, Sendable {
     case intact(events: Int)
@@ -203,7 +49,10 @@ enum FeatureVerifyResult: Hashable, Sendable {
 
 /// What the feature views need from a workspace. A local seam so the views build and test
 /// before the `Arya` facade lands; the facade will conform to it (or replace it) later.
-protocol FeatureWorkspace: Sendable {
+/// The core reads and writes (app-shell) plus each lane's reads, one protocol and file per
+/// lane: `FeatureRunReads` (+Run), `FeatureOutcomeReads` (+Outcome), `FeatureConnectReads`
+/// (+Connect).
+protocol FeatureWorkspace: FeatureRunReads, FeatureOutcomeReads, FeatureConnectReads {
     /// Every event in ledger order.
     func events() async throws -> [FeatureEvent]
     /// Records a write from the local user and returns the events it appended.
@@ -211,143 +60,20 @@ protocol FeatureWorkspace: Sendable {
     func record(_ write: FeatureWrite) async throws -> [FeatureEvent]
     /// Checks the ledger's hash chain.
     func verify() async throws -> FeatureVerifyResult
-    /// The body of one routine version (a content-addressed blob), or nil if it is missing.
-    func routineContent(steward: String, name: String, version: String) async throws -> String?
-    /// The expected result of one case in a casebook version, or nil if it is missing.
-    func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON?
-    /// Replays a finished run and reports the first difference from the recording.
-    func replay(run: String) async throws -> FeatureReplayResult
-    /// The workspace's words for each pending approval, by approval id.
-    func approvalTexts() async throws -> [String: FeatureApprovalText]
     /// Example stewards to start a New steward from (app-shell, Templates).
     func templates() -> [StewardTemplate]
-    /// Yields each time a live run's ledger grows, and finishes when the run ends.
-    func observeRun(_ run: String) -> AsyncStream<Void>
-    /// What `run` would have done under a proposal's charter, in one line.
-    func whatIf(run: String, proposal: String) async throws -> String
-    /// The Improve screen's sentences for one steward, written by the workspace.
-    func improveSummary(steward: String) async throws -> FeatureImproveSummary
-    /// The review queue for one steward, or nil when it has no casebook.
-    func reviewQueue(steward: String) async throws -> FeatureReviewQueue?
-    /// The learned checks for one steward, or nil before anyone reviewed a case.
-    func learnedChecks(steward: String) async throws -> FeatureLearnedChecks?
-    /// One event's inspector detail (hash chain, run position, readable payload), or nil.
-    func eventDetail(seq: Int) async throws -> FeatureEventDetail?
     /// The Knowledge screen for one steward, written by the workspace.
     func knowledge(steward: String) async throws -> FeatureKnowledge
-    /// A charter proposal backtested against the live charter, for Improve.
-    func liveReadiness(proposal: String) async throws -> FeatureLiveReadiness
-    /// One person's conversation with a steward, oldest first (`Workspace.conversation`).
-    func conversation(steward: String, person: String) async throws -> [FeatureConversationEntry]
     /// Yields once whenever new events may be available.
     func changes() -> AsyncStream<Void>
-    /// One run's numbers from the workspace (`Workspace.runFacts`), the one source for counts,
-    /// start, elapsed time, and progress; nil when the workspace has none.
-    func runFacts(run: String) async throws -> FeatureRunFacts?
-}
-
-/// One run's numbers as the workspace counts them (`Workspace.runFacts`).
-struct FeatureRunFacts: Hashable, Sendable {
-    var running: Bool
-    var started: Date
-    var elapsedSeconds: Double
-    var decisions: Int
-    var toolCalls: Int
-    var actionsProposed: Int
-    var actionsApplied: Int
-    var actionsDrafted: Int
-    var actionsWaiting: Int
-    var stepIndex: Int
-    var estimatedSteps: Int?
-    /// True when the run drafted actions and applied none.
-    var dryRun: Bool
-}
-
-/// One message in a person's thread: theirs (inbound) or the steward's delivery (outbound).
-struct FeatureConversationEntry: Hashable, Sendable {
-    var seq: Int
-    var inbound: Bool
-    /// `ask`, `correct`, or `handoff`, for inbound messages.
-    var intent: String?
-    var text: String?
-    /// The run that sent an outbound entry.
-    var run: String?
 }
 
 extension FeatureWorkspace {
-    /// Workspaces without run facts leave the numbers to the ledger projection.
-    func runFacts(run: String) async throws -> FeatureRunFacts? { nil }
-
     func templates() -> [StewardTemplate] { [] }
-
-    /// Workspaces without a ledger watch never yield; the run shows as of its last reload.
-    func observeRun(_ run: String) -> AsyncStream<Void> {
-        AsyncStream { $0.finish() }
-    }
-
-    /// Workspaces without a blob read report that routine bodies are not available yet.
-    func routineContent(steward: String, name: String, version: String) async throws -> String? {
-        throw FeatureReadError.unavailable("routine bodies")
-    }
-
-    /// Workspaces without a casebook read report that expected results are not available yet.
-    func caseExpected(casebook: String, caseID: String) async throws -> FeatureJSON? {
-        throw FeatureReadError.unavailable("expected results")
-    }
-
-    /// Workspaces without approval summaries report them unavailable; the approval block then
-    /// shows no policy or change line rather than one the app made up.
-    func approvalTexts() async throws -> [String: FeatureApprovalText] {
-        throw FeatureReadError.unavailable("approval summaries")
-    }
-
-    /// Workspaces without counterfactual runs report What if as unavailable.
-    func whatIf(run: String, proposal: String) async throws -> String {
-        throw FeatureReadError.unavailable("What if")
-    }
-
-    /// Workspaces without an Improve read report it unavailable; the screen then projects
-    /// the ledger itself.
-    func improveSummary(steward: String) async throws -> FeatureImproveSummary {
-        throw FeatureReadError.unavailable("improve summary")
-    }
-
-    /// Workspaces without a backtest read report it unavailable; the proposal then shows only
-    /// its gate.
-    func liveReadiness(proposal: String) async throws -> FeatureLiveReadiness {
-        throw FeatureReadError.unavailable("backtest")
-    }
-
-    /// Workspaces without a review queue report it unavailable; Improve then hides it.
-    func reviewQueue(steward: String) async throws -> FeatureReviewQueue? {
-        throw FeatureReadError.unavailable("review queue")
-    }
-
-    /// Workspaces without a conversation read report it unavailable; People then folds the
-    /// ledger itself.
-    func conversation(steward: String, person: String) async throws -> [FeatureConversationEntry] {
-        throw FeatureReadError.unavailable("conversation")
-    }
-
-    /// Workspaces without learned checks report them unavailable; Improve then hides them.
-    func learnedChecks(steward: String) async throws -> FeatureLearnedChecks? {
-        throw FeatureReadError.unavailable("learned checks")
-    }
 
     /// Workspaces without a Knowledge read report it unavailable.
     func knowledge(steward: String) async throws -> FeatureKnowledge {
         throw FeatureReadError.unavailable("knowledge")
-    }
-
-    /// Workspaces without an event read report it unavailable; the inspector then shows the
-    /// raw event it already has.
-    func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
-        throw FeatureReadError.unavailable("event detail")
-    }
-
-    /// Workspaces without a replay engine report that replay is not available yet.
-    func replay(run: String) async throws -> FeatureReplayResult {
-        throw FeatureReadError.unavailable("replay")
     }
 }
 

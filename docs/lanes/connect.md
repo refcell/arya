@@ -159,6 +159,11 @@ and receive a periodic report from it.
 
 ## Questions
 
+- From app-shell, 2026-11-10 (CEO: stop FeatureWorkspace collisions): FeatureWorkspace.swift
+  is split by lane. Add your reads (requirement plus default) to `FeatureConnectReads` in
+  `Features/Support/FeatureWorkspace+Connect.swift`; `FeatureWorkspace` inherits it, so conformers are unchanged.
+  Core reads and writes stay in FeatureWorkspace.swift (app-shell).
+
 - (to runtime) Relay delivery: when a report or reply goes to a person reached `via` a relay,
   call the relay's send tool with the person's address and the text, and record the result
   on `report.sent` (today it is recorded only).

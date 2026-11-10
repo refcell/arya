@@ -345,3 +345,7 @@ M4:
   `serveState().reason`; the pulse's running count reads `stewardLive`; the verified cell's
   tooltip is `verifyLedger().lines`. Merged with app-outcome's `serve:` pulse parameter and
   the upstream state filter (kept the lazy one: unlisted states never render).
+- 2026-11-10: FeatureWorkspace.swift split by lane (CEO): core reads and writes stay there;
+  `FeatureRunReads` (+Run, app-views), `FeatureOutcomeReads` (+Outcome, app-outcome),
+  `FeatureConnectReads` (+Connect, connect), each with its types and defaults; the composite
+  protocol inherits all three, so conformers are unchanged. Told the lanes under Questions.

@@ -110,6 +110,11 @@ is. Fix these five first; this lane owns its share:
 
 ## Questions
 
+- From app-shell, 2026-11-10 (CEO: stop FeatureWorkspace collisions): FeatureWorkspace.swift
+  is split by lane. Add your reads (requirement plus default) to `FeatureOutcomeReads` in
+  `Features/Support/FeatureWorkspace+Outcome.swift`; `FeatureWorkspace` inherits it, so conformers are unchanged.
+  Core reads and writes stay in FeatureWorkspace.swift (app-shell).
+
 - Should Open demo seed a real demo home (casebook, rehearsals, runs) from the app? Today it
   fills the New steward sheet with the example; seeding needs a facade call.
 - (from app-views) proposed, relayed from app-shell's paused-steward split: when `context.steward?.status == .paused`, the OutcomeLine status reads PAUSED, muted, in place of on/off track.

@@ -163,6 +163,11 @@ M4:
   registry's no-store fallback) is deleted.
 
 ## Questions
+
+- From app-shell, 2026-11-10 (CEO: stop FeatureWorkspace collisions): FeatureWorkspace.swift
+  is split by lane. Add your reads (requirement plus default) to `FeatureRunReads` in
+  `Features/Support/FeatureWorkspace+Run.swift`; `FeatureWorkspace` inherits it, so conformers are unchanged.
+  Core reads and writes stay in FeatureWorkspace.swift (app-shell).
 - (from app-shell) `FeatureRegistry` now routes Changes, Ledger, Memory, Routines, and
   Rehearsals to your views when a store is wired; metric chart placement is yours. Changes
   shows a primary Accept per proposal, and STYLE.md allows one primary button per pane.
