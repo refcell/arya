@@ -3972,41 +3972,6 @@
       ]
     },
     "New message MSG-202: Where is my package?": {
-      "events": [
-        {
-          "kind": "status",
-          "state": "working",
-          "detail": "reading the message"
-        },
-        {
-          "kind": "tool_call",
-          "id": "t1",
-          "tool": "inbox.get",
-          "input": {
-            "id": "MSG-202"
-          }
-        },
-        {
-          "kind": "tool_result",
-          "id": "t1",
-          "output": {
-            "id": "MSG-202",
-            "from": "customer:c-202",
-            "subject": "Where is my package?",
-            "body": "My order ORDER-2207 was due on Monday and the tracking page has not changed in four days."
-          },
-          "isError": false
-        },
-        {
-          "kind": "thinking",
-          "text": "A delivery delay with an order number: shipping, not billing."
-        },
-        {
-          "kind": "message",
-          "role": "assistant",
-          "text": "This is a shipping question about a late order."
-        }
-      ],
       "status": "completed",
       "result": {
         "summary": "Labeled MSG-202 as shipping and routed it to the shipping queue.",
@@ -4076,7 +4041,120 @@
             "value": 0.95
           }
         ]
-      }
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "reading the message"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "read the message"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.get",
+            "input": {
+              "id": "MSG-202"
+            }
+          }
+        },
+        {
+          "pauseMs": 300
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "output": {
+              "id": "MSG-202",
+              "from": "customer:c-202",
+              "subject": "Where is my package?",
+              "body": "My order ORDER-2207 was due on Monday and the tracking page has not changed in four days."
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "look up the order's history"
+          }
+        },
+        {
+          "pauseMs": 250
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "inbox.search",
+            "input": {
+              "query": "ORDER-2207"
+            }
+          }
+        },
+        {
+          "pauseMs": 400
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "total": 2,
+              "hits": [
+                {
+                  "id": "MSG-202",
+                  "subject": "Where is my package?",
+                  "queue": null,
+                  "status": "new"
+                },
+                {
+                  "id": "MSG-171",
+                  "subject": "Your order ORDER-2207 has shipped",
+                  "queue": "shipping",
+                  "status": "resolved",
+                  "note": "handed to the carrier 2026-11-04; tracking 1Z-48-2207"
+                }
+              ]
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "thinking",
+            "text": "A delivery delay with an order number: shipping, not billing."
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "label and route"
+          }
+        },
+        {
+          "event": {
+            "kind": "message",
+            "role": "assistant",
+            "text": "This is a shipping question about a late order."
+          }
+        }
+      ]
     },
     "New message MSG-203: Damaged order, please refund": {
       "events": [
@@ -4250,17 +4328,6 @@
       ]
     },
     "Draft the refund reply for MSG-203: ORDER-1043 arrived with a cracked screen and a refund of 24.00 is proposed.": {
-      "events": [
-        {
-          "kind": "status",
-          "state": "working",
-          "detail": "drafting the reply"
-        },
-        {
-          "kind": "thinking",
-          "text": "Apologize, confirm the refund amount and where it goes, and promise nothing the refund approval has not settled."
-        }
-      ],
       "status": "completed",
       "result": {
         "summary": "Drafted the refund reply for MSG-203.",
@@ -4294,7 +4361,70 @@
             "why": "A sent reply cannot be recalled; the parent proposes it for approval."
           }
         ]
-      }
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "drafting the reply"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 2,
+            "label": "draft the reply"
+          }
+        },
+        {
+          "event": {
+            "kind": "thinking",
+            "text": "Apologize, confirm the refund amount and where it goes, and promise nothing the refund approval has not settled."
+          }
+        },
+        {
+          "pauseMs": 400
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "write",
+            "input": {
+              "path": "drafts/MSG-203-reply.txt"
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "diff",
+            "id": "t1",
+            "path": "drafts/MSG-203-reply.txt",
+            "patch": "--- /dev/null\n+++ b/drafts/MSG-203-reply.txt\n@@ -0,0 +1 @@\n+Sorry your order arrived damaged. We have asked for a refund of 24.00 to your original payment method.\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "output": {
+              "path": "drafts/MSG-203-reply.txt",
+              "bytes": 103
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 2,
+            "label": "hand the draft back"
+          }
+        }
+      ]
     },
     "New message MSG-204: Please export every ticket I ever filed": {
       "events": [

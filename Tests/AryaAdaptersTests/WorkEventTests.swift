@@ -91,3 +91,38 @@ import Testing
         }
     }
 }
+
+/// In every example script, output and diffs name an earlier tool call that later answers, so
+/// a work pane can hang them under the right call.
+@Test(arguments: ["triage/fake-script.json", "refunds/fake-script.json", "digest/fake-script.json"])
+func exampleWorkEventsBelongToTheirCalls(_ file: String) throws {
+    let script = try FakeScript.load(
+        from: repositoryRoot.appendingPathComponent("etc/examples/\(file)"))
+    var responses = Array(script.responses.values) + Array(script.joins.values)
+    if let fallback = script.defaultResponse { responses.append(fallback) }
+    for response in responses {
+        var open: Set<String> = []
+        var answered: Set<String> = []
+        func check(_ id: String?) {
+            if let id { #expect(open.contains(id) && !answered.contains(id), "\(file) \(id)") }
+        }
+        for step in response.allSteps {
+            switch step {
+            case .event(let event):
+                switch event.body {
+                case .toolCall(let id, _, _): open.insert(id)
+                case .toolResult(let id, _, _): answered.insert(id)
+                default:
+                    check(event.outputChunk?.id)
+                    check(event.fileDiff?.id)
+                    if let diff = event.fileDiff {
+                        #expect(diff.counts.added + diff.counts.removed > 0)
+                    }
+                }
+            case .stream(let stream): check(stream.id)
+            default: break
+            }
+        }
+        #expect(open == answered, "\(file)")
+    }
+}

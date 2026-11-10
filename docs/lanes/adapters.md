@@ -73,8 +73,10 @@ M4:
   that wait only at runtime's demo pace (`ARYA_FAKE_PACE_MS`, 0051; 0 in tests); the
   triage refund, routine-write, and routine-revise runs show search hits, the order, streamed
   shell output, and the routine edit as a diff.
-- [ ] Next: richer work in more triage runs (drafted replies, the crew child); `output` from
-  the exec adapter's stream-json and codex-json tool results.
+- [x] Work content across examples: MSG-202 order lookup, the crew child's drafted reply as a
+  diff, the refunds check's confirmation spot-check, and each weekly digest's per-queue table
+  streamed as command output; a test ties every output and diff to an answered call.
+- [ ] Next: `output` from the exec adapter's stream-json and codex-json tool results.
 - [ ] Next: confirm eval's casebook importer reads binding `history` (it harvests the ledger
   today).
 
@@ -207,3 +209,5 @@ M4:
   now fills with real work (the fetched message, three search hits, the order with two
   captured charges, the reasoning) before the approval; moves points 2 (density from real
   content) and 5 (busy demo). Progress, output, and diffs await app-views rendering (point 1).
+- 2026-11-10: work content in MSG-202, the MSG-203 draft child, refunds, and digest scripts.
+  Held the publish per the CEO's CI-queue order; batching locally.

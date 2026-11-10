@@ -1204,35 +1204,6 @@
     }
   },
   "default": {
-    "events": [
-      {
-        "kind": "status",
-        "state": "working",
-        "detail": "checking approved refunds"
-      },
-      {
-        "kind": "tool_call",
-        "id": "t1",
-        "tool": "billing.order",
-        "input": {
-          "refund": "approved",
-          "unconfirmed": true
-        }
-      },
-      {
-        "kind": "tool_result",
-        "id": "t1",
-        "output": {
-          "orders": []
-        },
-        "isError": false
-      },
-      {
-        "kind": "status",
-        "state": "idle",
-        "detail": "nothing to confirm"
-      }
-    ],
     "status": "completed",
     "result": {
       "summary": "Checked approved refunds; none waiting for confirmation.",
@@ -1252,6 +1223,108 @@
       ],
       "decisions": [],
       "actions": []
-    }
+    },
+    "steps": [
+      {
+        "event": {
+          "kind": "status",
+          "state": "working",
+          "detail": "checking approved refunds"
+        }
+      },
+      {
+        "event": {
+          "kind": "progress",
+          "done": 1,
+          "total": 2,
+          "label": "find approved refunds nobody confirmed"
+        }
+      },
+      {
+        "event": {
+          "kind": "tool_call",
+          "id": "t1",
+          "tool": "billing.order",
+          "input": {
+            "refund": "approved",
+            "unconfirmed": true
+          }
+        }
+      },
+      {
+        "pauseMs": 350
+      },
+      {
+        "event": {
+          "kind": "tool_result",
+          "id": "t1",
+          "output": {
+            "orders": []
+          },
+          "isError": false
+        }
+      },
+      {
+        "event": {
+          "kind": "progress",
+          "done": 2,
+          "total": 2,
+          "label": "spot-check this week's confirmations"
+        }
+      },
+      {
+        "pauseMs": 250
+      },
+      {
+        "event": {
+          "kind": "tool_call",
+          "id": "t2",
+          "tool": "billing.order",
+          "input": {
+            "refund": "approved",
+            "since": "2026-11-08"
+          }
+        }
+      },
+      {
+        "pauseMs": 400
+      },
+      {
+        "event": {
+          "kind": "tool_result",
+          "id": "t2",
+          "output": {
+            "orders": [
+              {
+                "order": "ORDER-1039",
+                "refund": "18.00",
+                "approvedAt": "2026-11-08T10:12:00Z",
+                "notifiedAt": "2026-11-08T10:13:41Z"
+              },
+              {
+                "order": "ORDER-1041",
+                "refund": "42.50",
+                "approvedAt": "2026-11-08T15:40:00Z",
+                "notifiedAt": "2026-11-08T15:40:52Z"
+              },
+              {
+                "order": "ORDER-1043",
+                "refund": "24.00",
+                "approvedAt": "2026-11-09T09:05:00Z",
+                "notifiedAt": "2026-11-09T11:30:17Z"
+              }
+            ]
+          },
+          "isError": false
+        }
+      },
+      {
+        "event": {
+          "kind": "status",
+          "state": "idle",
+          "detail": "nothing to confirm"
+        }
+      }
+    ]
   }
 }
