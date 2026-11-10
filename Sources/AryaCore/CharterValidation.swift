@@ -29,6 +29,15 @@ extension Charter {
         if name.trimmed.isEmpty { issues.append(.init("name", "must not be empty")) }
         if outcome.trimmed.isEmpty { issues.append(.init("outcome", "must not be empty")) }
         if metric.name.trimmed.isEmpty { issues.append(.init("metric.name", "must not be empty")) }
+        var names: Set<String> = [metric.name]
+        for (i, extra) in (guardrailMetrics ?? []).enumerated() {
+            let field = "guardrailMetrics[\(i)].name"
+            if extra.name.trimmed.isEmpty {
+                issues.append(.init(field, "must not be empty"))
+            } else if !names.insert(extra.name).inserted {
+                issues.append(.init(field, "repeats metric \(extra.name)"))
+            }
+        }
         for (i, rule) in guardrails.enumerated() where rule.trimmed.isEmpty {
             issues.append(.init("guardrails[\(i)]", "must not be empty"))
         }

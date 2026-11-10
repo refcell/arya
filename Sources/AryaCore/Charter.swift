@@ -10,6 +10,9 @@ public struct Charter: Hashable, Sendable, Codable {
     public var name: String
     public var outcome: String
     public var metric: Metric
+    /// Metrics that must hold while the primary `metric` moves (a quality or cost bound), each
+    /// with its own direction and target; nil or empty when there are none.
+    public var guardrailMetrics: [Metric]?
     public var guardrails: [String]
     public var bindings: [CharterBinding]
     public var triggers: [Trigger]
@@ -57,6 +60,7 @@ public struct Charter: Hashable, Sendable, Codable {
     private enum CodingKeys: String, CodingKey {
         case v, id, name, outcome, metric, guardrails, bindings, triggers, policy, adapter
         case effort, crew, limits, scorer, gate, autonomy, owner, department, report
+        case guardrailMetrics
     }
 
     public init(from decoder: any Decoder) throws {
@@ -66,6 +70,7 @@ public struct Charter: Hashable, Sendable, Codable {
         name = try c.decode(String.self, forKey: .name)
         outcome = try c.decode(String.self, forKey: .outcome)
         metric = try c.decode(Metric.self, forKey: .metric)
+        guardrailMetrics = try c.decodeIfPresent([Metric].self, forKey: .guardrailMetrics)
         guardrails = try c.decodeIfPresent([String].self, forKey: .guardrails) ?? []
         bindings = try c.decodeIfPresent([CharterBinding].self, forKey: .bindings) ?? []
         triggers = try c.decodeIfPresent([Trigger].self, forKey: .triggers) ?? [.manual]

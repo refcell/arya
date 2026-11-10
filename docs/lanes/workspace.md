@@ -255,3 +255,6 @@ M3:
 - 2026-11-10: M3.6 #2 onboarding: `onboardingState(steward:)`, seven ordered steps (systems
   read, people and processes found, context notes, history imported, review progress,
   readiness) from the context, routines, casebook, review queue, and readiness reads.
+- 2026-11-10: M3.6 #1 multiple metrics: `Charter.guardrailMetrics` (optional, validated) and
+  `metricStatuses(steward:)` (primary then guardrails: value, target, trend, status, movement,
+  line); proposal impact counts guardrail metric changes as `metric`.

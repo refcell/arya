@@ -82,3 +82,59 @@ private func metric(_ direction: Metric.Direction = .up) throws -> Metric {
     let findings = try await workspace.overviewFindings(steward: "st_inbox")
     #expect(findings.contains { $0.kind == "attention" && $0.link?.kind == "approval" })
 }
+
+@Test func metricStatusesListPrimaryThenGuardrails() async throws {
+    let opened = try await Opened([])
+    let workspace = opened.workspace
+    var charter = try Charter.load(from: try inboxCharterJSON())
+    charter.metric.target = 0.5
+    charter.guardrailMetrics = [
+        Metric(name: "reopen_rate", unit: "ratio", direction: .down, target: 0.1),
+        Metric(name: "cost_per_item", unit: "usd", direction: .down),
+    ]
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+    func reading(_ name: String, _ value: Double) async throws {
+        _ = try await workspace.sink.append(
+            RuntimeEventDraft(
+                type: MetricEventType.recorded, steward: StewardID(unchecked: "st_inbox"),
+                actor: .system,
+                payload: try CanonicalJSON.decode(
+                    JSONValue.self,
+                    from: try CanonicalJSON.encode(MetricRecorded(metric: name, value: value)))))
+    }
+    try await reading(charter.metric.name, 0.75)
+    try await reading("reopen_rate", 0.25)
+
+    let metrics = try await workspace.metricStatuses(steward: "st_inbox")
+    #expect(metrics.map(\.role) == ["primary", "guardrail", "guardrail"])
+    #expect(metrics.map(\.name) == [charter.metric.name, "reopen_rate", "cost_per_item"])
+    #expect(metrics[0].current == 0.75 && metrics[0].status == .onTrack)
+    #expect(metrics[1].status == .offTrack)
+    #expect(metrics[1].line == "reopen_rate 0.25 ratio, target ≤ 0.10: off track.")
+    #expect(metrics[2].status == .noTarget && metrics[2].current == nil)
+    #expect(metrics[2].line == "cost_per_item no readings: no target.")
+    #expect(metrics.allSatisfy { $0.movement == "unknown" && !$0.trend.isEmpty })
+
+    let down = Metric(name: "m", unit: "s", direction: .down)
+    #expect(Workspace.movement(current: 40, previous: 50, metric: down) == "improving")
+    #expect(Workspace.movement(current: 60, previous: 50, metric: down) == "worsening")
+    #expect(Workspace.movement(current: 50.1, previous: 50, metric: down) == "flat")
+
+    // Adding a guardrail metric changes what the steward owns.
+    var tighter = charter
+    tighter.guardrailMetrics?.removeLast()
+    let impact = ProposalImpact(live: tighter, proposed: charter)
+    #expect(impact.kinds.contains("metric"))
+    #expect(
+        impact.owns.last
+            == "guardrail metrics reopen_rate ≤ 0.1 → reopen_rate ≤ 0.1, cost_per_item")
+
+    // Validation: names must be set and distinct from the primary.
+    charter.guardrailMetrics = [Metric(name: charter.metric.name, unit: "x", direction: .up)]
+    #expect(charter.validate().map(\.path) == ["guardrailMetrics[0].name"])
+    // A charter with none encodes exactly as before.
+    charter.guardrailMetrics = nil
+    #expect(
+        !String(decoding: try CanonicalJSON.encode(charter), as: UTF8.self)
+            .contains("guardrailMetrics"))
+}

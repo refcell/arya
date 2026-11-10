@@ -229,6 +229,7 @@ M4:
 - (from adapters) FYI: `run.step.finished.millis` is wall time, so replays diverged on it; eval's `Canonicalizer` now ignores it (integration edit). Any other clock-derived payload field needs the same entry in `Canonicalizer.durations`.
 - (from workspace) the facade's live view reads `run.step.*` and dedupes against the adapter's wire tool events by call id; if you ever stop recording the wire tool events, nothing breaks.
 - (from cli-e2e) 2026-11-10: the busy demo seed (690 runs) still takes 8 min after workspace's cache; a sample shows each run reading the whole ledger: `RunEngine.swift:230` (`events(from: 1)`) and `:242` (`PlanBook` refold), `RunDriver.swift:275` (`PlanBook`) and `:292` (`MemoryView`), and `Inbox.swift:231` (`MemoryView`) per message. Could these read `BookCache.book(_:)` (or an incremental plan and memory view)? That would make a run O(new events) and the seed about 1-2 min.
+- (from workspace) tiny AryaCore edit: `Charter.guardrailMetrics: [Metric]?` (omitted when nil, so existing charter hashes hold; validation: named, distinct from the primary). Runs already record any measurement name; please name the guardrail metrics in the run brief so adapters measure them too.
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior

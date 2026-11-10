@@ -60,6 +60,14 @@ public struct ProposalImpact: Sendable, Hashable, Codable {
             owns.append("metric \(Self.metric(live.metric)) → \(Self.metric(proposed.metric))")
             kinds.insert("metric")
         }
+        let liveBounds = (live.guardrailMetrics ?? []).map(Self.metric)
+        let proposedBounds = (proposed.guardrailMetrics ?? []).map(Self.metric)
+        if liveBounds != proposedBounds {
+            let before = liveBounds.isEmpty ? "none" : liveBounds.joined(separator: ", ")
+            let after = proposedBounds.isEmpty ? "none" : proposedBounds.joined(separator: ", ")
+            owns.append("guardrail metrics \(before) → \(after)")
+            kinds.insert("metric")
+        }
         let kept = Set(proposed.guardrails)
         removedGuardrails = live.guardrails.filter { !kept.contains($0) }
         if !removedGuardrails.isEmpty { kinds.insert("guardrails") }
