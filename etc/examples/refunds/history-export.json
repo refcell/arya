@@ -1,0 +1,447 @@
+{
+  "v": 1,
+  "history": [
+    {
+      "id": "ORDER-1140",
+      "at": "2026-10-01T13:00:00Z",
+      "input": "Refund approved for ORDER-1140",
+      "record": {
+        "id": "ORDER-1140",
+        "refund": "approved",
+        "customerNotified": false
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1140",
+          "by": "person:alex",
+          "at": "2026-10-01T15:00:00Z"
+        }
+      ],
+      "choice": "follow-up",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1141",
+      "at": "2026-10-02T13:00:00Z",
+      "input": "Refund approved for ORDER-1141",
+      "record": {
+        "id": "ORDER-1141",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1141",
+          "by": "person:alex",
+          "at": "2026-10-02T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1142",
+      "at": "2026-10-03T13:00:00Z",
+      "input": "Refund approved for ORDER-1142",
+      "record": {
+        "id": "ORDER-1142",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1142",
+          "by": "person:alex",
+          "at": "2026-10-03T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1143",
+      "at": "2026-10-04T13:00:00Z",
+      "input": "Refund approved for ORDER-1143",
+      "record": {
+        "id": "ORDER-1143",
+        "refund": "approved",
+        "customerNotified": false
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1143",
+          "by": "person:alex",
+          "at": "2026-10-04T15:00:00Z"
+        }
+      ],
+      "choice": "follow-up",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1144",
+      "at": "2026-10-05T13:00:00Z",
+      "input": "Refund approved for ORDER-1144",
+      "record": {
+        "id": "ORDER-1144",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1144",
+          "by": "person:alex",
+          "at": "2026-10-05T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1145",
+      "at": "2026-10-06T13:00:00Z",
+      "input": "Refund approved for ORDER-1145",
+      "record": {
+        "id": "ORDER-1145",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1145",
+          "by": "person:alex",
+          "at": "2026-10-06T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1146",
+      "at": "2026-10-07T13:00:00Z",
+      "input": "Refund approved for ORDER-1146",
+      "record": {
+        "id": "ORDER-1146",
+        "refund": "approved",
+        "customerNotified": false,
+        "amount": "partial"
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1146",
+          "by": "person:alex",
+          "at": "2026-10-07T15:00:00Z"
+        }
+      ],
+      "choice": "follow-up",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1147",
+      "at": "2026-10-08T13:00:00Z",
+      "input": "Refund approved for ORDER-1147",
+      "record": {
+        "id": "ORDER-1147",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1147",
+          "by": "person:alex",
+          "at": "2026-10-08T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1148",
+      "at": "2026-10-09T13:00:00Z",
+      "input": "Refund approved for ORDER-1148",
+      "record": {
+        "id": "ORDER-1148",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1148",
+          "by": "person:alex",
+          "at": "2026-10-09T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1149",
+      "at": "2026-10-10T13:00:00Z",
+      "input": "Refund approved for ORDER-1149",
+      "record": {
+        "id": "ORDER-1149",
+        "refund": "approved",
+        "customerNotified": false
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1149",
+          "by": "person:alex",
+          "at": "2026-10-10T15:00:00Z"
+        }
+      ],
+      "choice": "follow-up",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1150",
+      "at": "2026-10-11T13:00:00Z",
+      "input": "Refund approved for ORDER-1150",
+      "record": {
+        "id": "ORDER-1150",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1150",
+          "by": "person:alex",
+          "at": "2026-10-11T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1151",
+      "at": "2026-10-12T13:00:00Z",
+      "input": "Refund approved for ORDER-1151",
+      "record": {
+        "id": "ORDER-1151",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1151",
+          "by": "person:alex",
+          "at": "2026-10-12T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1152",
+      "at": "2026-10-13T13:00:00Z",
+      "input": "Refund approved for ORDER-1152",
+      "record": {
+        "id": "ORDER-1152",
+        "refund": "approved",
+        "customerNotified": false,
+        "amount": "partial"
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1152",
+          "by": "person:alex",
+          "at": "2026-10-13T15:00:00Z"
+        }
+      ],
+      "choice": "follow-up",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1153",
+      "at": "2026-10-14T13:00:00Z",
+      "input": "Refund approved for ORDER-1153",
+      "record": {
+        "id": "ORDER-1153",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1153",
+          "by": "person:alex",
+          "at": "2026-10-14T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1154",
+      "at": "2026-10-15T13:00:00Z",
+      "input": "Refund approved for ORDER-1154",
+      "record": {
+        "id": "ORDER-1154",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1154",
+          "by": "person:alex",
+          "at": "2026-10-15T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1155",
+      "at": "2026-10-16T13:00:00Z",
+      "input": "Refund approved for ORDER-1155",
+      "record": {
+        "id": "ORDER-1155",
+        "refund": "approved",
+        "customerNotified": false
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1155",
+          "by": "person:alex",
+          "at": "2026-10-16T15:00:00Z"
+        }
+      ],
+      "choice": "follow-up",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1156",
+      "at": "2026-10-17T13:00:00Z",
+      "input": "Refund approved for ORDER-1156",
+      "record": {
+        "id": "ORDER-1156",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1156",
+          "by": "person:alex",
+          "at": "2026-10-17T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1157",
+      "at": "2026-10-18T13:00:00Z",
+      "input": "Refund approved for ORDER-1157",
+      "record": {
+        "id": "ORDER-1157",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1157",
+          "by": "person:alex",
+          "at": "2026-10-18T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1158",
+      "at": "2026-10-19T13:00:00Z",
+      "input": "Refund approved for ORDER-1158",
+      "record": {
+        "id": "ORDER-1158",
+        "refund": "approved",
+        "customerNotified": false
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1158",
+          "by": "person:alex",
+          "at": "2026-10-19T15:00:00Z"
+        }
+      ],
+      "choice": "follow-up",
+      "outcome": {
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "ORDER-1159",
+      "at": "2026-10-20T13:00:00Z",
+      "input": "Refund approved for ORDER-1159",
+      "record": {
+        "id": "ORDER-1159",
+        "refund": "approved",
+        "customerNotified": true
+      },
+      "actions": [
+        {
+          "kind": "note",
+          "target": "billing:ORDER-1159",
+          "by": "person:alex",
+          "at": "2026-10-20T15:00:00Z"
+        }
+      ],
+      "choice": "confirmed",
+      "outcome": {
+        "status": "resolved"
+      }
+    }
+  ]
+}

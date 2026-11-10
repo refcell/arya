@@ -60,7 +60,8 @@ extension CLI {
         case .propose:
             let row = try await backend.propose(
                 steward: try invocation.positional("steward"),
-                charterPath: values["charter"] ?? "")
+                charterPath: values["charter"] ?? "", title: values["title"],
+                reason: values["reason"])
             try output.emit(row, json: json, text: { ImprovementText.proposals([$0]) })
         case .proposals:
             let rows = try await backend.listProposals(steward: values["steward"])

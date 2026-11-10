@@ -211,7 +211,12 @@ enum CommandTable {
             options: [
                 OptionSpec(
                     name: "charter", kind: .value(placeholder: "file"), isRequired: true,
-                    help: "the proposed charter JSON")
+                    help: "the proposed charter JSON"),
+                OptionSpec(
+                    name: "title", kind: .value(placeholder: "text"),
+                    help: "what the change does, in one line (shown to approvers)"),
+                OptionSpec(
+                    name: "reason", kind: .value(placeholder: "text"), help: "why it is needed"),
             ]),
         CommandSpec(
             id: .proposals, summary: "List proposals and their gate results",

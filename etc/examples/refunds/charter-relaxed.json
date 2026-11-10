@@ -1,0 +1,88 @@
+{
+  "v": 1,
+  "id": "st_refunds",
+  "name": "Refund follow-up",
+  "outcome": "Every approved refund is confirmed to the customer within two business days.",
+  "metric": {
+    "name": "confirmed_within_1d",
+    "unit": "ratio",
+    "direction": "up",
+    "target": 0.85
+  },
+  "guardrails": [
+    "Never issue or change a refund.",
+    "Ask before writing to a customer."
+  ],
+  "bindings": [
+    {
+      "id": "billing",
+      "kind": "mcp",
+      "command": "billing-mcp",
+      "args": [],
+      "read": [
+        "order"
+      ],
+      "actions": [
+        "note"
+      ]
+    },
+    {
+      "id": "inbox",
+      "kind": "mcp",
+      "command": "inbox-mcp",
+      "args": [],
+      "read": [
+        "get"
+      ],
+      "actions": [
+        "reply"
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "kind": "interval",
+      "everySeconds": 3600
+    },
+    {
+      "kind": "manual"
+    }
+  ],
+  "policy": {
+    "default": "ask",
+    "rules": [
+      {
+        "action": "note",
+        "decision": "auto",
+        "note": "Notes on an order are internal, so the steward adds them on its own."
+      },
+      {
+        "action": "reply",
+        "decision": "ask",
+        "note": "Replies to customers need your sign-off, since a sent reply cannot be recalled."
+      }
+    ]
+  },
+  "adapter": "fake-refunds",
+  "effort": "low",
+  "scorer": {
+    "kind": "exact",
+    "fields": [
+      "decisions.choice",
+      "actions.kind",
+      "actions.target"
+    ]
+  },
+  "crew": {
+    "maxParallel": 1
+  },
+  "limits": {
+    "maxTurns": 10,
+    "timeoutSeconds": 60,
+    "maxCostMicros": 0
+  },
+  "gate": {
+    "samples": 1,
+    "tolerance": 0.0
+  }
+}

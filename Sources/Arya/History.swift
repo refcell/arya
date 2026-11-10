@@ -24,19 +24,34 @@ extension Workspace {
     /// (`{"v":1,"history":[…]}`) to the steward's newest casebook, or a new casebook named
     /// `history`, as cases with provenance. At most `limit` new cases, newest first; items
     /// already in the casebook are skipped. `binding` names the binding the records came from
-    /// (default: the charter's first binding that reads `get`), so rehearsal serves each record.
+    /// (default: the charter's first binding that reads `get`, else its first with any read),
+    /// so rehearsal serves each record as that binding's `get` read, or its first other read.
     public func importHistory(
         steward: String, data: Data, source: String, binding: String? = nil, limit: Int = 200,
         by person: String = "local"
     ) async throws -> HistoryImportSummary {
         let record = try await existing(steward)
         let read = HistorySource.items(export: data)
-        let named =
-            binding
-            ?? record.charter.bindings.first { $0.kind == .mcp && $0.read.contains("get") }?.id
+        let mcp = record.charter.bindings.filter { $0.kind == .mcp }
+        let found =
+            binding.map { name in mcp.first { $0.id == name } }
+            ?? mcp.first { $0.read.contains("get") } ?? mcp.first { Self.recordRead($0) != nil }
+        if let binding, found == nil { throw WorkspaceError.notFound("binding \(binding)") }
         return try await importHistory(
             steward: steward, items: read.items, invalid: read.invalid, source: source,
-            binding: named, limit: limit, person: person)
+            binding: found.flatMap(Self.recordTool), limit: limit, person: person)
+    }
+
+    /// The read a history record answers: `get` when the binding has it, else its first read
+    /// other than the history tool (a refunds binding's `order`).
+    static func recordRead(_ binding: CharterBinding) -> String? {
+        binding.read.contains("get")
+            ? "get" : binding.read.first { $0 != BindingHistory.tool }
+    }
+
+    /// `<binding>.<read>` for `recordRead`, or nil when the binding reads nothing else.
+    static func recordTool(_ binding: CharterBinding) -> String? {
+        recordRead(binding).map { "\(binding.id).\($0)" }
     }
 
     /// Pages through a binding's `history` tool (`{limit, cursor}` in, `{items, next}` out) and
@@ -83,7 +98,7 @@ extension Workspace {
         }
         return try await importHistory(
             steward: steward, items: items, invalid: invalid, source: "\(binding).\(tool)",
-            binding: binding, limit: limit, person: person)
+            binding: Self.recordTool(found), limit: limit, person: person)
     }
 
     private func importHistory(

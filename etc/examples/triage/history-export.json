@@ -379,6 +379,414 @@
       "outcome": {
         "status": "resolved"
       }
+    },
+    {
+      "id": "MSG-125",
+      "at": "2026-10-14T09:00:00Z",
+      "input": "New message MSG-125: CLAIM YOUR PRIZE NOW",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-125",
+          "by": "person:sam",
+          "at": "2026-10-14T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-125",
+          "by": "person:sam",
+          "at": "2026-10-14T09:20:00Z"
+        }
+      ],
+      "choice": "spam",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-125",
+        "from": "customer:c-125",
+        "subject": "CLAIM YOUR PRIZE NOW",
+        "body": "CLAIM YOUR PRIZE NOW."
+      }
+    },
+    {
+      "id": "MSG-130",
+      "at": "2026-10-15T09:00:00Z",
+      "input": "New message MSG-130: Upgrade charged at the old price",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-130",
+          "by": "person:sam",
+          "at": "2026-10-15T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-130",
+          "by": "person:sam",
+          "at": "2026-10-15T09:20:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-130",
+        "from": "customer:c-130",
+        "subject": "Upgrade charged at the old price",
+        "body": "Upgrade charged at the old price."
+      }
+    },
+    {
+      "id": "MSG-131",
+      "at": "2026-10-16T09:00:00Z",
+      "input": "New message MSG-131: Notifications arrive twice",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-131",
+          "by": "person:sam",
+          "at": "2026-10-16T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-131",
+          "by": "person:sam",
+          "at": "2026-10-16T09:20:00Z"
+        }
+      ],
+      "choice": "how-to",
+      "outcome": {
+        "status": "reopened",
+        "note": "Rerouted after the first pass."
+      },
+      "record": {
+        "id": "MSG-131",
+        "from": "customer:c-131",
+        "subject": "Notifications arrive twice",
+        "body": "Notifications arrive twice."
+      }
+    },
+    {
+      "id": "MSG-132",
+      "at": "2026-10-17T09:00:00Z",
+      "input": "New message MSG-132: Add a second admin",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-132",
+          "by": "person:sam",
+          "at": "2026-10-17T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-132",
+          "by": "person:sam",
+          "at": "2026-10-17T09:20:00Z"
+        }
+      ],
+      "choice": "how-to",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-132",
+        "from": "customer:c-132",
+        "subject": "Add a second admin",
+        "body": "Add a second admin."
+      }
+    },
+    {
+      "id": "MSG-133",
+      "at": "2026-10-18T09:00:00Z",
+      "input": "New message MSG-133: Unknown device signed in",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-133",
+          "by": "person:sam",
+          "at": "2026-10-18T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-133",
+          "by": "person:sam",
+          "at": "2026-10-18T09:20:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "reopened",
+        "note": "Rerouted after the first pass."
+      },
+      "record": {
+        "id": "MSG-133",
+        "from": "customer:c-133",
+        "subject": "Unknown device signed in",
+        "body": "Unknown device signed in."
+      }
+    },
+    {
+      "id": "MSG-134",
+      "at": "2026-10-19T09:00:00Z",
+      "input": "New message MSG-134: Duplicate charge on the 3rd",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-134",
+          "by": "person:sam",
+          "at": "2026-10-19T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-134",
+          "by": "person:sam",
+          "at": "2026-10-19T09:20:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-134",
+        "from": "customer:c-134",
+        "subject": "Duplicate charge on the 3rd",
+        "body": "Duplicate charge on the 3rd."
+      }
+    },
+    {
+      "id": "MSG-117",
+      "at": "2026-10-20T09:00:00Z",
+      "input": "New message MSG-117: Package marked delivered but not here",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-117",
+          "by": "person:sam",
+          "at": "2026-10-20T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-117",
+          "by": "person:sam",
+          "at": "2026-10-20T09:20:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-117",
+        "from": "customer:c-117",
+        "subject": "Package marked delivered but not here",
+        "body": "Package marked delivered but not here."
+      }
+    },
+    {
+      "id": "MSG-118",
+      "at": "2026-10-21T09:00:00Z",
+      "input": "New message MSG-118: Login link expired before I clicked it",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-118",
+          "by": "person:sam",
+          "at": "2026-10-21T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-118",
+          "by": "person:sam",
+          "at": "2026-10-21T09:20:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-118",
+        "from": "customer:c-118",
+        "subject": "Login link expired before I clicked it",
+        "body": "Login link expired before I clicked it."
+      }
+    },
+    {
+      "id": "MSG-126",
+      "at": "2026-10-22T09:00:00Z",
+      "input": "New message MSG-126: Tracking number not updating",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-126",
+          "by": "person:sam",
+          "at": "2026-10-22T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-126",
+          "by": "person:sam",
+          "at": "2026-10-22T09:20:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-126",
+        "from": "customer:c-126",
+        "subject": "Tracking number not updating",
+        "body": "Tracking number not updating."
+      }
+    },
+    {
+      "id": "MSG-127",
+      "at": "2026-10-23T09:00:00Z",
+      "input": "New message MSG-127: Cannot sign in on my new phone",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-127",
+          "by": "person:sam",
+          "at": "2026-10-23T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-127",
+          "by": "person:sam",
+          "at": "2026-10-23T09:20:00Z"
+        }
+      ],
+      "choice": "account",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-127",
+        "from": "customer:c-127",
+        "subject": "Cannot sign in on my new phone",
+        "body": "Cannot sign in on my new phone."
+      }
+    },
+    {
+      "id": "MSG-128",
+      "at": "2026-10-24T09:00:00Z",
+      "input": "New message MSG-128: Refund not received after ten days",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-128",
+          "by": "person:sam",
+          "at": "2026-10-24T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-128",
+          "by": "person:sam",
+          "at": "2026-10-24T09:20:00Z"
+        }
+      ],
+      "choice": "billing",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-128",
+        "from": "customer:c-128",
+        "subject": "Refund not received after ten days",
+        "body": "Refund not received after ten days."
+      }
+    },
+    {
+      "id": "MSG-135",
+      "at": "2026-10-25T09:00:00Z",
+      "input": "New message MSG-135: Wrong item in my order",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-135",
+          "by": "person:sam",
+          "at": "2026-10-25T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-135",
+          "by": "person:sam",
+          "at": "2026-10-25T09:20:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-135",
+        "from": "customer:c-135",
+        "subject": "Wrong item in my order",
+        "body": "Wrong item in my order."
+      }
+    },
+    {
+      "id": "MSG-136",
+      "at": "2026-10-26T09:00:00Z",
+      "input": "New message MSG-136: Change shipping address before dispatch",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-136",
+          "by": "person:sam",
+          "at": "2026-10-26T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-136",
+          "by": "person:sam",
+          "at": "2026-10-26T09:20:00Z"
+        }
+      ],
+      "choice": "shipping",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-136",
+        "from": "customer:c-136",
+        "subject": "Change shipping address before dispatch",
+        "body": "Change shipping address before dispatch."
+      }
+    },
+    {
+      "id": "MSG-137",
+      "at": "2026-10-27T09:00:00Z",
+      "input": "New message MSG-137: Cheap followers, act now",
+      "actions": [
+        {
+          "kind": "label",
+          "target": "inbox:MSG-137",
+          "by": "person:sam",
+          "at": "2026-10-27T09:20:00Z"
+        },
+        {
+          "kind": "route",
+          "target": "inbox:MSG-137",
+          "by": "person:sam",
+          "at": "2026-10-27T09:20:00Z"
+        }
+      ],
+      "choice": "spam",
+      "outcome": {
+        "status": "resolved"
+      },
+      "record": {
+        "id": "MSG-137",
+        "from": "customer:c-137",
+        "subject": "Cheap followers, act now",
+        "body": "Cheap followers, act now."
+      }
     }
   ]
 }

@@ -1,0 +1,23 @@
+[
+  {
+    "steward": "st_triage",
+    "base": "etc/examples/triage/charter.json",
+    "charter": "etc/examples/triage/charter-v2.json",
+    "title": "Treat card-on-file questions as how-to",
+    "reason": "Card questions were routed to billing. Also drops the weekly report and the rule notes, and moves to the v2 adapter."
+  },
+  {
+    "steward": "st_refunds",
+    "base": "etc/examples/refunds/charter.json",
+    "charter": "etc/examples/refunds/charter-relaxed.json",
+    "title": "Relax the confirmation window",
+    "reason": "Refunds approved on Friday are confirmed on Monday and miss the business day."
+  },
+  {
+    "steward": "st_digest",
+    "base": "etc/examples/digest/charter.json",
+    "charter": "etc/examples/digest/charter-late-by-queue.json",
+    "title": "Break late messages down by queue",
+    "reason": "The lead asks which queue the late messages sat in."
+  }
+]

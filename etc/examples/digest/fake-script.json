@@ -484,6 +484,3636 @@
           }
         }
       ]
+    },
+    "Weekly digest 5": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 40 messages routed, 0 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 40 messages routed, 0 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 40,
+              "late": 0
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 6": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 47 messages routed, 1 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 47 messages routed, 1 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 47,
+              "late": 1
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 7": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 54 messages routed, 2 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 54 messages routed, 2 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 54,
+              "late": 2
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 8": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 36 messages routed, 3 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 36 messages routed, 3 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 36,
+              "late": 3
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 9": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 43 messages routed, 4 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 43 messages routed, 4 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 43,
+              "late": 4
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 10": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 50 messages routed, 0 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 50 messages routed, 0 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 50,
+              "late": 0
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 11": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 32 messages routed, 1 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 32 messages routed, 1 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 32,
+              "late": 1
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 12": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 39 messages routed, 2 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 39 messages routed, 2 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 39,
+              "late": 2
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 13": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 46 messages routed, 3 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 46 messages routed, 3 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 46,
+              "late": 3
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 14": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 53 messages routed, 4 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 53 messages routed, 4 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 53,
+              "late": 4
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 15": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 35 messages routed, 0 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 35 messages routed, 0 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 35,
+              "late": 0
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 16": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 42 messages routed, 1 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 42 messages routed, 1 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 42,
+              "late": 1
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 17": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 49 messages routed, 2 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 49 messages routed, 2 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 49,
+              "late": 2
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 18": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 31 messages routed, 3 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 31 messages routed, 3 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 31,
+              "late": 3
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 19": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 38 messages routed, 4 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 38 messages routed, 4 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 38,
+              "late": 4
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 20": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 45 messages routed, 0 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 45 messages routed, 0 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 45,
+              "late": 0
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 21": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 52 messages routed, 1 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 52 messages routed, 1 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 52,
+              "late": 1
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 22": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 34 messages routed, 2 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 34 messages routed, 2 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 34,
+              "late": 2
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 23": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 41 messages routed, 3 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 41 messages routed, 3 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 41,
+              "late": 3
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 24": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 48 messages routed, 4 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 48 messages routed, 4 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 48,
+              "late": 4
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 25": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 30 messages routed, 0 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 30 messages routed, 0 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 30,
+              "late": 0
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 26": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 37 messages routed, 1 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 37 messages routed, 1 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 37,
+              "late": 1
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 27": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 44 messages routed, 2 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 44 messages routed, 2 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 44,
+              "late": 2
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 28": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 51 messages routed, 3 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 51 messages routed, 3 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 51,
+              "late": 3
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 29": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 33 messages routed, 4 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 33 messages routed, 4 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 33,
+              "late": 4
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 30": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 40 messages routed, 0 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 40 messages routed, 0 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 40,
+              "late": 0
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 31": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 47 messages routed, 1 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 47 messages routed, 1 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 47,
+              "late": 1
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 32": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 54 messages routed, 2 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 54 messages routed, 2 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 54,
+              "late": 2
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 33": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 36 messages routed, 3 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 36 messages routed, 3 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 36,
+              "late": 3
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
+    },
+    "Weekly digest 34": {
+      "status": "completed",
+      "result": {
+        "summary": "Posted the digest: 43 messages routed, 4 late.",
+        "plan": [
+          {
+            "id": "p1",
+            "text": "Post the digest every Monday by 09:00",
+            "status": "in_progress",
+            "rationale": "The lead reads it before the weekly planning."
+          }
+        ],
+        "decisions": [],
+        "actions": [
+          {
+            "id": "a1",
+            "kind": "post",
+            "binding": "inbox",
+            "target": "inbox:team-digest",
+            "params": {
+              "text": "Posted the digest: 43 messages routed, 4 late."
+            },
+            "rationale": "weekly digest",
+            "risk": "low",
+            "why": "The lead plans the week from this digest."
+          }
+        ],
+        "measurements": [
+          {
+            "metric": "digests_on_time",
+            "value": 1.0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "event": {
+            "kind": "status",
+            "state": "working",
+            "detail": "counting last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 1,
+            "total": 3,
+            "label": "count last week"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t1",
+            "tool": "inbox.search",
+            "input": {
+              "query": "last week"
+            }
+          }
+        },
+        {
+          "pauseMs": 350
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t1",
+            "isError": false,
+            "output": {
+              "routed": 43,
+              "late": 4
+            }
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 2,
+            "total": 3,
+            "label": "break it down by queue"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_call",
+            "id": "t2",
+            "tool": "shell",
+            "input": {
+              "command": "column -t digest/last-week.tsv"
+            }
+          }
+        },
+        {
+          "stream": {
+            "id": "t2",
+            "lines": 2,
+            "delayMs": 150,
+            "text": "queue      routed  late  median\nbilling        15     1     38m\nshipping       10     1     22m\naccounts        7     0     17m\ntechnical       5     1     51m\nspam            4     0      2m\ntotal          41     3     27m\n"
+          }
+        },
+        {
+          "event": {
+            "kind": "tool_result",
+            "id": "t2",
+            "output": {
+              "exitCode": 0,
+              "rows": 6
+            },
+            "isError": false
+          }
+        },
+        {
+          "event": {
+            "kind": "progress",
+            "done": 3,
+            "total": 3,
+            "label": "post the digest"
+          }
+        }
+      ]
     }
   },
   "default": {

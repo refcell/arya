@@ -296,6 +296,12 @@ extension WorkspaceBackend {
     }
 
     func propose(steward: String, charterPath: String) async throws(CLIError) -> ProposalRow {
+        try await propose(steward: steward, charterPath: charterPath, title: nil, reason: nil)
+    }
+
+    func propose(steward: String, charterPath: String, title: String?, reason: String?)
+        async throws(CLIError) -> ProposalRow
+    {
         let data: Data
         do {
             data = try Data(contentsOf: URL(fileURLWithPath: charterPath))
@@ -308,7 +314,8 @@ extension WorkspaceBackend {
         }
         let summary = try await call("proposeCharter", rejection: { .invalidInput($0) }) {
             try await workspace.proposeCharter(
-                steward: steward, charter: data, baseVersion: live.charterVersion)
+                steward: steward, charter: data, baseVersion: live.charterVersion, title: title,
+                reason: reason)
         }
         // Rehearse and gate it on the steward's newest casebook, as the command promises; a
         // steward without a casebook keeps the proposal open.

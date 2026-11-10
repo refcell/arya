@@ -183,6 +183,15 @@ protocol ImprovementBackend: Sendable {
         async throws(CLIError)
 }
 
+extension ImprovementBackend {
+    /// A proposal with the title and why approvers read; backends without them ignore both.
+    func propose(steward: String, charterPath: String, title: String?, reason: String?)
+        async throws(CLIError) -> ProposalRow
+    {
+        try await propose(steward: steward, charterPath: charterPath)
+    }
+}
+
 /// Which memory notes a listing includes.
 enum MemoryScope: Sendable, Equatable {
     case live

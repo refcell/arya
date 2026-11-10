@@ -82,7 +82,7 @@ public struct HistoryImporter: Sendable {
     /// Adds at most `limit` new cases, newest first by `at`, to `book` (or a new casebook
     /// named `name`). `source` names where the items came from (`inbox.history`, a file name);
     /// `binding` names the binding the records belong to, so each item's `record` is served
-    /// back as a recorded `<binding>.get` read.
+    /// back as a recorded `<binding>.get` read; `<binding>.<tool>` names the read instead.
     public func importHistory(
         _ items: [HistoryItem], invalid alreadyInvalid: [String] = [], into book: Casebook?,
         name: String, steward: StewardID, source: String, binding: String? = nil,
@@ -159,7 +159,8 @@ public struct HistoryImporter: Sendable {
             if let binding, let record = item.record {
                 reads.append(
                     RecordedToolResult(
-                        tool: "\(binding).get", input: ["id": .string(id)], output: record))
+                        tool: binding.contains(".") ? binding : "\(binding).get",
+                        input: ["id": .string(id)], output: record))
             }
             fresh.append(
                 Case(

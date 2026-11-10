@@ -222,72 +222,95 @@ private func reviews() throws -> (
     #expect(OutcomeContext.build(events: [], steward: steward).isEmpty)
 }
 
-/// Approvers trust a proposal's title, so every fixture proposal's title must describe its real
-/// diff. A "relax" title may only lengthen the outcome's time window and lower the metric
-/// target; any other title shares a word with what the diff adds (new outcome words or a new
-/// guardrail).
+/// Approvers trust a proposal's title, so it must describe the real diff. A "relax" title may
+/// only lengthen the outcome's time window and lower the metric target; any other title shares
+/// a word with what the diff adds (new outcome words or a new guardrail).
+private func expectTitleDescribesDiff(
+    _ id: String, title: String, live: FeatureJSON, proposed: FeatureJSON
+) {
+    let changed = Set(["outcome", "metric", "guardrails", "policy", "adapter"]).filter {
+        live[$0] != proposed[$0]
+    }
+    if title.lowercased().hasPrefix("relax") {
+        #expect(changed == ["outcome", "metric"], "\(id): \(title) changes \(changed)")
+        let (oldRest, oldMinutes) = window(live["outcome"]?.string ?? "")
+        let (newRest, newMinutes) = window(proposed["outcome"]?.string ?? "")
+        #expect(oldRest == newRest, "\(id): only the time window may change")
+        #expect(newMinutes > oldMinutes, "\(id): a relaxed window is longer")
+        let oldTarget = live["metric"]?["target"]?.number ?? 0
+        let newTarget = proposed["metric"]?["target"]?.number ?? 0
+        #expect(newTarget < oldTarget, "\(id): a relaxed window lowers the target")
+        var keptMetric = proposed["metric"]
+        if case .object(var members)? = keptMetric {
+            members["target"] = live["metric"]?["target"]
+            keptMetric = .object(members)
+        }
+        #expect(keptMetric == live["metric"], "\(id): only the metric target changes")
+    } else {
+        let newGuardrails = (proposed["guardrails"]?.strings ?? []).filter {
+            !(live["guardrails"]?.strings ?? []).contains($0)
+        }
+        let added = words(proposed["outcome"]?.string ?? "")
+            .subtracting(words(live["outcome"]?.string ?? ""))
+            .union(words(newGuardrails.joined(separator: " ")))
+        #expect(
+            !words(title).intersection(added).isEmpty,
+            "\(id): “\(title)” names nothing the diff adds: \(added.sorted())")
+    }
+}
+
+/// Lowercased words of four letters or more, plural s dropped.
+private func words(_ text: String) -> Set<String> {
+    Set(
+        text.lowercased().split { !$0.isLetter }.map(String.init).filter { $0.count >= 4 }
+            .map { $0.hasSuffix("s") ? String($0.dropLast()) : $0 })
+}
+
+/// The outcome without its `within <n> [business] <unit>` phrase, and that window in minutes.
+private func window(_ outcome: String) -> (String, Int) {
+    let numbers = ["one": 1, "two": 2, "three": 3, "four": 4, "six": 6, "eight": 8, "a": 1]
+    let units = ["minute": 1, "hour": 60, "day": 1440]
+    let tokens = outcome.lowercased().split(separator: " ").map(String.init)
+    guard let at = tokens.firstIndex(of: "within"), at + 2 < tokens.count else {
+        return (outcome, 0)
+    }
+    let skip = tokens[at + 2] == "business" && at + 3 < tokens.count ? 1 : 0
+    let unit = tokens[at + 2 + skip].trimmingCharacters(in: .punctuationCharacters)
+    let singular = unit.hasSuffix("s") ? String(unit.dropLast()) : unit
+    let count = numbers[tokens[at + 1]] ?? Int(tokens[at + 1]) ?? 0
+    let rest = (tokens[..<at] + tokens[(at + 3 + skip)...]).joined(separator: " ")
+    return (rest, count * (units[singular] ?? 0))
+}
+
 @Test func fixtureProposalTitlesDescribeTheirDiffs() throws {
     let base = PreviewFixtures.triage(now: now)
     let live = try #require(LiveCharter.find(events: base, steward: steward)?.charter)
-    let events = ProposalFixtures.events(live: live, steward: steward, start: now)
-    let created = events.filter { $0.type == "proposal.created" }
+    let created = ProposalFixtures.events(live: live, steward: steward, start: now)
+        .filter { $0.type == "proposal.created" }
     #expect(created.count == 3)
-    func words(_ text: String) -> Set<String> {
-        Set(
-            text.lowercased().split { !$0.isLetter }.map(String.init).filter { $0.count >= 4 }
-                .map { $0.hasSuffix("s") ? String($0.dropLast()) : $0 })
-    }
-    /// The outcome without its `within <n> <unit>` phrase, and that window in minutes.
-    func window(_ outcome: String) -> (String, Int) {
-        let numbers = ["one": 1, "two": 2, "three": 3, "four": 4, "six": 6, "eight": 8, "a": 1]
-        let units = ["minute": 1, "hour": 60, "day": 1440]
-        let tokens = outcome.lowercased().split(separator: " ").map(String.init)
-        guard let at = tokens.firstIndex(of: "within"), at + 2 < tokens.count else {
-            return (outcome, 0)
-        }
-        let unit = tokens[at + 2].trimmingCharacters(in: .punctuationCharacters)
-        let singular = unit.hasSuffix("s") ? String(unit.dropLast()) : unit
-        let count = numbers[tokens[at + 1]] ?? Int(tokens[at + 1]) ?? 0
-        let rest = (tokens[..<at] + tokens[(at + 3)...]).joined(separator: " ")
-        return (rest, count * (units[singular] ?? 0))
-    }
     for event in created {
-        let id = event.payload["proposal"]?.string ?? "?"
-        let title = String(
-            (event.payload["reason"]?.string ?? "").split(separator: "\n").first ?? "")
-        let proposed = try #require(event.payload["charter"])
-        let changed = Set(["outcome", "metric", "guardrails", "policy", "adapter"]).filter {
-            live[$0] != proposed[$0]
-        }
-        if title.lowercased().hasPrefix("relax") {
-            #expect(changed == ["outcome", "metric"], "\(id): \(title) changes \(changed)")
-            let old = live["outcome"]?.string ?? ""
-            let new = proposed["outcome"]?.string ?? ""
-            let (oldRest, oldMinutes) = window(old)
-            let (newRest, newMinutes) = window(new)
-            #expect(oldRest == newRest, "\(id): only the time window may change: \(new)")
-            #expect(newMinutes > oldMinutes, "\(id): a relaxed window is longer")
-            let oldTarget = try #require(live["metric"]?["target"]?.number)
-            let newTarget = try #require(proposed["metric"]?["target"]?.number)
-            #expect(newTarget < oldTarget, "\(id): a relaxed window lowers the target")
-            var keptMetric = proposed["metric"]
-            if case .object(var members)? = keptMetric {
-                members["target"] = live["metric"]?["target"]
-                keptMetric = .object(members)
-            }
-            #expect(keptMetric == live["metric"], "\(id): only the metric target changes")
-        } else {
-            let added =
-                words(proposed["outcome"]?.string ?? "")
-                .subtracting(words(live["outcome"]?.string ?? ""))
-                .union(
-                    words(
-                        (proposed["guardrails"]?.strings ?? [])
-                            .filter { !(live["guardrails"]?.strings ?? []).contains($0) }
-                            .joined(separator: " ")))
-            #expect(
-                !words(title).intersection(added).isEmpty,
-                "\(id): “\(title)” names nothing the diff adds: \(added.sorted())")
-        }
+        let title = (event.payload["reason"]?.string ?? "").split(separator: "\n").first
+        expectTitleDescribesDiff(
+            event.payload["proposal"]?.string ?? "?", title: String(title ?? ""), live: live,
+            proposed: try #require(event.payload["charter"]))
+    }
+}
+
+/// The demo home's proposals (etc/examples/proposals.json, seeded by demo.sh) pass the same
+/// check against the charter each one replaces.
+@Test func demoProposalTitlesDescribeTheirDiffs() throws {
+    let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent()
+    func load(_ path: String) throws -> FeatureJSON {
+        try JSONDecoder().decode(
+            FeatureJSON.self, from: Data(contentsOf: root.appendingPathComponent(path)))
+    }
+    let proposals = try load("etc/examples/proposals.json").array ?? []
+    #expect(proposals.count == 3)
+    for proposal in proposals {
+        expectTitleDescribesDiff(
+            proposal["charter"]?.string ?? "?", title: proposal["title"]?.string ?? "",
+            live: try load(proposal["base"]?.string ?? ""),
+            proposed: try load(proposal["charter"]?.string ?? ""))
     }
 }

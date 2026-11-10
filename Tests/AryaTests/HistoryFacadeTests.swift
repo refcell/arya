@@ -93,3 +93,16 @@ import Testing
     #expect(state.done == fresh.done + 1)
     #expect(state.progress == Double(state.done) / 7)
 }
+
+/// A refunds binding has no `get`: history records are served as its own read, so a rehearsal
+/// of an imported refund answers `billing.order` from the record instead of leaking.
+@Test func historyRecordsUseTheBindingsOwnRead() throws {
+    func binding(_ read: [String]) throws -> CharterBinding {
+        let json = #"{"id":"billing","kind":"mcp","command":"billing-mcp","actions":[],"read":"#
+        return try JSONDecoder().decode(
+            CharterBinding.self, from: Data((json + "\(read)}").utf8))
+    }
+    #expect(Workspace.recordTool(try binding(["history", "order"])) == "billing.order")
+    #expect(Workspace.recordTool(try binding(["order", "get"])) == "billing.get")
+    #expect(Workspace.recordTool(try binding(["history"])) == nil)
+}

@@ -131,10 +131,10 @@ check_metric_event() {
 }
 check_metrics() { expect metric "$(get 0.metric)" routed_within_1h && expect points "$(get 0.points)" 1; }
 check_replay() { expect divergences "$(get divergences)" 0; }
-check_history() { expect added "$(get added)" 12 && expect duplicate "$(get duplicates.0)" MSG-101; }
-check_history_rehearsal() { expect passed "$(get passed)" 18 && expect total "$(get total)" 21; }
+check_history() { expect added "$(get added)" 26 && expect duplicate "$(get duplicates.0)" MSG-101; }
+check_history_rehearsal() { expect passed "$(get passed)" 30 && expect total "$(get total)" 35; }
 check_review_queue() {
-  expect "next case" "$(get next.caseID)" hist-MSG-113 && expect total "$(get total)" 21 &&
+  expect "next case" "$(get next.caseID)" hist-MSG-113 && expect total "$(get total)" 35 &&
     expect reviewed "$(get reviewed)" 2
 }
 check_history_steward() { expect id "$(get summary.id)" st_history; }
@@ -382,9 +382,9 @@ step "it is ready to go live" improve live check_readiness readiness "${proposal
 step "MSG-203: a crew drafts the reply" crew live check_crew \
   run st_triage --input "New message MSG-203: Damaged order, please refund"
 step "the crew child only proposes" crew live check_child run show "${crew_child:-unknown}"
-step "import inbox history: 12 new cases" history rehearsal check_history \
+step "import inbox history: 26 new cases" history rehearsal check_history \
   history import st_triage --file "$example/history-export.json"
-step "rehearse with history: 18 of 21" history rehearsal check_history_rehearsal \
+step "rehearse with history: 30 of 35" history rehearsal check_history_rehearsal \
   rehearse st_triage
 step "review queue: MSG-113 disagrees" history rehearsal check_review_queue review st_triage
 step "agree with MSG-110" history rehearsal check_reviewed \
