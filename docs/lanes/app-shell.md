@@ -243,3 +243,15 @@ M4:
 - Visual check (`just snapshot` overview-with-inspector, run, ledger-inspector, needs-you):
   lists and threads fill the stream; the inspector shows steward context, run facts, and the
   event payload in one place; R1-R5 pass.
+- 2026-11-09 (R8-R9): command palette (Command-K, `CommandCatalog` plus
+  `FeatureRegistry.commands`, fuzzy `PaletteSearch`, keycaps, ↑/↓/↩/Esc) and the 22 pt status
+  bar (`StatusBarLine`: scheduler "—" until `serveStatus()`, next run, fleet, waiting, ledger verified, today's spend). Shortcuts:
+  ⌘K, ⌘N new steward, ⌘\ sidebar, ⌥⌘I inspector, ⌘0-4. Needs you's inspector shows an interim
+  approval summary (app-views' `approvalInspector` swaps in when it lands); the Plan duplicate
+  is gone; home and appearance
+  moved into the Settings window (gear, Command-comma). RunFacts pluralize and show "—" for
+  unknown duration and cost.
+- Visual check (`just snapshot` command-palette, needs-you, overview, app-settings): the
+  palette lists steward, go, and steward-jump commands with keycaps; the status bar shows on
+  every state; Needs you's inspector shows the approval's steward, run, policy, and risk; R1-R5
+  pass.

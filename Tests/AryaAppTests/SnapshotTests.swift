@@ -46,6 +46,15 @@ import Testing
             try page("run-approval") { $0.select(run: waiting.id, steward: steward.id) }
         }
         try page("needs-you") { $0.showApprovals() }
+        // Command-K over the Overview: the search line, commands, groups, and keycaps.
+        model.paletteOpen = true
+        try page("command-palette") { $0.tab = .overview }
+        model.paletteOpen = false
+        // App settings, behind the gear (Command-comma), apart from any steward.
+        let settings = AppSettingsView(home: model.source.label)
+            .frame(width: Self.size.width, height: Self.size.height, alignment: .center)
+            .background(AryaColor.canvas)
+        try write("app-settings", scheme: scheme, render(settings, dark: dark))
         // The fleet in the sidebar: another steward selected, so every steward's dot, the
         // paused word, and the selected one's metric against its target all show.
         if let other = model.stewards.first(where: { $0.id != steward.id && $0.status == .active })

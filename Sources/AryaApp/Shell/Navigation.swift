@@ -40,6 +40,10 @@ struct NavigationState: Hashable, Sendable {
     var tab: StewardTab = .overview
     /// Whether the right-hand inspector (selection detail, steward context, settings) shows.
     var inspector = true
+    /// Whether the sidebar shows (Command-Backslash hides it).
+    var sidebar = true
+    /// The approval selected in Needs you; nil follows the oldest.
+    var approval: String?
     /// The ledger event whose inspector is open on the Ledger tab.
     var ledgerEvent: String?
 

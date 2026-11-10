@@ -74,6 +74,13 @@ enum FeatureRegistry {
         }
     }
 
+    /// Commands the feature lanes add to the palette (Command-K); the shell's own come first.
+    /// Add one `PaletteCommand` per action, with its keycap when it has a shortcut.
+    @MainActor
+    static func commands(_ model: AppModel) -> [PaletteCommand] {
+        []
+    }
+
     /// A ledger event's detail (payload, hash, its run) for the shell's inspector.
     @ViewBuilder
     static func eventInspector(_ context: FeatureContext, event id: String) -> some View {

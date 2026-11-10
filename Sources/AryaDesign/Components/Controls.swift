@@ -125,6 +125,26 @@ struct TextTabButton<ID: Hashable>: View {
 /// A short set of exclusive choices as plain text (STYLE.md Choices): the selected one in `ink`
 /// with a check mark, the rest in `inkFaint`. No box, no fill, no second label; the section
 /// label above names it.
+/// A shortcut hint: small mono keys inside a 1 px rounded hairline, "⌘K", "esc".
+public struct Keycap: View {
+    let keys: String
+
+    public init(_ keys: String) {
+        self.keys = keys
+    }
+
+    public var body: some View {
+        Text(keys)
+            .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            .padding(.horizontal, AryaSpace.s1)
+            .overlay(
+                RoundedRectangle(cornerRadius: AryaRadius.small)
+                    .strokeBorder(AryaColor.rule, lineWidth: 1)
+            )
+            .accessibilityLabel("Shortcut \(keys)")
+    }
+}
+
 public struct ChoiceRow<Value: Hashable>: View {
     let options: [(value: Value, title: String)]
     let selection: Value

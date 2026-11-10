@@ -18,6 +18,10 @@ import Testing
     #expect(InspectorFocus.of(navigation) == .event("ev_4"))
     navigation.tab = .overview
     #expect(InspectorFocus.of(navigation) == .steward("st_triage"))
+    navigation.showApprovals()
+    #expect(InspectorFocus.of(navigation) == .approval(nil))
+    navigation.approval = "ap_2"
+    #expect(InspectorFocus.of(navigation) == .approval("ap_2"))
 }
 
 @Test func stewardContextListsConnectionsAndPeople() {
@@ -45,4 +49,19 @@ import Testing
     #expect(RunFacts.cost(0) == "$0")
     #expect(RunFacts.cost(42_000) == "$0.042")
     #expect(RunFacts.cost(2_500_000) == "$2.50")
+}
+
+@Test func runFactsPluralizeAndHideUnknowns() {
+    let start = Date(timeIntervalSince1970: 1_700_000_000)
+    let run = RunSummary(
+        id: "run_1", steward: "st_triage", trigger: "manual", charterVersion: 1,
+        status: .finished, startedAt: start, endedAt: start, actionsProposed: 1)
+    var log = FeatureEventBuilder(start: start)
+    log.add("run.decision", steward: "st_triage", run: "run_1")
+    let facts = Dictionary(
+        RunFacts.lines(run, events: log.events, now: start), uniquingKeysWith: { a, _ in a })
+    #expect(facts["Steps"] == "1 event · 1 decision · 0 tools")
+    #expect(facts["Proposed"] == "1 action")
+    #expect(facts["Duration"] == "—")
+    #expect(facts["Cost"] == "—")
 }

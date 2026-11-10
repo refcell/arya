@@ -3,14 +3,18 @@ import AryaDesign
 import SwiftUI
 
 /// What the right-hand inspector shows, from the selection (STYLE.md Layout): a ledger event's
-/// payload and hash, a run's facts and cost, else the steward's context, with Settings last.
+/// payload and hash, an approval's context, a run's facts and cost, else the steward's
+/// context. App settings (home, appearance) live in the Settings window, not here.
 enum InspectorFocus: Equatable {
+    /// An approval in Needs you: nil until the queue has one.
+    case approval(String?)
     case event(String)
     case run(String)
     case steward(String)
     case none
 
     static func of(_ navigation: NavigationState) -> InspectorFocus {
+        if navigation.destination == .approvals { return .approval(navigation.approval) }
         if navigation.tab == .ledger, navigation.steward != nil,
             let event = navigation.ledgerEvent
         {
@@ -62,19 +66,29 @@ enum RunFacts {
             ("Trigger", run.trigger.isEmpty ? "manual" : run.trigger),
             ("Started", AryaTime.label(run.startedAt, now: now)),
         ]
-        if let ended = run.endedAt {
-            out.append(("Duration", duration(ended.timeIntervalSince(run.startedAt))))
-        }
-        out.append(("Cost", cost(run.costMicros)))
+        // Unknown reads "—": a run that did work never shows 0.0 s or $0.
+        let seconds = run.endedAt.map { $0.timeIntervalSince(run.startedAt) } ?? 0
+        out.append(("Duration", seconds > 0 ? duration(seconds) : "—"))
+        out.append(("Cost", run.costMicros > 0 ? cost(run.costMicros) : "—"))
         let mine = events.filter { $0.run == run.id }
         let decisions = mine.filter { $0.type == "run.decision" }.count
         let tools = mine.filter { $0.type.hasPrefix("tool.") || $0.type.hasPrefix("action.") }
             .count
-        out.append(("Steps", "\(mine.count) events · \(decisions) decisions · \(tools) tool"))
-        out.append(("Proposed", "\(run.actionsProposed) actions"))
+        out.append(
+            (
+                "Steps",
+                [count(mine.count, "event"), count(decisions, "decision"), count(tools, "tool")]
+                    .joined(separator: " · ")
+            ))
+        out.append(("Proposed", count(run.actionsProposed, "action")))
         out.append(("Charter", "v\(run.charterVersion)"))
         if let reason = run.failureReason { out.append(("Failure", reason)) }
         return out
+    }
+
+    /// "1 decision", "4 tools".
+    static func count(_ value: Int, _ noun: String) -> String {
+        "\(value) \(noun)\(value == 1 ? "" : "s")"
     }
 
     /// "0.2 s", "42 s", "3m 05s", "1h 12m".
@@ -95,11 +109,10 @@ enum RunFacts {
 }
 
 /// The right-hand inspector on the same canvas, behind a hairline: it follows the selection
-/// (event, run, steward) and ends with Settings. Toggled with Option-Command-I or the gear.
+/// (approval, event, run, steward). Toggled with Option-Command-I.
 struct InspectorView: View {
     let model: AppModel
     var now: Date = Date()
-    @AppStorage(AryaApp.appearanceKey) private var appearance = AryaAppearance.dark.rawValue
 
     var body: some View {
         ScrollView {
@@ -112,8 +125,6 @@ struct InspectorView: View {
                         .help("Hide the inspector (Option-Command-I)")
                 }
                 focusContent
-                AryaHairline()
-                settings
             }
             .padding(.horizontal, AryaSpace.s4)
             .padding(.top, AryaSize.titleBarInset)
@@ -128,10 +139,11 @@ struct InspectorView: View {
 
     private var heading: String {
         switch focus {
+        case .approval: "Approval"
         case .event: "Event"
         case .run: "Run"
         case .steward: "Steward"
-        case .none: "Settings"
+        case .none: "Inspector"
         }
     }
 
@@ -142,6 +154,14 @@ struct InspectorView: View {
 
     @ViewBuilder private var focusContent: some View {
         switch focus {
+        case .approval(let id):
+            if let approval = model.approvals.first(where: { $0.id == id })
+                ?? model.approvals.first
+            {
+                approvalContent(approval)
+            } else {
+                Text("Nothing needs you.").aryaText(AryaFont.caption, AryaColor.inkFaint)
+            }
         case .event(let id):
             FeatureRegistry.eventInspector(model.featureContext(), event: id)
         case .run:
@@ -150,6 +170,22 @@ struct InspectorView: View {
             if let steward = model.selectedSteward { stewardContent(steward) }
         case .none:
             EmptyView()
+        }
+    }
+
+    /// The oldest (or selected) approval's essentials until Needs you shares its selection
+    /// and app-views' fuller approval inspector is mounted here.
+    private func approvalContent(_ approval: ApprovalSummary) -> some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s2) {
+            Text([approval.actionKind, approval.target].compactMap { $0 }.joined(separator: " "))
+                .aryaText(AryaFont.monoStrong, AryaColor.ink)
+            fact("Steward", model.stewards.first { $0.id == approval.steward }?.name ?? "")
+            if let run = model.runs[approval.steward]?.first(where: { $0.id == approval.run }) {
+                fact("Run", StatusMapping.threadTitle(of: run))
+            }
+            fact("Asked", AryaTime.label(approval.requestedAt, now: now))
+            if let policy = approval.policyText ?? approval.policyRule { fact("Policy", policy) }
+            if let risk = approval.risk { fact("Risk", risk) }
         }
     }
 
@@ -182,18 +218,6 @@ struct InspectorView: View {
                     Button("Pause") { Task { await model.setPaused(true) } }
                         .buttonStyle(.aryaTertiary)
                         .disabled(steward.status != .active)
-                }
-            }
-        }
-        if !context.plan.isEmpty {
-            section("Plan") {
-                ForEach(context.plan) { step in
-                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                        Text(step.status.mark).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                            .accessibilityLabel(step.status.word)
-                        Text(step.title).aryaText(AryaFont.caption, AryaColor.ink)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
             }
         }
@@ -230,23 +254,6 @@ struct InspectorView: View {
                 selection: effort.wrappedValue
             ) { effort.wrappedValue = $0 }
             .help(AryaEffort.tooltip)
-        }
-    }
-
-    private var settings: some View {
-        VStack(alignment: .leading, spacing: AryaSpace.s3) {
-            section("Home") {
-                Text(model.source.label).aryaText(AryaFont.mono, AryaColor.inkMuted)
-            }
-            section("Appearance") {
-                ChoiceRow(
-                    AryaAppearance.allCases.map { ($0, $0.rawValue.capitalized) },
-                    selection: AryaAppearance(stored: appearance)
-                ) { choice in
-                    appearance = choice.rawValue
-                    AryaApp.apply(choice)
-                }
-            }
         }
     }
 

@@ -20,6 +20,10 @@ final class AppModel {
     /// The feature views' event store, when this workspace provides one.
     let featureStore: FeatureStore?
     var navigation = NavigationState()
+    /// Whether the command palette (Command-K) is open.
+    var paletteOpen = false
+    /// The last ledger integrity check, for the status bar.
+    private(set) var ledgerCheck: LedgerCheck?
     /// The New steward flow's starting answers while its sheet is open.
     var stewardSheet: NewStewardDraft?
     private(set) var stewards: [StewardSummary] = []
@@ -88,6 +92,8 @@ final class AppModel {
             self.runs = runs
             self.approvals = approvals.sorted { $0.requestedAt < $1.requestedAt }
             self.efforts = efforts.compactMapValues(AryaEffort.init(rawValue:))
+            // Integrity is a status-bar fact; a failed check leaves the last one shown.
+            if let check = try? await source.verifyLedger() { ledgerCheck = check }
             problem = nil
             announce(approvals, stewards: stewards)
         } catch {

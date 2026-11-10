@@ -40,6 +40,58 @@ struct AryaApp: App {
         .defaultSize(width: 1120, height: 720)
         .windowResizability(.contentMinSize)
         .commands { AryaCommands(session: session) }
+        // App settings (home, appearance, text size), opened by the gear or Command-comma.
+        Settings {
+            AppSettingsView(home: session.model?.source.label)
+        }
+    }
+}
+
+/// App-wide settings, apart from any steward: where the home is, appearance, and text size.
+struct AppSettingsView: View {
+    /// The open home's label; nil before one opens.
+    let home: String?
+    @AppStorage(AryaApp.appearanceKey) private var appearance = AryaAppearance.dark.rawValue
+    @AppStorage(TextScale.defaultsKey) private var textScale = Double(TextScale.standard)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s4) {
+            section("Home") {
+                Text(home ?? "No home open")
+                    .aryaText(AryaFont.mono, AryaColor.inkMuted)
+            }
+            section("Appearance") {
+                ChoiceRow(
+                    AryaAppearance.allCases.map { ($0, $0.rawValue.capitalized) },
+                    selection: AryaAppearance(stored: appearance)
+                ) { choice in
+                    appearance = choice.rawValue
+                    AryaApp.apply(choice)
+                }
+            }
+            section("Text size") {
+                HStack(spacing: AryaSpace.s3) {
+                    Button("Smaller") { textScale = Double(TextScale.smaller(textScale)) }
+                        .buttonStyle(.aryaTertiary)
+                    Button("Actual size") { textScale = Double(TextScale.standard) }
+                        .buttonStyle(.aryaTertiary)
+                    Button("Bigger") { textScale = Double(TextScale.bigger(textScale)) }
+                        .buttonStyle(.aryaTertiary)
+                }
+            }
+        }
+        .padding(AryaSpace.s4)
+        .frame(width: AryaSize.inspectorWidth, alignment: .leading)
+        .background(AryaColor.canvas)
+    }
+
+    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content)
+        -> some View
+    {
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            Text(title).aryaText(AryaFont.label, AryaColor.inkFaint)
+            content()
+        }
     }
 }
 
@@ -94,7 +146,7 @@ struct AryaCommands: Commands {
         }
         CommandMenu("Steward") {
             Button("New Steward…") { session.model?.stewardSheet = NewStewardDraft() }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .keyboardShortcut("n")
                 .disabled(session.model == nil)
             Button("Edit Charter…") { session.model.map(FeatureRegistry.editCharter) }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
@@ -111,9 +163,14 @@ struct AryaCommands: Commands {
             }
         }
         CommandMenu("Go") {
+            Button("Command Palette…") { session.model?.paletteOpen.toggle() }
+                .keyboardShortcut("k")
+            Divider()
             Button("Needs You") { session.model?.navigation.showApprovals() }
                 .keyboardShortcut("0")
-            Button("Settings") { session.model?.navigation.inspector.toggle() }
+            Button("Toggle Sidebar") { session.model?.navigation.sidebar.toggle() }
+                .keyboardShortcut("\\")
+            Button("Toggle Inspector") { session.model?.navigation.inspector.toggle() }
                 .keyboardShortcut("i", modifiers: [.command, .option])
             Button("Connections") { session.model?.navigation.showConnections() }
                 .keyboardShortcut("k", modifiers: [.command, .shift])

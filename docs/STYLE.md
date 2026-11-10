@@ -123,10 +123,16 @@ display scale (`1 / displayScale` pt) in `rule`.
 - **Stream**: the main zone fills the width between the sidebar and the inspector; lists,
   threads, and tables never sit in a narrow column.
 - **Inspector**: 340 pt on the right, persistent, the same `canvas`, one hairline on its left,
-  hidden with Option-Command-I. It follows the selection: a ledger event (payload, hash,
-  prev), a run (status, trigger, timing, cost, steps), else the steward's context (plan,
-  schedule, policy, connections, people, effort, Edit charter, Pause). Settings (home,
-  appearance) is always its last section.
+  hidden with Option-Command-I. It follows the selection: an approval in Needs you (steward,
+  run, policy, risk, earlier decisions on its target), a ledger event (payload, hash, prev), a
+  run (status, trigger, timing, cost, steps), else the steward's context (schedule, policy,
+  connections, people, effort, Edit charter, Pause). The stream keeps the plan.
+- **Status bar**: 22 pt along the bottom, the same `canvas`, a hairline above, `monoSmall`
+  `inkFaint`: next scheduled run, the fleet ("3 stewards · 1 behind · 1 paused"), approvals
+  waiting (`accent`, opens Needs you), ledger integrity ("✓ verified 1758", `negative` when
+  broken), today's spend, and a Commands ⌘K hint.
+- **Settings**: app settings (home, appearance, text size) live in the Settings window, opened
+  by the sidebar gear or Command-comma; no inspector repeats them.
 
 ## Components
 
@@ -194,6 +200,19 @@ content (the reply text) in `body`, the source it acts on (the customer's messag
 "Approve and send") sit on the left under the content. Command-Return approves and
 Command-Delete denies the focused block (decision 0034). Approve and Deny carry accessibility
 titles naming the action.
+
+### Command palette
+
+Command-K opens it over the stream, 560 pt wide, on `raised` with a 1 px `ruleStrong` border:
+a search line (`body`), then up to 12 matching commands, each a 24 pt row with its title,
+its group in `caption`/`inkFaint`, and its shortcut in a keycap. Matching is fuzzy (every
+query character in order; prefixes and word starts rank first). ↑/↓ move, ↩ runs, Esc
+closes. Lanes add commands in `FeatureRegistry.commands(_:)`.
+
+### Keycap
+
+A shortcut hint: `monoSmall` `inkFaint` keys inside a 1 px `rule` outline with 4 pt corners,
+"⌘K", "esc". Used in the palette, the status bar, and hover hints.
 
 ### Buttons
 

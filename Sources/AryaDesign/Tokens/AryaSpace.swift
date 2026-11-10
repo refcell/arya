@@ -20,6 +20,10 @@ public enum AryaSize {
     public static let sidebarMinWidth: CGFloat = 200
     public static let sidebarMaxWidth: CGFloat = 320
     public static let inspectorWidth: CGFloat = 340
+    /// The bottom status bar.
+    public static let statusBarHeight: CGFloat = 22
+    /// The command palette.
+    public static let paletteWidth: CGFloat = 560
     /// Sidebar rows, threads, steps, and table rows.
     public static let rowHeight: CGFloat = 24
     public static let controlHeight: CGFloat = 26

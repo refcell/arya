@@ -11,29 +11,14 @@ struct RootView: View {
     @AryaState private var dragStart: CGFloat?
 
     var body: some View {
-        HStack(spacing: 0) {
-            VStack(spacing: 0) {
-                RailView(model: model, now: now())
-                HStack {
-                    Button {
-                        model.navigation.inspector.toggle()
-                    } label: {
-                        Image(systemName: "gearshape").font(.system(size: 13))
-                    }
-                    .buttonStyle(.aryaTertiary)
-                    .accessibilityLabel("Settings")
-                    .help("Settings (Option-Command-I)")
-                    Spacer()
-                }
-                .padding(AryaSpace.s2)
-            }
-            .frame(width: railWidth)
-            AryaHairline(.vertical)
-                .overlay { resizeHandle }
-            MainPane(model: model)
-            if model.navigation.inspector {
-                AryaHairline(.vertical)
-                InspectorView(model: model, now: now())
+        VStack(spacing: 0) {
+            zones
+            StatusBar(model: model, now: now())
+        }
+        .overlay(alignment: .top) {
+            if model.paletteOpen {
+                CommandPaletteView(model: model)
+                    .padding(.top, AryaSize.titleBarInset + AryaSpace.s7)
             }
         }
         .ignoresSafeArea(.container, edges: .top)
@@ -44,6 +29,39 @@ struct RootView: View {
             await model.watch()
         }
         .task { await model.featureStore?.observe() }
+    }
+
+    /// Sidebar | stream | inspector, hairline-separated on one canvas.
+    private var zones: some View {
+        HStack(spacing: 0) {
+            if model.navigation.sidebar {
+                sidebar
+                AryaHairline(.vertical)
+                    .overlay { resizeHandle }
+            }
+            MainPane(model: model)
+            if model.navigation.inspector {
+                AryaHairline(.vertical)
+                InspectorView(model: model, now: now())
+            }
+        }
+    }
+
+    private var sidebar: some View {
+        VStack(spacing: 0) {
+            RailView(model: model, now: now())
+            HStack {
+                SettingsLink {
+                    Image(systemName: "gearshape").font(.system(size: 13))
+                }
+                .buttonStyle(.aryaTertiary)
+                .accessibilityLabel("Settings")
+                .help("Settings (Command-comma)")
+                Spacer()
+            }
+            .padding(AryaSpace.s2)
+        }
+        .frame(width: railWidth)
     }
 
     /// An invisible 8 pt grip over the hairline that resizes the rail within 200–320 pt.
