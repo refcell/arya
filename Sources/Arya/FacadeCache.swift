@@ -20,6 +20,8 @@ struct FacadeState: Sendable {
     /// instead of reading and decoding the ledger files again.
     var events: [Event] = []
     var runtime: [RuntimeEvent] = []
+    /// Each steward's events in ledger form, oldest first, for activity and recaps.
+    var stewardEvents: [StewardID: [Event]] = [:]
     /// Each run's events, oldest first, for run detail.
     var byRun: [RunID: [Event]] = [:]
     /// Each steward's events, oldest first, for per-steward reads (metrics, outcomes).
@@ -66,6 +68,13 @@ struct FacadeState: Sendable {
         return min(events.count, max(0, Int(seq - first)))
     }
 
+    /// The live event at `seq`.
+    func event(seq: Int) -> Event? {
+        let index = index(from: Int64(seq))
+        guard index < events.count, events[index].seq == Int64(seq) else { return nil }
+        return events[index]
+    }
+
     /// When the event at `seq` happened, if it is live.
     func date(seq: Int) -> Date? {
         let index = index(from: Int64(seq))
@@ -81,6 +90,7 @@ struct FacadeState: Sendable {
         runtime.append(runtimeEvent)
         if let steward = event.steward { bySteward[steward, default: []].append(runtimeEvent) }
         if let run = event.run { byRun[run, default: []].append(event) }
+        if let steward = event.steward { stewardEvents[steward, default: []].append(event) }
         try? rehearsals.apply(runtimeEvent)
         try? proposals.apply(runtimeEvent)
         if event.type.namespace == "finding" { findingEvents.append(runtimeEvent) }

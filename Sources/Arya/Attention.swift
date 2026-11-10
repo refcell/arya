@@ -181,11 +181,11 @@ extension Workspace {
 
     /// One ledger event for the inspector, or `nil` when no event has this `seq`.
     public func event(seq: Int, timeZone: TimeZone = .current) async throws -> EventDetail? {
-        let events = try facadeState().events
-        guard let event = events.first(where: { Int($0.seq) == seq }) else { return nil }
+        let state = try facadeState()
+        guard let event = state.event(seq: seq) else { return nil }
         var step: EventDetail.RunStep?
         if let run = event.run {
-            let own = events.filter { $0.run == run }
+            let own = state.byRun[run] ?? []
             let index = (own.firstIndex { $0.seq == event.seq } ?? 0) + 1
             let title = try await runBook().records[run].map { RunSummary($0).title } ?? ""
             step = .init(run: run.rawValue, index: index, count: own.count, title: title)

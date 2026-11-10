@@ -97,4 +97,27 @@ private func store(_ opened: Opened) throws -> LedgerStore {
     _ = try await workspace.liveRuns()
     let live = clock.now - start
     #expect(live < .milliseconds(20), "warm liveRuns() took \(live)")
+
+    let run = try #require(try await workspace.runs().first).id
+    let reads: [(String, () async throws -> Void)] = [
+        ("activity", { _ = try await workspace.activity(steward: "st_inbox") }),
+        ("recap", { _ = try await workspace.recap(steward: "st_inbox") }),
+        ("plan", { _ = try await workspace.plan(steward: "st_inbox") }),
+        ("event", { _ = try await workspace.event(seq: 3) }),
+        ("conversation", { _ = try await workspace.conversation(steward: "st_inbox") }),
+        ("run", { _ = try await workspace.run(run) }),
+        ("runFacts", { _ = try await workspace.runFacts(run: run) }),
+        ("ledger", { _ = try await workspace.ledger(from: 49_000, limit: 50) }),
+        ("knowledge", { _ = try await workspace.knowledge(steward: "st_inbox") }),
+        ("memory", { _ = try await workspace.memory(steward: "st_inbox") }),
+        ("impact", { _ = try await workspace.impact(steward: "st_inbox") }),
+        ("overviewFindings", { _ = try await workspace.overviewFindings(steward: "st_inbox") }),
+    ]
+    for (name, read) in reads {
+        try await read()
+        start = clock.now
+        try await read()
+        let took = clock.now - start
+        #expect(took < .milliseconds(20), "warm \(name) took \(took)")
+    }
 }

@@ -245,3 +245,7 @@ M3:
   steward:)` read the same cached tally (tested to agree). `impact(steward:)` (window
   attribution, rows for separable kinds, confidence from windows, agreement, and check results)
   and `overviewFindings(steward:)`; `findings`, `effectiveness`, `checks` on the cache.
+- 2026-11-10: activity, recap, plan, event detail, and conversations read per-steward,
+  per-run, and per-seq indexes in the cached state; the 50k-event warm test now holds twelve
+  more reads (activity, recap, plan, event, conversation, run, runFacts, ledger page,
+  knowledge, memory, impact, overview findings) under 20 ms each.

@@ -279,8 +279,8 @@ extension Workspace {
     /// newest live run result that carried one. No items until a run reports a plan.
     public func plan(steward: String) async throws -> Plan {
         let id = try await existing(steward).id
-        if let event = try facadeState().runtime.last(where: {
-            $0.type == PlanEventType.updated && $0.draft.steward == id
+        if let event = try (facadeState().bySteward[id] ?? []).last(where: {
+            $0.type == PlanEventType.updated
         }) {
             let body = try CanonicalJSON.decode(
                 PlanUpdated.self, from: try CanonicalJSON.encode(event.payload))
@@ -318,7 +318,8 @@ extension Workspace {
     /// approvals, finished and failed runs, memory, routine, and charter changes.
     public func activity(steward: String, limit: Int = 50) async throws -> [ActivityItem] {
         let id = try await existing(steward).id
-        let items = try ActivityFeed(events: try facadeState().events, steward: id).items
+        let events = try facadeState().stewardEvents[id] ?? []
+        let items = try ActivityFeed(events: events, steward: id).items
         return Array(items.reversed().prefix(max(0, limit)))
     }
 
@@ -326,13 +327,14 @@ extension Workspace {
     /// everything). The app keeps that `seq`; the facade stores no per-person state.
     public func recap(steward: String, since seq: Int = 0) async throws -> Recap {
         let id = try await existing(steward).id
-        let events = try facadeState().events
+        let state = try facadeState()
+        let events = state.stewardEvents[id] ?? []
         let feed = try ActivityFeed(events: events, steward: id).items.filter { $0.seq > seq }
         let pending = try await approvals().filter { $0.steward == id.rawValue }
         return Recap(
             steward: id.rawValue, goal: try await existing(steward).charter.outcome,
             outcome: try await outcome(steward: steward), since: seq,
-            through: Int(events.last?.seq ?? 0),
+            through: Int(state.seq),
             activity: feed.filter { $0.kind == "action" || $0.kind == "decision" },
             unresolved: feed.filter { $0.unresolved && $0.kind != "approval" },
             pendingApprovals: pending)
