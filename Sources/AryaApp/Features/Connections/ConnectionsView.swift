@@ -14,9 +14,9 @@ struct ConnectionsView: View {
     let credentials: any CredentialStore
     let selectSteward: (String) -> Void
     /// Tests a connection with its secret; returns the tools it lists.
-    let probe: @Sendable (ConnectionsCatalog.Entry, String?) async throws -> ConnectionProbe
+    let probe: @Sendable (ConnectionsCatalog.Entry, String?) async throws -> ConnectionTest
 
-    @AryaState private var results: [String: Result<ConnectionProbe, ConnectionsFailure>] = [:]
+    @AryaState private var results: [String: Result<ConnectionTest, ConnectionsFailure>] = [:]
     @AryaState private var testing: Set<String> = []
     @AryaState private var secrets: [String: String] = [:]
     @AryaState private var stored: [String: Bool] = [:]
@@ -139,12 +139,15 @@ struct ConnectionsView: View {
     }
 
     @ViewBuilder
-    private func testLine(_ result: Result<ConnectionProbe, ConnectionsFailure>) -> some View {
+    private func testLine(_ result: Result<ConnectionTest, ConnectionsFailure>) -> some View {
         switch result {
-        case .success(let probe):
-            Text(ConnectionTestText.line(tools: probe.tools, missing: probe.missing))
+        case .success(let test) where test.ok:
+            Text(ConnectionTestText.line(test))
                 .aryaText(
-                    AryaFont.monoSmall, probe.complete ? AryaColor.positive : AryaColor.warning)
+                    AryaFont.monoSmall, test.complete ? AryaColor.positive : AryaColor.warning)
+        case .success(let test):
+            Text("Failed · " + (test.problem ?? "no answer"))
+                .aryaText(AryaFont.monoSmall, AryaColor.negative)
         case .failure(let failure):
             Text("Failed · " + failure.text).aryaText(AryaFont.monoSmall, AryaColor.negative)
         }
@@ -246,9 +249,6 @@ struct ConnectionsFailure: Error, Hashable, Sendable {
 
     init(_ error: any Error) {
         switch error {
-        case ConnectionProbeError.launch(let detail): text = "could not start: \(detail)"
-        case ConnectionProbeError.timedOut(let seconds): text = "no answer in \(seconds)s"
-        case ConnectionProbeError.failed(let detail): text = detail
         case FeatureReadError.unavailable(let what): text = "\(what) is not available here"
         default: text = FeatureStore.sentence(error)
         }

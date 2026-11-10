@@ -172,9 +172,17 @@ struct ConnectionsCatalog: Hashable, Sendable {
 
 /// A connection test's result in words.
 enum ConnectionTestText {
-    static func line(tools: [String], missing: [String]) -> String {
-        let count = tools.count == 1 ? "1 tool" : "\(tools.count) tools"
-        guard !missing.isEmpty else { return "Connected · \(count), every declared tool offered" }
-        return "Connected · \(count), missing " + missing.joined(separator: ", ")
+    /// "Connected to inbox-server in 12 ms · 4 tools, every declared tool offered · history".
+    static func line(_ test: ConnectionTest) -> String {
+        var head = "Connected"
+        if let server = test.server { head += " to \(server)" }
+        if let ms = test.latencyMilliseconds { head += " in \(ms) ms" }
+        let count = test.tools.count == 1 ? "1 tool" : "\(test.tools.count) tools"
+        var out = head + " · " + count
+        out +=
+            test.missing.isEmpty
+            ? ", every declared tool offered" : ", missing " + test.missing.joined(separator: ", ")
+        if test.servesHistory { out += " · history" }
+        return out
     }
 }

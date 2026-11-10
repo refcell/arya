@@ -46,7 +46,10 @@ and receive a periodic report from it.
   proposals through the gate, never in-place edits. Disconnect is refused while a person
   binding relays through the connection (`via`).
 - 2026-11-10: A connection test is a diagnostic, not a run: it starts the server with the app's
-  environment plus the secret, lists tools with a 10 second limit, and records nothing.
+  environment plus the secret, lists tools with a 10 second limit, and records nothing. It
+  runs the adapters lane's `ConnectionProbe.binding` (initialize, tools/list, ping) through the
+  facade's `ConnectionTest`, which adds the declared-tool check; the page shows the server,
+  latency, tools, missing tools, history support, or the probe's one-sentence problem.
 - 2026-11-10: The Connections page is a main-pane destination (`Destination.connections`)
   rather than a steward tab, since connections span stewards; it keeps the steward it acts on.
 
@@ -72,3 +75,4 @@ and receive a periodic report from it.
   approvers on approval cards.
   Visual check: `people` snapshot on the demo home shows Sam (support lead, inbox, approves
   reply, no messages yet), Edit, Remove, and Add person.
+- 2026-11-10: Test now uses the adapters probe (`ConnectionTest` over `ConnectionProbe.binding`).

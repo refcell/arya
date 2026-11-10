@@ -114,76 +114,53 @@ public struct MemoryCredentialStore: CredentialStore {
     }
 }
 
-/// What a connection test found: the tools the server lists, and the ones the binding
-/// declares (`read` and `actions`) that it does not offer.
-public struct ConnectionProbe: Hashable, Sendable {
+/// What a connection test found: the server's name, its tools, and the ones the binding
+/// declares (`read` and `actions`) that it does not offer; or one sentence on why it failed.
+/// The test itself is `AryaAdapters.ConnectionProbe.binding` (docs/PROTOCOL.md, "Connection
+/// testing"); this adds the declared-tool check and the secret.
+public struct ConnectionTest: Hashable, Sendable {
+    public var ok: Bool
+    public var server: String?
     public var tools: [String]
     public var missing: [String]
+    /// It serves the binding `history` convention, so rehearsals can read past work from it.
+    public var servesHistory: Bool
+    public var latencyMilliseconds: Int?
+    /// Why it failed, for a person, ending with the server's last stderr line.
+    public var problem: String?
 
-    public init(tools: [String], missing: [String]) {
+    public init(
+        ok: Bool, server: String? = nil, tools: [String] = [], missing: [String] = [],
+        servesHistory: Bool = false, latencyMilliseconds: Int? = nil, problem: String? = nil
+    ) {
+        self.ok = ok
+        self.server = server
         self.tools = tools
         self.missing = missing
+        self.servesHistory = servesHistory
+        self.latencyMilliseconds = latencyMilliseconds
+        self.problem = problem
     }
 
-    /// Whether every declared tool is offered.
-    public var complete: Bool { missing.isEmpty }
-}
+    /// Connected and every declared tool offered.
+    public var complete: Bool { ok && missing.isEmpty }
 
-/// Why a connection test failed.
-public enum ConnectionProbeError: Error, Equatable, Sendable {
-    /// The server could not be started (`detail` is the system's sentence).
-    case launch(String)
-    /// The server did not answer `tools/list` within the time allowed.
-    case timedOut(seconds: Int)
-    /// The server answered with an error or exited.
-    case failed(String)
-}
-
-extension ConnectionProbe {
     /// Starts the server `command` with `args` and `environment` (the caller's complete
     /// environment, with the secret added by `ConnectionCredential`), lists its tools, and
-    /// stops it. Nothing is recorded: a test is not a run. The timeout uses a sleep, never a
-    /// clock reading, so it cannot change what a run records.
+    /// stops it. Nothing is recorded: a test is not a run.
     public static func run(
         command: String, args: [String], declared: [String], environment: [String: String],
         timeoutSeconds: Int = 10
-    ) async throws -> ConnectionProbe {
-        let upstream: ProcessToolUpstream
-        do {
-            upstream = try ProcessToolUpstream(
-                command: command, args: args, environment: environment)
-        } catch {
-            throw ConnectionProbeError.launch(error.localizedDescription)
-        }
-        defer { Task { await upstream.close() } }
-        let listed = try await withThrowingTaskGroup(of: [JSONValue]?.self) { group in
-            group.addTask { try await upstream.listTools() }
-            group.addTask {
-                try await Task.sleep(for: .seconds(timeoutSeconds))
-                return nil
-            }
-            defer { group.cancelAll() }
-            do {
-                guard let first = try await group.next(), let tools = first else {
-                    await upstream.close()
-                    throw ConnectionProbeError.timedOut(seconds: timeoutSeconds)
-                }
-                return tools
-            } catch let error as ConnectionProbeError {
-                throw error
-            } catch {
-                throw ConnectionProbeError.failed(Self.sentence(error))
-            }
-        }
-        let tools = listed.compactMap { $0["name"]?.stringValue }
-        let offered = Set(tools)
+    ) async -> ConnectionTest {
+        let report = await ConnectionProbe.binding(
+            AdapterCommand(executable: command, arguments: args, environment: environment),
+            timeout: .seconds(timeoutSeconds))
+        guard report.ok else { return ConnectionTest(ok: false, problem: report.problem) }
+        let offered = Set(report.tools)
         var seen = Set<String>()
-        let missing = declared.filter { !offered.contains($0) && seen.insert($0).inserted }
-        return ConnectionProbe(tools: tools, missing: missing)
-    }
-
-    private static func sentence(_ error: any Error) -> String {
-        if let rpc = error as? RPCError { return rpc.message }
-        return String(describing: error)
+        return ConnectionTest(
+            ok: true, server: report.server?.name, tools: report.tools,
+            missing: declared.filter { !offered.contains($0) && seen.insert($0).inserted },
+            servesHistory: report.servesHistory, latencyMilliseconds: report.latencyMilliseconds)
     }
 }

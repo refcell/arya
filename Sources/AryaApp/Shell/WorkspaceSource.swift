@@ -45,12 +45,12 @@ protocol WorkspaceSource: Sendable {
     func approvalTexts() async throws -> [String: FeatureApprovalText]
     /// Starts a connection's server with its secret and lists its tools (the Test button).
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
-        async throws -> ConnectionProbe
+        async throws -> ConnectionTest
 }
 
 extension WorkspaceSource {
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
-        async throws -> ConnectionProbe
+        async throws -> ConnectionTest
     {
         throw FeatureReadError.unavailable("connection tests")
     }
@@ -96,10 +96,10 @@ extension Workspace: WorkspaceSource {
     nonisolated var label: String { home.lastPathComponent }
 
     func probeConnection(command: String, args: [String], declared: [String], secret: String?)
-        async throws -> ConnectionProbe
+        async throws -> ConnectionTest
     {
         // The app's own environment (for PATH), plus the secret; nothing is recorded.
-        try await ConnectionProbe.run(
+        await ConnectionTest.run(
             command: command, args: args, declared: declared,
             environment: ConnectionCredential.environment(
                 ProcessInfo.processInfo.environment, secret: secret))

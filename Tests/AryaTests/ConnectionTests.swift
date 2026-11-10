@@ -16,6 +16,7 @@ private let listingServer = #"""
       case "$line" in
         *'"method":"initialize"'*) printf "$head$init\n" "$id";;
         *'"method":"tools/list"'*) printf "$head$list\n" "$id";;
+        *'"method":"ping"'*) printf "$head{}}\n" "$id";;
       esac
     done
     """#
@@ -40,9 +41,10 @@ private func script(_ body: String) throws -> URL {
     }
     let environment = ConnectionCredential.environment(
         ["PATH": "/usr/bin:/bin"], secret: "token-123")
-    let probe = try await ConnectionProbe.run(
+    let probe = await ConnectionTest.run(
         command: server.path, args: [seen.path], declared: ["search", "get", "label", "get"],
         environment: environment)
+    #expect(probe.ok, "\(probe.problem ?? "")")
     #expect(probe.tools == ["search", "get"])
     #expect(probe.missing == ["label"])
     #expect(!probe.complete)
@@ -52,18 +54,18 @@ private func script(_ body: String) throws -> URL {
 @Test func probeTimesOutOnASilentServer() async throws {
     let server = try script(silent)
     defer { try? FileManager.default.removeItem(at: server) }
-    await #expect(throws: ConnectionProbeError.timedOut(seconds: 1)) {
-        _ = try await ConnectionProbe.run(
-            command: server.path, args: [], declared: [], environment: [:], timeoutSeconds: 1)
-    }
+    let probe = await ConnectionTest.run(
+        command: server.path, args: [], declared: [], environment: [:], timeoutSeconds: 1)
+    #expect(!probe.ok)
+    #expect(probe.problem != nil)
 }
 
 @Test func probeReportsAMissingCommand() async throws {
-    await #expect(throws: ConnectionProbeError.self) {
-        _ = try await ConnectionProbe.run(
-            command: "/nonexistent/arya-no-such-server", args: [], declared: [],
-            environment: [:], timeoutSeconds: 2)
-    }
+    let probe = await ConnectionTest.run(
+        command: "/nonexistent/arya-no-such-server", args: [], declared: [], environment: [:],
+        timeoutSeconds: 2)
+    #expect(!probe.ok && !probe.complete)
+    #expect(probe.problem != nil)
 }
 
 @Test func credentialEnvironmentOnlyAddsANonEmptySecret() {

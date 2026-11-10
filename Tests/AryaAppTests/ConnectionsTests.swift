@@ -92,14 +92,21 @@ private func events() -> [FeatureEvent] {
 
     @Test func testLineNamesMissingTools() {
         #expect(
-            ConnectionTestText.line(tools: ["a", "b"], missing: [])
+            ConnectionTestText.line(ConnectionTest(ok: true, tools: ["a", "b"]))
                 == "Connected · 2 tools, every declared tool offered")
+        let full = ConnectionTest(
+            ok: true, server: "inbox", tools: ["history"], servesHistory: true,
+            latencyMilliseconds: 12)
         #expect(
-            ConnectionTestText.line(tools: ["a"], missing: ["b"])
+            ConnectionTestText.line(full)
+                == "Connected to inbox in 12 ms · 1 tool, every declared tool offered · history")
+        #expect(
+            ConnectionTestText.line(ConnectionTest(ok: true, tools: ["a"], missing: ["b"]))
                 == "Connected · 1 tool, missing b"
         )
         #expect(
-            ConnectionsFailure(ConnectionProbeError.timedOut(seconds: 3)).text == "no answer in 3s")
+            ConnectionsFailure(FeatureReadError.unavailable("connection tests")).text
+                == "connection tests is not available here")
     }
 
     @Test func navigationKeepsTheConnectionsStewardValid() {
