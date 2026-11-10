@@ -5,14 +5,14 @@
       "kind": "exec",
       "command": "claude",
       "args": {
-        "low": ["-p", "--output-format", "stream-json", "--verbose", "--model", "haiku",
-          "--mcp-config", "{mcpConfig}", "--disallowedTools",
+        "low": ["-p", "--output-format", "stream-json", "--verbose",
+          "--include-partial-messages", "--model", "haiku", "--mcp-config", "{mcpConfig}", "--disallowedTools",
           "Bash Edit Write NotebookEdit WebFetch WebSearch"],
-        "medium": ["-p", "--output-format", "stream-json", "--verbose", "--model", "sonnet",
-          "--mcp-config", "{mcpConfig}", "--disallowedTools",
+        "medium": ["-p", "--output-format", "stream-json", "--verbose",
+          "--include-partial-messages", "--model", "sonnet", "--mcp-config", "{mcpConfig}", "--disallowedTools",
           "Bash Edit Write NotebookEdit WebFetch WebSearch"],
-        "high": ["-p", "--output-format", "stream-json", "--verbose", "--model", "opus",
-          "--mcp-config", "{mcpConfig}", "--disallowedTools",
+        "high": ["-p", "--output-format", "stream-json", "--verbose",
+          "--include-partial-messages", "--model", "opus", "--mcp-config", "{mcpConfig}", "--disallowedTools",
           "Bash Edit Write NotebookEdit WebFetch WebSearch"]
       },
       "promptVia": "stdin",
@@ -35,6 +35,13 @@
       "parse": "codex-json",
       "mcpConfig": "none",
       "sandbox": "workdir"
+    },
+    "shell": {
+      "kind": "exec",
+      "command": "/bin/sh",
+      "args": {"low": ["-c"], "medium": ["-c"], "high": ["-c"]},
+      "promptVia": "argument",
+      "parse": "command"
     }
   }
 }

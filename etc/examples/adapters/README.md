@@ -6,11 +6,13 @@ prompt on stdin, in a scratch working directory.
 
 | Profile | Command | Output | arya's tools | Effort |
 | --- | --- | --- | --- | --- |
-| `claude-code` | `claude -p` | `stream-json`: live events and cost | `--mcp-config` file | model per effort |
+| `claude-code` | `claude -p` | `stream-json` with partial messages: live events, the reply as it is written, and cost | `--mcp-config` file | model per effort |
 | `codex-cli` | `codex exec --json --sandbox read-only` | JSON events and token counts | none (its own config) | reasoning effort |
+| `shell` | `/bin/sh -c <input>` | `command`: stdout and stderr stream live; exit code ends the call | none | none |
 
-Both run read-only: Claude Code with its shell, file-writing, and web tools disallowed, Codex
-CLI in its read-only sandbox. Proposed actions still go through the charter's policy.
+The two agent profiles run read-only: Claude Code with its shell, file-writing, and web tools disallowed, Codex
+CLI in its read-only sandbox. `shell` runs whatever command it is given, so use it for routines
+and checks under arya's OS sandbox. Proposed actions still go through the charter's policy.
 
 To use one, install the agent and sign in, copy the profile into `<home>/adapters.json`, and
 name it in the charter's `adapter` field (for example `"adapter": "claude-code"`). The file is
