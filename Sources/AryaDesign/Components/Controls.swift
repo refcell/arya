@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// The effort selector: `Effort` in `caption`/`inkMuted` and three segments, 28 pt tall.
-/// The selected segment is an `ink` fill with `canvas` text.
+/// The effort selector: `Effort` in `caption`/`inkMuted` and an `AryaSegmented` of three.
 public struct EffortSelector: View {
     @Binding var selection: AryaEffort
 
@@ -12,40 +11,74 @@ public struct EffortSelector: View {
     public var body: some View {
         HStack(spacing: AryaSpace.s2) {
             Text("Effort").aryaText(AryaFont.caption, AryaColor.inkMuted)
-            HStack(spacing: 0) {
-                ForEach(Array(AryaEffort.allCases.enumerated()), id: \.element) { index, effort in
-                    if index > 0 { AryaHairline(.vertical, color: AryaColor.ruleStrong) }
-                    segment(effort)
-                }
-            }
-            .frame(height: AryaSize.controlHeight)
-            .clipShape(RoundedRectangle(cornerRadius: AryaRadius.small))
-            .overlay {
-                RoundedRectangle(cornerRadius: AryaRadius.small)
-                    .strokeBorder(AryaColor.ruleStrong, lineWidth: 1)
-            }
+            AryaSegmented(
+                AryaEffort.allCases.map { ($0, $0.label) }, selection: selection
+            ) { selection = $0 }
         }
         .help(AryaEffort.tooltip)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Effort")
     }
+}
 
-    private func segment(_ effort: AryaEffort) -> some View {
-        let isSelected = effort == selection
-        return Button {
-            selection = effort
-        } label: {
-            Text(effort.label)
+/// A segmented control (STYLE.md Controls): 24 pt, a hairline outline, segments split by
+/// hairlines, the selected one an `ink` fill with `canvas` text so the choice reads at a
+/// glance. Hover lifts an unselected segment to `raised`.
+public struct AryaSegmented<Value: Hashable>: View {
+    let options: [(value: Value, title: String)]
+    let selection: Value
+    let choose: (Value) -> Void
+
+    public init(
+        _ options: [(value: Value, title: String)], selection: Value,
+        choose: @escaping (Value) -> Void
+    ) {
+        self.options = options
+        self.selection = selection
+        self.choose = choose
+    }
+
+    public var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(options.enumerated()), id: \.offset) { index, option in
+                if index > 0 { AryaHairline(.vertical, color: AryaColor.ruleStrong) }
+                AryaSegment(title: option.title, isSelected: option.value == selection) {
+                    choose(option.value)
+                }
+            }
+        }
+        .frame(height: AryaSize.buttonHeight)
+        .fixedSize(horizontal: true, vertical: false)
+        .clipShape(RoundedRectangle(cornerRadius: AryaRadius.small))
+        .overlay {
+            RoundedRectangle(cornerRadius: AryaRadius.small)
+                .strokeBorder(AryaColor.ruleStrong, lineWidth: 1)
+        }
+    }
+}
+
+struct AryaSegment: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    @AryaState private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
                 .aryaText(
                     isSelected ? AryaFont.bodyStrong : AryaFont.body,
-                    isSelected ? AryaColor.canvas : AryaColor.inkMuted
+                    isSelected ? AryaColor.canvas : isHovered ? AryaColor.ink : AryaColor.inkMuted
                 )
-                .padding(.horizontal, AryaSpace.s3)
+                .padding(.horizontal, AryaSpace.s2 + AryaSpace.s1)
                 .frame(maxHeight: .infinity)
-                .background(isSelected ? AryaColor.ink : .clear)
+                .background(isSelected ? AryaColor.ink : isHovered ? AryaColor.raised : .clear)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .animation(AryaMotion.quick, value: isSelected)
+        .accessibilityLabel(title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
@@ -122,9 +155,6 @@ struct TextTabButton<ID: Hashable>: View {
     }
 }
 
-/// A short set of exclusive choices as plain text (STYLE.md Choices): the selected one in `ink`
-/// with a check mark, the rest in `inkFaint`. No box, no fill, no second label; the section
-/// label above names it.
 /// A shortcut hint: small mono keys inside a 1 px rounded hairline, "⌘K", "esc".
 public struct Keycap: View {
     let keys: String
@@ -145,6 +175,7 @@ public struct Keycap: View {
     }
 }
 
+/// A short set of exclusive choices: an `AryaSegmented` (STYLE.md Controls).
 public struct ChoiceRow<Value: Hashable>: View {
     let options: [(value: Value, title: String)]
     let selection: Value
@@ -160,30 +191,7 @@ public struct ChoiceRow<Value: Hashable>: View {
     }
 
     public var body: some View {
-        HStack(spacing: AryaSpace.s4) {
-            ForEach(options, id: \.value) { option in
-                let isSelected = option.value == selection
-                Button {
-                    choose(option.value)
-                } label: {
-                    HStack(spacing: AryaSpace.s1) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 10, weight: .semibold))
-                            .opacity(isSelected ? 1 : 0)
-                        Text(option.title)
-                            .aryaText(
-                                isSelected ? AryaFont.bodyStrong : AryaFont.body,
-                                isSelected ? AryaColor.ink : AryaColor.inkFaint)
-                    }
-                    .foregroundStyle(isSelected ? AryaColor.ink : AryaColor.inkFaint)
-                    .frame(height: AryaSize.controlHeight)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(option.title)
-                .accessibilityAddTraits(isSelected ? .isSelected : [])
-            }
-        }
+        AryaSegmented(options, selection: selection, choose: choose)
     }
 }
 

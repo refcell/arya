@@ -26,11 +26,20 @@ public enum AryaSize {
     public static let paletteWidth: CGFloat = 560
     /// Sidebar rows, threads, steps, and table rows.
     public static let rowHeight: CGFloat = 24
-    public static let controlHeight: CGFloat = 26
+    public static let controlHeight: CGFloat = 24
+    /// Buttons, icon buttons, and segmented controls.
+    public static let buttonHeight: CGFloat = 24
+    /// A toolbar row of controls.
+    public static let toolbarHeight: CGFloat = 32
+    /// A progress bar's track.
+    public static let progressHeight: CGFloat = 3
     public static let tabBarHeight: CGFloat = 32
     public static let tabUnderline: CGFloat = 2
-    /// Content starts this far from the window top, below the traffic lights.
-    public static let titleBarInset: CGFloat = 40
+    /// Stream and inspector content starts this far from the window top: the title bar is
+    /// hidden and the traffic lights sit over the sidebar, so headers use that band.
+    public static let titleBarInset: CGFloat = 12
+    /// The sidebar's top inset: clears the window's traffic lights.
+    public static let trafficLightInset: CGFloat = 40
     public static let pagePadding: CGFloat = 24
     public static let readingWidth: CGFloat = 680
     public static let threadIndent: CGFloat = 18
@@ -123,6 +132,15 @@ public enum AryaMotion {
     public static let pulseSeconds = 1.6
     /// The live dot's lowest opacity.
     public static let pulseMinOpacity = 0.4
+
+    /// Hover and press feedback: 80 ms ease-out.
+    public static let quick = Animation.easeOut(duration: 0.08)
+    /// The inspector and palette sliding in and out: 180 ms.
+    public static let panel = Animation.easeOut(duration: 0.18)
+    /// How long a new row stays highlighted after it arrives.
+    public static let arrivalSeconds = 1.2
+    /// One spinner turn.
+    public static let spinSeconds = 0.9
 
     public static func appear(reduceMotion: Bool) -> Animation? {
         reduceMotion ? nil : .easeOut(duration: appearSeconds)

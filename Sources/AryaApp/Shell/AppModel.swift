@@ -30,7 +30,8 @@ final class AppModel {
     var stewardSheet: NewStewardDraft?
     private(set) var stewards: [StewardSummary] = []
     /// Runs by steward id, newest first.
-    private(set) var runs: [String: [RunSummary]] = [:]
+    /// Set by `refresh`; snapshot tests overlay a running run to show the live state.
+    var runs: [String: [RunSummary]] = [:]
     /// Pending approvals, oldest first.
     private(set) var approvals: [ApprovalSummary] = []
     private(set) var efforts: [String: AryaEffort] = [:]

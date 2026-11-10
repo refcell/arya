@@ -46,8 +46,22 @@ import Testing
             try page("run-approval") { $0.select(run: waiting.id, steward: steward.id) }
         }
         try page("needs-you") { $0.showApprovals() }
-        // Every steward in one table, sorted by need.
+        // Every steward in one table, sorted by need; the fleet pulse in the inspector.
         try page("portfolio") { $0.showPortfolio() }
+        // Live: two stewards mid-run. Live dots in the sidebar and status bar, the status
+        // bar's "running · step" line, and the newest run row lit as it arrives.
+        let settled = model.runs
+        let started = Date().addingTimeInterval(-12)
+        for (index, id) in model.stewards.filter({ $0.status == .active }).map(\.id).enumerated() {
+            var run = RunSummary(
+                id: "run_live_\(index)", steward: id, trigger: "schedule", charterVersion: 1,
+                status: .running, startedAt: started.addingTimeInterval(Double(index)))
+            run.title = "Working through the inbox"
+            model.runs[id, default: []].insert(run, at: 0)
+        }
+        try page("overview-live") { $0.tab = .overview }
+        try page("portfolio-live") { $0.showPortfolio() }
+        model.runs = settled
         // Command-K over the Overview: the search line, commands, groups, and keycaps.
         model.paletteOpen = true
         try page("command-palette") { $0.tab = .overview }

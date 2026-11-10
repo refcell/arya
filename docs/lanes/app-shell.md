@@ -282,3 +282,17 @@ M4:
   clips beside the inspector (give the table min widths or let Outcome flex less); Templates
   (#16) as step 0 of New steward; register app-views' and app-outcome's commands; the visual
   feel gap is tomorrow's top priority.
+- 2026-11-10 Resumed. Look-and-feel day (points 2, 3, 4). Control set in AryaDesign: 24 pt
+  buttons with hairline, hover and pressed fills and an optional keycap; `AryaIconButton`;
+  `AryaSegmented` (ChoiceRow, EffortSelector, New steward choices, charter kinds); `AryaToolbar`.
+  Bare-text actions became buttons (Show all, Add person, Open child run, Close). Motion:
+  `AryaLiveDot`, `AryaSpinner`, `AryaProgressBar`, `aryaArrival`, inspector and palette
+  transitions, a status bar ticker of the newest event and "<steward> running · step N". Pane
+  headers moved into the title-bar band (12 pt top; the sidebar keeps 40 pt for the traffic
+  lights). Inspector pulse: steward (metric chart, next wake countdown, cost today, running,
+  7-day run bars, waiting on you, recent decisions) and fleet for All stewards (on track,
+  behind, paused, waiting, runs and cost today, top movers). Portfolio columns fit.
+- Visual check (`just snapshot` overview-live, portfolio-live, run, new-steward-2): moves (2)
+  less dead space — header band 12 pt, inspector full on steward and fleet; (3) controls —
+  boxed buttons with keycaps, segmented effort; (4) live — green live dots in the sidebar and
+  status bar, running line and ticker. Portfolio no longer clips.

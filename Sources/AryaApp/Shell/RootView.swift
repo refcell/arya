@@ -18,9 +18,11 @@ struct RootView: View {
         .overlay(alignment: .top) {
             if model.paletteOpen {
                 CommandPaletteView(model: model)
-                    .padding(.top, AryaSize.titleBarInset + AryaSpace.s7)
+                    .padding(.top, AryaSize.trafficLightInset + AryaSpace.s7)
+                    .transition(.opacity.combined(with: .offset(y: -AryaSpace.s2)))
             }
         }
+        .animation(AryaMotion.panel, value: model.paletteOpen)
         .ignoresSafeArea(.container, edges: .top)
         .frame(minWidth: AryaSize.windowMinWidth, minHeight: AryaSize.windowMinHeight)
         .background(AryaColor.canvas)
@@ -39,12 +41,20 @@ struct RootView: View {
                 AryaHairline(.vertical)
                     .overlay { resizeHandle }
             }
+            // With the sidebar hidden the traffic lights sit over the stream.
             MainPane(model: model)
+                .padding(
+                    .top,
+                    model.navigation.sidebar
+                        ? 0 : AryaSize.trafficLightInset - AryaSize.titleBarInset)
             if model.navigation.inspector {
                 AryaHairline(.vertical)
                 InspectorView(model: model, now: now())
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
+        .animation(AryaMotion.panel, value: model.navigation.inspector)
+        .animation(AryaMotion.panel, value: model.navigation.sidebar)
     }
 
     private var sidebar: some View {
@@ -52,9 +62,9 @@ struct RootView: View {
             RailView(model: model, now: now())
             HStack {
                 SettingsLink {
-                    Image(systemName: "gearshape").font(.system(size: 13))
+                    Image(systemName: "gearshape")
                 }
-                .buttonStyle(.aryaTertiary)
+                .buttonStyle(AryaIconButtonStyle())
                 .accessibilityLabel("Settings")
                 .help("Settings (Command-comma)")
                 Spacer()

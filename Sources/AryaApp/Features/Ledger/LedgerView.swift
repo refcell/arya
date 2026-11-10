@@ -257,8 +257,7 @@ private struct LedgerRows: View {
                             Text("\(note) ·").aryaText(AryaFont.caption, AryaColor.inkFaint)
                             if let showAll {
                                 Button("Show all", action: showAll)
-                                    .buttonStyle(.plain)
-                                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                                    .buttonStyle(.aryaTertiary)
                                     .help("Show every steward's events and the system's")
                             }
                         }
@@ -322,9 +321,7 @@ struct LedgerInspector: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text(event.type).aryaText(AryaFont.mono, AryaColor.ink)
                     Spacer(minLength: AryaSpace.s2)
-                    Button("Close", systemImage: "xmark", action: close)
-                        .labelStyle(.iconOnly).buttonStyle(.plain)
-                        .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    AryaIconButton("xmark", label: "Close", keys: "esc", action: close)
                 }
                 Text(AryaTime.label(event.at, now: store.now))
                     .aryaText(AryaFont.caption, AryaColor.inkMuted)

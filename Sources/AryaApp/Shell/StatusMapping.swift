@@ -14,7 +14,8 @@ enum StatusMapping {
     }
 
     /// How a steward's sidebar row reads (STYLE.md Sidebar). The dot carries attention only:
-    /// orange with pending approvals, else neutral (a ring when paused). The text carries
+    /// the live ring while a run goes, orange with pending approvals, else neutral (a ring
+    /// when paused). The text carries
     /// health: a behind-target steward always shows its metric in the negative tone; an
     /// on-track one shows it muted only when selected; paused shows the word.
     struct SidebarRow: Equatable {
@@ -32,7 +33,7 @@ enum StatusMapping {
 
         init(
             _ steward: StewardSummary, pending: Int, latest: Double?, target: Double?,
-            onTrack: Bool?, isSelected: Bool
+            onTrack: Bool?, isSelected: Bool, running: Bool = false
         ) {
             let value = latest.map(StatusMapping.metric)
             let behind = onTrack == false && steward.status != .paused
@@ -44,7 +45,10 @@ enum StatusMapping {
                 trailingIsMono = false
                 spoken.append("paused")
             } else {
-                status = pending > 0 ? .needsYou : .idle
+                // A run going right now takes the dot (the live ring) while it lasts; the
+                // Needs you row and the sort still carry pending approvals.
+                status = running ? .running : pending > 0 ? .needsYou : .idle
+                if running { spoken.append("running") }
                 health = pending > 0 ? .needsYou : behind ? .behind : .onTrack
                 trailing = behind || isSelected ? value : nil
                 trailingIsMono = true

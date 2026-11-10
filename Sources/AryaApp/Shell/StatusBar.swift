@@ -11,6 +11,42 @@ struct StatusBarLine: Equatable {
     var ledger: String
     var ledgerOK: Bool
     var cost: String
+    /// "Support inbox triage running · step 3" while a run goes; nil when idle.
+    var live: String? = nil
+    /// The newest event worth reading: "3m · run.decision · Refund follow-up".
+    var ticker: Ticker? = nil
+
+    struct Ticker: Equatable {
+        var id: String
+        var text: String
+    }
+
+    /// Ledger noise the ticker skips: raw adapter lines and bookkeeping.
+    static let quiet: Set<String> = ["run.adapter.event", "metric.recorded"]
+
+    static func live(
+        stewards: [StewardSummary], runs: [String: [RunSummary]], events: [FeatureEvent]
+    )
+        -> String?
+    {
+        let going = stewards.flatMap { steward in
+            (runs[steward.id] ?? []).filter { $0.status == .running }.map { (steward, $0) }
+        }
+        guard let (steward, run) = going.max(by: { $0.1.startedAt < $1.1.startedAt }) else {
+            return nil
+        }
+        let steps = RunStream.build(events: events, run: run.id).steps.count
+        let more = going.count > 1 ? " · +\(going.count - 1) more" : ""
+        return "\(steward.name) running · step \(max(steps, 1))\(more)"
+    }
+
+    static func ticker(stewards: [StewardSummary], events: [FeatureEvent], now: Date) -> Ticker? {
+        guard let event = events.last(where: { !quiet.contains($0.type) }) else { return nil }
+        let name = stewards.first { $0.id == event.steward }?.name
+        let text = [AryaTime.label(event.at, now: now), event.type, name].compactMap { $0 }
+            .joined(separator: " · ")
+        return Ticker(id: event.id, text: text)
+    }
 
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], waiting: Int,
@@ -46,7 +82,9 @@ struct StatusBarLine: Equatable {
                 ?? "no scheduled runs",
             stewards: fleet.joined(separator: " · "), waiting: waiting, ledger: ledger,
             ledgerOK: check?.ok ?? true,
-            cost: today > 0 ? "\(RunMetrics.dollars(today)) today" : "spend — today")
+            cost: today > 0 ? "\(RunMetrics.dollars(today)) today" : "spend — today",
+            live: live(stewards: stewards, runs: runs, events: events),
+            ticker: ticker(stewards: stewards, events: events, now: now))
     }
 
     /// "serving" while a process fires this home's triggers, "scheduler stopped" when none
@@ -72,6 +110,14 @@ struct StatusBar: View {
             events: events, check: model.ledgerCheck, now: now)
         HStack(spacing: AryaSpace.s4) {
             item(StatusBarLine.scheduler(model.serving))
+            if let live = line.live {
+                HStack(spacing: AryaSpace.s1) {
+                    AryaLiveDot()
+                    Text(live).aryaText(AryaFont.monoSmall, AryaColor.positive).lineLimit(1)
+                }
+                .layoutPriority(1)
+                .transition(.opacity)
+            }
             item(line.schedule)
             item(line.stewards)
             if line.waiting > 0 {
@@ -85,6 +131,13 @@ struct StatusBar: View {
                 .buttonStyle(.plain)
             }
             Spacer(minLength: AryaSpace.s2)
+            if let ticker = line.ticker {
+                // The newest event slides in from below as it lands.
+                Text(ticker.text).aryaText(AryaFont.monoSmall, AryaColor.inkMuted).lineLimit(1)
+                    .id(ticker.id)
+                    .transition(.push(from: .bottom))
+                    .help("Newest event in the ledger")
+            }
             Text(line.ledger)
                 .aryaText(
                     AryaFont.monoSmall, line.ledgerOK ? AryaColor.inkFaint : AryaColor.negative)
@@ -105,6 +158,9 @@ struct StatusBar: View {
         .aryaHairline(edge: .top)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Status")
+        .animation(AryaMotion.panel, value: line.ticker)
+        .animation(AryaMotion.panel, value: line.live)
+        .clipped()
     }
 
     private var events: [FeatureEvent] {

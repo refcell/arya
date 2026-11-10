@@ -83,5 +83,5 @@ import Testing
     navigation.showPortfolio()
     navigation.reconcile(stewards: ["st_t"], runs: [])
     #expect(navigation.destination == .portfolio)
-    #expect(InspectorFocus.of(navigation) == .none)
+    #expect(InspectorFocus.of(navigation) == .fleet)
 }

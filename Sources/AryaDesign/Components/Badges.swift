@@ -1,28 +1,28 @@
 import SwiftUI
 
-/// A 6 pt status dot. A live dot pulses between 100% and 40% unless Reduce Motion is on.
+/// A 6 pt status dot. A live (running) dot is an `AryaLiveDot` with a growing ring, still
+/// under Reduce Motion.
 public struct StatusDot: View {
     let status: AryaStatus
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AryaState private var dimmed = false
-
     public init(_ status: AryaStatus) {
         self.status = status
     }
 
     public var body: some View {
+        if status.isLive {
+            AryaLiveDot()
+        } else {
+            still
+        }
+    }
+
+    private var still: some View {
         Circle()
             .fill(status.isHollow ? Color.clear : status.dotToken.color)
             .overlay {
                 if status.isHollow { Circle().strokeBorder(status.dotToken.color, lineWidth: 1) }
             }
             .frame(width: AryaSize.statusDot, height: AryaSize.statusDot)
-            .opacity(dimmed ? AryaMotion.pulseMinOpacity : 1)
-            .onAppear {
-                guard status.isLive, let pulse = AryaMotion.pulse(reduceMotion: reduceMotion)
-                else { return }
-                withAnimation(pulse) { dimmed = true }
-            }
             .accessibilityHidden(true)
     }
 }

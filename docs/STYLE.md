@@ -136,6 +136,30 @@ display scale (`1 / displayScale` pt) in `rule`.
 
 ## Components
 
+### Controls
+
+One control set; no native-looking controls and no bare-text actions.
+
+- **Button** (`.aryaPrimary`, `.aryaSecondary`, `.aryaTertiary`): 24 pt, 4 pt radius, 8 pt
+  padding, label in `bodyStrong`, an optional faint keycap after it (`keys: "⌥⌘P"`). Primary
+  is the orange fill, one per pane, rightmost. Secondary has a `ruleStrong` hairline and
+  `ink` text; tertiary a `rule` hairline and `inkMuted` text. Hover fills `raised`, press
+  fills `selection`. Destructive actions are secondary, never primary.
+- **Icon button** (`AryaIconButton`): 24 pt square, one symbol in `inkMuted`, a hairline and
+  `raised` fill on hover; its help names the action and shortcut.
+- **Segmented control** (`AryaSegmented`, also `ChoiceRow`, `EffortSelector`): 24 pt, a
+  `ruleStrong` outline, hairline splits, the selected segment an `ink` fill with `canvas`
+  text.
+- **Toolbar** (`AryaToolbar`): a 32 pt row of controls with a hairline below, primary last.
+
+### Status widgets
+
+`Sparkline` (fixed or fluid width), `DayBars` (a week of runs, failures on top in
+`negative`, today in `ink`), `AryaProgressBar` (3 pt track), `AryaSpinner` (10 pt arc), and
+`AryaLiveDot` (a positive dot with a growing ring) for anything running now. The steward
+inspector leads with a pulse: metric and trend, next wake countdown, cost today, running,
+runs per day, what waits on you, recent decisions. All stewards shows the fleet pulse.
+
 ### Sidebar row
 
 24 pt, 12 pt horizontal padding, `selection` fill with a 4 pt radius when selected. A 6 pt
@@ -236,8 +260,11 @@ large type, no illustration.
 
 ## Motion
 
-New lines fade in over 120 ms; disclosures animate height over 160 ms; the live dot pulses
-between 100% and 40% opacity over 1.6 s. With Reduce Motion on, all of these are instant.
+New lines fade in over 120 ms; disclosures animate height over 160 ms; the live dot's ring
+grows and fades every 1.6 s; hover and press take 80 ms; the inspector slides in from the
+trailing edge and the palette drops in over 180 ms; the status bar's newest event pushes in
+from below; a run row that just arrived holds a `selection` wash that fades over 1.2 s. With
+Reduce Motion on, all of these are instant.
 
 ## Voice
 

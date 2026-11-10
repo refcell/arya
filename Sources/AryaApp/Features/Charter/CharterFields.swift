@@ -40,11 +40,9 @@ struct CharterFields: View {
             }
             labeled("Unit") { CharterTextField(placeholder: "unit", text: $draft.metricUnit) }
             labeled("Better when") {
-                Picker("Better when", selection: $draft.metricDirection) {
-                    Text("higher").tag("up")
-                    Text("lower").tag("down")
-                }
-                .labelsHidden().fixedSize()
+                AryaSegmented(
+                    [("up", "higher"), ("down", "lower")], selection: draft.metricDirection
+                ) { draft.metricDirection = $0 }
             }
             labeled("Target") {
                 CharterTextField(placeholder: "none", text: $draft.metricTarget, mono: true)
@@ -73,10 +71,9 @@ struct CharterFields: View {
                 VStack(alignment: .leading, spacing: AryaSpace.s2) {
                     HStack(spacing: AryaSpace.s2) {
                         CharterTextField(placeholder: "id", text: $binding.id, mono: true)
-                        Picker("Kind", selection: $binding.kind) {
-                            ForEach(CharterDraft.bindingKinds, id: \.self) { Text($0).tag($0) }
-                        }
-                        .labelsHidden().fixedSize()
+                        AryaSegmented(
+                            CharterDraft.bindingKinds.map { ($0, $0) }, selection: binding.kind
+                        ) { binding.kind = $0 }
                         Button("Remove") { draft.bindings.removeAll { $0.key == binding.key } }
                             .buttonStyle(.aryaTertiary)
                     }
@@ -109,10 +106,9 @@ struct CharterFields: View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             ForEach($draft.triggers) { $trigger in
                 HStack(spacing: AryaSpace.s2) {
-                    Picker("Kind", selection: $trigger.kind) {
-                        ForEach(CharterDraft.triggerKinds, id: \.self) { Text($0).tag($0) }
-                    }
-                    .labelsHidden().fixedSize()
+                    AryaSegmented(
+                        CharterDraft.triggerKinds.map { ($0, $0) }, selection: trigger.kind
+                    ) { trigger.kind = $0 }
                     if trigger.kind == "interval" {
                         Stepper(value: $trigger.everySeconds, in: 60...86_400, step: 60) {
                             Text("every \(trigger.everySeconds / 60) min")

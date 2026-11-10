@@ -54,10 +54,18 @@ public struct ThreadRow: View {
 public struct Sparkline: View {
     let values: [Double]
     let onTarget: Bool
+    let width: CGFloat?
+    let height: CGFloat
 
-    public init(_ values: [Double], onTarget: Bool = true) {
+    /// `width` nil fills the available width.
+    public init(
+        _ values: [Double], onTarget: Bool = true, width: CGFloat? = AryaSize.sparklineWidth,
+        height: CGFloat = AryaSize.sparklineHeight
+    ) {
         self.values = values
         self.onTarget = onTarget
+        self.width = width
+        self.height = height
     }
 
     /// Points scaled into a rect, oldest first. A flat or single series sits mid-height.
@@ -89,8 +97,47 @@ public struct Sparkline: View {
                 Path(ellipseIn: dot),
                 with: .color(onTarget ? AryaColor.positive : AryaColor.warning))
         }
-        .frame(width: AryaSize.sparklineWidth, height: AryaSize.sparklineHeight)
+        .frame(width: width, height: height)
+        .frame(maxWidth: width == nil ? .infinity : nil)
         .accessibilityHidden(true)
+    }
+}
+
+/// Small vertical bars, one per day, oldest first (STYLE.md Status widgets): `inkMuted`
+/// bars, a failed share on top in the negative tone, the last bar in `ink`. A zero day draws
+/// a hairline so the gap reads as "none" instead of missing.
+public struct DayBars: View {
+    let totals: [Int]
+    let failed: [Int]
+    let height: CGFloat
+
+    public init(_ totals: [Int], failed: [Int] = [], height: CGFloat = 28) {
+        self.totals = totals
+        self.failed = failed
+        self.height = height
+    }
+
+    public var body: some View {
+        let top = max(totals.max() ?? 0, 1)
+        HStack(alignment: .bottom, spacing: AryaSpace.s1) {
+            ForEach(Array(totals.enumerated()), id: \.offset) { index, total in
+                let bad = index < failed.count ? min(failed[index], total) : 0
+                let isLast = index == totals.count - 1
+                VStack(spacing: 0) {
+                    Rectangle().fill(AryaColor.negative)
+                        .frame(height: height * CGFloat(bad) / CGFloat(top))
+                    Rectangle().fill(isLast ? AryaColor.ink : AryaColor.inkMuted)
+                        .frame(
+                            height: total == 0
+                                ? 1 : height * CGFloat(total - bad) / CGFloat(top))
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: height, alignment: .bottom)
+        .accessibilityElement()
+        .accessibilityLabel("Runs per day")
+        .accessibilityValue(totals.map(String.init).joined(separator: ", "))
     }
 }
 

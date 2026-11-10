@@ -77,8 +77,8 @@ struct PortfolioView: View {
     let now: Date
 
     private static let columns: [(String, CGFloat?)] = [
-        ("Steward", 180), ("Outcome", nil), ("Metric", 220), ("Trend", AryaSize.sparklineWidth),
-        ("State", 80), ("Needs you", 72), ("Last run", 64), ("Next", 96),
+        ("Steward", 168), ("Metric", nil), ("Trend", AryaSize.sparklineWidth),
+        ("State", 56), ("Needs you", 64), ("Last run", 56), ("Next", 88),
     ]
 
     var body: some View {
@@ -116,7 +116,7 @@ struct PortfolioView: View {
     }
 
     private var header: some View {
-        HStack(spacing: AryaSpace.s3) {
+        HStack(spacing: AryaSpace.s2) {
             ForEach(Self.columns, id: \.0) { title, width in
                 cell(width) { Text(title).aryaText(AryaFont.label, AryaColor.inkFaint) }
             }
@@ -126,18 +126,15 @@ struct PortfolioView: View {
     }
 
     private func line(_ row: PortfolioRow) -> some View {
-        HStack(spacing: AryaSpace.s3) {
-            cell(180) {
+        HStack(spacing: AryaSpace.s2) {
+            cell(168) {
                 HStack(spacing: AryaSpace.s2) {
                     StatusDot(row.waiting > 0 ? .needsYou : row.state == "paused" ? .paused : .idle)
                     Text(row.name).aryaText(AryaFont.body, AryaColor.ink).lineLimit(1)
+                        .help(row.outcome)
                 }
             }
             cell(nil) {
-                Text(row.outcome).aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(1)
-                    .help(row.outcome)
-            }
-            cell(220) {
                 Text(row.metric)
                     .aryaText(AryaFont.monoSmall, row.behind ? AryaColor.negative : AryaColor.ink)
                     .lineLimit(1)
@@ -148,14 +145,14 @@ struct PortfolioView: View {
                         .frame(width: AryaSize.sparklineWidth, height: AryaSize.sparklineHeight / 2)
                 }
             }
-            cell(80) { Text(row.state).aryaText(AryaFont.caption, AryaColor.inkMuted) }
-            cell(72) {
+            cell(56) { Text(row.state).aryaText(AryaFont.caption, AryaColor.inkMuted) }
+            cell(64) {
                 Text(row.waiting > 0 ? "\(row.waiting)" : "—")
                     .aryaText(
-                        AryaFont.monoSmall, row.waiting > 0 ? AryaColor.accent : AryaColor.inkFaint)
+                        AryaFont.monoSmall, row.waiting > 0 ? AryaColor.ink : AryaColor.inkFaint)
             }
-            cell(64) { Text(row.lastRun).aryaText(AryaFont.monoSmall, AryaColor.inkMuted) }
-            cell(96) { Text(row.nextWake).aryaText(AryaFont.monoSmall, AryaColor.inkMuted) }
+            cell(56) { Text(row.lastRun).aryaText(AryaFont.monoSmall, AryaColor.inkMuted) }
+            cell(88) { Text(row.nextWake).aryaText(AryaFont.monoSmall, AryaColor.inkMuted) }
         }
         .frame(height: AryaSize.rowHeight + AryaSpace.s1)
         .contentShape(Rectangle())

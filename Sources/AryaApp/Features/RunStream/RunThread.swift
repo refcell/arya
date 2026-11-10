@@ -537,8 +537,7 @@ struct RunInputView: View {
                             .fixedSize(horizontal: false, vertical: true)
                         if let run = child.run, let openRun {
                             Button("Open child run · \(child.title)") { openRun(run) }
-                                .buttonStyle(.plain)
-                                .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                                .buttonStyle(.aryaTertiary)
                                 .help("Open the child run's thread")
                         }
                     }

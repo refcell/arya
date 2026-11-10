@@ -328,13 +328,8 @@ struct NewStewardFields: View {
                         selection: $person.channel, options: draft.channels.map { ($0, $0) })
                 }
             }
-            Button {
-                draft.addPerson()
-            } label: {
-                Text("+ Add person").aryaText(AryaFont.caption, AryaColor.inkMuted)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Add person")
+            Button("Add person") { draft.addPerson() }
+                .buttonStyle(.aryaTertiary)
         }
         disclosure {
             labeled("Add connection: a name and the command that serves it") {
@@ -438,39 +433,8 @@ struct NewStewardChoice<Value: Hashable>: View {
     let options: [(Value, String)]
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(options.enumerated()), id: \.offset) { index, option in
-                if index > 0 { AryaHairline(.vertical, color: AryaColor.ruleStrong) }
-                segment(option.0, option.1)
-            }
-        }
-        .frame(height: AryaSize.controlHeight)
-        .clipShape(RoundedRectangle(cornerRadius: AryaRadius.small))
-        .overlay {
-            RoundedRectangle(cornerRadius: AryaRadius.small)
-                .strokeBorder(AryaColor.ruleStrong, lineWidth: 1)
-        }
-        .fixedSize()
-    }
-
-    private func segment(_ value: Value, _ label: String) -> some View {
-        let isSelected = value == selection
-        return Button {
-            selection = value
-        } label: {
-            Text(label)
-                .aryaText(
-                    isSelected ? AryaFont.bodyStrong : AryaFont.body,
-                    isSelected ? AryaColor.canvas : AryaColor.inkMuted
-                )
-                .padding(.horizontal, AryaSpace.s3)
-                .frame(maxHeight: .infinity)
-                .background(isSelected ? AryaColor.ink : .clear)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        // The shared segmented control (app-shell, AryaDesign).
+        AryaSegmented(options.map { ($0.0, $0.1) }, selection: selection) { selection = $0 }
     }
 }
 

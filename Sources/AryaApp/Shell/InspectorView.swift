@@ -15,10 +15,13 @@ enum InspectorFocus: Equatable {
     case person(String)
     case run(String)
     case steward(String)
+    /// The All stewards table: the fleet pulse.
+    case fleet
     case none
 
     static func of(_ navigation: NavigationState) -> InspectorFocus {
         if navigation.destination == .approvals { return .approval(navigation.approval) }
+        if navigation.destination == .portfolio { return .fleet }
         if case .connections = navigation.destination {
             if let connection = navigation.connection { return .connection(connection) }
         }
@@ -134,9 +137,9 @@ struct InspectorView: View {
                 HStack {
                     Text(heading).aryaText(AryaFont.label, AryaColor.inkFaint)
                     Spacer()
-                    Button("Hide") { model.navigation.inspector = false }
-                        .buttonStyle(.aryaTertiary)
-                        .help("Hide the inspector (Option-Command-I)")
+                    AryaIconButton("sidebar.right", label: "Hide the inspector", keys: "⌥⌘I") {
+                        withAnimation(AryaMotion.panel) { model.navigation.inspector = false }
+                    }
                 }
                 focusContent
             }
@@ -159,6 +162,7 @@ struct InspectorView: View {
         case .person: "Person"
         case .run: "Run"
         case .steward: "Steward"
+        case .fleet: "All stewards"
         case .none: "Inspector"
         }
     }
@@ -186,6 +190,12 @@ struct InspectorView: View {
             if let run = model.selectedRun { runContent(run) }
         case .steward:
             if let steward = model.selectedSteward { stewardContent(steward) }
+        case .fleet:
+            FleetPulseView(
+                pulse: FleetPulse.build(
+                    stewards: model.stewards, runs: model.runs, approvals: model.approvals,
+                    events: events, now: now)
+            ) { model.navigation.select(steward: $0) }
         case .none:
             Text("Select a steward to see its schedule, policy, connections, and people.")
                 .aryaText(AryaFont.caption, AryaColor.inkFaint)
@@ -212,18 +222,27 @@ struct InspectorView: View {
                     Text(steward.status.rawValue).aryaText(AryaFont.caption, AryaColor.inkMuted)
                 }
             }
-            HStack(spacing: AryaSpace.s3) {
+            HStack(spacing: AryaSpace.s2) {
                 Button("Edit charter…") { FeatureRegistry.editCharter(model) }
-                    .buttonStyle(.aryaTertiary)
+                    .buttonStyle(.aryaSecondary)
                 if steward.status == .paused {
                     Button("Resume") { Task { await model.setPaused(false) } }
-                        .buttonStyle(.aryaTertiary)
+                        .buttonStyle(.aryaSecondary(keys: "⌥⌘P"))
                 } else {
                     Button("Pause") { Task { await model.setPaused(true) } }
-                        .buttonStyle(.aryaTertiary)
+                        .buttonStyle(.aryaSecondary(keys: "⌥⌘P"))
                         .disabled(steward.status != .active)
                 }
             }
+            .padding(.top, AryaSpace.s1)
+        }
+        StewardPulseView(
+            pulse: StewardPulse.build(
+                steward: steward, runs: model.runs[steward.id] ?? [], approvals: model.approvals,
+                events: events, now: now)
+        ) { id in
+            model.navigation.showApprovals()
+            model.navigation.approval = id
         }
         if let state = context.state {
             OutcomeSchedule(state: state, now: now)

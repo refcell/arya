@@ -77,7 +77,7 @@ struct RailView: View {
             }
         }
         .padding(.horizontal, AryaSpace.s2)
-        .padding(.top, AryaSize.titleBarInset)
+        .padding(.top, AryaSize.trafficLightInset)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -92,7 +92,8 @@ struct RailView: View {
         return StatusMapping.SidebarRow(
             steward, pending: model.pendingApprovals(steward: steward.id),
             latest: series?.latest?.value, target: series?.definition.target,
-            onTrack: series?.meetsTarget, isSelected: model.navigation.steward == steward.id)
+            onTrack: series?.meetsTarget, isSelected: model.navigation.steward == steward.id,
+            running: (model.runs[steward.id] ?? []).contains { $0.status == .running })
     }
 
     private var sortedStewards: [StewardSummary] {
@@ -126,6 +127,8 @@ struct RailView: View {
                         isSelected: model.navigation.run == run.id)
                 }
                 .buttonStyle(.plain)
+                // A run that started in the last half minute lights up as it arrives.
+                .aryaArrival(now.timeIntervalSince(run.startedAt) < 30)
             }
         }
     }
