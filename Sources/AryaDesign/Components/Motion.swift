@@ -21,8 +21,9 @@ public struct AryaProgressBar: View {
     let succeeded: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// `fraction` is clamped to 0...1; `succeeded` tints a finished bar green.
-    public init(_ fraction: Double, succeeded: Bool = false) {
+    /// `fraction` is clamped to 0...1; `succeeded` tints a finished bar green. `isLive` is
+    /// accepted for callers that mark running work; it no longer changes the tint (VC26).
+    public init(_ fraction: Double, isLive: Bool = false, succeeded: Bool = false) {
         self.fraction = min(max(fraction, 0), 1)
         self.succeeded = succeeded
     }
