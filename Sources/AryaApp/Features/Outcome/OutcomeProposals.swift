@@ -24,6 +24,8 @@ struct ProposalReview: Hashable, Sendable, Identifiable {
     var compared: Bool
     /// The charter change as unified diff hunks, with its line counts.
     var diff: ProposalDiff?
+    /// What it changes about ownership and safety.
+    var impact = ProposalImpact()
 
     var id: String { item.id }
     var unchanged: Int { max(0, cases - worse.count - better.count) }
@@ -60,7 +62,8 @@ struct ProposalReview: Hashable, Sendable, Identifiable {
         return ProposalReview(
             item: item, title: ProposalText.title(item, events: events),
             cases: candidate?.caseCount ?? baseline?.caseCount ?? 0, worse: worse, better: better,
-            compared: gated != nil, diff: ProposalDiff.build(item, events: events))
+            compared: gated != nil, diff: ProposalDiff.build(item, events: events),
+            impact: ProposalImpact.build(item, events: events))
     }
 }
 
@@ -211,11 +214,21 @@ enum ProposalText {
         return text.hasPrefix("chose ") ? String(text.dropFirst(6)) : text
     }
 
-    /// What the confirm says before accepting over a regression.
+    /// What the confirm says before accepting: each regressed case, each change to what the
+    /// steward owns, and what it removes or loosens.
     static func confirm(_ review: ProposalReview) -> String {
-        let names = review.worse.map(\.id).joined(separator: ", ")
-        return "This goes live although \(names) got worse in rehearsal. The override is "
-            + "recorded with your name."
+        var parts: [String] = []
+        if !review.worse.isEmpty {
+            let names = review.worse.map(\.id).joined(separator: ", ")
+            parts.append("This goes live although \(names) got worse in rehearsal.")
+        }
+        if let owns = review.impact.ownsSentence { parts.append(owns) }
+        if let loosens = review.impact.loosensSentence { parts.append(loosens) }
+        if parts.isEmpty { parts.append("This change goes live.") }
+        parts.append(
+            review.regressed
+                ? "The override is recorded with your name." : "Your acceptance is recorded.")
+        return parts.joined(separator: " ")
     }
 
     private static func lowerFirst(_ text: String) -> String {
@@ -275,6 +288,16 @@ struct OutcomeProposalRow: View {
                 actions
             }
             summary
+            if let owns = review.impact.ownsSentence {
+                Text(owns).aryaText(AryaFont.body, AryaColor.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+            }
+            if let loosens = review.impact.loosensSentence {
+                Text(loosens).aryaText(AryaFont.body, AryaColor.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+            }
             if let diff = review.diff {
                 Button {
                     showDiff = !diffOpen(diff)
@@ -301,10 +324,14 @@ struct OutcomeProposalRow: View {
             }
         }
         .confirmationDialog(
-            "Accept a change that got worse?", isPresented: $confirming, titleVisibility: .visible
+            review.regressed ? "Accept a change that got worse?" : "Accept this change?",
+            isPresented: $confirming, titleVisibility: .visible
         ) {
-            Button("Accept anyway", role: .destructive) {
-                perform(.overrideProposal(review.id, reason: ProposalText.confirm(review)))
+            Button(review.regressed ? "Accept anyway" : "Accept", role: .destructive) {
+                perform(
+                    review.regressed
+                        ? .overrideProposal(review.id, reason: ProposalText.confirm(review))
+                        : .acceptProposal(review.id))
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -325,6 +352,13 @@ struct OutcomeProposalRow: View {
         if review.regressed {
             Button("Reject") { reject() }.buttonStyle(.aryaSecondary)
             more(acceptAnyway: true)
+        } else if review.item.canAccept, review.impact.needsConfirm {
+            // Changes to what it owns or to its guardrails are never the default.
+            Button("Reject") { reject() }.buttonStyle(.aryaSecondary)
+            more(acceptAnyway: false)
+            Button("Accept…") { confirming = true }
+                .buttonStyle(.aryaSecondary)
+                .help("Asks you to confirm the change before it goes live.")
         } else if review.item.canAccept {
             Button("Reject") { reject() }.buttonStyle(.aryaTertiary)
             more(acceptAnyway: false)
@@ -352,7 +386,8 @@ struct OutcomeProposalRow: View {
     }
 
     private func diffOpen(_ diff: ProposalDiff) -> Bool {
-        showDiff ?? (diff.added + diff.removed <= ProposalDiff.openLimit)
+        showDiff
+            ?? (review.impact.needsConfirm || diff.added + diff.removed <= ProposalDiff.openLimit)
     }
 
     private func reject() { perform(.rejectProposal(review.id, reason: "")) }

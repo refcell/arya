@@ -49,17 +49,23 @@ enum OutcomeFixtures {
     }
 }
 
-/// Two open charter proposals against a live charter: one whose rehearsal made case-0005
-/// worse (billing → security) and one that made case-0003 better, for tests and snapshots.
+/// Three open charter proposals against a live charter, for tests and snapshots: one whose
+/// rehearsal made case-0005 worse (billing → security), one that only adds a guardrail and
+/// made case-0003 better, and one that made case-0003 better but changes the outcome.
 enum ProposalFixtures {
     static let regressed = "prop_regressed"
     static let passing = "prop_passing"
+    static let owns = "prop_owns"
 
     static func events(live: FeatureJSON, steward: String, start: Date) -> [FeatureEvent] {
         var log = FeatureEventBuilder(start: start)
-        func charter(_ outcome: String) -> FeatureJSON {
+        func charter(_ outcome: String? = nil, guardrail: String? = nil) -> FeatureJSON {
             guard case .object(var members) = live else { return live }
-            members["outcome"] = .string(outcome)
+            if let outcome { members["outcome"] = .string(outcome) }
+            if let guardrail {
+                members["guardrails"] = .array(
+                    (live["guardrails"]?.array ?? []) + [.string(guardrail)])
+            }
             return .object(members)
         }
         func result(_ choice: String) -> FeatureJSON {
@@ -121,13 +127,25 @@ enum ProposalFixtures {
             [
                 "proposal": .string(passing), "kind": "charter", "baseVersion": 1,
                 "candidateVersion": 2,
-                "charter": charter("Feature requests are labeled and routed within a day."),
+                "charter": charter(guardrail: "Label every feature request as feature."),
                 "reason": "Label feature requests\nThey were being left unlabeled.",
             ])
         rehearsal(
             "reh_passing", base.map { $0.0 == "case-0003" ? ($0.0, true, "feature") : $0 },
             proposal: passing)
         gated(passing, "reh_live", "reh_passing", passed: true)
+        log.add(
+            "proposal.created", steward: steward,
+            [
+                "proposal": .string(owns), "kind": "charter", "baseVersion": 1,
+                "candidateVersion": 2,
+                "charter": charter("Feature requests are labeled and routed within a day."),
+                "reason": "Relax the routing window\nOvernight messages miss the hour.",
+            ])
+        rehearsal(
+            "reh_owns", base.map { $0.0 == "case-0003" ? ($0.0, true, "feature") : $0 },
+            proposal: owns)
+        gated(owns, "reh_live", "reh_owns", passed: true)
         return log.events
     }
 }

@@ -30,6 +30,10 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
 
 ## Decisions
 
+- 2026-11-09: loosening proposals (guardrails removed, sign-off loosened, adapter swapped)
+  confirm like ownership changes rather than only expanding the diff: both remove a safety
+  property, so neither may be the one-click default.
+
 - 2026-11-09: proposal review compares the gate's baseline and candidate rehearsals case by
   case (passed → failed is worse, failed → passed is better); nothing goes live by default,
   so a regressed proposal offers no peer Accept. The workspace `liveReadiness` read is wired
@@ -154,3 +158,14 @@ Creating a steward feels like defining an outcome with guardrails, not writing J
   rule decisions use the ink choice, not a system segmented picker. Visual check (offscreen
   `just snapshot`, reseeded demo home): overview, improve, improve-proposals (regressed and
   passing), dark and light, pass the 5 requirements.
+- 2026-11-09: approver safety on proposals. A change to the outcome sentence or the metric
+  and target shows "This changes what the steward owns: old → new." above the diff, and
+  Accept is quiet and confirms, naming the change, even when cases got better. A change
+  that removes guardrails, loosens sign-off (ask → auto, deny → allowed, a looser
+  default), or swaps the adapter says what it removes, opens its diff, and also confirms.
+  Only tightening or neutral passing proposals get the orange Accept. Classified in the
+  app from proposed vs live charter (`ProposalImpact`); asked workspace for a facade
+  classification. Visual check (offscreen `just snapshot`): improve-proposals with an
+  ownership change (quiet Accept…), a tightening (orange Accept), a regression with an
+  outcome change, and the demo's loosening (guardrail and adapter sentence), dark and
+  light, pass the 5 requirements.

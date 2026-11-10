@@ -41,7 +41,7 @@ private func reviews() throws -> (
         ChangeList.build(events: events).open.first { $0.id == ProposalFixtures.passing })
     item.title = item.id
     item.reason = ""
-    #expect(ProposalText.title(item, events: events) == CharterText.title(["outcome"]))
+    #expect(ProposalText.title(item, events: events) == CharterText.title(["guardrails"]))
 }
 
 /// The regressed case shows before → after, so a person sees what would go wrong.
@@ -62,6 +62,59 @@ private func reviews() throws -> (
     let good = ProposalText.summary(passing)
     #expect(good.lead == "Rehearsal: 7 of 8 cases unchanged, 1 got better.")
     #expect(good.worse.isEmpty)
+}
+
+/// Changing the outcome is never the default: a warning names old → new and Accept confirms.
+@Test func outcomeChangeWarnsAndNeedsAConfirm() throws {
+    let (events, regressed, passing) = try reviews()
+    let item = try #require(
+        ChangeList.build(events: events).open.first { $0.id == ProposalFixtures.owns })
+    let owns = ProposalReview.build(item, events: events)
+    #expect(!owns.regressed)
+    #expect(owns.impact.needsConfirm)
+    let warning = try #require(owns.impact.ownsSentence)
+    #expect(warning.hasPrefix("This changes what the steward owns: “Every new issue"))
+    #expect(warning.contains("→ “Feature requests are labeled and routed within a day.”"))
+    #expect(ProposalText.confirm(owns).contains("This changes what the steward owns"))
+    #expect(regressed.impact.changesOwnership)
+    // Adding a guardrail is not a loosening; that proposal keeps the orange Accept.
+    #expect(!passing.impact.needsConfirm)
+}
+
+/// Removing guardrails, sign-off, or the adapter says what is removed.
+@Test func looseningSaysWhatIsRemoved() {
+    let live: FeatureJSON = [
+        "outcome": "o", "adapter": "a", "guardrails": ["Never delete.", "Ask first.", "Keep."],
+        "policy": [
+            "default": "ask",
+            "rules": [
+                ["action": "refund", "decision": "ask"], ["action": "delete", "decision": "deny"],
+                ["action": "label", "decision": "auto"],
+            ],
+        ],
+    ]
+    let proposed: FeatureJSON = [
+        "outcome": "o", "adapter": "b", "guardrails": ["Keep."],
+        "policy": [
+            "default": "ask",
+            "rules": [
+                ["action": "refund", "decision": "auto"], ["action": "label", "decision": "ask"],
+            ],
+        ],
+    ]
+    let impact = ProposalImpact.build(live: live, proposed: proposed)
+    #expect(!impact.changesOwnership)
+    #expect(impact.loosens)
+    #expect(
+        impact.loosensSentence
+            == "Removes 2 guardrails: “Never delete.”, “Ask first.”; "
+            + "delete no longer blocked; sign-off no longer required for refund; "
+            + "adapter a → b.")
+    #expect(ProposalImpact.build(live: live, proposed: live).needsConfirm == false)
+    let metric = ProposalImpact.build(
+        live: ["metric": ["name": "m", "target": 0.95, "direction": "up"]],
+        proposed: ["metric": ["name": "m", "target": 0.9, "direction": "up"]])
+    #expect(metric.owns == ["metric m ≥ 0.95 → m ≥ 0.90"])
 }
 
 /// The charter change shows as a unified diff with counts, without the version bump.

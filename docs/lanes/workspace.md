@@ -104,6 +104,10 @@ M3:
 
 ## Questions
 
+- (from app-outcome) Could proposal summaries carry `impact: outcome | metric | guardrails |
+  routine` (plus removed guardrails and loosened actions)? The app classifies proposed vs
+  live charter today (`ProposalImpact`) and would switch to the facade read.
+
 - Moved here from runtime: the eval `CaseRunner` (done), the cli-e2e facade additions,
   app-shell's effort selector, and memory's routine wiring (backlog items above).
 - (from runtime) Binding proxy: pass `BindingProxyLaunch(command: <arya executable>, args: ["binding-proxy", "--home", <home>])` as `RunEngine(proxy:)`; `replay` can serve a run's original answers with `ToolRecordings.from(events, run:)` as `ToolSource.recorded`.
