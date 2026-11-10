@@ -162,3 +162,21 @@ import Testing
     #expect(lines[0].failed && lines[0].text == "had a run fail")
     #expect(lines[1].text == "started a run")
 }
+
+@MainActor @Test func fleetActivityShowsAtMostTwoInARowFromOneSteward() {
+    func line(_ id: Int, _ steward: String) -> FleetActivity.Line {
+        FleetActivity.Line(
+            id: "e\(id)", time: "now", steward: steward, name: steward, text: "", failed: false)
+    }
+    let lines = [
+        line(1, "a"), line(2, "a"), line(3, "a"), line(4, "a"), line(5, "b"), line(6, "a"),
+        line(7, "c"),
+    ]
+    let out = FleetActivity.interleave(lines, limit: 12)
+    #expect(out.map(\.id) == ["e1", "e2", "e5", "e3", "e4", "e7", "e6"])
+    for index in 2..<out.count {
+        #expect(
+            !(out[index].steward == out[index - 1].steward
+                && out[index].steward == out[index - 2].steward))
+    }
+}

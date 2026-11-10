@@ -90,7 +90,7 @@ struct StewardPage: View {
                     .buttonStyle(.aryaTertiary)
                     .accessibilityLabel("Back to \(steward.name)")
                 Text("/").aryaText(AryaFont.caption, AryaColor.inkFaint)
-                Text(StatusMapping.threadTitle(of: run))
+                Text(model.title(of: run))
                     .aryaText(AryaFont.mono, AryaColor.inkMuted)
                     .lineLimit(1)
             }

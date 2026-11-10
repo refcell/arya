@@ -29,7 +29,8 @@ struct StewardPulse: Equatable {
     static func build(
         steward: StewardSummary, runs: [RunSummary], approvals: [ApprovalSummary],
         events: [FeatureEvent], now: Date, serve: FeatureServe? = nil, live: [LiveLine] = [],
-        stewardLive: StewardLive? = nil, timeZone: TimeZone = .current
+        stewardLive: StewardLive? = nil, fleet: [String: String] = [:],
+        timeZone: TimeZone = .current
     ) -> StewardPulse {
         let series = MetricSeries.build(events: events, steward: steward.id)
         var value = "—"
@@ -53,7 +54,7 @@ struct StewardPulse: Equatable {
         return StewardPulse(
             metricName: series?.definition.name, metricValue: value,
             series: (series?.points ?? []).suffix(14).map(\.value),
-            behind: series?.meetsTarget == false,
+            behind: StatusMapping.isBehind(steward, fleet: fleet, meetsTarget: series?.meetsTarget),
             runsPerDay: totals, failedPerDay: failed,
             costToday: costToday(runs, now: now, timeZone: timeZone),
             nextWake: steward.status == .paused ? "paused" : next,
@@ -127,7 +128,8 @@ struct FleetPulse: Equatable {
 
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], approvals: [ApprovalSummary],
-        events: [FeatureEvent], live: [LiveLine] = [], now: Date, timeZone: TimeZone = .current
+        events: [FeatureEvent], live: [LiveLine] = [], fleet: [String: String] = [:], now: Date,
+        timeZone: TimeZone = .current
     ) -> FleetPulse {
         var onTrack = 0
         var behind = 0
@@ -137,7 +139,9 @@ struct FleetPulse: Equatable {
             let series = MetricSeries.build(events: events, steward: steward.id)
             if steward.status == .paused {
                 paused += 1
-            } else if series?.meetsTarget == false {
+            } else if StatusMapping.isBehind(
+                steward, fleet: fleet, meetsTarget: series?.meetsTarget)
+            {
                 behind += 1
             } else {
                 onTrack += 1

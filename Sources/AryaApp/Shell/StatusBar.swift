@@ -55,7 +55,7 @@ struct StatusBarLine: Equatable {
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], waiting: Int,
         events: [FeatureEvent], check: LedgerCheck?, now: Date, serve: FeatureServe? = nil,
-        timeZone: TimeZone = .current, liveRuns: [LiveLine] = []
+        timeZone: TimeZone = .current, liveRuns: [LiveLine] = [], fleet: [String: String] = [:]
     ) -> StatusBarLine {
         var next: Date?
         var behind = 0
@@ -63,7 +63,8 @@ struct StatusBarLine: Equatable {
             let state = OutcomeState.build(
                 events: events, steward: steward.id, now: now, serve: serve)
             if case .at(let date) = state.wake { next = min(next ?? date, date) }
-            if MetricSeries.build(events: events, steward: steward.id)?.meetsTarget == false {
+            let series = MetricSeries.build(events: events, steward: steward.id)
+            if StatusMapping.isBehind(steward, fleet: fleet, meetsTarget: series?.meetsTarget) {
                 behind += 1
             }
         }
@@ -119,7 +120,7 @@ struct StatusBar: View {
         let line = StatusBarLine.build(
             stewards: model.stewards, runs: model.runs, waiting: model.pendingApprovalCount,
             events: events, check: model.ledgerCheck, now: now,
-            serve: model.featureStore?.serve, liveRuns: model.liveLines)
+            serve: model.featureStore?.serve, liveRuns: model.liveLines, fleet: model.fleetStatus)
         HStack(spacing: AryaSpace.s4) {
             Text(StatusBarLine.scheduler(reason: model.serveReason))
                 .aryaText(

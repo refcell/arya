@@ -32,6 +32,9 @@ final class AppModel {
     var serveReason: String?
     /// Each steward's live state (workspace `stewardLive`): next wake, schedule, running.
     var stewardLive: [String: StewardLive] = [:]
+    /// Each steward's outcome status by id (workspace `fleet()`): `on_track`, `off_track`,
+    /// `no_target`, or `no_data`. The one source for "behind" (`StatusMapping.isBehind`).
+    var fleetStatus: [String: String] = [:]
     /// Each steward's department by id (workspace `portfolio()`); empty when none is set.
     var departments: [String: String] = [:]
     /// Sidebar department groups folded shut.
@@ -123,6 +126,7 @@ final class AppModel {
             liveLines = await source.liveLines()
             serveReason = await source.serveReason()
             stewardLive = await source.stewardLives(stewards.map(\.id))
+            fleetStatus = await source.fleetStatus()
             departments = await source.departments()
             problem = nil
             announce(approvals, stewards: stewards)
@@ -133,6 +137,31 @@ final class AppModel {
         refreshCount += 1
         let selectedRuns = navigation.steward.flatMap { runs[$0] }?.map(\.id) ?? []
         navigation.reconcile(stewards: stewards.map(\.id), runs: selectedRuns)
+        await preloadRunFacts()
+    }
+
+    /// The runs the shell names right now: the selected steward's rail threads, the open run,
+    /// and every run going.
+    var shownRunIDs: [String] {
+        let rail = navigation.steward.flatMap { runs[$0] }?.prefix(RailView.runLimit) ?? []
+        return rail.map(\.id) + [navigation.run].compactMap { $0 } + liveLines.map(\.run)
+    }
+
+    /// Loads workspace `runFacts` (dry run, step, decisions, tools, actions) for `ids`, or the
+    /// shown runs. Finished runs load once; running ones reload. Views read the facts, never a
+    /// ledger projection, and offscreen renders (which run no tasks) get them too.
+    func preloadRunFacts(_ ids: [String]? = nil) async {
+        guard let store = featureStore else { return }
+        let going = Set(liveLines.map(\.run))
+        for id in Set(ids ?? shownRunIDs) where store.runFacts[id] == nil || going.contains(id) {
+            await store.loadRunFacts(id)
+        }
+    }
+
+    /// A run's one title for the rail, breadcrumb, inspector, and palette.
+    func title(of run: RunSummary) -> String {
+        StatusMapping.threadTitle(
+            of: run, dryRun: featureStore?.runFacts[run.id]?.dryRun ?? false)
     }
 
     /// Follows the ledger and refreshes after each new event. Returns when the stream ends or

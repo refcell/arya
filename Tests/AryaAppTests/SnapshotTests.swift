@@ -42,7 +42,11 @@ import Testing
             model.navigation = navigation
             try write(name, scheme: scheme, render(RootView(model: model), dark: dark))
         }
-        // Offscreen renders run no tasks: load NOW, FINDINGS, and IMPACT's workspace reads.
+        // Offscreen renders run no tasks: load the runs' workspace facts (titles, inspector
+        // steps and actions) and NOW, FINDINGS, and IMPACT's workspace reads.
+        await model.preloadRunFacts(
+            model.shownRunIDs + [quiet?.id, waiting?.id].compactMap { $0 }
+                + runs.prefix(RailView.runLimit).map(\.id))
         await loadOutcomeReads(model, steward: steward.id)
         try page("overview") { $0.tab = .overview }
         // Nothing selected: the inspector lists the steward's context, Settings last.
@@ -260,7 +264,9 @@ import Testing
         // A run in progress (app-outcome): the steward the snapshot home is actually running
         // (snapshot.sh starts a lead follow-up run), with NOW read from stewardLive.
         if let live = model.liveLines.first?.steward ?? model.stewards.first?.id {
+            let setup = SnapshotWatchdog("overview-live (setup)")
             await loadOutcomeReads(model, steward: live)
+            setup.cancel()
             try page("overview-live") { $0.select(steward: live) }
         }
         // Sheets do not draw offscreen, so the New steward flow renders as its own page.
@@ -480,6 +486,8 @@ import Testing
     private func write(_ name: String, scheme: String, _ png: @autoclosure () -> Data?) throws {
         let file = scheme == "dark" ? "\(name).png" : "\(name)-light.png"
         guard Self.wanted(name, file: file) else { return }
+        let watchdog = SnapshotWatchdog(file)
+        defer { watchdog.cancel() }
         let png = try #require(png())
         guard let dir = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_DIR"] else { return }
         let url = URL(fileURLWithPath: dir, isDirectory: true).appendingPathComponent(file)
@@ -537,4 +545,33 @@ import Testing
         host.cacheDisplay(in: host.bounds, to: bitmap)
         return bitmap.representation(using: .png, properties: [:])
     }
+}
+
+/// Fails a snapshot run fast when one state hangs: after `seconds` it names the state on
+/// standard error and exits the test process, so `just snapshot` never spins for minutes.
+final class SnapshotWatchdog: @unchecked Sendable {
+    private let item: DispatchWorkItem
+
+    init(_ state: String, seconds: Double = 60) {
+        item = DispatchWorkItem {
+            let text = "snapshot state \(state) did not finish in \(Int(seconds)) s; stopping\n"
+            FileHandle.standardError.write(Data(text.utf8))
+            // Where it spins: a 3 s stack sample next to the PNGs, for the fix.
+            if let dir = ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_DIR"] {
+                let name = state.filter { $0.isLetter || $0.isNumber || $0 == "-" }
+                let sample = Process()
+                sample.executableURL = URL(fileURLWithPath: "/usr/bin/sample")
+                sample.arguments = [
+                    "\(ProcessInfo.processInfo.processIdentifier)", "3", "-file",
+                    "\(dir)/hang-\(name).txt",
+                ]
+                try? sample.run()
+                sample.waitUntilExit()
+            }
+            exit(1)
+        }
+        DispatchQueue.global().asyncAfter(deadline: .now() + seconds, execute: item)
+    }
+
+    func cancel() { item.cancel() }
 }

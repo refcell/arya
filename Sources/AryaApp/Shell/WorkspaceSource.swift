@@ -71,6 +71,8 @@ protocol WorkspaceSource: Sendable {
     func serveReason() async -> String?
     /// Each steward's live state (workspace `stewardLive(steward:)`), by id.
     func stewardLives(_ ids: [String]) async -> [String: StewardLive]
+    /// Each steward's outcome status by id (workspace `fleet()`).
+    func fleetStatus() async -> [String: String]
     /// Example stewards to start from (workspace `templates()`).
     func templates() -> [StewardTemplate]
     /// Each steward's department, by id, from workspace `portfolio()`; empty when unknown.
@@ -102,6 +104,8 @@ extension WorkspaceSource {
     func serveReason() async -> String? { nil }
 
     func stewardLives(_ ids: [String]) async -> [String: StewardLive] { [:] }
+
+    func fleetStatus() async -> [String: String] { [:] }
 
     func templates() -> [StewardTemplate] { [] }
 
@@ -231,6 +235,12 @@ extension Workspace: WorkspaceSource {
     }
 
     func serveReason() async -> String? { (try? await serveState())?.reason }
+
+    func fleetStatus() async -> [String: String] {
+        Dictionary(
+            ((try? await fleet()) ?? []).map { ($0.steward, $0.status) },
+            uniquingKeysWith: { first, _ in first })
+    }
 
     func stewardLives(_ ids: [String]) async -> [String: StewardLive] {
         var out: [String: StewardLive] = [:]

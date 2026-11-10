@@ -5,6 +5,17 @@ import Foundation
 
 /// How facade states appear as AryaDesign statuses.
 enum StatusMapping {
+    /// The one "behind target" rule for every count and red value: an active steward whose
+    /// workspace `fleet()` status is `off_track`; without a fleet read, an active steward whose
+    /// metric misses its target. Paused stewards are never behind.
+    static func isBehind(_ steward: StewardSummary, fleet: [String: String], meetsTarget: Bool?)
+        -> Bool
+    {
+        guard steward.status == .active else { return false }
+        if let status = fleet[steward.id] { return status == "off_track" }
+        return meetsTarget == false
+    }
+
     static func status(of steward: StewardSummary, runs: [RunSummary]) -> AryaStatus {
         switch steward.status {
         case .paused: return .paused
@@ -33,11 +44,12 @@ enum StatusMapping {
 
         init(
             _ steward: StewardSummary, pending: Int, latest: Double?, target: Double?,
-            onTrack: Bool?, isSelected: Bool, runningSteps: Int? = nil
+            onTrack: Bool?, isSelected: Bool, runningSteps: Int? = nil,
+            fleet: [String: String] = [:]
         ) {
             let running = runningSteps != nil
             let value = latest.map(StatusMapping.metric)
-            let behind = onTrack == false && steward.status != .paused
+            let behind = StatusMapping.isBehind(steward, fleet: fleet, meetsTarget: onTrack)
             var spoken = [steward.name]
             if steward.status == .paused {
                 status = .paused
@@ -84,11 +96,13 @@ enum StatusMapping {
 
     /// A run's thread title (STYLE.md Thread row): the first line of its summary, else its
     /// trigger ("manual run"). Never a run number or id.
-    static func threadTitle(of run: RunSummary) -> String {
+    /// `dryRun` (workspace `runFacts`) reads the way the run thread does (app-views'
+    /// `RunTitle.text`).
+    static func threadTitle(of run: RunSummary, dryRun: Bool = false) -> String {
         let summary =
             run.summary?.split(separator: "\n").first
             .map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
-        if !summary.isEmpty { return summary }
+        if !summary.isEmpty { return RunTitle.text(summary: summary, dryRun: dryRun) }
         let trigger = run.trigger.trimmingCharacters(in: .whitespaces)
         return trigger.isEmpty ? "run" : "\(trigger) run"
     }

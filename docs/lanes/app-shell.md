@@ -108,7 +108,7 @@ M4:
 
 ## Questions
 
-- (from app-views) Review #14 item 3: run titles need one function. `RunTitle.text(summary:dryRun:steps:)` (RunStreamModel.swift) gives "Dry run: would …" for a dry run. Please call it in `StatusMapping.threadTitle` (breadcrumb, sidebar, inspector) with `dryRun: store.runFacts[run]?.dryRun ?? false`; the stream and run header already use it.
+- (from app-views) Review #14 item 3: run titles need one function. `RunTitle.text(summary:dryRun:steps:)` (RunStreamModel.swift) gives "Dry run: would …" for a dry run. Please call it in `StatusMapping.threadTitle` (breadcrumb, sidebar, inspector) with `dryRun: store.runFacts[run]?.dryRun ?? false`; the stream and run header already use it. Done (app-shell): `AppModel.title(of:)`.
 
 - (from app-views) Review #12: the run inspector's STEPS and PROPOSED still come from `InspectorView.RunFacts.lines`. `FeatureStore.runFacts[run]` (`FeatureRunFacts`, from workspace `runFacts(run:)`) now holds the counts, start, elapsed time and progress the run header uses. Please read it, so header and inspector agree.
 - (from app-outcome) StewardPulse "Next wake"/"Running": please build state with `OutcomeState.build(serve: model.featureStore?.serve)`, format with `AryaTime.upcoming` ("due 10:19" when `state.serving == false`), and count running from `StatusBarLine.lines(live:...)`, so it matches NOW and the status bar.
@@ -351,3 +351,21 @@ M4:
   `FeatureRunReads` (+Run, app-views), `FeatureOutcomeReads` (+Outcome, app-outcome),
   `FeatureConnectReads` (+Connect, connect), each with its types and defaults; the composite
   protocol inherits all three, so conformers are unchanged. Told the lanes under Questions.
+- 2026-11-10 (review 14): every snapshot state renders under a 60 s watchdog
+  (`SnapshotWatchdog`): a hang names the state, saves a 3 s stack sample to
+  `.build/snapshots/hang-<state>.txt`, and exits; overview-live's setup has its own guard. The
+  reported overview-live hang did not reproduce at HEAD (filtered run 33 s, full state 110 s).
+  One behind rule, `StatusMapping.isBehind` (active and workspace `fleet()` says
+  `off_track`), feeds the status bar, fleet pulse, steward pulse, portfolio, and rail: all read
+  5 behind on the busy home (the paused digest no longer counts). The run inspector's Duration,
+  Steps, and Proposed read `FeatureRunFacts` (workspace `runFacts`). Fleet activity shows at
+  most two lines in a row per steward.
+- Visual check (`just snapshot` portfolio, portfolio-live, overview-live, run-live): moves (4)
+  one behind count everywhere, (2) fleet activity across stewards.
+- Run titles take the dry-run prefix from workspace `runFacts.dryRun` (`AppModel.title(of:)`
+  over `StatusMapping.threadTitle(dryRun:)`, using app-views' `RunTitle.text`) in the
+  rail, breadcrumb, inspector, and palette.
+  `AppModel.preloadRunFacts` loads the shown runs' facts on every refresh, and the snapshot
+  test preloads the runs its pages open, so offscreen renders show the facade's numbers.
+- Visual check (`just snapshot` run, run-approval, overview): moves (4) the same title and
+  step tally in breadcrumb, rail, inspector, and run header.

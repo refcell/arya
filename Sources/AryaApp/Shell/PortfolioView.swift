@@ -39,7 +39,7 @@ struct PortfolioRow: Identifiable, Equatable {
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], approvals: [ApprovalSummary],
         events: [FeatureEvent], now: Date, serve: FeatureServe? = nil,
-        departments: [String: String] = [:], live: [LiveLine] = [],
+        departments: [String: String] = [:], live: [LiveLine] = [], fleet: [String: String] = [:],
         timeZone: TimeZone = .current
     ) -> [PortfolioRow] {
         let going = StatusBarLine.running(live)
@@ -74,7 +74,10 @@ struct PortfolioRow: Identifiable, Equatable {
             let cost = StewardPulse.costToday(mine, now: now, timeZone: timeZone)
             return PortfolioRow(
                 id: steward.id, name: steward.name, outcome: steward.outcome, metric: metric,
-                trend: state.trend, behind: series?.meetsTarget == false, state: stateWord(steward),
+                trend: state.trend,
+                behind: StatusMapping.isBehind(
+                    steward, fleet: fleet, meetsTarget: series?.meetsTarget),
+                state: stateWord(steward),
                 waiting: waiting,
                 lastRun: last.map { ThreadRow.shortTime($0, now: now) } ?? "never",
                 nextWake: wake, health: sidebar.health, runsPerDay: totals, failedPerDay: failed,
@@ -127,7 +130,7 @@ struct PortfolioView: View {
         let rows = PortfolioRow.build(
             stewards: model.stewards, runs: model.runs, approvals: model.approvals,
             events: events, now: now, serve: model.featureStore?.serve,
-            departments: model.departments, live: model.liveLines)
+            departments: model.departments, live: model.liveLines, fleet: model.fleetStatus)
         let grouped = rows.contains { !$0.department.isEmpty }
         let total = rows.count == 1 ? "1 steward" : "\(rows.count) stewards"
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
@@ -344,9 +347,9 @@ struct FleetActivity: View {
     ) -> [Line] {
         let names = Dictionary(
             stewards.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
-        var out: [Line] = []
+        var candidates: [Line] = []
         for event in events.reversed() {
-            guard out.count < limit else { break }
+            guard candidates.count < limit * 20 else { break }
             guard let steward = event.steward, let name = names[steward],
                 var text = words[event.type]
             else { continue }
@@ -354,10 +357,25 @@ struct FleetActivity: View {
                 event.type == "run.finished"
                 && ["failed", "error"].contains(event.payload["status"]?.string ?? "")
             if failed { text = "had a run fail" }
-            out.append(
+            candidates.append(
                 Line(
                     id: event.id, time: ThreadRow.shortTime(event.at, now: now),
                     steward: steward, name: name, text: text, failed: failed))
+        }
+        return interleave(candidates, limit: limit)
+    }
+
+    /// Newest first, but at most `run` lines in a row from one steward: a busy steward's
+    /// extra lines wait until another steward's line has been shown. Stops when only the busy
+    /// steward is left.
+    static func interleave(_ lines: [Line], limit: Int, run: Int = 2) -> [Line] {
+        var pending = lines
+        var out: [Line] = []
+        while out.count < limit, !pending.isEmpty {
+            let tail = out.suffix(run).map(\.steward)
+            let blocked = tail.count == run && Set(tail).count == 1 ? tail.first : nil
+            guard let index = pending.firstIndex(where: { $0.steward != blocked }) else { break }
+            out.append(pending.remove(at: index))
         }
         return out
     }

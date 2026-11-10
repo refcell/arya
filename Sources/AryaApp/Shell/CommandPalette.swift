@@ -86,7 +86,7 @@ enum CommandCatalog {
             for run in (model.runs[steward.id] ?? []).prefix(10) {
                 out.append(
                     PaletteCommand(
-                        id: "run-\(run.id)", title: StatusMapping.threadTitle(of: run),
+                        id: "run-\(run.id)", title: model.title(of: run),
                         group: "Runs"
                     ) { model in model.navigation.select(run: run.id, steward: steward.id) })
             }

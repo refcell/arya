@@ -109,7 +109,8 @@ struct RailView: View {
             steward, pending: model.pendingApprovals(steward: steward.id),
             latest: series?.latest?.value, target: series?.definition.target,
             onTrack: series?.meetsTarget, isSelected: model.navigation.steward == steward.id,
-            runningSteps: liveLines.last { $0.steward == steward.id }?.steps)
+            runningSteps: liveLines.last { $0.steward == steward.id }?.steps,
+            fleet: model.fleetStatus)
     }
 
     private var sortedStewards: [StewardSummary] {
@@ -166,7 +167,7 @@ struct RailView: View {
                     model.navigation.select(run: run.id, steward: steward.id)
                 } label: {
                     ThreadRow(
-                        StatusMapping.threadTitle(of: run),
+                        model.title(of: run),
                         time: ThreadRow.shortTime(run.startedAt, now: now),
                         needsYou: model.approvals.contains { $0.run == run.id },
                         isSelected: model.navigation.run == run.id)

@@ -86,7 +86,12 @@ struct StewardContext: Equatable {
 
 /// A run's facts for the inspector: status, trigger, timing, cost, and step counts.
 enum RunFacts {
-    static func lines(_ run: RunSummary, events: [FeatureEvent], now: Date) -> [(String, String)] {
+    /// `facts` (workspace `runFacts`, app-views' `FeatureRunFacts`) is the one source for
+    /// duration, steps, decisions, tool calls, and actions; the ledger fills in only when the
+    /// workspace has none.
+    static func lines(
+        _ run: RunSummary, events: [FeatureEvent], now: Date, facts runFacts: FeatureRunFacts? = nil
+    ) -> [(String, String)] {
         var out: [(String, String)] = [
             ("Status", run.status.rawValue),
             ("Trigger", run.trigger.isEmpty ? "manual" : run.trigger),
@@ -94,11 +99,31 @@ enum RunFacts {
         ]
         // The run header's own figures (app-views' RunMetrics), "—" when unknown.
         let facts = RunStream.build(events: events, run: run.id).facts
-        out.append(("Duration", facts.seconds.map(FeatureTime.duration) ?? "—"))
+        let seconds = runFacts?.elapsedSeconds ?? facts.seconds
+        out.append(("Duration", seconds.map(FeatureTime.duration) ?? "—"))
         let micros = facts.costMicros ?? 0
         out.append(("Cost", micros > 0 ? RunMetrics.dollars(micros) : "—"))
         if let tokens = facts.tokens, tokens > 0 {
             out.append(("Tokens", RunMetrics.grouped(tokens)))
+        }
+        if let runFacts {
+            let estimate = runFacts.estimatedSteps.map { " of ~\($0)" } ?? ""
+            out.append(
+                (
+                    "Steps",
+                    [
+                        "step \(runFacts.stepIndex)\(estimate)",
+                        count(runFacts.decisions, "decision"), count(runFacts.toolCalls, "tool"),
+                    ].joined(separator: " · ")
+                ))
+            var actions = [count(runFacts.actionsProposed, "action")]
+            if runFacts.actionsApplied > 0 { actions.append("\(runFacts.actionsApplied) applied") }
+            if runFacts.actionsDrafted > 0 { actions.append("\(runFacts.actionsDrafted) drafted") }
+            if runFacts.actionsWaiting > 0 { actions.append("\(runFacts.actionsWaiting) waiting") }
+            out.append(("Proposed", actions.joined(separator: " · ")))
+            out.append(("Charter", "v\(run.charterVersion)"))
+            if let reason = run.failureReason { out.append(("Failure", reason)) }
+            return out
         }
         let mine = events.filter { $0.run == run.id }
         let decisions = mine.filter { $0.type == "run.decision" }.count
@@ -202,7 +227,7 @@ struct InspectorView: View {
                         approvals: model.approvals, events: events, now: now,
                         serve: model.featureStore?.serve,
                         live: model.liveLines,
-                        stewardLive: model.stewardLive[steward.id])
+                        stewardLive: model.stewardLive[steward.id], fleet: model.fleetStatus)
                 ) { model.navigation.approval = $0 }
             } else if let id = id ?? model.approvals.first?.id {
                 FeatureRegistry.approvalInspector(model.featureContext(), approval: id)
@@ -223,7 +248,7 @@ struct InspectorView: View {
             FleetPulseView(
                 pulse: FleetPulse.build(
                     stewards: model.stewards, runs: model.runs, approvals: model.approvals,
-                    events: events, live: model.liveLines, now: now)
+                    events: events, live: model.liveLines, fleet: model.fleetStatus, now: now)
             ) { model.navigation.select(steward: $0) }
         case .none:
             Text("Select a steward to see its schedule, policy, connections, and people.")
@@ -234,12 +259,17 @@ struct InspectorView: View {
 
     private func runContent(_ run: RunSummary) -> some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
-            Text(StatusMapping.threadTitle(of: run)).aryaText(AryaFont.bodyStrong, AryaColor.ink)
+            Text(model.title(of: run)).aryaText(AryaFont.bodyStrong, AryaColor.ink)
                 .fixedSize(horizontal: false, vertical: true)
-            ForEach(RunFacts.lines(run, events: events, now: now), id: \.0) { label, value in
+            ForEach(
+                RunFacts.lines(
+                    run, events: events, now: now, facts: model.featureStore?.runFacts[run.id]),
+                id: \.0
+            ) { label, value in
                 fact(label, value)
             }
         }
+        .task(id: run.id) { await model.featureStore?.loadRunFacts(run.id) }
     }
 
     @ViewBuilder private func stewardContent(_ steward: StewardSummary) -> some View {
@@ -271,7 +301,7 @@ struct InspectorView: View {
                 steward: steward, runs: model.runs[steward.id] ?? [], approvals: model.approvals,
                 events: events, now: now, serve: model.featureStore?.serve,
                 live: model.liveLines,
-                stewardLive: model.stewardLive[steward.id])
+                stewardLive: model.stewardLive[steward.id], fleet: model.fleetStatus)
         ) { id in
             model.navigation.showApprovals()
             model.navigation.approval = id

@@ -66,6 +66,24 @@ import Testing
     #expect(facts["Cost"] == "—")
 }
 
+@Test func runFactsComeFromTheWorkspaceWhenItHasThem() {
+    let start = Date(timeIntervalSince1970: 1_700_000_000)
+    let run = RunSummary(
+        id: "run_1", steward: "st_triage", trigger: "manual", charterVersion: 1,
+        status: .running, startedAt: start, actionsProposed: 0)
+    let workspace = FeatureRunFacts(
+        running: true, started: start, elapsedSeconds: 33.9, decisions: 2, toolCalls: 3,
+        actionsProposed: 4, actionsApplied: 1, actionsDrafted: 0, actionsWaiting: 2,
+        stepIndex: 9, estimatedSteps: 9, dryRun: false)
+    // The ledger here says nothing happened; the workspace's tally wins.
+    let facts = Dictionary(
+        RunFacts.lines(run, events: [], now: start, facts: workspace),
+        uniquingKeysWith: { a, _ in a })
+    #expect(facts["Steps"] == "step 9 of ~9 · 2 decisions · 3 tools")
+    #expect(facts["Proposed"] == "4 actions · 1 applied · 2 waiting")
+    #expect(facts["Duration"] == "33.9 s")
+}
+
 @Test func portfolioRowsSortByNeedAndReadTheFleet() {
     let now = Date(timeIntervalSince1970: 1_700_000_000)
     func steward(_ id: String, _ name: String, _ status: StewardSummary.Status) -> StewardSummary {
@@ -84,4 +102,16 @@ import Testing
     navigation.reconcile(stewards: ["st_t"], runs: [])
     #expect(navigation.destination == .portfolio)
     #expect(InspectorFocus.of(navigation) == .fleet)
+}
+
+@Test func aDryRunTitleSaysWhatItWouldHaveDone() {
+    let start = Date(timeIntervalSince1970: 1_700_000_000)
+    let run = RunSummary(
+        id: "run_1", steward: "st_triage", trigger: "manual", charterVersion: 1,
+        status: .finished, summary: "Labeled MSG-1 as spam.", startedAt: start, endedAt: start,
+        actionsProposed: 1)
+    #expect(StatusMapping.threadTitle(of: run) == "Labeled MSG-1 as spam.")
+    #expect(
+        StatusMapping.threadTitle(of: run, dryRun: true)
+            == "Dry run, nothing applied: Labeled MSG-1 as spam.")
 }
