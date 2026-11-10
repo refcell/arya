@@ -312,15 +312,12 @@ public struct RetentionSummary: Sendable, Hashable, Codable {
     public var bytes: Int
     /// Why eligible history is not archived yet, if it is not; nil when archiving can run.
     public var blocker: String?
+    /// Segments already in `archive/`, and the last retention run's `seq` range.
+    public var archived: Int = 0
+    public var lastApplied: Int?
 }
 
 extension Workspace {
-    /// Archiving is held back while runtime and eval reads fold the whole history from the
-    /// first event: moving segments to `archive/` would hide stewards, memory, and plans from
-    /// them. The plan is still shown so a person can see what retention covers.
-    static let retentionBlocker =
-        "Archiving waits until every history read starts from a checkpoint; nothing is moved."
-
     /// The retention settings and the current plan.
     public func retention() async throws -> RetentionSummary {
         let policy = try RetentionPolicy.read(reader)
@@ -331,7 +328,31 @@ extension Workspace {
                 policy.stewards[id].map { RetentionSummary.Steward(steward: id.rawValue, days: $0) }
             },
             segments: plan.segments, through: Int(plan.through), events: plan.events,
-            bytes: Int(plan.bytes), blocker: plan.segments.isEmpty ? nil : Self.retentionBlocker)
+            bytes: Int(plan.bytes), blocker: nil, archived: try Self.archivedSegments(home),
+            lastApplied: try reader.newest(
+                LedgerFilter(types: [.systemRetentionApplied]), limit: 1
+            ).first.map { Int((try $0.payload(as: SystemRetentionApplied.self)).through) })
+    }
+
+    static func archivedSegments(_ home: URL) throws -> Int {
+        let archive = home.appendingPathComponent("archive", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: archive.path) else { return 0 }
+        return try FileManager.default.contentsOfDirectory(atPath: archive.path)
+            .filter { $0.hasSuffix(".jsonl") }.count
+    }
+
+    /// Archives what retention covers now: a checkpoint at the head, the eligible closed
+    /// segments moved to `archive/` (never deleted; history reads still see them), and
+    /// `system.retention.applied` (actor: the person). A no-op when nothing is eligible.
+    public func applyRetention(as person: String = "local") async throws -> RetentionSummary {
+        let signer = try CheckpointKeys(home: home).ensure(store: sink.store)
+        do {
+            try RetentionArchive.apply(
+                store: sink.store, signer: signer, now: ambient.now(), actor: .human(person))
+        } catch let error as CompactionError {
+            throw WorkspaceError.rejected("retention could not archive: \(error)")
+        }
+        return try await retention()
     }
 
     /// Records how many days of history to keep for `steward` (the home default when nil);

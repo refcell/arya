@@ -33,11 +33,13 @@ private func compactableHome(checkpoint: Bool = true) throws -> (TempHome, Ledge
     ).sorted()
     #expect(archived == result.archived)
     #expect(
-        try LedgerReader(home: home.url).events() == Array(before.drop { $0.seq < result.firstSeq })
+        try LedgerReader(home: home.url, archive: false).events()
+            == Array(before.drop { $0.seq < result.firstSeq })
     )
     let verdict = try LedgerVerifier(home: home.url).verify()
     #expect(verdict.ok, "\(verdict.report.text)")
     #expect(verdict.firstSeq == result.firstSeq)
+    #expect(try LedgerReader(home: home.url).events() == before)
     #expect(try LedgerVerifier(home: home.url).verifyArchive().ok)
     // Writing goes on, and compacting again with nothing newly covered is a no-op.
     try store.append(note("after"))
@@ -128,6 +130,7 @@ private func seededCompactedHome() throws -> (TempHome, LedgerStore, Int64) {
     let seedFile = home.url.appendingPathComponent("archive/seeds/\(through)/tally.json")
     #expect(FileManager.default.fileExists(atPath: seedFile.path))
     try FileManager.default.removeItem(at: caches.directory)
+    try removeArchivedSegments(home)
     let restored = try caches.current(Tally.self, name: "tally")
     #expect(restored.value == Tally(count: 33, last: "after"))
     #expect(restored.seq == 33)
@@ -140,6 +143,7 @@ private func seededCompactedHome() throws -> (TempHome, LedgerStore, Int64) {
     defer { home.cleanup() }
     let caches = ProjectionCache(home: home.url)
     try FileManager.default.removeItem(at: caches.directory)
+    try removeArchivedSegments(home)
     #expect(throws: ProjectionError.archived("other")) {
         try caches.current(Tally.self, name: "other")
     }
@@ -151,4 +155,51 @@ private func seededCompactedHome() throws -> (TempHome, LedgerStore, Int64) {
     #expect(throws: ProjectionError.archived("tally")) {
         try caches.current(Tally.self, name: "tally")
     }
+}
+
+/// Deletes the archived segments (not the seeds), as if the archive were moved off the machine.
+private func removeArchivedSegments(_ home: TempHome) throws {
+    let archive = home.url.appendingPathComponent("archive")
+    for name in try FileManager.default.contentsOfDirectory(atPath: archive.path)
+    where name.hasSuffix(".jsonl") {
+        try FileManager.default.removeItem(at: archive.appendingPathComponent(name))
+    }
+}
+
+@Test func historyReadsSeeArchivedSegmentsAndLiveReadsDoNot() throws {
+    let (home, store) = try compactableHome()
+    defer { home.cleanup() }
+    let before = try LedgerReader(home: home.url).events()
+    let result = try store.compact(through: 20)
+    #expect(!result.archived.isEmpty)
+    #expect(try LedgerReader(home: home.url).events() == before)
+    #expect(try LedgerReader(home: home.url).events(from: 3).first?.seq == 3)
+    #expect(try LedgerReader(home: home.url, archive: false).events().first?.seq == result.firstSeq)
+    // A fresh cache rebuilds through the archive; no seed is needed.
+    let caches = ProjectionCache(home: home.url)
+    #expect(try caches.current(Tally.self, name: "tally").seq == before.last?.seq)
+    #expect(try LedgerVerifier(home: home.url).verify().ok)
+}
+
+@Test func retentionArchivesOldSegmentsAndHistoryStillReadsThem() throws {
+    let home = try TempHome()
+    defer { home.cleanup() }
+    let store = try LedgerStore(home: home.url, ambient: .fixed(), segmentLimitBytes: 600)
+    let signer = try CheckpointKeys(home: home.url).ensure(store: store) { fixedKey(1) }
+    for index in 0..<30 { try store.append(note("note \(index)")) }
+    try store.append(EventDraft(SystemRetentionSet(days: 1), actor: .human("local")))
+    let before = try LedgerReader(home: home.url).events()
+    let clock = Timestamp(millis: 1_767_225_600_000 + 400 * 86_400_000)
+    let applied = try #require(
+        try RetentionArchive.apply(store: store, signer: signer, now: clock, actor: .human("local"))
+    )
+    #expect(!applied.segments.isEmpty)
+    let after = try LedgerReader(home: home.url).events()
+    #expect(Array(after.prefix(before.count)) == before)
+    #expect(after.last?.type == .systemRetentionApplied)
+    #expect(
+        try LedgerReader(home: home.url, archive: false).events().first?.seq == applied.through + 1)
+    #expect(try LedgerVerifier(home: home.url).verify().ok)
+    #expect(try LedgerVerifier(home: home.url).verifyArchive().ok)
+    #expect(try RetentionPolicy.read(LedgerReader(home: home.url)).defaultDays == 1)
 }

@@ -115,8 +115,9 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   app control and e2e asked.
 - [x] (G3a) Data retention settings and plan: `system.retention.set`, `RetentionPolicy`,
   `RetentionPlan`, `retention()`/`setRetention(...)`; settings row asked in app-views.md.
-- [ ] (G3b) Apply retention (archive eligible segments with a fresh checkpoint), once runtime
-  and eval folds start from checkpoint seeds (Questions).
+- [x] (G3b) Apply retention: `RetentionArchive.apply`, `applyRetention(as:)`,
+  `system.retention.applied`, archive read-through in `LedgerReader`; "Archive now" in app
+  settings (snapshot `governance-retention`). CLI asked.
 - [x] (G4a) Encryption at rest: a Keychain-held home key seals event payloads (memory,
   runs, actions, approvals), blobs, projection caches, and seeds (`HomeEncryption`,
   `system.encryption.enabled`, `encryption()`/`enableEncryption(as:)`); blobs, caches, and
@@ -202,10 +203,18 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
   steward = home default, nil days clears; latest wins; `RetentionPolicy`). `RetentionPlan`
   takes the longest prefix of closed segments whose every event is older than the days that
   apply to it (its steward's, else the default; no setting keeps it), since compaction moves
-  whole segments. Archiving is held back: 38 runtime and eval reads fold `events(from: 1)`, so
-  moving segments would hide stewards, memory, and plans; `retention().blocker` says so and
-  nothing moves. "Archive" is the only mode (nothing is ever deleted; compaction already
-  archives). Applying retention waits on the question below.
+  whole segments. "Archive" is the only mode (nothing is ever deleted).
+- (G3b apply retention) Unblocked inside the ledger instead of waiting on 43 runtime and eval
+  call sites: `LedgerReader` reads `archive/` segments older than the first live one before
+  the live ones (`archive: true` by default), so every history fold from `seq` 1 still sees
+  every event after retention runs. Live-only readers pass `archive: false`: the verifier,
+  checkpoints, compaction, `CheckpointKeys`, and the retention plan (`liveSegments()`). The
+  projection cache reads through too; its checkpoint seeds remain the fallback when the
+  archive itself is moved off the machine. `RetentionArchive.apply` records a checkpoint at
+  the head (seeding current caches), compacts through the plan, and records
+  `system.retention.applied {segments, through, checkpoint}`. What retention buys now is a
+  small live ledger for the verifier, newest reads, follow, and appends; history reads cost
+  the same as before. `retention().blocker` is always nil now (kept for compatibility).
 
 - Ids are `PrefixedID` structs (`st_`, `run_`, `ev_`, `ap_`, `prop_`, `reh_`, `mem_`); generated
   bodies are 26-character ULIDs (48-bit ms time, 80 random bits, Crockford base32). `CaseID`
@@ -320,6 +329,12 @@ the app through app-views or app-shell Questions, with a snapshot state, tests, 
 - (from eval) New eval event `case.reviewed` {casebook, case, verdict agreed|skipped}; PROTOCOL?
 
 ## Log
+- 2026-11-10: (G3b) done: retention archives for real. `LedgerReader` reads archived
+  segments first, so history folds are unaffected; `applyRetention` checkpoints, compacts,
+  and records `system.retention.applied`; app settings show the eligible plan with "Archive
+  now" and what is already archived. Committed locally; publish held for the CI queue and
+  batched. Visual check: `governance-retention` (dark and light) read; moves point (3) real
+  controls.
 - 2026-11-10: reviewer VC24 fixes in the governance UI: the abort confirm is a quiet button
   in the negative tone (no orange); `ask` chips are neutral ink, approvers plain names
   ("Sam, you"), risk on the risk scale (low muted, medium amber, high red); "Anything not

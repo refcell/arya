@@ -59,7 +59,7 @@ public struct CheckpointKeys: Sendable {
         store: LedgerStore, generate: () -> Curve25519.Signing.PrivateKey = { .init() }
     ) throws -> CheckpointSigner {
         let signer = try load() ?? write(CheckpointSigner(generate()))
-        let ring = try KeyRing.read(LedgerReader(home: store.home))
+        let ring = try KeyRing.read(LedgerReader(home: store.home, archive: false))
         if ring.keys[signer.id] == nil {
             // A second unsigned key would not be trusted; rotation must sign it.
             guard ring.keys.isEmpty else { throw CheckpointKeyError.notRecorded }

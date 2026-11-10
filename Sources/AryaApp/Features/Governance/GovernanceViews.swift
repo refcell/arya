@@ -390,6 +390,10 @@ struct HomeGovernanceSection: View {
             encrypt: {
                 guard let source else { return }
                 Task { await cache.enableEncryption(from: source) }
+            },
+            archive: {
+                guard let source else { return }
+                Task { await cache.applyRetention(from: source) }
             }
         )
         .task { if let source { await cache.loadHome(from: source) } }
@@ -403,6 +407,7 @@ struct HomeGovernancePanel: View {
     var problem: String?
     var setDefault: (Int?) -> Void
     var encrypt: () -> Void
+    var archive: () -> Void = {}
     @AryaState private var confirm = false
 
     var body: some View {
@@ -414,9 +419,23 @@ struct HomeGovernancePanel: View {
                     selection: retention?.defaultDays ?? 0
                 ) { setDefault($0 == 0 ? nil : $0) }
                 if let retention {
-                    Text(GovernanceText.planLine(retention))
-                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                        Text(GovernanceText.planLine(retention))
+                            .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        if !retention.segments.isEmpty {
+                            Button("Archive now", action: archive).buttonStyle(.aryaSecondary)
+                                .help(
+                                    "Move the eligible closed segments to archive/ under a "
+                                        + "fresh checkpoint; nothing is deleted and history "
+                                        + "stays readable"
+                                )
+                        }
+                    }
+                    if let line = GovernanceText.archivedLine(retention) {
+                        Text(line).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    }
                 }
             }
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -532,6 +551,12 @@ enum GovernanceText {
         let head =
             "\(retention.segments.count) segments · \(events) events · \(size) eligible"
         return retention.blocker.map { "\(head). \($0)" } ?? head
+    }
+
+    static func archivedLine(_ retention: RetentionSummary) -> String? {
+        guard retention.archived > 0 else { return nil }
+        let through = retention.lastApplied.map { " · through seq \($0)" } ?? ""
+        return "\(retention.archived) segments in archive/\(through) · still readable"
     }
 
     static func keyLine(_ state: EncryptionSummary) -> String {

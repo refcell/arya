@@ -186,6 +186,7 @@ private func undoableCharterJSON(allowUnlabel: Bool = true) throws -> Data {
     #expect(summary.stewards == [.init(steward: "st_inbox", days: 90)])
     #expect(summary.segments.isEmpty)
     #expect(summary.blocker == nil)
+    #expect(summary.archived == 0)
     #expect(try await opened.types().suffix(2) == ["system.retention.set", "system.retention.set"])
     _ = try await workspace.setRetention(steward: "st_inbox", days: nil)
     #expect(try await workspace.retention().stewards.isEmpty)
@@ -251,4 +252,16 @@ private func undoableCharterJSON(allowUnlabel: Bool = true) throws -> Data {
     ) {
         _ = try await workspace.exportAudit(steward: "st_inbox", to: out)
     }
+}
+
+@Test func applyingRetentionWithNothingEligibleChangesNothing() async throws {
+    let opened = try await Opened()
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    _ = try await workspace.setRetention(days: 1)
+    let before = try await opened.types()
+    let summary = try await workspace.applyRetention()
+    #expect(summary.archived == 0)
+    #expect(summary.lastApplied == nil)
+    #expect(try await opened.types().filter { $0 != "system.key.added" } == before)
 }

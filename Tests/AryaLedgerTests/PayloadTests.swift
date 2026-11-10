@@ -74,6 +74,9 @@ let payloadSamples: [PayloadSample] = [
             blob: String(repeating: "ef", count: 32), reason: "no trailing newline")),
     PayloadSample(SystemStarted(process: "test", version: "0.1.0")),
     PayloadSample(SystemRetentionSet(steward: StewardID(unchecked: "st_triage"), days: 90)),
+    PayloadSample(
+        SystemRetentionApplied(
+            segments: ["000001.jsonl", "000002.jsonl"], through: 812, checkpoint: 2240)),
     PayloadSample(SystemEncryptionEnabled(key: "hk_0123456789abcdef01234567")),
     PayloadSample(
         SystemAuditExported(

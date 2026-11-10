@@ -76,6 +76,16 @@ import Testing
                 panel.background(AryaColor.canvas), dark: dark,
                 size: NSSize(width: 340, height: 520)))
         try write(
+            "governance-retention", scheme: scheme,
+            render(
+                HomeGovernancePanel(
+                    retention: Self.fixtureRetention, encryption: nil, problem: nil,
+                    setDefault: { _ in }, encrypt: {}
+                )
+                .padding(AryaSpace.s4)
+                .frame(width: 460, height: 180, alignment: .topLeading)
+                .background(AryaColor.canvas), dark: dark, size: NSSize(width: 460, height: 180)))
+        try write(
             "governance-run-controls", scheme: scheme,
             render(Self.runControls(options), dark: dark, size: NSSize(width: 820, height: 300)))
     }
@@ -107,6 +117,12 @@ import Testing
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AryaColor.canvas)
     }
+
+    static let fixtureRetention = RetentionSummary(
+        defaultDays: 90, stewards: [.init(steward: "st_digest", days: 30)],
+        segments: ["000004.jsonl", "000005.jsonl"], through: 1412,
+        events: ["st_triage": 980, "st_digest": 310], bytes: 2_400_000, blocker: nil,
+        archived: 3, lastApplied: 812)
 
     static let fixtureExport: AuditExportSummary = {
         let manifest = AuditManifest(

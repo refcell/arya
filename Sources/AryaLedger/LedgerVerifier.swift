@@ -8,7 +8,7 @@ public struct LedgerVerifier: Sendable {
     public let reader: LedgerReader
 
     public init(home: URL) {
-        reader = LedgerReader(home: home)
+        reader = LedgerReader(home: home, archive: false)
     }
 
     /// The verdict for the whole ledger.

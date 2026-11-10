@@ -57,8 +57,9 @@ public struct ProjectionCache: Sendable {
     /// moved, and returns it. Saving is best effort: a cache that cannot be written (a
     /// read-only home, a full disk) never fails the read, it only stays stale.
     ///
-    /// On a compacted ledger a cache that does not continue the live events cannot be rebuilt
-    /// from them; it is seeded from `archive/seeds/` instead, using the newest trusted
+    /// On a compacted ledger the archived segments are read first, so a cache rebuilds as
+    /// usual. When they are gone too, a cache that does not continue the live events cannot be
+    /// rebuilt from them; it is seeded from `archive/seeds/` instead, using the newest trusted
     /// checkpoint whose digest matches the seed. Without one it throws
     /// `ProjectionError.archived` rather than guessing.
     public func current<P: LedgerProjection & Codable>(_ type: P.Type, name: String) throws

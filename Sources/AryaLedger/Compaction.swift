@@ -38,7 +38,7 @@ extension LedgerStore {
             guard verdict.ok else {
                 throw CompactionError.ledgerNotVerified(verdict.report.headline)
             }
-            let reader = LedgerReader(home: home)
+            let reader = LedgerReader(home: home, archive: false)
             var chosen: (seq: Int64, value: SystemCheckpoint)?
             try reader.forEach(LedgerFilter(types: [.systemCheckpoint])) { event in
                 let value = try event.payload(as: SystemCheckpoint.self)

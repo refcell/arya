@@ -68,7 +68,7 @@ public struct RetentionPlan: Hashable, Sendable {
     ) throws -> RetentionPlan {
         var plan = RetentionPlan(segments: [], through: 0, events: [:], bytes: 0)
         guard policy.defaultDays != nil || !policy.stewards.isEmpty else { return plan }
-        for segment in try reader.existingSegments().dropLast() {
+        for segment in try reader.liveSegments().dropLast() {
             var counts: [String: Int] = [:]
             var last: Int64 = 0
             var keep = false
@@ -91,5 +91,48 @@ public struct RetentionPlan: Hashable, Sendable {
             plan.bytes += (attributes?[.size] as? NSNumber)?.int64Value ?? 0
         }
         return plan
+    }
+}
+
+/// `system.retention.applied`: retention moved these closed segments to `archive/`. Actor:
+/// the person who ran it. Nothing is deleted; history reads still see the archived events.
+public struct SystemRetentionApplied: EventPayload {
+    public static let type = EventType.systemRetentionApplied
+    public var segments: [String]
+    /// The last archived `seq`, and the `seq` of the checkpoint that anchors the live ledger.
+    public var through: Int64
+    public var checkpoint: Int64
+
+    public init(segments: [String], through: Int64, checkpoint: Int64) {
+        self.segments = segments
+        self.through = through
+        self.checkpoint = checkpoint
+    }
+
+    enum CodingKeys: String, CodingKey { case segments, through, checkpoint }
+}
+
+/// Runs retention: archives what `RetentionPlan` covers now.
+public enum RetentionArchive {
+    /// Records a checkpoint at the head (seeding the projection caches that are current),
+    /// moves the plan's segments to `archive/` (`LedgerStore.compact`), and records
+    /// `system.retention.applied`. Returns nil, changing nothing, when nothing is eligible.
+    @discardableResult
+    public static func apply(
+        store: LedgerStore, signer: CheckpointSigner, now: Timestamp, actor: Actor
+    ) throws -> SystemRetentionApplied? {
+        let reader = LedgerReader(home: store.home, archive: false)
+        let plan = try RetentionPlan.compute(
+            reader, policy: try RetentionPolicy.read(LedgerReader(home: store.home)), now: now)
+        guard !plan.segments.isEmpty else { return nil }
+        try Checkpoints(home: store.home).record(
+            store: store, signer: signer, caches: ProjectionCache(home: store.home))
+        let result = try store.compact(through: plan.through)
+        guard !result.archived.isEmpty else { return nil }
+        let applied = SystemRetentionApplied(
+            segments: result.archived, through: result.firstSeq - 1,
+            checkpoint: result.checkpoint)
+        try store.append(EventDraft(applied, actor: actor))
+        return applied
     }
 }

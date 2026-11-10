@@ -87,6 +87,7 @@ extension EventType {
     public static let systemCheckpoint: EventType = "system.checkpoint"
     public static let systemEncryptionEnabled: EventType = "system.encryption.enabled"
     public static let systemAuditExported: EventType = "system.audit.exported"
+    public static let systemRetentionApplied: EventType = "system.retention.applied"
 
     /// Every known type, in ARCHITECTURE.md order (`steward.resumed` added by decision 0021,
     /// `steward.effort.set` by decision 0026, `system.key.added` and
@@ -102,6 +103,6 @@ extension EventType {
         casebookImported, caseCorrected, rehearsalStarted, rehearsalCaseScored, rehearsalFinished,
         proposalCreated, proposalGated, proposalAccepted, proposalRejected, proposalOverridden,
         metricRecorded, envRead, systemRepair, systemStarted, systemKeyAdded, systemCheckpoint,
-        systemRetentionSet, systemEncryptionEnabled, systemAuditExported,
+        systemRetentionSet, systemEncryptionEnabled, systemAuditExported, systemRetentionApplied,
     ]
 }

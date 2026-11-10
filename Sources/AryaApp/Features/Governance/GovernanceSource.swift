@@ -16,6 +16,7 @@ protocol GovernanceSource: Sendable {
     func retention() async throws -> RetentionSummary
     func setRetention(steward: String?, days: Int?, as person: String) async throws
         -> RetentionSummary
+    func applyRetention(as person: String) async throws -> RetentionSummary
     func encryption() async throws -> EncryptionSummary
     func enableEncryption(as person: String) async throws -> EncryptionSummary
     func exportAudit(steward: String?, to directory: URL, reveal: Bool, as person: String)
@@ -94,6 +95,12 @@ final class GovernanceCache {
         if let state = await attempt({
             try await source.setRetention(steward: steward, days: days, as: "local")
         }) {
+            retention = state
+        }
+    }
+
+    func applyRetention(from source: any GovernanceSource) async {
+        if let state = await attempt({ try await source.applyRetention(as: "local") }) {
             retention = state
         }
     }

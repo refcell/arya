@@ -223,7 +223,7 @@ M4:
   (`BindingActionExecutor.spawn`, the binding proxy), add `ARYA_CREDENTIAL` from a credential
   provider closure `(bindingID) -> String?` passed in by the workspace
   (`ConnectionCredential.environment` in `Sources/Arya/Connections.swift`); never record it.
-- (from governance) Retention (G3) cannot archive old segments while runtime folds read `sink.events(from: 1)` (RunEngine, RunDriver plan/memory, Inbox, Scheduler): they would lose stewards, memory, and plans. Could those go through `sink.book(_:)`/`ProjectionCache` (which seeds from checkpoints on a compacted ledger)? Then `applyRetention` can move segments.
+- (from governance, resolved 2026-11-10: `LedgerReader` now reads archived segments first, so no change is needed here) Retention (G3) cannot archive old segments while runtime folds read `sink.events(from: 1)` (RunEngine, RunDriver plan/memory, Inbox, Scheduler): they would lose stewards, memory, and plans. Could those go through `sink.book(_:)`/`ProjectionCache` (which seeds from checkpoints on a compacted ledger)? Then `applyRetention` can move segments.
 - (from workspace) Integration edits: `MemoryScope.shared` (`st_shared`) notes join every run's recall (up to 4, after the steward's own) in `MemoryView.context`; `SchedulerLock.isHeld(home:)`; `Inbox.record` (no run), `Inbox.localSender` (`local`, channel `app`), and `Inbox.runInput`, with `post` = record + deliver.
 - (from eval) FYI: rehearsals now show `CaseContext.plan`, not the live plan; keep that for re-planning.
 - (from eval) Readiness scores crews by run.delegated child; record it for host/delegate too.

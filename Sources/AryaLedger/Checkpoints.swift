@@ -8,7 +8,7 @@ import Foundation
 public struct Checkpoints: Sendable {
     public let reader: LedgerReader
 
-    public init(home: URL) { reader = LedgerReader(home: home) }
+    public init(home: URL) { reader = LedgerReader(home: home, archive: false) }
 
     /// A signed checkpoint through `through` (the newest event when nil).
     public func build(

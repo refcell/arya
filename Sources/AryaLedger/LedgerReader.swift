@@ -8,11 +8,20 @@ import Foundation
 /// In an encrypted home, sealed payloads are opened with the key registered for the home
 /// (`HomeEncryption`); a missing key throws `HomeEncryptionError.locked`. `LedgerVerifier`
 /// checks lines without opening them.
+///
+/// On a compacted ledger (retention, `LedgerStore.compact`) the segments moved to `archive/`
+/// are read first, so history folds from `seq` 1 still see every event; nothing a fold needs
+/// disappears when retention runs. Pass `archive: false` for the live ledger alone: the
+/// verifier, checkpoints, the projection cache (which seeds from checkpoints instead), and
+/// the retention plan read only `ledger/`.
 public struct LedgerReader: Sendable {
     public let directory: URL
+    /// Whether archived segments are read before the live ones.
+    public let archive: Bool
 
-    public init(home: URL) {
+    public init(home: URL, archive: Bool = true) {
         directory = home.appendingPathComponent("ledger", isDirectory: true)
+        self.archive = archive
     }
 
     /// The home directory.
@@ -164,7 +173,21 @@ public struct LedgerReader: Sendable {
 
     // MARK: - Internals
 
+    /// The segments this reader reads, oldest first: archived ones older than the first live
+    /// segment (when `archive`), then the live ones.
     func existingSegments() throws -> [Segment] {
+        let live = try liveSegments()
+        guard archive else { return live }
+        let archived = home.appendingPathComponent("archive", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: archived.path) else { return live }
+        let older = try Segment.list(in: archived).filter {
+            $0.number < (live.first?.number ?? Int.max)
+        }
+        return older + live
+    }
+
+    /// The segments in `ledger/`, oldest first.
+    func liveSegments() throws -> [Segment] {
         guard FileManager.default.fileExists(atPath: directory.path) else { return [] }
         return try Segment.list(in: directory)
     }
