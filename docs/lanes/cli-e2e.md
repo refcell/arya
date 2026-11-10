@@ -87,6 +87,10 @@ M4:
   `main.swift`.
 - Global options (`--home`, `--json`, `-h/--help`, `--version`) are accepted anywhere before `--`.
 - CLI tests live in `Tests/AryaCLITests` and use `@testable import AryaCLI` (executable target).
+- 2026-11-10 (CEO): the busy demo keeps its full history (1244 runs with eval's rehearsals);
+  no trim. It seeds in 236 s at load 40 (0.19 s per run, from ~0.9 s before the facade cache
+  and runtime's incremental run start), and the date-plus-inputs stamp with the shared seeded
+  home (a 5 s copy) means each worktree pays it at most once a day.
 
 ## Questions
 - (from workspace) Live: core calls, `charter(_:)`, `run(_:) -> RunDetail?`, `importCasebook(steward:data:name:)`, `casebooks(steward:)`, `rehearse(steward:casebook:)`, `rehearsals(steward:)`, `expected(steward:case:choice:)` (for `--choice`), `correct(steward:case:expected:note:casebook:by:)`, `markReady(steward:by:)`, `metrics(steward:windowSeconds:)`, `memory`, `routines`, `routine`, `routineHistory`; `replay(run:) -> ReplaySummary` (on eval's `RunReplayer`; `just e2e` 15/15).
@@ -152,6 +156,8 @@ M4:
 
 
 ## Log
+- 2026-11-10: seed retimed: 1244 runs in 236 s at load 40 (0.19 s per run); no hotspot left
+  in a sample (no full-ledger reads, fsync under 1%). Full history kept (CEO).
 - 2026-11-10: publish queue (decision 0058): `just publish` waits for its turn first come
   first served (`etc/scripts/publish-queue.sh`, test-publish scenario `queue`); run facts and
   steward live landed in 66f2b140.
