@@ -152,6 +152,9 @@ M4:
 
 
 ## Log
+- 2026-11-10: publish queue (decision 0058): `just publish` waits for its turn first come
+  first served (`etc/scripts/publish-queue.sh`, test-publish scenario `queue`); run facts and
+  steward live landed in 66f2b140.
 - 2026-11-10: `arya run facts <run>` and `arya steward live <steward>` (the facade's one source
   of run numbers and live state); e2e checks a run's facts (3 drafted, none waiting) and the
   long run in `steward live` before and after the abort. The triage MSG-203 example now
