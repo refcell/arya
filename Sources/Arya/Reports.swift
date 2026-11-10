@@ -48,6 +48,8 @@ struct ReportSent: Codable {
     var days: Int
     var text: String
     var to: [ReportRecipient]
+    /// The report run that sent it to people reached through a relay (runtime decision 0050).
+    var run: String?
 }
 
 extension Workspace {
@@ -99,9 +101,16 @@ extension Workspace {
         guard !digest.to.isEmpty else {
             throw WorkspaceError.rejected("\(steward)'s report names no person binding")
         }
+        // People reached through a relay get it from a report run: one `send` action each,
+        // under the charter's policy and approvals (runtime decision 0050).
+        let relayed = digest.to.filter { $0.via != nil }.map(\.person)
+        let delivery = try await engine.report(
+            digest.text, subject: digest.lines.first ?? "Report", to: relayed, steward: id,
+            actor: person == "arya" ? .system : .person(person))
         let payload = ReportSent(
             cadence: digest.cadence, since: digest.sinceSeq, through: digest.throughSeq,
-            days: digest.cadence == "daily" ? 1 : 7, text: digest.text, to: digest.to)
+            days: digest.cadence == "daily" ? 1 : 7, text: digest.text, to: digest.to,
+            run: delivery?.run.rawValue)
         _ = try await sink.append(
             RuntimeEventDraft(
                 type: ReportSent.type, steward: id,

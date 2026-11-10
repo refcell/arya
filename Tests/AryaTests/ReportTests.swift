@@ -77,3 +77,33 @@ private func reportCharter(_ report: ReportConfig?) throws -> Data {
         ReportText.metric(outcome, cadence: .weekly)
             == "accuracy 0.92 against a target of 0.90 (on track), up from 0.85 a week ago.")
 }
+
+@Test func aRelayRecipientGetsTheReportFromAReportRun() async throws {
+    let opened = try await Opened()
+    let workspace = opened.workspace
+    var charter = try Charter.load(from: try inboxCharterJSON())
+    charter.bindings.append(
+        .mcp("mail", command: "mail-server", read: ["receive"], actions: ["send"]))
+    var sam = CharterBinding.person("person:sam", channel: "sam-address")
+    sam.via = "mail"
+    sam.actions = ["send"]
+    charter.bindings.append(sam)
+    charter.report = ReportConfig(to: ["person:sam"], cadence: .weekly)
+    _ = try await workspace.createSteward(charter: try CanonicalJSON.encode(charter))
+
+    let digest = try await workspace.sendReport(steward: "st_inbox")
+    let ledger = try await workspace.ledger()
+    let sent = try #require(ledger.last { $0.type == "report.sent" })
+    let run = try #require(try json(sent)["run"]?.stringValue)
+    let started = try #require(ledger.first { $0.type == "run.started" && $0.run == run })
+    #expect(try json(started)["input"]?["kind"] == "report")
+    #expect(try json(started)["input"]?["text"]?.stringValue == digest.text)
+    let proposed = try #require(ledger.first { $0.type == "action.proposed" && $0.run == run })
+    #expect(try json(proposed)["action"]?["kind"] == "send")
+    #expect(try json(proposed)["action"]?["binding"] == "person:sam")
+    #expect(ledger.contains { $0.type == "run.finished" && $0.run == run })
+}
+
+private func json(_ entry: LedgerEntry) throws -> JSONValue {
+    try CanonicalJSON.decode(JSONValue.self, from: Data(entry.payload.utf8))
+}

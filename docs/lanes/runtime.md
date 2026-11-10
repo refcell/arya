@@ -274,3 +274,4 @@ M4:
 - 2026-11-09: steward context read model (`StewardContext`, `Workspace.context`) (0047)
 - 2026-11-09: Paused for the night after publishing re-planning (0046) and steward context (0047). Next: in-run `host/delegate` through the crew path (replace the refusal in `RunDriver`'s `.delegate` case with a bounded child via `CrewBudget`, record `run.delegated`, answer `HostDelegateResult`; replay answers from the recording), then learn-from-results, proactive findings, and onboard runs.
 - 2026-11-10: live step events (`run.step.started`/`output`/`finished`, chunked, long output in blobs) (0049). Moves point 4 (live feel) at the source; the app view is app-views'.
+- 2026-11-10: report runs (trigger `report`, one `send` per relay person through the dispatcher, no re-plan) per the CEO (0050); `sendReport` uses them for relay recipients.

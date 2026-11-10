@@ -88,7 +88,8 @@ If `protocol` is unsupported the adapter returns error `-32001`.
 Result: `{"session":"<adapter session id>"}`. The adapter then works asynchronously.
 
 - `input.kind` is `manual`, `schedule`, `message`, `case`, `join`, or `replan` (a
-  setback: the attachments list the actions that did not happen).
+  setback: the attachments list the actions that did not happen). The ledger's `run.started`
+  may also record `report`, a report run that starts no adapter (decision 0050).
 - `tools` are MCP servers to hand to the harness. They are arya's binding proxies, not the real
   systems: they expose only read tools and record every call. Adapters pass them through
   unchanged and must not add other tools that reach external systems.

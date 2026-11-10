@@ -90,6 +90,7 @@ and receive a periodic report from it.
 - (to cli-e2e) `arya message <steward> --as <person> [--intent ask|correct|handoff] <text>` and
   `arya report send|show <steward>` over `Workspace.message` and `sendReport`/`reportDigest`,
   so the demo can seed a real conversation instead of the snapshot's fixture events.
+- (from runtime) Relay delivery is in (decision 0050): `sendReport` starts a report run (`RunEngine.report`) for relay recipients, one `send` action each under policy and approvals; `report.sent.run` names it (integration edit in `Reports.swift`). Relay person bindings need `send` in their `actions`.
 
 ## Log
 

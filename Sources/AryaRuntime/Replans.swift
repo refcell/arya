@@ -113,6 +113,8 @@ extension RunEngine {
         guard let record = try StewardBook(events).records[steward], record.status == .active
         else { return nil }
         let book = try RunBook(events)
+        // A report run's setback is a report not sent; it never starts a re-plan (0050).
+        if book.records[run]?.trigger == RunTriggerKind.report.rawValue { return nil }
         let origin = Replans.origin(of: run, in: book)
         let used = book.all.filter {
             $0.trigger == RunInputKind.replan.rawValue

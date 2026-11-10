@@ -508,3 +508,16 @@ is chunked. Output over 16 KiB goes to the home's blob store, and the chunk keep
 show while a run works, without each screen parsing JSON-RPC or the ledger growing with every
 tool's full output twice.
 
+### 0050 — 2026-11-10 — A report is its own short run
+
+Context: periodic reports were recorded as `report.sent` only; people reached through an email
+or chat relay never got them, and a send outside a run would have needed a second action path.
+Decision (CEO): each report to people reached through a relay is a report run.
+`RunEngine.report` records `run.started` with input kind `report` and the digest as its text,
+proposes one `send` action per person through their person binding, and records
+`run.finished`. The dispatcher disposes the sends like any action: policy, risk, autonomy, and
+approvals apply, and an executed send calls the relay's `send` tool (decision 0042). No adapter
+runs; the digest is the facade's computed report, never model text. `report.sent` records the
+run's id. A report run never re-plans. Why: reports reach people where they work without a
+special path around policy or approvals, and `ApprovalRecord.run` stays required.
+
