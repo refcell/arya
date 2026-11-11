@@ -31,6 +31,8 @@ enum DemoStep {
     case shareRoutine
     /// Promotes triage's newer shared routine version; refunds has an upgrade (connect).
     case upgradeRoutine
+    /// Teams and grants (phase 0), then Jules's grants (phase 1) (runtime, `AccessDemo`).
+    case access(phase: Int)
 }
 
 struct DemoSeeder {
@@ -85,6 +87,7 @@ struct DemoSeeder {
             from: examples.appendingPathComponent("triage/fake-script-v2.json"))
         try SharedRoutine.script(&scripts)
         for steward in generated { scripts[steward.adapter] = steward.script }
+        if fleet { try AccessDemo.script(&scripts) }
         try writeProfiles(generated)
 
         let start = Timestamp(millis: at(daysAgo: 60, hour: 0))
@@ -311,6 +314,19 @@ struct DemoSeeder {
                     steward: "st_vendor_spend_review", person: "local")
             ))
         steps += preferences()
+        // Access (runtime): teams and grants, Jules's later grants, and hand-offs from people
+        // with no grant for what the steward then tries, refused in the run.
+        steps.append((at(daysAgo: 9, hour: 9.5), .access(phase: 0)))
+        steps.append((at(daysAgo: 3, hour: 15), .access(phase: 1)))
+        for attempt in AccessDemo.attempts {
+            steps.append(
+                (
+                    at(daysAgo: attempt.days, hour: attempt.hour),
+                    .message(
+                        steward: attempt.steward, person: attempt.person, intent: "handoff",
+                        text: attempt.text)
+                ))
+        }
         return sorted(steps + newest(generated))
     }
 
@@ -599,6 +615,8 @@ struct Context {
             try await SharedRoutine.share(workspace)
         case .upgradeRoutine:
             try await SharedRoutine.upgrade(workspace)
+        case .access(let phase):
+            try await AccessDemo.setup(workspace, phase: phase)
         }
     }
 

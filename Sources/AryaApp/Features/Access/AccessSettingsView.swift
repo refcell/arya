@@ -116,10 +116,33 @@ struct AccessSettingsView: View {
                     TeamsList(overview: overview, source: source, model: model, titled: true)
                     column("Refused", overview.refusals.count).padding(.top, AryaSpace.s4)
                     refusals(overview)
+                    column("People", overview.people.count).padding(.top, AryaSpace.s4)
+                    people(overview)
                 }
                 .frame(width: AccessLayout.side, alignment: .leading)
             }
             .padding(.top, AryaSpace.s2)
+        }
+    }
+
+    /// Each person and what they may do through their grants and teams.
+    private func people(_ overview: AccessOverview) -> some View {
+        ForEach(overview.people, id: \.self) { person in
+            TableRowFrame {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: AryaSpace.s2) {
+                        Text(AccessText.who(person)).aryaText(AryaFont.bodyStrong, AryaColor.ink)
+                        Text(AccessText.teams(of: person, in: overview).joined(separator: ", "))
+                            .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    }
+                    Text(AccessText.effective(person, in: overview))
+                        .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, AryaSpace.s1)
+                Spacer(minLength: 0)
+            }
         }
     }
 

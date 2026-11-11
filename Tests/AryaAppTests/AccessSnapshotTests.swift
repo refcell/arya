@@ -28,7 +28,9 @@ import Testing
             let workspace = try await Workspace.open(
                 home: URL(fileURLWithPath: path, isDirectory: true), environment: environment)
             await model.load(from: workspace)
-            if model.overview?.grants.isEmpty == true {
+            // Once per run: the dark and light cases share the scratch home.
+            if model.overview?.grants.isEmpty == true, !Self.seeded {
+                Self.seeded = true
                 // The snapshot home is a scratch copy; give it a team and grants to show.
                 let people = model.overview?.people ?? []
                 if people.count >= 2 {
@@ -98,6 +100,7 @@ import Testing
     }
 
     static let now = Date()
+    nonisolated(unsafe) static var seeded = false
 
     static let fixture = AccessOverview(
         enforced: true,

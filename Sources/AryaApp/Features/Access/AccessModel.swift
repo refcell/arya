@@ -206,12 +206,13 @@ enum AccessText {
             guard let steward = refusal.steward else { return "\(name) can't approve \(verb)" }
             return "\(name) can't approve \(verb) for \(self.steward(steward, in: overview))"
         }
+        let effect = HumanText.effect(kind: refusal.action)
         guard let connection = refusal.resources.first(where: { $0.hasPrefix("connection:") })
         else {
             return refusal.resources.isEmpty
-                ? HumanText.sentence(refusal.reason) : "\(name) can't \(verb)"
+                ? HumanText.sentence(refusal.reason) : "\(name) can't \(effect)"
         }
-        return "\(name) can't \(verb) on \(resource(connection, in: overview.resources))"
+        return "\(name) can't \(effect) in \(resource(connection, in: overview.resources))"
     }
 
     /// A steward's name from its id.
@@ -226,10 +227,32 @@ enum AccessText {
         return ["You"] + holders.sorted()
     }
 
-    /// "alerts" reads "Alerts", "support-desk" "Support Desk".
+    /// "alerts" reads "Alerts", "support-desk" "Support Desk", and a short id like "crm" is an
+    /// acronym, "CRM".
     static func words(_ id: String) -> String {
-        id.split(whereSeparator: { $0 == "-" || $0 == "_" })
+        if id.count <= 3, id.allSatisfy(\.isLetter) { return id.uppercased() }
+        return id.split(whereSeparator: { $0 == "-" || $0 == "_" })
             .map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
+    }
+
+    /// What `person` may do, through their own grants and their teams': "use Churn watch and
+    /// Ledger · approve everything", or "No grants" when nothing covers them.
+    static func effective(_ person: String, in overview: AccessOverview) -> String {
+        let teams = Set(overview.teams.filter { $0.members.contains(person) }.map(\.id))
+        let mine = overview.grants.filter { $0.subject == person || teams.contains($0.subject) }
+        let parts = ["use", "approve", "view"].compactMap { level -> String? in
+            let names = mine.filter { $0.level == level }
+                .map { resource($0.resource, in: overview.resources) }
+            guard !names.isEmpty else { return nil }
+            let verb = level == "view" ? "see" : level
+            return "\(verb) \(list(Array(Set(names)).sorted()))"
+        }
+        return parts.isEmpty ? "No grants" : parts.joined(separator: " · ")
+    }
+
+    /// The teams `person` is in, by name.
+    static func teams(of person: String, in overview: AccessOverview) -> [String] {
+        overview.teams.filter { $0.members.contains(person) }.map(\.name)
     }
 
     /// "Alex", "Alex and Sam", "Alex, Jules, and Sam".

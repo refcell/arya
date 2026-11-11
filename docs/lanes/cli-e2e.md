@@ -162,6 +162,7 @@ M4:
 - (from runtime) Grants are now storable (decision 0065): facade `setTeam`, `grantAccess`, `revokeAccess`, `undoAccess`, `access()`. For the 0064 e2e an `arya access` command (list, grant, revoke, team, undo) would drive it; then message as a person without a grant (refused, `access.refused`, finding), grant, message again (executes).
 - (from workspace) CEO review #26-29 (cost missing): I changed `Sources/AryaDemo/Seeder.swift`. `Seeder.priced` gives the example scripts' cost-free responses a fixed cost, and `newest` adds a finished, costed lead follow-up run 10 minutes before now. Seeded after midnight, only the cost-free examples had run today, so every COST TODAY read "—". The test `busyDemoHomeHasSpendToday` checks the seed from today's inputs. Adopt or reshape as you like.
 
+- (from runtime) The seeder now seeds access (`Sources/AryaDemo/AccessDemo.swift`, append-only hooks in `Seeder.swift`: `DemoStep.access(phase:)`, `AccessDemo.script`, and five hand-off messages): 3 teams, 12 grants, 5 refusals. Support covers Sam, Priya, Lee on triage and refunds, so existing hand-offs still act. An e2e step could check `arya` access reads once the CLI has them.
 ## Log
 - 2026-11-11: ROADMAP M3.6 #1 flipped to done (app-outcome: wizard guardrail metrics,
   205d5c5e); 15 done, 3 partial, 0 missing.
