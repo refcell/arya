@@ -28,7 +28,7 @@ private func delegations() -> [DelegationStep] {
     let refused = try #require(delegations().last)
     #expect(
         CrewText.line(refused)
-            == "checked the order history · refused: adapter browser is not in the crew")
+            == "checked the order history · refused: not allowed to use this tool (browser)")
     #expect(refused.childSteps.isEmpty)
 }
 

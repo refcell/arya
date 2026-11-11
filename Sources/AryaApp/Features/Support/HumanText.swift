@@ -56,6 +56,23 @@ enum HumanText {
         text.prefix(1).uppercased() + text.dropFirst()
     }
 
+    /// Why a run failed, in words: "budget (max_cost_micros: 22149 > 0)" reads "over budget:
+    /// spent $0.02, limit $0.00"; other `snake_case` keys read as words.
+    static func failure(_ reason: String) -> String {
+        let pattern = #"max_cost_micros:\s*(\d+)\s*>\s*(\d+)"#
+        if let match = reason.range(of: pattern, options: .regularExpression) {
+            let numbers = reason[match].split { !$0.isNumber }.compactMap { Double($0) }
+            if numbers.count == 2 {
+                return "over budget: spent \(dollars(numbers[0])), limit \(dollars(numbers[1]))"
+            }
+        }
+        return reason.replacingOccurrences(of: "_", with: " ")
+    }
+
+    private static func dollars(_ micros: Double) -> String {
+        "$" + String(format: "%.2f", micros / 1_000_000)
+    }
+
     /// The ids the person at this home goes by, with or without a kind.
     static let localIDs: Set<String> = ["local", "human:local", "person:local"]
 

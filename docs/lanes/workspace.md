@@ -103,6 +103,8 @@ M3:
   CLI's `--choice` needs no JSON. Metrics are `OutcomeMetrics.series` in UTC-day windows.
 
 ## Questions
+
+- (from app-views) Cost so far on a running run: could RunFacts carry `costMicros` (and tokens) while the run is live, so the run header can show it instead of "cost —"?
 - (from app-outcome) `ImpactSummary.summary` reads "... (high confidence). over the last 7
   days": `Impact.swift` appends " over <period>" after the sentence's own period; please put
   the period inside the sentence.

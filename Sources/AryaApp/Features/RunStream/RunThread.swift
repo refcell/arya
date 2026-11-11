@@ -566,7 +566,8 @@ enum RunThreadText {
 
     /// "Reply to inbox:MSG-201".
     static func approvalTitle(_ action: ProposedActionStep) -> String {
-        let verb = action.kind.prefix(1).uppercased() + action.kind.dropFirst()
+        let words = RunTitle.verb(action.kind)
+        let verb = words.prefix(1).uppercased() + words.dropFirst()
         let target = EntityName.plain(action.target)
         return action.target.isEmpty ? verb : "\(verb) \(preposition(action.kind)) \(target)"
     }

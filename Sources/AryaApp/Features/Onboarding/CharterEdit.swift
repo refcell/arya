@@ -13,6 +13,15 @@ struct CharterEditing: Hashable, Sendable {
 /// and the edits are merged back into it, keeping every field the steps do not manage
 /// (limits, scorer, gate, crew, risk levels, autonomy). The result is a gated proposal.
 extension NewStewardDraft {
+    /// The owner as the charter stores it: the live ref when the name is unchanged, a typed
+    /// ref as typed, else a person ref from the name ("Priya Shah" is `person:priya-shah`).
+    static func ownerRef(_ name: String, live: String?) -> String {
+        let name = name.trimmingCharacters(in: .whitespaces)
+        if let live, HumanText.actor(live) == name { return live }
+        if name.contains(":") { return name }
+        return "person:" + name.lowercased().split(separator: " ").joined(separator: "-")
+    }
+
     /// The steps prefilled from `live`.
     static func editing(_ live: LiveCharter) -> NewStewardDraft {
         let charter = live.charter
@@ -21,7 +30,7 @@ extension NewStewardDraft {
             steward: live.steward, baseVersion: live.version, live: charter)
         draft.name = charter["name"]?.string ?? ""
         draft.outcome = charter["outcome"]?.string ?? ""
-        draft.owner = charter["owner"]?.string ?? ""
+        draft.owner = charter["owner"]?.string.map(HumanText.actor) ?? ""
         draft.guardrailMetrics = (charter["guardrailMetrics"]?.array ?? []).enumerated().map {
             index, metric in
             GuardrailMetric(
@@ -92,7 +101,9 @@ extension NewStewardDraft {
         metric["direction"] = .string(draft.direction)
         metric["target"] = draft.target.map(FeatureJSON.number)
         out["metric"] = .object(metric)
-        out["owner"] = draft.owner.map(FeatureJSON.string)
+        out["owner"] = draft.owner.map {
+            FeatureJSON.string(Self.ownerRef($0, live: editing.live["owner"]?.string))
+        }
         out["guardrailMetrics"] =
             guardrailMetrics.isEmpty ? nil : .array(guardrailMetrics.map(\.json))
         out["guardrails"] = .array(draft.guardrails.map(FeatureJSON.string))

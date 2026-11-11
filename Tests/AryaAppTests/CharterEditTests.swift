@@ -127,7 +127,7 @@ private let live = LiveCharter(steward: "st_triage", version: 3, charter: liveCh
     // Read back from a charter that has them.
     let reread = NewStewardDraft.editing(
         LiveCharter(steward: "st_triage", version: 4, charter: proposed))
-    #expect(reread.owner == "person:sam")
+    #expect(reread.owner == "Sam")
     #expect(reread.guardrailMetrics.map(\.target) == ["0.05"])
     #expect(reread.changedFields().isEmpty)
     draft.guardrailMetrics[0].target = "five"

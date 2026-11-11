@@ -433,3 +433,18 @@ import Testing
         #expect(cleanCut(label, of: text), "\(label)")
     }
 }
+
+@Test func charterOwnerShowsANameAndSavesTheRef() {
+    #expect(NewStewardDraft.ownerRef("Lena", live: "person:lena") == "person:lena")
+    #expect(NewStewardDraft.ownerRef("Priya Shah", live: "person:lena") == "person:priya-shah")
+    #expect(NewStewardDraft.ownerRef("team:billing", live: nil) == "team:billing")
+    #expect(
+        CrewText.refusal("adapter_not_allowed:browser") == "not allowed to use this tool (browser)")
+}
+
+@Test func runFailuresReadInWords() {
+    #expect(
+        HumanText.failure("budget (max_cost_micros: 22149 > 0)")
+            == "over budget: spent $0.02, limit $0.00")
+    #expect(HumanText.failure("idle_timeout") == "idle timeout")
+}

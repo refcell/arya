@@ -189,7 +189,7 @@ struct RunWork: Hashable, Sendable {
                 sections.append(.init(label: "child run", text: lines.joined(separator: "\n")))
             }
             if let refusal = delegation.refused {
-                sections.append(.init(label: "refused", text: refusal))
+                sections.append(.init(label: "refused", text: CrewText.refusal(refusal)))
             }
             return WorkBlock(
                 id: step.id, mark: mark, title: "crew", target: delegation.title,
@@ -243,7 +243,9 @@ struct RunWork: Hashable, Sendable {
         let text =
             (["--- \(target)", "+++ \(target)", "@@ \(action.kind) @@"]
             + added.map { "+\($0)" }).joined(separator: "\n")
-        return WorkDiff(id: step.id, title: "\(action.kind) \(target)", text: text)
+        return WorkDiff(
+            id: step.id, title: HumanText.step(kind: action.kind, target: action.target),
+            text: text)
     }
 
     /// An edit the harness reported (`diff` event: `path`, `patch`), as it reported it.

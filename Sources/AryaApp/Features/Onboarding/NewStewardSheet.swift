@@ -254,7 +254,7 @@ struct NewStewardFields: View {
                 text: $draft.outcome)
         }
         labeled("Owner (who answers for it)") {
-            CharterTextField(placeholder: "person:alex", text: $draft.owner)
+            CharterTextField(placeholder: "Alex", text: $draft.owner)
         }
         disclosure {
             labeled("Steward id") {

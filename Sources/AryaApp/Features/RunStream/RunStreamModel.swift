@@ -684,14 +684,15 @@ enum CrewText {
             ? String(format: "%.1f s", seconds) : "\(Int(seconds / 60)) min \(Int(seconds) % 60) s"
     }
 
-    /// `adapter_not_allowed:x` -> "adapter x is not in the crew"; `unknown_effort:y` alike.
+    /// `adapter_not_allowed:x` -> "not allowed to use this tool (x)"; `unknown_effort:y` reads
+    /// "unknown effort y"; any other `snake_case` reason in words.
     static func refusal(_ reason: String) -> String {
         let parts = reason.split(separator: ":", maxSplits: 1).map(String.init)
-        guard parts.count == 2 else { return reason }
+        guard parts.count == 2 else { return reason.replacingOccurrences(of: "_", with: " ") }
         switch parts[0] {
-        case "adapter_not_allowed": return "adapter \(parts[1]) is not in the crew"
+        case "adapter_not_allowed": return "not allowed to use this tool (\(parts[1]))"
         case "unknown_effort": return "unknown effort \(parts[1])"
-        default: return reason
+        default: return parts[0].replacingOccurrences(of: "_", with: " ") + ": " + parts[1]
         }
     }
 }

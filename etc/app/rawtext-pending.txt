@@ -2,6 +2,3 @@
 # run's raw-id gate (Tests/AryaAppTests/SnapshotText.swift). Listed states are reported in
 # .build/snapshots/rawtext-<state>.png.txt but do not fail; every other state fails on its first
 # raw id. Owners: fix the words, then delete your line. Format: <state> <lane> <example>.
-run-approval app-views "person:sam hands this to you"
-crew-fanout-live app-views "refused adapter_not_allowed:browser"
-charter-editor app-views "person:alex"
