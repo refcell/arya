@@ -77,9 +77,12 @@ struct ApprovalQueueView: View {
                 VStack(alignment: .leading, spacing: AryaSpace.s4) {
                     FeatureWriteErrorLine(store: store)
                     if let current = keys.current {
-                        detail(current, pending: queue.pending, events: events)
-                            .id(current.id)
-                            .transition(.opacity)
+                        detail(
+                            current, pending: queue.pending, decided: queue.decided,
+                            events: events
+                        )
+                        .id(current.id)
+                        .transition(.opacity)
                     } else {
                         Text("When a steward holds an action for a person, it waits here.")
                             .aryaText(AryaFont.caption, AryaColor.inkFaint)
@@ -172,9 +175,10 @@ struct ApprovalQueueView: View {
     /// The selected approval in full, in two columns: the request and its run on the left, its
     /// context (who may approve, the policy, earlier decisions, what else this steward holds)
     /// on the right.
-    private func detail(_ current: ApprovalItem, pending: [ApprovalItem], events: [FeatureEvent])
-        -> some View
-    {
+    private func detail(
+        _ current: ApprovalItem, pending: [ApprovalItem], decided: [ApprovalItem],
+        events: [FeatureEvent]
+    ) -> some View {
         let detail = NeedsYouDetail.build(item: current, events: events)
         let others = pending.filter { $0.steward == current.steward && $0.id != current.id }
         return HStack(alignment: .top, spacing: AryaSpace.s6) {
@@ -194,6 +198,8 @@ struct ApprovalQueueView: View {
                 {
                     RoutineApprovalDetail(store: store, subject: subject)
                 }
+                let next = Self.nextUp(after: current, in: pending)
+                if !next.isEmpty { nextUp(next, events: events) }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             VStack(alignment: .leading, spacing: AryaSpace.s4) {
@@ -203,8 +209,87 @@ struct ApprovalQueueView: View {
                     ApproversLine(events: events, steward: current.steward, kind: current.kind)
                 }
                 if !others.isEmpty { alsoWaiting(others) }
+                let mine = decided.filter { $0.steward == current.steward && $0.id != current.id }
+                if !mine.isEmpty { stewardDecided(mine) }
             }
             .frame(width: Self.contextWidth, alignment: .topLeading)
+        }
+    }
+
+    /// How many upcoming requests the detail previews under the selected one.
+    static let nextLimit = 3
+    /// How many of the steward's own decisions the context column lists.
+    static let stewardDecidedLimit = 8
+
+    /// The requests after `current` in queue order, wrapping to the start: what A or D leads to.
+    static func nextUp(after current: ApprovalItem, in pending: [ApprovalItem]) -> [ApprovalItem] {
+        guard let index = pending.firstIndex(where: { $0.id == current.id }) else {
+            return Array(pending.prefix(nextLimit))
+        }
+        let rest = pending[(index + 1)...] + pending[..<index]
+        return Array(rest.prefix(nextLimit))
+    }
+
+    /// Previews of the next requests: what each asks, whose it is, how long it has waited, and
+    /// why, so the person sees what follows before deciding this one.
+    private func nextUp(_ items: [ApprovalItem], events: [FeatureEvent]) -> some View {
+        let names = StewardNames.build(events: events)
+        return VStack(alignment: .leading, spacing: AryaSpace.s2) {
+            Text("Next up").aryaText(AryaFont.label, AryaColor.inkFaint)
+            ForEach(items) { item in
+                Button {
+                    move(item.id)
+                } label: {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(
+                            item.kind == "question"
+                                ? item.summary
+                                : ActionWords.sentence(kind: item.kind, target: item.target)
+                        )
+                        .aryaText(AryaFont.caption, AryaColor.ink).lineLimit(1)
+                        Text(
+                            [
+                                item.steward.map { names[$0] ?? $0 },
+                                "waiting "
+                                    + AryaTime.label(
+                                        item.requestedAt, now: store.now, style: .short),
+                            ].compactMap { $0 }.joined(separator: " · ")
+                        )
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
+                        if let why = NeedsYouRow.context(item) {
+                            Text(ActionWords.humanize(why))
+                                .aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// The steward's own recent decisions, any target: how its asks usually go.
+    private func stewardDecided(_ items: [ApprovalItem]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Decided for this steward").aryaText(AryaFont.label, AryaColor.inkFaint)
+                .frame(height: AryaSize.rowHeight)
+            ForEach(items.prefix(Self.stewardDecidedLimit)) { item in
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(
+                        item.kind == "question"
+                            ? item.summary
+                            : ActionWords.sentence(kind: item.kind, target: item.target)
+                    )
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(1)
+                    if let decision = item.decision {
+                        Text(ApprovalText.verdict(decision, now: store.now))
+                            .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
+                    }
+                }
+                .padding(.vertical, AryaSpace.s1)
+            }
         }
     }
 

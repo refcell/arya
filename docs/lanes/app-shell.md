@@ -505,3 +505,10 @@ M4:
   since OCR confuses v and y (asked by app-outcome after an overview-live misread).
 - Visual check (run-live-window, run, overview-live): moves (4); empty.tsv: run-live-window 31,
   run 33, overview-live 45.
+- 2026-11-11 review #32: Needs you fills its middle columns. Under the run trail, "Next up"
+  previews the next three requests in queue order (what, whose, how long, why; a click selects
+  it). The context column adds "Decided for this steward": its last eight decisions on any
+  target. "Earlier on …" names the decider ("you") instead of the actor label. Metric-name
+  allowance: removed from the gate once app-outcome's metric labels land (asked them).
+  Live Usage repeating Cost was fixed in ba035464 (Cost plus Tokens, no Usage row).
+- Visual check (needs-you): moves (2); empty.tsv: needs-you 51.

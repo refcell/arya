@@ -268,3 +268,14 @@ import Testing
 @MainActor @Test func pulseNamesTheMetricInWords() {
     #expect(StewardPulseView.metricWords("first_reply_within_1d") == "first reply within 1d")
 }
+
+@MainActor @Test func needsYouPreviewsTheNextRequestsWrappingToTheStart() {
+    let items = (1...5).map { index in
+        ApprovalItem(
+            id: "ap\(index)", actionID: "a\(index)", kind: "reply", target: "inbox:MSG-\(index)",
+            summary: "", rationale: "", steward: "st_triage", run: nil,
+            requestedAt: Date(timeIntervalSince1970: Double(index)), decision: nil)
+    }
+    let next = ApprovalQueueView.nextUp(after: items[3], in: items).map(\.id)
+    #expect(next == ["ap5", "ap1", "ap2"])
+}

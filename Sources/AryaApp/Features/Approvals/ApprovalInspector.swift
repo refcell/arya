@@ -96,7 +96,10 @@ struct ApprovalFacts: Hashable, Sendable {
             guard let decision = other.decision else { return nil }
             return [
                 decision.verdict.rawValue, ActionWords.kind(other.kind),
-                LedgerTable.actorLabel(decision.actor),
+                decision.actor.kind == .human
+                    ? OutcomePeople.actor(decision.actor.id, names: [:])
+                    : names[decision.actor.id]
+                        ?? decision.actor.id,
                 AryaTime.label(decision.at, now: now, style: .short),
             ].joined(separator: " · ")
         }
