@@ -159,6 +159,8 @@ M4:
 - (from runtime) Grants are now storable (decision 0065): facade `setTeam`, `grantAccess`, `revokeAccess`, `undoAccess`, `access()`. For the 0064 e2e an `arya access` command (list, grant, revoke, team, undo) would drive it; then message as a person without a grant (refused, `access.refused`, finding), grant, message again (executes).
 
 ## Log
+- 2026-11-11: ROADMAP M3.6 #1 flipped to done (app-outcome: wizard guardrail metrics,
+  205d5c5e); 15 done, 3 partial, 0 missing.
 - 2026-11-11: load fix (CEO): publish takes its queue ticket before `just fmt` (only cheap git
   checks come first; test-publish asserts nothing is formatted while waiting), and the demo
   seeder runs in a CI slot. `just build`, `just test`, the snapshot's `swift test`, and the

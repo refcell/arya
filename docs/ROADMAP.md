@@ -108,12 +108,12 @@ redesigned Overview and run-approval screens; the other screens still await revi
 
 Functional parity comes before polishing any one screen. Each item has a status (done,
 partial, missing) judged on what works end to end in the app on real data, the commits that
-built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-10: 14 done,
-4 partial, 0 missing.
+built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11: 15 done,
+3 partial, 0 missing.
 
 | #  | Item                                   | Status  |
 | -- | -------------------------------------- | ------- |
-| 1  | Outcome, guardrails, ownership         | partial |
+| 1  | Outcome, guardrails, ownership         | done    |
 | 2  | Self-onboarding                        | partial |
 | 3  | Train on history                       | done    |
 | 4  | Learn from results after acting        | done    |
@@ -132,10 +132,11 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-10:
 | 17 | Reports to people                      | done    |
 | 18 | Abort and rollback                     | done    |
 
-1. Outcome, success definition, guardrails, ownership (workspace; app-outcome). Partial: the
-   New steward wizard, the charter editor, and guardrail metrics with per-metric status
-   (b611e046); the scope of what a steward owns is missing. e2e: create, editor proposal
-   through its gate and readiness, `steward metrics` (primary vs target).
+1. Outcome, success definition, guardrails, ownership (workspace; app-outcome). Done: the New
+   steward wizard and the charter editor, guardrail metrics with per-metric status
+   (b611e046), set from the wizard (205d5c5e), and an owner and department on every charter
+   (618b1ce6). e2e: create, editor proposal through its gate and readiness, `steward metrics`
+   (primary vs target).
 2. Self-onboarding (runtime, workspace; app-outcome). Partial: onboarding from directory and
    process bindings (b8ac5b7b), the onboarding state (8ffeb88a), and the "getting to know your
    team" overview (7406e974); reading connected systems end to end is still thin ("read 0 of 3
