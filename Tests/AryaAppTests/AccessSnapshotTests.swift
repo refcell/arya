@@ -111,7 +111,10 @@ import Testing
         grants: [
             AccessGrantSummary(
                 subject: "team:support", level: "use", resource: "connection:inbox", by: "local",
-                at: now.addingTimeInterval(-3600), seq: 40),
+                at: now.addingTimeInterval(-3600), seq: 40, uses: 3,
+                lastUse: AccessUseSummary(
+                    person: "person:sam", action: "label", target: "MSG-140",
+                    at: now.addingTimeInterval(-1200), steward: "st_triage", run: "run_3")),
             AccessGrantSummary(
                 subject: "person:ana", level: "approve", resource: "steward:st_triage",
                 by: "local", at: now.addingTimeInterval(-1800), seq: 41),
@@ -124,7 +127,8 @@ import Testing
                 seq: 90, at: now.addingTimeInterval(-300), steward: "st_refunds", run: "run_1",
                 person: "person:sam", level: "use", action: "refund",
                 reason: "person:sam has no use grant for refund on billing",
-                resources: ["tool:billing.refund", "connection:billing", "steward:st_refunds"]),
+                resources: ["tool:billing.refund", "connection:billing", "steward:st_refunds"],
+                target: "ORD-7", asked: "person:sam hands this to you: Refund order 7 in full"),
             AccessRefusalSummary(
                 seq: 88, at: now.addingTimeInterval(-2400), steward: "st_triage", run: "run_2",
                 person: "person:sam", level: "approve", action: "reply",

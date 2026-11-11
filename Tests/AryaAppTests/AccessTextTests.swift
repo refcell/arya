@@ -20,4 +20,13 @@ import Testing
         AccessText.effective("person:ana", in: overview).hasSuffix("approve Support inbox triage"))
     #expect(AccessText.effective("person:nobody", in: overview) == "No grants")
     #expect(AccessText.teams(of: "person:sam", in: overview) == ["Support"])
+    #expect(AccessText.asked(overview.refusals[0]) == "“Refund order 7 in full” · ORD-7")
+    #expect(AccessText.touches(overview.teams[0], in: overview) == "can use Inbox")
+    let use = AccessText.use(overview.grants[0], now: AccessSnapshotTests.now)
+    #expect(use.hasPrefix("Used 3× this week · last by Sam: label MSG-140 · "))
+    #expect(AccessText.use(overview.grants[1], now: AccessSnapshotTests.now) == "Not used yet")
+    #expect(AccessText.mostUsed(overview).map(\.seq) == [40])
+    let refused = AccessText.refusedBy(overview, now: AccessSnapshotTests.now)
+    #expect(refused.map(\.person) == ["person:sam"] && refused.first?.count == 2)
+    #expect(refused.first?.what == "refund, reply")
 }

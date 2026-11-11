@@ -29,6 +29,21 @@ public struct AccessGrantSummary: Sendable, Hashable, Codable {
     public var at: Date
     /// The change that made it, for undo.
     public var seq: Int
+    /// Uses in the last 7 days (`access.used`), and the newest use.
+    public var uses: Int = 0
+    public var lastUse: AccessUseSummary? = nil
+}
+
+/// One use of a grant: who acted, what the action was, where.
+public struct AccessUseSummary: Sendable, Hashable, Codable {
+    public var person: String
+    public var action: String
+    public var target: String?
+    public var at: Date
+    public var steward: String?
+    public var run: String?
+    /// True when the grant let the person approve (an approve grant).
+    public var approval = false
 }
 
 /// Something a grant can cover.
@@ -56,6 +71,9 @@ public struct AccessRefusalSummary: Sendable, Hashable, Codable {
     /// What the action touched (`connection:<binding>`, `tool:<binding>.<kind>`, `steward:<id>`),
     /// so a view can name them.
     public var resources: [String] = []
+    /// The refused action's target, and what the run was asked (its input), when known.
+    public var target: String? = nil
+    public var asked: String? = nil
 }
 
 /// The latest access change, with whether it can still be undone.
@@ -90,13 +108,18 @@ public struct AccessOverview: Sendable, Hashable, Codable {
     public var lastChange: AccessChangeSummary?
     /// The latest changes, newest first (at most 12), for the audit trail.
     public var changes: [AccessChangeSummary] = []
+    /// Since when enforcement has been in its current state (decision 0066), and the newest
+    /// explicit enforcement change, when someone made one.
+    public var enforcedSince: Date? = nil
+    public var enforcement: AccessChangeSummary? = nil
 }
 
 extension Workspace {
     /// Teams, grants, recent refusals (at most `refusals`), and what can be granted.
     public func access(refusals limit: Int = 50) async throws -> AccessOverview {
         let book = try await sink.book(AccessBook.self)
-        let stewards = try facadeState().stewards.all
+        let state = try facadeState()
+        let stewards = state.stewards.all
         var resources = [AccessResource(id: "*", kind: "everything", label: "Everything")]
         var people: [String] = []
         func person(_ id: String) {
@@ -140,23 +163,43 @@ extension Workspace {
                 },
                 undone: change.undoneBy != nil)
         }
+        let weekAgo = now().addingTimeInterval(-7 * 86_400)
+        func grantSummary(_ record: AccessGrantRecord) -> AccessGrantSummary {
+            let uses = book.uses[AccessBook.key(record.grant)] ?? []
+            return AccessGrantSummary(
+                subject: record.grant.subject, level: record.grant.level.rawValue,
+                resource: record.grant.resource, by: record.by, at: record.at.date,
+                seq: record.seq, uses: uses.filter { $0.at.date >= weekAgo }.count,
+                lastUse: uses.last.map {
+                    AccessUseSummary(
+                        person: $0.used.person, action: $0.used.action, target: $0.used.target,
+                        at: $0.at.date, steward: $0.steward?.rawValue, run: $0.run?.rawValue,
+                        approval: $0.used.approval != nil)
+                })
+        }
+        let ordered = book.changes.values.sorted { $0.seq < $1.seq }
+        let switched = ordered.last { $0.enforcement != nil }
+        let firstOn = ordered.first {
+            $0.type == AccessEventType.granted || $0.type == AccessEventType.team
+        }
+        let since = switched?.enforcement == book.enforced ? switched : firstOn
         return AccessOverview(
             enforced: book.enforced,
             teams: teams.map { AccessTeamSummary(id: $0.team, name: $0.name, members: $0.members) },
-            grants: book.grants.map {
-                AccessGrantSummary(
-                    subject: $0.grant.subject, level: $0.grant.level.rawValue,
-                    resource: $0.grant.resource, by: $0.by, at: $0.at.date, seq: $0.seq)
-            },
+            grants: book.grants.map(grantSummary),
             refusals: book.refusals.suffix(limit).reversed().map {
                 AccessRefusalSummary(
                     seq: $0.seq, at: $0.at.date, steward: $0.steward?.rawValue,
                     run: $0.run?.rawValue, person: $0.refused.person,
                     level: $0.refused.level.rawValue, action: $0.refused.action,
-                    reason: $0.refused.reason, resources: $0.refused.resources)
+                    reason: $0.refused.reason, resources: $0.refused.resources,
+                    target: $0.refused.target,
+                    asked: $0.run.flatMap { state.runs.records[$0]?.input })
             },
             people: people.sorted(), resources: resources,
-            lastChange: recent.first.map(summary), changes: recent.map(summary))
+            lastChange: recent.first.map(summary), changes: recent.map(summary),
+            enforcedSince: (book.enforced ? since : switched)?.at.date,
+            enforcement: switched.map(summary))
     }
 
     /// Grants `level` on `resource` to `subject` (`access.granted`, by `person`).

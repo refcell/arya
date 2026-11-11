@@ -10,7 +10,7 @@ import Foundation
 /// make a steward act elsewhere (Sam, Priya, Lee in triage and refunds), so the rest of the
 /// demo runs as before.
 enum AccessDemo {
-    /// A hand-off whose run takes `kind` on `binding`, from a person with no grant for it.
+    /// A hand-off whose run takes `kind` on `binding` for the person who handed it over.
     struct Attempt {
         let days: Int
         let hour: Double
@@ -27,30 +27,58 @@ enum AccessDemo {
     /// for the action: Kai before Jules grants him Alerts, Lena on product adoption (her grant
     /// covers churn watch), Omar who only approves vendor spend, and Ren, who may draft release
     /// notes but not publish them.
-    static let attempts: [Attempt] = [
+    static let attempts: [Attempt] =
+        [
+            Attempt(
+                days: 6, hour: 10.25, steward: "st_oncall_digest", adapters: ["demo-oncall_digest"],
+                person: "person:kai",
+                text: "Post tonight's maintenance window to the on-call channel.",
+                kind: "post", binding: "alerts", target: "shift:SHIFT-MAINT"),
+            Attempt(
+                days: 5, hour: 14.5, steward: "st_product_adoption",
+                adapters: ["demo-product_adoption"], person: "person:lena",
+                text: "Open a task for the Acme account owner about the seat drop.",
+                kind: "task", binding: "crm", target: "acct:ACME"),
+            Attempt(
+                days: 4, hour: 11.75, steward: "st_vendor_spend_review",
+                adapters: ["demo-vendor_spend_review"], person: "person:omar",
+                text: "Flag the analytics renewal for review.",
+                kind: "flag", binding: "spend", target: "spend:ANALYTICS"),
+            Attempt(
+                days: 2, hour: 9.5, steward: "st_release_notes", adapters: ["demo-release_notes"],
+                person: "person:ren", text: "Publish the mobile release notes now.",
+                kind: "publish", binding: "repo", target: "rel:REL-MOBILE"),
+            Attempt(
+                days: 1, hour: 13.25, steward: "st_product_adoption",
+                adapters: ["demo-product_adoption"], person: "person:lena",
+                text: "Note that Globex asked for a usage review.",
+                kind: "note", binding: "crm", target: "acct:GLOBEX"),
+        ] + allowed
+
+    /// Hand-offs their grants cover, so each grant shows real uses: Sam and Lee in triage and
+    /// Priya in refunds (Support), Kai on Alerts and Ren drafting after Jules's grants.
+    static let allowed: [Attempt] = [
         Attempt(
-            days: 6, hour: 10.25, steward: "st_oncall_digest", adapters: ["demo-oncall_digest"],
-            person: "person:kai", text: "Post tonight's maintenance window to the on-call channel.",
-            kind: "post", binding: "alerts", target: "shift:SHIFT-MAINT"),
+            days: 4, hour: 15.5, steward: "st_refunds", adapters: ["fake-refunds"],
+            person: "person:priya", text: "Note on order ORD-311 that the refund was promised.",
+            kind: "note", binding: "billing", target: "order:ORD-311"),
         Attempt(
-            days: 5, hour: 14.5, steward: "st_product_adoption",
-            adapters: ["demo-product_adoption"], person: "person:lena",
-            text: "Open a task for the Acme account owner about the seat drop.",
-            kind: "task", binding: "crm", target: "acct:ACME"),
+            days: 2, hour: 10.75, steward: "st_triage",
+            adapters: ["fake-triage", "fake-triage-v2"],
+            person: "person:sam", text: "Label MSG-152 as billing.", kind: "label",
+            binding: "inbox", target: "msg:MSG-152"),
         Attempt(
-            days: 4, hour: 11.75, steward: "st_vendor_spend_review",
-            adapters: ["demo-vendor_spend_review"], person: "person:omar",
-            text: "Flag the analytics renewal for review.",
-            kind: "flag", binding: "spend", target: "spend:ANALYTICS"),
+            days: 2, hour: 16.25, steward: "st_oncall_digest", adapters: ["demo-oncall_digest"],
+            person: "person:kai", text: "Post the failover drill to the on-call channel.",
+            kind: "post", binding: "alerts", target: "shift:SHIFT-DRILL"),
         Attempt(
-            days: 2, hour: 9.5, steward: "st_release_notes", adapters: ["demo-release_notes"],
-            person: "person:ren", text: "Publish the mobile release notes now.",
-            kind: "publish", binding: "repo", target: "rel:REL-MOBILE"),
+            days: 1, hour: 11.5, steward: "st_release_notes", adapters: ["demo-release_notes"],
+            person: "person:ren", text: "Draft the web release notes.", kind: "draft",
+            binding: "repo", target: "rel:REL-WEB"),
         Attempt(
-            days: 1, hour: 13.25, steward: "st_product_adoption",
-            adapters: ["demo-product_adoption"], person: "person:lena",
-            text: "Note that Globex asked for a usage review.",
-            kind: "note", binding: "crm", target: "acct:GLOBEX"),
+            days: 1, hour: 17.5, steward: "st_triage", adapters: ["fake-triage", "fake-triage-v2"],
+            person: "person:lee", text: "Route MSG-157 to the billing queue.", kind: "route",
+            binding: "inbox", target: "msg:MSG-157"),
     ]
 
     static func input(_ attempt: Attempt) -> String {

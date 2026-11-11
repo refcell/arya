@@ -239,7 +239,19 @@ enum AccessText {
     /// Ledger · approve everything", or "No grants" when nothing covers them.
     static func effective(_ person: String, in overview: AccessOverview) -> String {
         let teams = Set(overview.teams.filter { $0.members.contains(person) }.map(\.id))
-        let mine = overview.grants.filter { $0.subject == person || teams.contains($0.subject) }
+        return covers(
+            overview.grants.filter { $0.subject == person || teams.contains($0.subject) },
+            in: overview)
+    }
+
+    /// What a team's own grants let its members touch: "can use Invoice chasing and Ledger".
+    static func touches(_ team: AccessTeamSummary, in overview: AccessOverview) -> String {
+        let line = covers(overview.grants.filter { $0.subject == team.id }, in: overview)
+        return line == "No grants" ? "No grants of its own" : "can " + line
+    }
+
+    /// Grants by level in words: "use Churn watch and Ledger · approve everything".
+    static func covers(_ mine: [AccessGrantSummary], in overview: AccessOverview) -> String {
         let parts = ["use", "approve", "view"].compactMap { level -> String? in
             let names = mine.filter { $0.level == level }
                 .map { resource($0.resource, in: overview.resources) }
@@ -248,6 +260,69 @@ enum AccessText {
             return "\(verb) \(list(Array(Set(names)).sorted()))"
         }
         return parts.isEmpty ? "No grants" : parts.joined(separator: " · ")
+    }
+
+    /// How a grant was used: "Used 3× this week · last by Sam: label MSG-140 · 2h", or "Not used
+    /// yet".
+    static func use(_ grant: AccessGrantSummary, now: Date) -> String {
+        guard let last = grant.lastUse else { return "Not used yet" }
+        let count = grant.uses == 0 ? "Not used this week" : "Used \(grant.uses)× this week"
+        let step = HumanText.step(kind: last.action, target: last.target ?? "")
+        let lowered = step.prefix(1).lowercased() + step.dropFirst()
+        let what = last.approval ? "approved \(lowered)" : lowered
+        return "\(count) · last by \(who(last.person)): \(what) · "
+            + AryaTime.label(last.at, now: now)
+    }
+
+    /// What the refused run was asked, quoted, without the "person:kai hands this to you:"
+    /// lead: "“Post tonight's on-call summary”".
+    static func asked(_ refusal: AccessRefusalSummary) -> String? {
+        guard var text = refusal.asked?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !text.isEmpty
+        else { return refusal.target.map { "on \(HumanText.name($0))" } }
+        if text.hasPrefix("person:"), let colon = text.range(of: ": ") {
+            text = String(text[colon.upperBound...])
+        }
+        let line = text.split(separator: "\n").first.map(String.init) ?? text
+        let quoted = "“\(line.trimmingCharacters(in: .whitespaces))”"
+        guard let target = refusal.target.map(HumanText.name), !line.contains(target) else {
+            return quoted
+        }
+        return "\(quoted) · \(target)"
+    }
+
+    /// Enforcement and its last change: "On since Nov 2, from the first grant", "Turned off by
+    /// Jules · 3h".
+    static func enforcement(_ overview: AccessOverview, now: Date) -> String {
+        if let change = overview.enforcement {
+            let turned = overview.enforced ? "Turned on" : "Turned off"
+            return "\(turned) by \(who(change.by)) · \(AryaTime.label(change.at, now: now))"
+        }
+        guard overview.enforced else { return "Off: no grant or team yet" }
+        guard let since = overview.enforcedSince else { return "On" }
+        return "On since \(AryaTime.label(since, now: now)), from the first grant or team"
+    }
+
+    /// The grants used this week, most used first (at most 5).
+    static func mostUsed(_ overview: AccessOverview) -> [AccessGrantSummary] {
+        Array(
+            overview.grants.filter { $0.uses > 0 }
+                .sorted { ($0.uses, -$0.seq) > ($1.uses, -$1.seq) }.prefix(5))
+    }
+
+    /// Refusals in the last 7 days by person, most first: who, what was refused ("post,
+    /// publish"), and how often.
+    static func refusedBy(_ overview: AccessOverview, now: Date)
+        -> [(person: String, what: String, count: Int)]
+    {
+        let week = overview.refusals.filter { now.timeIntervalSince($0.at) < 7 * 86_400 }
+        let people = Dictionary(grouping: week, by: \.person)
+        return people.map { person, rows in
+            var kinds: [String] = []
+            for row in rows where !kinds.contains(row.action) { kinds.append(row.action) }
+            return (person, kinds.map(HumanText.verb).joined(separator: ", "), rows.count)
+        }
+        .sorted { ($0.count, $1.person) > ($1.count, $0.person) }
     }
 
     /// The teams `person` is in, by name.

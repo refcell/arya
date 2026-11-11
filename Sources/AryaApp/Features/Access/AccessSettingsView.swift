@@ -27,6 +27,8 @@ struct AccessSettingsView: View {
     /// Settings window.
     var page = false
     var model = AccessModel.shared
+    /// Opens a run (id, steward) from a refusal; nil in the Settings window.
+    var openRun: ((String, String) -> Void)? = nil
     @AryaState var tab: AccessTab = .grants
     @AryaState var draft: GrantDraft?
     @AryaState var now = Date()
@@ -223,28 +225,41 @@ struct AccessSettingsView: View {
                     ) {
                         grant in
                         TableRowFrame {
-                            Text(AccessText.subject(grant.subject, teams: overview.teams))
-                                .aryaText(AryaFont.body, AryaColor.ink)
-                                .frame(width: AccessLayout.subject, alignment: .leading)
-                            TagPill(grant.level)
-                            Spacer(minLength: AryaSpace.s2)
-                            Text(AccessText.byline(grant.by, grant.at, now: now))
-                                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                            Button("Revoke") {
-                                Task { if let source { await model.revoke(grant, from: source) } }
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack(spacing: 0) {
+                                    Text(AccessText.subject(grant.subject, teams: overview.teams))
+                                        .aryaText(AryaFont.body, AryaColor.ink)
+                                        .frame(width: AccessLayout.subject, alignment: .leading)
+                                    TagPill(grant.level)
+                                    Spacer(minLength: AryaSpace.s2)
+                                    Text(AccessText.byline(grant.by, grant.at, now: now))
+                                        .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                                    revoke(grant, overview)
+                                }
+                                Text(AccessText.use(grant, now: now))
+                                    .aryaText(
+                                        AryaFont.caption,
+                                        grant.uses > 0 ? AryaColor.inkMuted : AryaColor.inkFaint
+                                    )
+                                    .lineLimit(1)
                             }
-                            .buttonStyle(.aryaTertiary)
-                            .padding(.leading, AryaSpace.s2)
-                            .accessibilityLabel(
-                                "Revoke: "
-                                    + AccessText.grant(
-                                        grant, teams: overview.teams,
-                                        resources: overview.resources))
+                            .padding(.vertical, AryaSpace.s1)
                         }
                     }
                 }
             }
         }
+    }
+
+    private func revoke(_ grant: AccessGrantSummary, _ overview: AccessOverview) -> some View {
+        Button("Revoke") {
+            Task { if let source { await model.revoke(grant, from: source) } }
+        }
+        .buttonStyle(.aryaTertiary)
+        .padding(.leading, AryaSpace.s2)
+        .accessibilityLabel(
+            "Revoke: "
+                + AccessText.grant(grant, teams: overview.teams, resources: overview.resources))
     }
 
     /// Recent refusals, newest first.
@@ -265,13 +280,27 @@ struct AccessSettingsView: View {
                         .frame(width: 44, alignment: .leading)
                     Text("✕").aryaText(AryaFont.mono, AryaColor.negative)
                         .accessibilityLabel("Refused")
-                    Text(AccessText.refusal(refusal, in: overview))
-                        .aryaText(AryaFont.body, AryaColor.ink)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.leading, AryaSpace.s2)
-                        .padding(.vertical, AryaSpace.s1)
-                    Spacer(minLength: 0)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(AccessText.refusal(refusal, in: overview))
+                            .aryaText(AryaFont.body, AryaColor.ink)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let asked = AccessText.asked(refusal) {
+                            Text(asked)
+                                .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(.leading, AryaSpace.s2)
+                    .padding(.vertical, AryaSpace.s1)
+                    Spacer(minLength: AryaSpace.s2)
+                    if let openRun, let run = refusal.run, let steward = refusal.steward {
+                        Button("Open run") { openRun(run, steward) }
+                            .buttonStyle(.aryaTertiary)
+                            .accessibilityLabel(
+                                "Open the run: \(AccessText.refusal(refusal, in: overview))")
+                    }
                 }
                 .help(HumanText.sentence(refusal.reason))
             }
@@ -415,6 +444,10 @@ struct TeamsList: View {
                                 .aryaText(AryaFont.caption, AryaColor.inkMuted)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
+                            Text(AccessText.touches(team, in: overview))
+                                .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(.vertical, AryaSpace.s1)
                     }
@@ -553,6 +586,42 @@ struct AccessInspector: View {
                         }
                     }
                 }
+                let used = AccessText.mostUsed(overview)
+                if !used.isEmpty {
+                    VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                        Text("MOST USED THIS WEEK").aryaText(AryaFont.label, AryaColor.inkFaint)
+                        ForEach(used, id: \.seq) { grant in
+                            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                                Text(
+                                    AccessText.grant(
+                                        grant, teams: overview.teams, resources: overview.resources)
+                                )
+                                .aryaText(AryaFont.caption, AryaColor.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                                Text("\(grant.uses)×").aryaText(
+                                    AryaFont.monoSmall, AryaColor.inkMuted)
+                            }
+                        }
+                    }
+                }
+                let refused = AccessText.refusedBy(overview, now: now)
+                if !refused.isEmpty {
+                    VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                        Text("REFUSED THIS WEEK").aryaText(AryaFont.label, AryaColor.inkFaint)
+                        ForEach(refused, id: \.person) { row in
+                            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                                Text(AccessText.who(row.person))
+                                    .aryaText(AryaFont.caption, AryaColor.ink)
+                                Text(row.what).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                                    .lineLimit(1)
+                                Spacer(minLength: 0)
+                                Text("\(row.count)×").aryaText(
+                                    AryaFont.monoSmall, AryaColor.negative)
+                            }
+                        }
+                    }
+                }
                 VStack(alignment: .leading, spacing: AryaSpace.s1) {
                     Text("ENFORCED").aryaText(AryaFont.label, AryaColor.inkFaint)
                     Text(
@@ -562,6 +631,9 @@ struct AccessInspector: View {
                     )
                     .aryaText(AryaFont.caption, AryaColor.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
+                    Text(AccessText.enforcement(overview, now: now))
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }

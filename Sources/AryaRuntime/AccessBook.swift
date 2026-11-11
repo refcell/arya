@@ -17,6 +17,40 @@ public enum AccessEventType {
     public static let refused = "access.refused"
     /// `access.enforcement` (`AccessEnforcement`): the operator turned enforcement on or off.
     public static let enforcement = "access.enforcement"
+    /// `access.used` (`AccessUsed`): a grant let a person's run act, or a person approve.
+    public static let used = "access.used"
+}
+
+/// `access.used` (steward and run of the action; actor: the system for a use, the person for
+/// an approve): which grant let it through, so Settings ▸ Access can say how each grant is used.
+public struct AccessUsed: Sendable, Hashable, Codable {
+    /// `person:<id>`.
+    public var person: String
+    public var grant: AccessGrant
+    /// The action kind and its target.
+    public var action: String
+    public var target: String?
+    public var approval: ApprovalID?
+
+    public init(
+        person: String, grant: AccessGrant, action: String, target: String? = nil,
+        approval: ApprovalID? = nil
+    ) {
+        self.person = person
+        self.grant = grant
+        self.action = action
+        self.target = target
+        self.approval = approval
+    }
+}
+
+/// One use of a grant.
+public struct AccessUseRecord: Sendable, Hashable, Codable {
+    public var seq: Int
+    public var at: Timestamp
+    public var steward: StewardID?
+    public var run: RunID?
+    public var used: AccessUsed
 }
 
 /// `access.enforcement`: enforcement on or off, set by the operator (decision 0066). Without
@@ -75,10 +109,12 @@ public struct AccessRefused: Sendable, Hashable, Codable {
     /// The plain reason, as shown to people.
     public var reason: String
     public var approval: ApprovalID?
+    /// The action's target, for saying what was refused.
+    public var target: String?
 
     public init(
         person: String, level: AccessLevel, action: String, resources: [String], reason: String,
-        approval: ApprovalID? = nil
+        approval: ApprovalID? = nil, target: String? = nil
     ) {
         self.person = person
         self.level = level
@@ -86,6 +122,7 @@ public struct AccessRefused: Sendable, Hashable, Codable {
         self.resources = resources
         self.reason = reason
         self.approval = approval
+        self.target = target
     }
 }
 
@@ -133,7 +170,7 @@ public struct AccessChangeRecord: Sendable, Hashable, Codable {
 
 /// Folds the access events.
 public struct AccessBook: RuntimeBook {
-    public static let cacheName = "runtime.access.v2"
+    public static let cacheName = "runtime.access.v3"
 
     public private(set) var grants: [AccessGrantRecord] = []
     public private(set) var teams: [String: AccessTeamRecord] = [:]
@@ -145,11 +182,20 @@ public struct AccessBook: RuntimeBook {
     /// grant is refused); only `access.enforcement` turns it off, and a later grant or team,
     /// or the operator, turns it on again.
     public private(set) var enforced = false
+    /// Each grant's recent uses, oldest first, at most `useLimit` per grant (key: `key(_:)`).
+    public private(set) var uses: [String: [AccessUseRecord]] = [:]
 
     /// Refusals kept for the Refused list.
     public static let refusalLimit = 200
+    /// Uses kept per grant.
+    public static let useLimit = 50
 
-    enum CodingKeys: String, CodingKey { case grants, teams, changes, refusals, enforced }
+    enum CodingKeys: String, CodingKey { case grants, teams, changes, refusals, enforced, uses }
+
+    /// A grant's key in `uses`.
+    public static func key(_ grant: AccessGrant) -> String {
+        "\(grant.level.rawValue) \(grant.resource) \(grant.subject)"
+    }
 
     public init() {}
 
@@ -213,6 +259,16 @@ public struct AccessBook: RuntimeBook {
                     refused: try Payload.decode(AccessRefused.self, event.payload)))
             if refusals.count > Self.refusalLimit {
                 refusals.removeFirst(refusals.count - Self.refusalLimit)
+            }
+        case AccessEventType.used:
+            let used = try Payload.decode(AccessUsed.self, event.payload)
+            let key = Self.key(used.grant)
+            uses[key, default: []].append(
+                AccessUseRecord(
+                    seq: event.seq, at: event.at, steward: event.draft.steward,
+                    run: event.draft.run, used: used))
+            if let count = uses[key]?.count, count > Self.useLimit {
+                uses[key]?.removeFirst(count - Self.useLimit)
             }
         default: return
         }

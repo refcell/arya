@@ -55,6 +55,13 @@ private func peopleCharterJSON() throws -> Data {
     #expect(access.refusals.first?.reason == "person:sam has no use grant for route on inbox")
     #expect(access.refusals.first?.steward == "st_inbox")
     #expect(access.refusals.first?.resources.contains("connection:inbox") == true)
+    #expect(access.refusals.first?.asked?.contains("Refund please") == true)
+    // The label went through on Support's grant, and the grant says so.
+    let used = try #require(access.grants.first { $0.subject == "team:support" })
+    #expect(used.uses == 1)
+    #expect(used.lastUse?.person == "person:sam" && used.lastUse?.action == "label")
+    #expect(used.lastUse?.run == receipt.run?.id)
+    #expect(access.enforcedSince != nil && access.enforcement == nil)
     let findings = try await workspace.findings(steward: "st_inbox")
     #expect(findings.filter { $0.title.hasPrefix("Access refused") }.count == 1)
 

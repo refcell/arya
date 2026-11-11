@@ -253,7 +253,17 @@ public struct ApprovalQueue: Sendable {
             if !touched.isEmpty { resources = touched }
         }
         let who = Access.person(person.id)
-        guard grants.grant(.approve, person: who, on: resources) == nil else { return }
+        if let grant = grants.grant(.approve, person: who, on: resources) {
+            _ = try await sink.append(
+                RuntimeEventDraft(
+                    type: AccessEventType.used, steward: record.steward, run: record.run,
+                    actor: person,
+                    payload: try Payload.encode(
+                        AccessUsed(
+                            person: who, grant: grant, action: action.kind,
+                            target: action.target, approval: record.id))))
+            return
+        }
         let holders = grants.holders(.approve, on: resources)
         let reason = "\(who) has no approve grant for \(action.kind) on \(record.steward.rawValue)"
         _ = try await sink.append(
@@ -271,7 +281,8 @@ public struct ApprovalQueue: Sendable {
                 payload: try Payload.encode(
                     AccessRefused(
                         person: who, level: .approve, action: action.kind,
-                        resources: resources, reason: reason, approval: record.id))))
+                        resources: resources, reason: reason, approval: record.id,
+                        target: action.target))))
         throw ApprovalError.notPermitted(record.id, reason: reason)
     }
 

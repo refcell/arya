@@ -150,6 +150,8 @@ public struct ActionDispatcher: Sendable {
                     verdict = PolicyVerdict(
                         disposition: .deny, reason: Access.useReason, risk: verdict.risk,
                         autonomy: verdict.autonomy)
+                } else {
+                    try await recordUse(grants, principal, action, charter, run)
                 }
             }
             try await append(
@@ -177,13 +179,30 @@ public struct ActionDispatcher: Sendable {
                             person: principal, level: .use, action: action.kind,
                             resources: Access.resources(
                                 of: action, steward: charter.id, charter: charter),
-                            reason: refusal))
+                            reason: refusal, target: action.target))
                     try await raiseRefusal(refusal, action, charter.id, run)
                 }
             }
             disposals.append(disposal)
         }
         return disposals
+    }
+
+    /// Records which grant let `principal`'s run take `action` (`access.used`), when the
+    /// action calls a connection.
+    private func recordUse(
+        _ grants: AccessGrants, _ principal: String, _ action: ProposedAction, _ charter: Charter,
+        _ run: RunID
+    ) async throws {
+        let resources = Access.resources(of: action, steward: charter.id, charter: charter)
+        guard !resources.isEmpty,
+            let grant = grants.grant(.use, person: principal, on: resources)
+        else { return }
+        try await append(
+            AccessEventType.used, charter.id, run, .system,
+            AccessUsed(
+                person: Access.person(principal), grant: grant, action: action.kind,
+                target: action.target))
     }
 
     /// Raises a refused use as a finding (`finding.raised`), unless one with the same title is

@@ -305,7 +305,7 @@ struct InspectorView: View {
                 })
             fleetRecentRuns
         case .access:
-            AccessInspector(model: AccessModel.shared)
+            AccessInspector(model: AccessModel.shared, now: now)
         case .none:
             Text("Select a steward to see its schedule, policy, connections, and people.")
                 .aryaText(AryaFont.caption, AryaColor.inkFaint)
