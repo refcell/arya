@@ -182,8 +182,9 @@ struct RunBrief: Hashable, Sendable {
         var seen: [String] = []
         for step in stream.steps {
             guard case .toolCall(let call) = step.kind, call.tool != "shell" else { continue }
-            let text = [call.tool, RunThreadText.argument(call.input)].compactMap { $0 }
-                .joined(separator: " ")
+            // The thread's words ("Search the inbox: label:billing"), not the raw tool name.
+            let text = [HumanText.tool(call.tool), RunThreadText.argument(call.input)]
+                .compactMap { $0 }.joined(separator: ": ")
             if !seen.contains(text) { seen.append(text) }
         }
         return seen

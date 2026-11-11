@@ -81,8 +81,9 @@ struct WorkPane: View {
     ]
 
     static let bottom = "work-bottom"
-    /// Log lines shown under the Tools blocks.
-    static let logTail = 12
+    /// Log and output lines shown under the Tools and Diff blocks: enough to reach the pane's
+    /// bottom on a 1000 pt window, so the pane ends in the run's latest lines, not blank.
+    static let logTail = 30
 
     private var tabs: some View {
         HStack(spacing: AryaSpace.s3) {
