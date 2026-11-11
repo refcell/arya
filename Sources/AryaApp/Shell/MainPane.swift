@@ -37,6 +37,8 @@ struct MainPane: View {
             FeatureRegistry.people(model.featureContext())
         case .routines:
             FeatureRegistry.routines(model.featureContext())
+        case .access:
+            AccessSettingsView(source: model.access, page: true)
         case .portfolio:
             PortfolioView(model: model, now: model.featureStore?.now ?? Date())
         case .steward:

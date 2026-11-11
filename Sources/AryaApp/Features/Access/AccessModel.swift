@@ -114,18 +114,132 @@ enum AccessText {
         return "Could not change access. Try again."
     }
 
-    /// "person:sam" reads "sam"; "team:support" reads "support (team)".
-    static func subject(_ id: String, teams: [AccessTeamSummary] = []) -> String {
+    /// Who a grant names, as people read it: "person:sam" is "Sam", "team:support" the team's
+    /// name, "local" (the owner at this Mac) "You".
+    static func who(_ id: String, teams: [AccessTeamSummary] = []) -> String {
+        if id == "local" { return "You" }
         if id.hasPrefix("team:") {
-            let name = teams.first { $0.id == id }?.name ?? String(id.dropFirst(5))
-            return "\(name) (team)"
+            return teams.first { $0.id == id }?.name ?? words(String(id.dropFirst(5)))
         }
-        return id.hasPrefix("person:") ? String(id.dropFirst(7)) : id
+        return HumanText.name(id)
     }
 
-    /// "local · 3h": who made a change and when.
+    /// `who` in a list, with teams marked: "Support (team)".
+    static func subject(_ id: String, teams: [AccessTeamSummary] = []) -> String {
+        id.hasPrefix("team:") ? "\(who(id, teams: teams)) (team)" : who(id, teams: teams)
+    }
+
+    /// "You · 3h": who made a change and when.
     static func byline(_ by: String, _ at: Date, now: Date, lead: String = "") -> String {
-        "\(lead)\(subject(by)) · \(AryaTime.label(at, now: now))"
+        "\(lead)\(who(by)) · \(AryaTime.label(at, now: now))"
+    }
+
+    /// What a grant covers, by name: "everything", "Triage" for a steward, "Billing" for a
+    /// connection, "refund on Billing" for a tool.
+    static func resource(_ id: String, in resources: [AccessResource]) -> String {
+        if id == "*" { return "everything" }
+        if id.hasPrefix("steward:") {
+            return resources.first { $0.id == id }?.label ?? HumanText.name(id)
+        }
+        if id.hasPrefix("connection:") { return words(String(id.dropFirst(11))) }
+        if id.hasPrefix("tool:") {
+            let parts = id.dropFirst(5).split(separator: ".", maxSplits: 1).map(String.init)
+            guard parts.count == 2 else { return HumanText.name(id) }
+            return "\(HumanText.verb(parts[1])) on \(words(parts[0]))"
+        }
+        return HumanText.name(id)
+    }
+
+    /// `resource` as a heading: "Everything", "Refund on Billing".
+    static func title(_ id: String, in resources: [AccessResource]) -> String {
+        let name = resource(id, in: resources)
+        return name.prefix(1).uppercased() + name.dropFirst()
+    }
+
+    /// The kind of a resource, shown quietly after its name, or nil for everything.
+    static func kind(_ id: String) -> String? {
+        ["steward", "connection", "tool"].first { id.hasPrefix($0 + ":") }
+    }
+
+    /// "can use", "can approve", "can see".
+    static func can(_ level: String) -> String {
+        switch level {
+        case "use": "can use"
+        case "approve": "can approve"
+        default: "can see"
+        }
+    }
+
+    /// A grant as a sentence: "Jules can approve everything".
+    static func grant(
+        _ grant: AccessGrantSummary, teams: [AccessTeamSummary], resources: [AccessResource]
+    ) -> String {
+        "\(who(grant.subject, teams: teams)) \(can(grant.level)) "
+            + resource(grant.resource, in: resources)
+    }
+
+    /// The last change in words: "Jules can approve everything", "Sam can no longer use
+    /// Billing", "Support is Alex and Sam", "Disbanded Support".
+    static func change(_ change: AccessChangeSummary, in overview: AccessOverview) -> String {
+        let undone = change.undone ? " (undone)" : ""
+        if let grant = change.grant {
+            let line = Self.grant(grant, teams: overview.teams, resources: overview.resources)
+            if change.kind == "revoked" {
+                let name = who(grant.subject, teams: overview.teams)
+                return line.replacingOccurrences(of: "\(name) can ", with: "\(name) can no longer ")
+                    + undone
+            }
+            return line + undone
+        }
+        if let team = change.team {
+            if team.members.isEmpty { return "Disbanded \(team.name)\(undone)" }
+            return "\(team.name) is \(list(team.members.map { who($0) }))\(undone)"
+        }
+        return HumanText.sentence(change.text) + undone
+    }
+
+    /// A refusal in words: "Sam can't refund on Billing", "Sam can't approve reply for Triage".
+    static func refusal(_ refusal: AccessRefusalSummary, in overview: AccessOverview) -> String {
+        let name = who(refusal.person, teams: overview.teams)
+        let verb = HumanText.verb(refusal.action)
+        if refusal.level == "approve" {
+            guard let steward = refusal.steward else { return "\(name) can't approve \(verb)" }
+            return "\(name) can't approve \(verb) for \(self.steward(steward, in: overview))"
+        }
+        guard let connection = refusal.resources.first(where: { $0.hasPrefix("connection:") })
+        else {
+            return refusal.resources.isEmpty
+                ? HumanText.sentence(refusal.reason) : "\(name) can't \(verb)"
+        }
+        return "\(name) can't \(verb) on \(resource(connection, in: overview.resources))"
+    }
+
+    /// A steward's name from its id.
+    static func steward(_ id: String, in overview: AccessOverview) -> String {
+        resource("steward:\(id)", in: overview.resources)
+    }
+
+    /// Who may change access: you (the owner), then anyone who can approve everything.
+    static func admins(_ overview: AccessOverview) -> [String] {
+        let holders = overview.grants.filter { $0.resource == "*" && $0.level == "approve" }
+            .map { subject($0.subject, teams: overview.teams) }
+        return ["You"] + holders.sorted()
+    }
+
+    /// "alerts" reads "Alerts", "support-desk" "Support Desk".
+    static func words(_ id: String) -> String {
+        id.split(whereSeparator: { $0 == "-" || $0 == "_" })
+            .map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
+    }
+
+    /// "Alex", "Alex and Sam", "Alex, Jules, and Sam".
+    static func list(_ names: [String]) -> String {
+        switch names.count {
+        case 0: ""
+        case 1: names[0]
+        case 2: "\(names[0]) and \(names[1])"
+        default: names.dropLast().joined(separator: ", ") + ", and " + (names.last ?? "")
+        }
     }
 
     /// The status line under the title.

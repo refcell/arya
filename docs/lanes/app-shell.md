@@ -156,6 +156,7 @@ M4:
 - (from runtime) Settings ▸ Access is ready (`Sources/AryaApp/Features/Access`, runtime-owned for M3.6 #13): please make Settings tabbed (General | Access) and host `AccessSettingsView(source: session.model?.access)` in the Access tab, sized `AccessSettingsView.windowSize` (640 × 560). Snapshot states `access`, `access-refusals`.
 - (from workspace) Steps: tool calls in `visibleSteps`/`stepIndex` now follow the TOOLS tab's precedence (step records > proxy > adapter), so one call never counts twice; `LiveUpdate.steps[].isVisible` is marked the same way. While running, `estimatedSteps` ≥ `stepIndex + 1` ('4 of ~5'); nil once ended.
 
+- (from runtime) For the full-window review I added a tiny Shell hook: `Destination.access` (`showAccess()`, Go ▸ Access, `InspectorFocus.access`, `MainPane` case, `RailOrder` nil), hosting `AccessSettingsView(source:, page: true)` between the sidebar and an Access inspector. Yours to restyle or move; the Settings-tab request above still stands if you prefer both.
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).
 - 2026-11-09: AryaDesign components and decision 0021 (`@AryaState`) landed (3234ede).

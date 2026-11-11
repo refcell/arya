@@ -32,6 +32,8 @@ private func peopleCharterJSON() throws -> Data {
         ])
     #expect(access.grants.map(\.resource) == ["tool:inbox.label"])
     #expect(access.lastChange?.text == "Granted use on tool:inbox.label to team:support")
+    #expect(access.lastChange?.kind == "granted")
+    #expect(access.lastChange?.grant?.resource == "tool:inbox.label")
 
     // Only the owner or an access admin changes access.
     await #expect(throws: WorkspaceError.self) {
@@ -52,6 +54,7 @@ private func peopleCharterJSON() throws -> Data {
     #expect(access.refusals.map(\.action) == ["route"])
     #expect(access.refusals.first?.reason == "person:sam has no use grant for route on inbox")
     #expect(access.refusals.first?.steward == "st_inbox")
+    #expect(access.refusals.first?.resources.contains("connection:inbox") == true)
     let findings = try await workspace.findings(steward: "st_inbox")
     #expect(findings.filter { $0.title.hasPrefix("Access refused") }.count == 1)
 

@@ -36,6 +36,8 @@ enum Destination: Hashable, Sendable {
     case people(steward: String?)
     /// The Routines library: every routine across stewards (connect).
     case routines
+    /// Settings ▸ Access: teams, grants, and refusals (runtime, decision 0065).
+    case access
 }
 
 /// Where the person is in the app. Selection rules live here so they are testable.
@@ -129,6 +131,12 @@ struct NavigationState: Hashable, Sendable {
         }
     }
 
+    /// Shows Settings ▸ Access.
+    mutating func showAccess() {
+        destination = .access
+        run = nil
+    }
+
     /// Shows the Routines library.
     mutating func showRoutines() {
         destination = .routines
@@ -162,7 +170,9 @@ struct NavigationState: Hashable, Sendable {
     /// Keeps the selection valid after the steward list changes: a vanished steward falls back
     /// to the first one, and an empty list clears the selection.
     mutating func reconcile(stewards ids: [String], runs runIDs: [String]) {
-        if destination == .approvals || destination == .portfolio || destination == .routines {
+        if destination == .approvals || destination == .portfolio || destination == .routines
+            || destination == .access
+        {
             return
         }
         if case .connections(let id) = destination {

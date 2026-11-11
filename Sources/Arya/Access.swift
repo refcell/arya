@@ -53,6 +53,9 @@ public struct AccessRefusalSummary: Sendable, Hashable, Codable {
     public var action: String
     /// The plain reason ("person:sam has no use grant for comment on tracker").
     public var reason: String
+    /// What the action touched (`connection:<binding>`, `tool:<binding>.<kind>`, `steward:<id>`),
+    /// so a view can name them.
+    public var resources: [String] = []
 }
 
 /// The latest access change, with whether it can still be undone.
@@ -63,6 +66,13 @@ public struct AccessChangeSummary: Sendable, Hashable, Codable {
     public var by: String
     public var at: Date
     public var undoable: Bool
+    /// `granted`, `revoked`, or `team`, with the grant or team it changed, so a view can say
+    /// it in words.
+    public var kind: String? = nil
+    public var grant: AccessGrantSummary? = nil
+    public var team: AccessTeamSummary? = nil
+    /// A later change undid this one.
+    public var undone = false
 }
 
 /// Everything Settings ▸ Access shows.
@@ -130,13 +140,18 @@ extension Workspace {
                     seq: $0.seq, at: $0.at.date, steward: $0.steward?.rawValue,
                     run: $0.run?.rawValue, person: $0.refused.person,
                     level: $0.refused.level.rawValue, action: $0.refused.action,
-                    reason: $0.refused.reason)
+                    reason: $0.refused.reason, resources: $0.refused.resources)
             },
             people: people.sorted(), resources: resources,
             lastChange: last.map {
                 AccessChangeSummary(
                     seq: $0.seq, text: Self.describe($0), by: $0.by, at: $0.at.date,
-                    undoable: $0.undoneBy == nil && AccessAdmin.undo($0.seq, book: book) != nil)
+                    undoable: $0.undoneBy == nil && AccessAdmin.undo($0.seq, book: book) != nil,
+                    kind: Self.changeKind($0), grant: Self.grantSummary($0),
+                    team: $0.team.map {
+                        AccessTeamSummary(id: $0.team, name: $0.name, members: $0.members)
+                    },
+                    undone: $0.undoneBy != nil)
             })
     }
 
@@ -240,6 +255,23 @@ extension Workspace {
                 "a resource is steward:<id>, connection:<binding>, tool:<binding>.<kind>, or *")
         }
         return AccessGrant(subject: subject, level: level, resource: resource)
+    }
+
+    static func changeKind(_ change: AccessChangeRecord) -> String {
+        switch change.type {
+        case AccessEventType.granted: "granted"
+        case AccessEventType.revoked: "revoked"
+        case AccessEventType.team: "team"
+        default: change.type
+        }
+    }
+
+    static func grantSummary(_ change: AccessChangeRecord) -> AccessGrantSummary? {
+        change.grant.map {
+            AccessGrantSummary(
+                subject: $0.subject, level: $0.level.rawValue, resource: $0.resource,
+                by: change.by, at: change.at.date, seq: change.seq)
+        }
     }
 
     static func describe(_ change: AccessChangeRecord) -> String {

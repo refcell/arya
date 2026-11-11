@@ -22,6 +22,9 @@ struct AccessSettingsView: View {
     static let windowSize = CGSize(width: 640, height: 560)
 
     let source: (any AccessSettingsSource)?
+    /// In the main window's stream, between the sidebar and the inspector, rather than the
+    /// Settings window.
+    var page = false
     var model = AccessModel.shared
     @AryaState var tab: AccessTab = .grants
     @AryaState var draft: GrantDraft?
@@ -74,9 +77,14 @@ struct AccessSettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(AryaSpace.s4)
+        .padding(.horizontal, page ? AryaSize.pagePadding : AryaSpace.s4)
+        .padding(.top, page ? AryaSize.titleBarInset : AryaSpace.s4)
+        .padding(.bottom, AryaSpace.s4)
         .frame(
-            minWidth: Self.windowSize.width, minHeight: Self.windowSize.height,
+            minWidth: page ? nil : Self.windowSize.width,
+            maxWidth: page ? .infinity : nil,
+            minHeight: page ? nil : Self.windowSize.height,
+            maxHeight: page ? .infinity : nil,
             alignment: .topLeading
         )
         .background(AryaColor.canvas)
@@ -102,7 +110,8 @@ struct AccessSettingsView: View {
                     )
                 if let change = overview.lastChange {
                     HStack(spacing: AryaSpace.s2) {
-                        Text(change.text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        Text(AccessText.change(change, in: overview))
+                            .aryaText(AryaFont.caption, AryaColor.inkMuted)
                             .lineLimit(1)
                         Text(AccessText.byline(change.by, change.at, now: now, lead: "· "))
                             .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
@@ -111,7 +120,7 @@ struct AccessSettingsView: View {
                                 Task { if let source { await model.undo(from: source) } }
                             }
                             .buttonStyle(.aryaTertiary)
-                            .accessibilityLabel("Undo: \(change.text)")
+                            .accessibilityLabel("Undo: \(AccessText.change(change, in: overview))")
                         }
                     }
                 }
@@ -139,12 +148,11 @@ struct AccessSettingsView: View {
                 }
             ForEach(groups, id: \.key) { resource, grants in
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: AryaSpace.s2) {
-                        Text(resource).aryaText(AryaFont.monoStrong, AryaColor.ink)
-                        if let found = overview.resources.first(where: { $0.id == resource }),
-                            found.label != resource
-                        {
-                            Text(found.label).aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s1) {
+                        Text(AccessText.title(resource, in: overview.resources))
+                            .aryaText(AryaFont.bodyStrong, AryaColor.ink)
+                        if let kind = AccessText.kind(resource) {
+                            Text(kind).aryaText(AryaFont.caption, AryaColor.inkFaint)
                         }
                     }
                     .padding(.top, AryaSpace.s3)
@@ -155,7 +163,7 @@ struct AccessSettingsView: View {
                         grant in
                         TableRowFrame {
                             Text(AccessText.subject(grant.subject, teams: overview.teams))
-                                .aryaText(AryaFont.mono, AryaColor.ink)
+                                .aryaText(AryaFont.body, AryaColor.ink)
                                 .frame(width: AccessLayout.subject, alignment: .leading)
                             TagPill(grant.level)
                             Spacer(minLength: AryaSpace.s2)
@@ -167,7 +175,10 @@ struct AccessSettingsView: View {
                             .buttonStyle(.aryaTertiary)
                             .padding(.leading, AryaSpace.s2)
                             .accessibilityLabel(
-                                "Revoke \(grant.level) on \(grant.resource) from \(grant.subject)")
+                                "Revoke: "
+                                    + AccessText.grant(
+                                        grant, teams: overview.teams,
+                                        resources: overview.resources))
                         }
                     }
                 }
@@ -193,16 +204,17 @@ struct AccessSettingsView: View {
                         .frame(width: 44, alignment: .leading)
                     Text("✕").aryaText(AryaFont.mono, AryaColor.negative)
                         .accessibilityLabel("Refused")
-                    Text(refusal.reason).aryaText(AryaFont.body, AryaColor.ink)
+                    Text(AccessText.refusal(refusal, in: overview))
+                        .aryaText(AryaFont.body, AryaColor.ink)
                         .lineLimit(1)
                         .padding(.leading, AryaSpace.s2)
                     Spacer(minLength: AryaSpace.s2)
-                    Text(
-                        [refusal.steward, refusal.level].compactMap { $0 }.joined(separator: " · ")
-                    )
-                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    if let steward = refusal.steward {
+                        Text(AccessText.steward(steward, in: overview))
+                            .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    }
                 }
-                .help(refusal.reason)
+                .help(HumanText.sentence(refusal.reason))
             }
         }
     }
@@ -238,7 +250,7 @@ struct GrantForm: View {
                 OptionColumn(
                     title: "On",
                     options: overview.resources.map {
-                        ($0.id, $0.kind == "tool" || $0.kind == "connection" ? $0.id : "\($0.id)")
+                        ($0.id, AccessText.title($0.id, in: overview.resources))
                     },
                     selection: $draft.resource)
             }
@@ -277,7 +289,7 @@ struct OptionColumn: View {
                                     .frame(width: AccessLayout.check)
                                 Text(option.label)
                                     .aryaText(
-                                        AryaFont.mono,
+                                        AryaFont.body,
                                         selection == option.id ? AryaColor.ink : AryaColor.inkMuted
                                     )
                                     .lineLimit(1)
@@ -327,8 +339,8 @@ struct TeamsList: View {
                     TableRowFrame {
                         Text(team.name).aryaText(AryaFont.bodyStrong, AryaColor.ink)
                             .frame(width: AccessLayout.team, alignment: .leading)
-                        Text(team.members.map { AccessText.subject($0) }.joined(separator: ", "))
-                            .aryaText(AryaFont.mono, AryaColor.inkMuted)
+                        Text(AccessText.list(team.members.map { AccessText.who($0) }))
+                            .aryaText(AryaFont.body, AryaColor.inkMuted)
                             .lineLimit(1)
                         Spacer(minLength: AryaSpace.s2)
                         Text("\(team.members.count)").aryaText(
@@ -422,7 +434,7 @@ struct FlowChecks: View {
                             .aryaText(AryaFont.mono, AryaColor.ink).frame(width: AccessLayout.check)
                         Text(AccessText.subject(person))
                             .aryaText(
-                                AryaFont.mono,
+                                AryaFont.body,
                                 chosen.contains(person) ? AryaColor.ink : AryaColor.inkMuted)
                     }
                     .frame(height: AryaSize.tableRowHeight)
@@ -430,6 +442,43 @@ struct FlowChecks: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Member \(AccessText.subject(person))")
+            }
+        }
+    }
+}
+
+/// The inspector beside Access: what each level allows and who may change access.
+struct AccessInspector: View {
+    let model: AccessModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s3) {
+            VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                Text("LEVELS").aryaText(AryaFont.label, AryaColor.inkFaint)
+                ForEach(["use", "approve", "view"], id: \.self) { level in
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                        TagPill(level)
+                        Text(AccessText.level(level)).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    }
+                }
+            }
+            if let overview = model.overview {
+                VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                    Text("CAN CHANGE ACCESS").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    ForEach(AccessText.admins(overview), id: \.self) { name in
+                        Text(name).aryaText(AryaFont.body, AryaColor.ink)
+                    }
+                }
+                VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                    Text("ENFORCED").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    Text(
+                        overview.enforced
+                            ? "A steward acts for a person only through their grants."
+                            : "Nothing yet: the first grant or team turns it on."
+                    )
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }

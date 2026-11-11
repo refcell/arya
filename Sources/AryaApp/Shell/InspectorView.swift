@@ -19,6 +19,8 @@ enum InspectorFocus: Equatable {
     case steward(String)
     /// The All stewards table: the fleet pulse.
     case fleet
+    /// Settings ▸ Access: what each level allows and who may change access.
+    case access
     case none
 
     var isRun: Bool {
@@ -29,6 +31,7 @@ enum InspectorFocus: Equatable {
     static func of(_ navigation: NavigationState) -> InspectorFocus {
         if navigation.destination == .approvals { return .approval(navigation.approval) }
         if navigation.destination == .portfolio { return .fleet }
+        if navigation.destination == .access { return .access }
         if case .connections = navigation.destination {
             if let connection = navigation.connection { return .connection(connection) }
         }
@@ -217,6 +220,7 @@ struct InspectorView: View {
         case .run: "Run"
         case .steward: "Steward"
         case .fleet: "All stewards"
+        case .access: "Access"
         case .none: "Inspector"
         }
     }
@@ -283,6 +287,8 @@ struct InspectorView: View {
                     model.navigation.showApprovals()
                     model.navigation.approval = id
                 })
+        case .access:
+            AccessInspector(model: AccessModel.shared)
         case .none:
             Text("Select a steward to see its schedule, policy, connections, and people.")
                 .aryaText(AryaFont.caption, AryaColor.inkFaint)

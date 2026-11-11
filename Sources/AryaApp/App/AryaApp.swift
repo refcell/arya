@@ -190,6 +190,7 @@ struct AryaCommands: Commands {
                 .keyboardShortcut("p", modifiers: [.command, .shift])
             Button("Routines") { session.model?.navigation.showRoutines() }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
+            Button("Access") { session.model?.navigation.showAccess() }
             Divider()
             let stewards = Array((session.model?.stewards ?? []).prefix(9).enumerated())
             ForEach(stewards, id: \.element.id) { index, steward in
