@@ -105,11 +105,9 @@ struct OutcomeActivityRow: View {
             Button(action: toggle) {
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                     Text(item.state.mark).aryaText(AryaFont.mono, markColor)
-                    Text(item.kind).aryaText(AryaFont.mono, AryaColor.ink)
-                    if let target = item.target {
-                        Text(target).aryaText(AryaFont.mono, AryaColor.inkMuted)
-                    }
-                    Text(item.reason.isEmpty ? "no reason given" : item.reason)
+                    Text(OutcomeActivityText.phrase(item)).aryaText(AryaFont.mono, AryaColor.ink)
+                        .lineLimit(1)
+                    Text(item.reason.isEmpty ? "no reason given" : HumanText.sentence(item.reason))
                         .aryaText(AryaFont.body, AryaColor.inkFaint)
                         .lineLimit(1)
                     Spacer(minLength: AryaSpace.s2)
@@ -141,7 +139,7 @@ struct OutcomeActivityRow: View {
             }
         return VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(item.writes.prefix(2).enumerated()), id: \.offset) { _, line in
-                Text("+ " + line)
+                Text("+ " + HumanText.sentence(line))
                     .aryaText(AryaFont.monoSmall, color)
                     .strikethrough(item.state == .rejected || item.state == .failed)
                     .lineLimit(1).truncationMode(.tail)
@@ -191,14 +189,31 @@ enum OutcomeActivityText {
         return parts.joined(separator: "  ")
     }
 
-    /// "label tracker:ISSUE-7, executed, because Bugs get the bug label."
+    /// "Labeled ISSUE-7, executed, because Bugs get the bug label."
     static func spoken(_ item: OutcomeActivity) -> String {
-        var text = item.kind
-        if let target = item.target { text += " \(target)" }
-        text += ", \(item.state.rawValue)"
-        if !item.reason.isEmpty { text += ", because \(item.reason)" }
+        var text = phrase(item) + ", \(item.state.rawValue)"
+        if !item.reason.isEmpty { text += ", because \(HumanText.sentence(item.reason))" }
         return text
     }
+
+    /// The action in words: done reads in the past ("Replied to MSG-140", "Labeled MSG-140"),
+    /// anything else as the step ("Reply to MSG-140"); refs as names, never "reply inbox:…".
+    static func phrase(_ item: OutcomeActivity) -> String {
+        let done = item.state == .executed
+        var head: String
+        switch item.kind {
+        case "routine": head = done ? "Ran the routine" : "Run the routine"
+        default: head = done ? HumanText.pastVerb(item.kind) : HumanText.verb(item.kind)
+        }
+        head = head.prefix(1).uppercased() + head.dropFirst()
+        guard let target = item.target, !target.isEmpty else { return head }
+        let joiner =
+            item.kind == "routine" ? " on " : toKinds.contains(item.kind) ? " to " : " "
+        return head + joiner + HumanText.sentence(target)
+    }
+
+    /// Kinds that act toward someone: "Replied to MSG-140", "Sent email to LEAD-1092".
+    private static let toKinds: Set<String> = ["reply", "send_email", "send", "forward", "message"]
 }
 
 extension AryaSize {

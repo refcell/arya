@@ -86,7 +86,8 @@ struct ReviewQueuePanel: View {
     private func labeled(_ title: String, _ text: String) -> some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
             Text(title).aryaText(AryaFont.overline, AryaColor.inkFaint)
-            Text(text).aryaText(AryaFont.mono, AryaColor.ink).textSelection(.enabled)
+            Text(HumanText.sentence(text)).aryaText(AryaFont.mono, AryaColor.ink)
+                .textSelection(.enabled)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -136,8 +137,31 @@ enum ReviewText {
                 return "Chose \(actual); the person chose \(expected)"
             }
             let field = path.split(separator: ".").last.map(String.init) ?? path
-            return "\(field): would be \(actual); the person had \(expected)"
+            let (did, had) = (words(actual), words(expected))
+            switch field {
+            case "actions": return "Would do \(did); the person did \(had)"
+            case "decisions": return "Would choose \(did); the person chose \(had)"
+            default: return "\(field): would be \(did); the person had \(had)"
+            }
         }.joined(separator: ". ")
+    }
+
+    /// A recorded value in words: a JSON list of actions reads "label MSG-101, route MSG-101",
+    /// of choices "billing"; anything else with its refs as names.
+    static func words(_ value: String) -> String {
+        guard value.hasPrefix("["), let data = value.data(using: .utf8),
+            let list = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else { return HumanText.sentence(value) }
+        if list.isEmpty { return "nothing" }
+        return list.map { entry -> String in
+            if let kind = entry["kind"] as? String {
+                let action = HumanText.action(kind: kind, target: entry["target"] as? String ?? "")
+                return action.prefix(1).lowercased() + action.dropFirst()
+            }
+            if let choice = entry["choice"] as? String { return HumanText.sentence(choice) }
+            return entry.values.compactMap { $0 as? String }.map(HumanText.sentence)
+                .joined(separator: " ")
+        }.joined(separator: ", ")
     }
 
     /// "history history-export.json item MSG-120 by person:sam at 2026-10-09T09:00:00Z,

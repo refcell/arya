@@ -103,6 +103,13 @@ private let now = FeatureTestClock.now
     #expect(
         ReviewText.difference("decisions[0].label: expected spam, got bug")
             == "label: would be bug; the person had spam")
+    let actions = ReviewText.difference(
+        #"actions: expected [{"kind":"label","target":"inbox:MSG-101"}], got nothing"#)
+    #expect(actions.hasPrefix("Would do nothing; the person did label "))
+    #expect(!actions.contains("inbox:") && !actions.contains("{"))
+    #expect(
+        ReviewText.difference(#"decisions: expected [{"choice":"billing"}], got []"#)
+            == "Would choose nothing; the person chose billing")
     let source = ReviewText.source(
         "history history-export.json item MSG-120 by person:sam at 2026-10-09T09:00:00Z, "
             + "reopened: Rerouted from security to account.",

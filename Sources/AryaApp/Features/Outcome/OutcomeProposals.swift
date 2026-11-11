@@ -366,7 +366,8 @@ struct OutcomeProposalRow: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Charter diff, \(diff.added) added, \(diff.removed) removed")
-                if diffOpen(diff) { DiffBlock(diff.text) }
+                // Refs as names ("person:lee" is "Lee"), like every other line on screen.
+                if diffOpen(diff) { DiffBlock(HumanText.sentence(diff.text)) }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

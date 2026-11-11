@@ -109,7 +109,7 @@ private func triage() -> OutcomeSnapshot {
     #expect(OutcomeActivityText.tally(activity) == "✓ 1  ◷ 1")
     #expect(
         OutcomeActivityText.spoken(label)
-            == "label tracker:ISSUE-7, executed, because Bugs get the bug label.")
+            == "Labeled ISSUE-7, executed, because Bugs get the bug label.")
 }
 
 @Test func recapCountsWhatHappenedSinceTheLastVisit() throws {
@@ -333,4 +333,23 @@ private func triage() -> OutcomeSnapshot {
         OutcomeContext.Line(id: "n2", key: "billing", text: "Escalate to person:priya."))
     #expect(billing.subject == "billing")
     #expect(!billing.text.contains("person:"))
+}
+
+/// RECENT reads actions as words, never "reply inbox:MSG-140": done in the past tense,
+/// waiting as the step.
+@Test func recentReadsActionsInWords() {
+    func item(_ kind: String, _ target: String, _ state: OutcomeActivity.State) -> OutcomeActivity {
+        OutcomeActivity(
+            run: "r1", action: "a1", kind: kind, target: target, reason: "", state: state,
+            at: Date(), seq: 1)
+    }
+    #expect(
+        OutcomeActivityText.phrase(item("reply", "inbox:MSG-140", .executed))
+            == "Replied to MSG-140")
+    #expect(
+        OutcomeActivityText.phrase(item("label", "inbox:MSG-140", .executed)) == "Labeled MSG-140")
+    #expect(
+        OutcomeActivityText.phrase(item("reply", "inbox:MSG-140", .waiting)) == "Reply to MSG-140")
+    #expect(
+        OutcomeActivityText.phrase(item("note", "risk:RISK-1069", .executed)) == "Noted RISK-1069")
 }
