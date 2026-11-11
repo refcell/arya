@@ -525,13 +525,14 @@ extension Workspace: WorkspaceSource {
             + context.connections.flatMap { connection in
                 connection.notes.map { FeatureOnboarding.Note(about: connection.id, text: $0) }
             }
+        let latest = try await onboarding(steward: steward)
         return FeatureOnboarding(
             steps: state.steps.map {
                 FeatureOnboarding.Step(
                     key: $0.key, title: $0.title, done: $0.done, detail: $0.detail)
             },
-            summary: state.summary, notes: notes,
-            onboardedAt: try await onboarding(steward: steward)?.at)
+            summary: state.summary, notes: notes, onboardedAt: latest?.at,
+            records: latest?.records, notesAdded: latest?.notes)
     }
 
     func metricStatusList(steward: String, windows: Int) async throws -> [FeatureMetricStatus] {

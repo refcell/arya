@@ -97,6 +97,36 @@ struct MetricSeries: Hashable, Sendable {
 enum MetricText {
     static func value(_ value: Double) -> String { String(format: "%.2f", value) }
 
+    /// The one way a reading shows against its target (header, METRICS, portfolio, inspector):
+    /// "0.84", "12" for whole numbers of 10 or more. When the workspace says off target but the
+    /// reading rounds to the target, it gains decimals until the gap shows ("0.897" against
+    /// "0.90"), so the status never looks wrong.
+    static func reading(_ value: Double, target: Double?, offTarget: Bool) -> String {
+        var digits = 2
+        if offTarget, let target, value != target {
+            func ties(_ digits: Int) -> Bool {
+                let scale = pow(10, Double(digits))
+                return abs((value * scale).rounded() / scale - target) < 1e-9
+            }
+            while digits < 4, ties(digits) { digits += 1 }
+        }
+        return short(value, digits)
+    }
+
+    /// A target as `reading` prints its peers: "0.90", "12".
+    static func target(_ target: Double) -> String { short(target, 2) }
+
+    /// "0.897 / 0.90", "0.84", or "— / 0.90" before the first reading.
+    static func figure(_ value: Double?, target: Double?, offTarget: Bool) -> String {
+        let shown = value.map { reading($0, target: target, offTarget: offTarget) } ?? "—"
+        return shown + (target.map { " / \(Self.target($0))" } ?? "")
+    }
+
+    private static func short(_ value: Double, _ digits: Int) -> String {
+        value.rounded() == value && abs(value) >= 10
+            ? String(Int(value)) : String(format: "%.\(digits)f", value)
+    }
+
     /// "triaged_within_1h (ratio), target 0.95 or more".
     static func title(_ definition: MetricDefinition) -> String {
         var text = definition.name

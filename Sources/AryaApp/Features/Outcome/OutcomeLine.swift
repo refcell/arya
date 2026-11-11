@@ -77,10 +77,16 @@ struct OutcomeLineContent: View {
     private var line: some View {
         HStack(alignment: .center, spacing: AryaSpace.s4) {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                Text(state.latest.map(MetricText.value) ?? "—")
-                    .aryaText(AryaFont.metric, AryaColor.ink)
+                Text(
+                    state.latest.map {
+                        MetricText.reading(
+                            $0, target: state.metric?.target,
+                            offTarget: [.atRisk, .offTrack].contains(state.status))
+                    } ?? "—"
+                )
+                .aryaText(AryaFont.metric, AryaColor.ink)
                 if let target = state.metric?.target {
-                    Text("/ \(MetricText.value(target))")
+                    Text("/ \(MetricText.target(target))")
                         .aryaText(AryaFont.mono, AryaColor.inkFaint)
                 }
                 Text(state.metric?.name ?? "no metric")

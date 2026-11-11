@@ -69,6 +69,16 @@ struct OutcomePlan: Hashable, Sendable {
             removed: previous.map(\.title).filter { !now.contains($0) })
     }
 
+    /// Why the plan last changed, from runtime's `plan.updated` `reason`: "Re-planned Nov 7
+    /// after 2 setbacks: …" for a re-plan, else "Changed Nov 7: <the run's summary>".
+    static func changeLine(_ reason: String, when: String) -> String {
+        let replan = "Re-planned after "
+        if reason.hasPrefix(replan) {
+            return "Re-planned \(when) after " + reason.dropFirst(replan.count)
+        }
+        return "Changed \(when): \(reason)"
+    }
+
     /// Steps in the adapter protocol's shape (`text`, `rationale`, `pending | in_progress |
     /// done | skipped | blocked`) or the app's (`title`, `note`, `todo | doing | ...`).
     private static func parse(_ payload: FeatureJSON) -> [Step] {

@@ -30,6 +30,12 @@ struct OnboardingSteps: Hashable, Sendable {
 
     var canMarkReady: Bool { gate?.ready == true && rehearsal != nil && charterVersion != nil }
 
+    /// What onboarding read from past records first ("Read 412 past records → 18 notes."),
+    /// then the history step's own words.
+    static func learnDetail(_ line: String?, _ rest: String) -> String {
+        [line.map { $0 + "." }, rest.isEmpty ? nil : rest].compactMap { $0 }.joined(separator: " ")
+    }
+
     static func build(
         onboarding: FeatureOnboarding, gate: FeatureGoLiveGate?, events: [FeatureEvent],
         steward: String
@@ -57,10 +63,12 @@ struct OnboardingSteps: Hashable, Sendable {
                 done: read.allSatisfy(done)),
             Step(
                 stage: .learn, title: "Learn from past work",
-                detail: done("history") || bindings.isEmpty
-                    ? detail("history")
-                    : "Import past items from \(bindings.joined(separator: ", ")).",
-                done: done("history")),
+                detail: learnDetail(
+                    onboarding.historyLine,
+                    done("history") || bindings.isEmpty
+                        ? detail("history")
+                        : "Import past items from \(bindings.joined(separator: ", "))."),
+                done: done("history") || onboarding.historyLine != nil),
             Step(
                 stage: .review, title: "Review what it would have done", detail: detail("review"),
                 done: done("review")),

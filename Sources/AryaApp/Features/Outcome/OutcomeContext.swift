@@ -135,6 +135,14 @@ struct OutcomeKnowsSection: View {
     /// Notes shown before the rest fold into a count.
     var limit = 6
 
+    /// A note in words: refs as names ("person:lee" is "Lee"), and no subject when the text
+    /// already opens with it ("Lee prefers …").
+    static func shown(_ note: OutcomeContext.Line) -> (subject: String?, text: String) {
+        let subject = HumanText.name(note.key)
+        let text = HumanText.sentence(note.text)
+        return (text.hasPrefix(subject) ? nil : subject, text)
+    }
+
     var body: some View {
         if !notes.isEmpty {
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -144,9 +152,12 @@ struct OutcomeKnowsSection: View {
                     Text("\(notes.count)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 }
                 ForEach(notes.prefix(limit)) { note in
+                    let shown = Self.shown(note)
                     HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                        Text(note.key).aryaText(AryaFont.mono, AryaColor.ink)
-                        Text(note.text).aryaText(AryaFont.body, AryaColor.inkMuted)
+                        if let subject = shown.subject {
+                            Text(subject).aryaText(AryaFont.mono, AryaColor.ink)
+                        }
+                        Text(shown.text).aryaText(AryaFont.body, AryaColor.inkMuted)
                             .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(minHeight: AryaSize.rowHeight, alignment: .leading)

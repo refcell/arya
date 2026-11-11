@@ -222,3 +222,14 @@ private func log() -> [FeatureEvent] {
     #expect(runs?.values == [2, 0, 3, 1, 4, 2, 2])
     #expect(metrics.series.first { $0.name == "failed runs" }?.value == "1 / 7d")
 }
+
+/// A reading just under its target, which the workspace calls off target, shows the decimal
+/// that explains it ("0.897 / 0.90"); on target or clearly apart it stays at two.
+@Test func aReadingShowsTheDecimalThatExplainsItsStatus() {
+    #expect(MetricText.figure(0.897, target: 0.90, offTarget: true) == "0.897 / 0.90")
+    #expect(MetricText.figure(0.8996, target: 0.90, offTarget: true) == "0.8996 / 0.90")
+    #expect(MetricText.figure(0.902, target: 0.90, offTarget: false) == "0.90 / 0.90")
+    #expect(MetricText.figure(0.84, target: 0.90, offTarget: true) == "0.84 / 0.90")
+    #expect(MetricText.figure(nil, target: 0.90, offTarget: false) == "— / 0.90")
+    #expect(MetricText.reading(12, target: nil, offTarget: false) == "12")
+}

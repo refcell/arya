@@ -310,3 +310,27 @@ private func triage() -> OutcomeSnapshot {
     // Without reads the ledger estimate stands.
     #expect(state.applying(nil) == state)
 }
+
+/// PLAN says why it last changed in runtime's words; a re-plan reads as one ("Re-planned Nov 7
+/// after 2 setbacks: …"), not "Changed Nov 7: Re-planned after …".
+@Test func thePlanSaysWhyItChanged() {
+    #expect(
+        OutcomePlan.changeLine("Re-planned after 2 setbacks: Sent the refund note.", when: "Nov 7")
+            == "Re-planned Nov 7 after 2 setbacks: Sent the refund note.")
+    #expect(
+        OutcomePlan.changeLine("Labeled MSG-140.", when: "1h ago")
+            == "Changed 1h ago: Labeled MSG-140.")
+}
+
+/// KNOWS never shows a raw ref: "person:lee" reads "Lee", and a note that opens with its
+/// subject drops the subject column.
+@Test func knowsNotesReadInNames() {
+    let lee = OutcomeKnowsSection.shown(
+        OutcomeContext.Line(id: "n1", key: "person:lee", text: "Lee prefers chat."))
+    #expect(lee.subject == nil)
+    #expect(lee.text == "Lee prefers chat.")
+    let billing = OutcomeKnowsSection.shown(
+        OutcomeContext.Line(id: "n2", key: "billing", text: "Escalate to person:priya."))
+    #expect(billing.subject == "billing")
+    #expect(!billing.text.contains("person:"))
+}

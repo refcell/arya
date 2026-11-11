@@ -52,9 +52,9 @@ struct PortfolioRow: Identifiable, Equatable {
             let latest = series?.latest?.value
             var metric = "no metric"
             if let definition = series?.definition {
-                let value = latest.map(StatusMapping.metric) ?? "—"
-                let target = definition.target.map { " / \(StatusMapping.metric($0))" } ?? ""
-                metric = "\(value)\(target) \(definition.name)"
+                let figure = MetricText.figure(
+                    latest, target: definition.target, offTarget: series?.meetsTarget == false)
+                metric = "\(figure) \(definition.name)"
             }
             let sidebar = StatusMapping.SidebarRow(
                 steward, pending: waiting, latest: latest, target: series?.definition.target,

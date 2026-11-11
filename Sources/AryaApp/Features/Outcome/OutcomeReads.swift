@@ -88,6 +88,18 @@ struct FeatureOnboarding: Hashable, Sendable {
     var notes: [Note]
     /// When it last ran an onboard run, if ever.
     var onboardedAt: Date?
+    /// Past records the last onboard run summarized from `history` (nil when none were read),
+    /// and the notes it added.
+    var records: Int? = nil
+    var notesAdded: Int? = nil
+
+    /// "Read 412 past records → 18 notes", or nil before an onboard run read history.
+    var historyLine: String? {
+        guard let records, records > 0 else { return nil }
+        let read = "Read \(records) past record" + (records == 1 ? "" : "s")
+        guard let notesAdded else { return read }
+        return read + " → \(notesAdded) note" + (notesAdded == 1 ? "" : "s")
+    }
 
     func step(_ key: String) -> Step? { steps.first { $0.key == key } }
 }

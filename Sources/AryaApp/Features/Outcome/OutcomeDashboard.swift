@@ -154,9 +154,12 @@ struct OutcomeMetrics: Hashable, Sendable {
 
     /// "0.03 / ≤ 0.05", red when the guardrail is off track.
     static func guardrail(_ status: FeatureMetricStatus) -> OutcomeSeries {
-        let value = status.current.map(MetricText.value) ?? "—"
+        let off = status.status == "off_track"
+        let value =
+            status.current.map { MetricText.reading($0, target: status.target, offTarget: off) }
+            ?? "—"
         let bound = status.target.map {
-            " / \(status.direction == "down" ? "≤" : "≥") \(MetricText.value($0))"
+            " / \(status.direction == "down" ? "≤" : "≥") \(MetricText.target($0))"
         }
         return OutcomeSeries(
             name: status.name, value: value + (bound ?? ""), values: status.trend.compactMap { $0 },

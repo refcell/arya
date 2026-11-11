@@ -139,3 +139,19 @@ import Testing
     let charter = NewStewardPreview.charter(draft)
     #expect(charter["guardrailMetrics"]?.array?.first?["name"]?.string == "reopen_rate")
 }
+
+/// Onboarding says how much past work it read and what it kept, from runtime's onboard
+/// summary ("Read 412 past records → 18 notes"), ahead of the history step's own words.
+@Test func onboardingSaysHowManyPastRecordsItRead() {
+    var onboarding = FeatureOnboarding(steps: [], summary: "", notes: [], onboardedAt: nil)
+    #expect(onboarding.historyLine == nil)
+    onboarding.records = 412
+    onboarding.notesAdded = 18
+    #expect(onboarding.historyLine == "Read 412 past records → 18 notes")
+    #expect(
+        OnboardingSteps.learnDetail(onboarding.historyLine, "Imported 40 cases.")
+            == "Read 412 past records → 18 notes. Imported 40 cases.")
+    onboarding.records = 1
+    onboarding.notesAdded = nil
+    #expect(onboarding.historyLine == "Read 1 past record")
+}

@@ -37,8 +37,9 @@ struct StewardPulse: Equatable {
         let series = MetricSeries.build(events: events, steward: steward.id)
         var value = "—"
         if let definition = series?.definition {
-            let latest = series?.latest.map { StatusMapping.metric($0.value) } ?? "—"
-            value = latest + (definition.target.map { " / \(StatusMapping.metric($0))" } ?? "")
+            value = MetricText.figure(
+                series?.latest?.value, target: definition.target,
+                offTarget: series?.meetsTarget == false)
         }
         // Bars from workspace `runHistory` only: live top-level runs, rehearsals apart.
         let totals = history?.days.map(\.runs) ?? []
