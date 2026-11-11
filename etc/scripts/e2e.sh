@@ -292,6 +292,12 @@ check_editor_proposal() {
 check_readiness() {
   expect ready "$(get ready)" true && [ "$(get runsChecked)" -ge 1 ] ||
     { echo "    $(get summary)"; return 1; }
+  runs_checked=$(get runsChecked)
+}
+# A crew (parent and its child by delegation id) is one checked run, and stays ready.
+check_crew_readiness() {
+  expect ready "$(get ready)" true || { echo "    $(get summary)"; return 1; }
+  expect "runs checked" "$(get runsChecked)" "$((${runs_checked:-0} + 1))"
 }
 check_crew() {
   # In-run host/delegate: the child answers inside the parent run, so no join run follows.
@@ -481,6 +487,8 @@ step "it is ready to go live" improve live check_readiness readiness "${proposal
 step "MSG-203: a crew drafts the reply" crew live check_crew \
   run st_triage --input "New message MSG-203: Damaged order, please refund"
 step "the crew child only proposes" crew live check_child run show "${crew_child:-unknown}"
+step "readiness counts the crew once" crew improve check_crew_readiness \
+  readiness "${proposal_id:-unknown}"
 step "import inbox history: 24 new cases" history rehearsal check_history \
   history import st_triage --file "$example/history-export.json"
 step "rehearse with history: 28 of 33" history rehearsal check_history_rehearsal \
