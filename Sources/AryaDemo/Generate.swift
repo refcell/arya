@@ -144,6 +144,16 @@ struct GeneratedSteward {
             as? String ?? "inbox"
     }
 
+    /// `detail` inside a sentence: the first letter lowered unless the first word is an acronym
+    /// (`SSO`), and every later word as written, so "the CFO" never becomes "the cfo".
+    static func inSentence(_ detail: String) -> String {
+        let first = detail.prefix { !$0.isWhitespace }
+        guard let head = first.first, first.count < 2 || first != first.uppercased() else {
+            return detail
+        }
+        return head.lowercased() + detail.dropFirst()
+    }
+
     static func response(
         _ spec: StewardSpec, charter: [String: Any], number: Int, detail: String,
         value: Double, held: Bool, replanned: Bool = false, rng: inout SeededGenerator
@@ -165,7 +175,7 @@ struct GeneratedSteward {
             actions.append([
                 "id": "a2", "kind": ask, "binding": binding(spec, kind: ask, charter: charter),
                 "target": "\(spec.prefix.lowercased()):\(item)",
-                "params": ["text": "Drafted for \(item): \(detail.lowercased())."],
+                "params": ["text": "Drafted for \(item): \(Self.inSentence(detail))."],
                 "risk": "medium",
                 "why": "This reaches people outside the team, so a person signs off first.",
             ])
@@ -190,7 +200,7 @@ struct GeneratedSteward {
                 "costMicros": tokens * 3 + tokens / 6 * 15,
             ],
             "result": [
-                "summary": "\(item) (\(detail.lowercased())): \(choice).",
+                "summary": "\(item) (\(Self.inSentence(detail))): \(choice).",
                 "plan": [
                     [
                         "id": "p1", "text": "Work every new \(spec.prefix) item the day it arrives",
@@ -215,7 +225,7 @@ struct GeneratedSteward {
                         ] : []),
                 "decisions": [
                     [
-                        "id": "d1", "choice": choice, "rationale": detail.lowercased(),
+                        "id": "d1", "choice": choice, "rationale": Self.inSentence(detail),
                         "why": "\(detail) usually means \(choice).",
                     ]
                 ],
