@@ -102,7 +102,7 @@ import Testing
             store.learnedChecks[steward.id] = try? await store.workspace.learnedChecks(
                 steward: steward.id)
         }
-        // Improve at 1280 x 800 (the dead-space bar): its reads load first, as `.task` would.
+        // Improve at the pinned window size: its reads load first, as `.task` would.
         if let store = model.featureStore, Self.wanted("improve", file: "improve.png") {
             store.reviewQueues[steward.id] = try? await store.workspace.reviewQueue(
                 steward: steward.id)
@@ -114,10 +114,7 @@ import Testing
             navigation.select(steward: steward.id)
             navigation.tab = .improve
             model.navigation = navigation
-            let laptop = CGSize(width: 1280, height: 800)
-            try write(
-                "improve", scheme: scheme,
-                render(RootView(model: model), dark: dark, size: laptop))
+            try write("improve", scheme: scheme, render(RootView(model: model), dark: dark))
         }
         // Improve's proposals: one whose rehearsal regressed and one that passed (app-outcome).
         if let store = model.featureContext().store,
@@ -151,11 +148,13 @@ import Testing
         if let store = model.featureStore,
             let worked = try? await store.workspace.trajectories(steward: steward.id)
         {
-            let wide = CGSize(width: Self.size.width, height: 420)
+            // Every row (no "N more"), kinds beside choices, on a canvas the panel fills.
+            let wide = CGSize(width: Self.size.width, height: 300)
             try write(
                 "improve-trajectories", scheme: scheme,
                 render(
-                    Self.card(WhatWorkedPanel(trajectories: worked), wide), dark: dark, size: wide))
+                    Self.card(WhatWorkedPanel(trajectories: worked, limit: 12), wide),
+                    dark: dark, size: wide))
             if let gate = try? await store.workspace.goLiveGate(steward: steward.id) {
                 let short = CGSize(width: Self.size.width, height: 200)
                 try write(
@@ -515,8 +514,15 @@ import Testing
         let impact = try? await store.workspace.impact(steward: steward)
         let metrics = try? await store.workspace.metricStatuses(
             steward: steward, windows: OutcomeMetrics.seriesDays)
+        let missed: String?? =
+            if let read = try? await store.workspace.outcomeMissedText(steward: steward) {
+                .some(read)
+            } else {
+                nil
+            }
         store.outcomeReads[steward] = OutcomeReads(
-            live: live, findings: findings, impact: impact ?? nil, metrics: metrics)
+            live: live, findings: findings, impact: impact ?? nil, metrics: metrics,
+            missedText: missed)
     }
 
     /// The seeded demo home when `ARYA_SNAPSHOT_HOME` is set, else the fake workspace.
