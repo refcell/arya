@@ -17,23 +17,28 @@ enum HumanText {
         return capitalized(verb) + " the " + systemName(system)
     }
 
-    /// An action as a step: its verb and the kind of thing it touches ("Edit the routine",
-    /// "Label the message"), or whom it goes to when it has no kind ("Reply to Priya").
+    /// An action as a step, in the thread's words: its verb and what it touches by name
+    /// ("Label MSG-137", "Reply to Priya").
     static func step(kind: String, target: String) -> String {
-        let (name, system) = EntityName.split(target)
-        let verb = capitalized(RunTitle.verb(kind))
-        if let system { return verb + " the " + systemName(system) }
-        if name.isEmpty { return verb }
-        return verb + (ActionWords.isMessage(kind) ? " to " : " ") + name
+        let name = EntityName.plain(target)
+        return name.isEmpty ? stepVerb(kind) : stepVerb(kind) + " " + name
     }
 
-    /// `text` cut at the last word end that fits in `max` characters, with an ellipsis; never
-    /// mid-word unless the first word alone is too long.
+    /// An action's verb as the thread leads with it before the target: "Label", "Reply to".
+    static func stepVerb(_ kind: String) -> String {
+        capitalized(RunTitle.verb(kind)) + (ActionWords.isMessage(kind) ? " to" : "")
+    }
+
+    /// `text` cut at the last word end that fits in `max` characters, with an ellipsis; a path
+    /// or a hyphenated name may also end at a `/` or `-`. Never mid-word unless the first word
+    /// alone is too long.
     static func clip(_ text: String, max: Int) -> String {
         guard text.count > max, max > 1 else { return text }
         let head = text.prefix(max - 1)
-        if text[head.endIndex] == " " { return head + "…" }
-        guard let space = head.lastIndex(of: " "), space > head.startIndex else {
+        if " /-".contains(text[head.endIndex]) { return head + "…" }
+        guard let space = head.lastIndex(where: { " /-".contains($0) }),
+            space > head.startIndex
+        else {
             return head + "…"
         }
         return String(head[..<space]).trimmingCharacters(in: .punctuationCharacters) + "…"

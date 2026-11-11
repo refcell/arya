@@ -174,8 +174,12 @@ private struct ThreadLine: View {
         switch step.kind {
         case .toolCall(let call):
             MarkGlyph(mark: StreamStepText.mark(step.kind))
-            Text(call.tool).aryaText(AryaFont.mono, AryaColor.ink)
-            if let argument = RunThreadText.argument(call.input) {
+            let argument = RunThreadText.argument(call.input)
+            Text(HumanText.tool(call.tool) + (argument == nil ? "" : ":"))
+                .aryaText(AryaFont.mono, AryaColor.ink)
+                .lineLimit(1).fixedSize()
+                .help(call.tool)
+            if let argument {
                 Text(argument).aryaText(AryaFont.mono, AryaColor.inkMuted)
                     .lineLimit(1).truncationMode(.middle)
             }
@@ -187,7 +191,9 @@ private struct ThreadLine: View {
         case .action(let action):
             MarkGlyph(mark: StreamStepText.mark(step.kind))
             let refused = RunThreadText.failed(action)
-            Text(action.kind).aryaText(AryaFont.mono, refused ? AryaColor.negative : AryaColor.ink)
+            Text(HumanText.stepVerb(action.kind))
+                .aryaText(AryaFont.mono, refused ? AryaColor.negative : AryaColor.ink)
+                .help(action.kind)
             if !action.target.isEmpty {
                 EntityLabel(ref: action.target, color: refused ? AryaColor.negative : AryaColor.ink)
             }

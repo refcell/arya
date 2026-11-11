@@ -237,9 +237,10 @@ enum StreamStepText {
         case .thinking(let text): return text
         case .status(let state, let detail): return detail.isEmpty ? state : detail
         case .error(let message): return "Error: \(message)"
-        case .toolCall(let call): return call.tool
+        case .toolCall(let call): return HumanText.tool(call.tool)
         case .decision(_, let choice, _, _): return choice
-        case .action(let action): return "\(action.kind) \(EntityName.plain(action.target))"
+        case .action(let action):
+            return HumanText.stepVerb(action.kind) + " " + EntityName.plain(action.target)
         case .finished(let status, let summary): return summary.isEmpty ? status : summary
         case .failed(let reason): return "Run failed: \(reason)"
         case .delegated(let step): return "↳ " + CrewText.line(step)

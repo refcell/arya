@@ -583,14 +583,45 @@ import Testing
         {
             try await window("run-live-window", run: live, tab: nil)
         }
-        let routineRuns = Set(
-            store.events.filter { $0.type == "routine.proposed" }.compactMap(\.run))
-        if let diffRun = all.first(where: { routineRuns.contains($0.id) }) {
+        if let diffRun = Self.diffShowcase(all, events: store.events) {
             let stream = RunStream.build(events: store.events, run: diffRun.id)
             for diff in RunWork.build(stream: stream, events: store.events).diffs {
                 await store.loadRoutineDiff(diff)
             }
             try await window("run-diff-window", run: diffRun, tab: .diff)
+        }
+    }
+
+    /// The run the Diff window shows: real work (3+ steps) and 2+ hunks, one proposing a
+    /// routine when any does, then the most hunks and steps. The busy home must have one.
+    static func diffShowcase(_ runs: [RunSummary], events: [FeatureEvent]) -> RunSummary? {
+        let touched = Set(
+            events.filter { ["routine.proposed", "action.proposed"].contains($0.type) }
+                .compactMap(\.run))
+        let scored = runs.filter { touched.contains($0.id) && $0.status != .running }
+            .map { run -> (run: RunSummary, routine: Bool, hunks: Int, steps: Int) in
+                let stream = RunStream.build(events: events, run: run.id)
+                let diffs = RunWork.build(stream: stream, events: events).diffs
+                return (
+                    run, diffs.contains { $0.routine != nil }, diffHunks(diffs),
+                    RunThreadText.steps(stream.steps).count
+                )
+            }
+            .filter { $0.steps >= 3 && $0.hunks >= 2 }
+        let best = scored.max {
+            ($0.routine ? 1 : 0, $0.hunks, $0.steps) < ($1.routine ? 1 : 0, $1.hunks, $1.steps)
+        }
+        if ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_HOME"] != nil {
+            #expect(best != nil, "run-diff-window needs a run with 3+ steps and 2+ hunks")
+        }
+        return best?.run
+    }
+
+    /// Hunks across diffs: each `@@` header, and a routine (its text loads later) as one.
+    static func diffHunks(_ diffs: [WorkDiff]) -> Int {
+        diffs.reduce(0) { total, diff in
+            let headers = diff.text.split(separator: "\n").filter { $0.hasPrefix("@@") }.count
+            return total + max(1, headers)
         }
     }
 

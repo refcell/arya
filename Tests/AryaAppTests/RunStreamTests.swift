@@ -15,8 +15,8 @@ private func stream(_ run: String = PreviewFixtures.finishedRun) -> RunStream {
     let titles = run.steps.map { StreamStepText.title($0.kind) }
     #expect(
         titles == [
-            "Started by manual trigger", "Reading ISSUE-7.", "tracker.get", "bug",
-            "label ISSUE-7", "assign ISSUE-7",
+            "Started by manual trigger", "Reading ISSUE-7.", "Read the tracker", "bug",
+            "Label ISSUE-7", "Assign ISSUE-7",
             "Labeled ISSUE-7 and asked to assign it.",
         ])
     #expect(run.steps.map(\.number) == Array(1...7))

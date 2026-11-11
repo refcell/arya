@@ -374,11 +374,22 @@ import Testing
     #expect(HumanText.tool("inbox.search") == "Search the inbox")
     #expect(HumanText.tool("crm.get") == "Read the CRM")
     #expect(HumanText.tool("run_tests") == "Run tests")
-    #expect(HumanText.step(kind: "edit", target: "routine:refund-charges.sh") == "Edit the routine")
+    #expect(HumanText.step(kind: "label", target: "inbox:MSG-137") == "Label MSG-137")
     #expect(HumanText.step(kind: "reply", target: "person:priya") == "Reply to Priya")
     #expect(HumanText.clip("Search the inbox", max: 36) == "Search the inbox")
     #expect(
         HumanText.clip("Three similar teams bought the annual plan", max: 20)
             == "Three similar teams…")
     #expect(HumanText.clip("supercalifragilistic", max: 8) == "superca…")
+    #expect(
+        HumanText.clip("Edit: routines/flag-duplicate-charges.sh", max: 34)
+            == "Edit: routines/flag-duplicate…")
+}
+
+@Test func threadAndPlanNameStepsInTheSameWords() {
+    let call = ToolCallStep(
+        callID: "t1", tool: "crm.search", input: .null, output: nil, durationSeconds: nil)
+    #expect(StreamStepText.title(.toolCall(call)) == HumanText.tool("crm.search"))
+    #expect(HumanText.stepVerb("reply") == "Reply to")
+    #expect(HumanText.stepVerb("label") == "Label")
 }
