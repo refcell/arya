@@ -4,9 +4,10 @@ import SwiftUI
 
 /// Column widths of the Access lists, on the 4 pt grid.
 enum AccessLayout {
-    static let subject = AryaSpace.s7 * 5 + AryaSpace.s5
-    static let team = AryaSpace.s7 * 4 + AryaSpace.s3
+    static let subject = AryaSpace.s7 * 4 + AryaSpace.s3
     static let check = AryaSpace.s3
+    /// The Teams and Refused column beside Grants on the window page.
+    static let side = AryaSpace.s7 * 10
 }
 
 /// The tabs of Settings ▸ Access.
@@ -49,32 +50,10 @@ struct AccessSettingsView: View {
                 )
                 .padding(.bottom, AryaSpace.s3)
             }
-            TextTabBar(
-                tabs: [
-                    TextTab(
-                        id: AccessTab.grants, title: "Grants",
-                        count: model.overview?.grants.count ?? 0),
-                    TextTab(
-                        id: AccessTab.teams, title: "Teams", count: model.overview?.teams.count ?? 0
-                    ),
-                    TextTab(
-                        id: AccessTab.refused, title: "Refused",
-                        count: model.overview?.refusals.count ?? 0),
-                ], selection: $tab)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if let overview = model.overview {
-                        switch tab {
-                        case .grants: grants(overview)
-                        case .teams: TeamsList(overview: overview, source: source, model: model)
-                        case .refused: refusals(overview)
-                        }
-                    } else {
-                        Text("Loading access…").aryaText(AryaFont.body, AryaColor.inkMuted)
-                            .padding(.top, AryaSpace.s3)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if page, let overview = model.overview {
+                columns(overview)
+            } else {
+                tabbed
             }
         }
         .padding(.horizontal, page ? AryaSize.pagePadding : AryaSpace.s4)
@@ -91,6 +70,65 @@ struct AccessSettingsView: View {
         .task {
             if let source { await model.load(from: source) }
         }
+    }
+
+    /// Settings window: one list at a time under text tabs.
+    @ViewBuilder private var tabbed: some View {
+        TextTabBar(
+            tabs: [
+                TextTab(
+                    id: AccessTab.grants, title: "Grants",
+                    count: model.overview?.grants.count ?? 0),
+                TextTab(
+                    id: AccessTab.teams, title: "Teams", count: model.overview?.teams.count ?? 0
+                ),
+                TextTab(
+                    id: AccessTab.refused, title: "Refused",
+                    count: model.overview?.refusals.count ?? 0),
+            ], selection: $tab)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if let overview = model.overview {
+                    switch tab {
+                    case .grants: grants(overview)
+                    case .teams: TeamsList(overview: overview, source: source, model: model)
+                    case .refused: refusals(overview)
+                    }
+                } else {
+                    Text("Loading access…").aryaText(AryaFont.body, AryaColor.inkMuted)
+                        .padding(.top, AryaSpace.s3)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// The window page: Grants beside Teams and Refused, so every list shows at once.
+    private func columns(_ overview: AccessOverview) -> some View {
+        ScrollView {
+            HStack(alignment: .top, spacing: AryaSpace.s6) {
+                VStack(alignment: .leading, spacing: 0) {
+                    column("Grants", overview.grants.count)
+                    grants(overview)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 0) {
+                    TeamsList(overview: overview, source: source, model: model, titled: true)
+                    column("Refused", overview.refusals.count).padding(.top, AryaSpace.s4)
+                    refusals(overview)
+                }
+                .frame(width: AccessLayout.side, alignment: .leading)
+            }
+            .padding(.top, AryaSpace.s2)
+        }
+    }
+
+    private func column(_ title: String, _ count: Int) -> some View {
+        HStack(spacing: AryaSpace.s1) {
+            Text(title.uppercased()).aryaText(AryaFont.label, AryaColor.inkFaint)
+            Text("\(count)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+        }
+        .padding(.vertical, AryaSpace.s1)
     }
 
     private var header: some View {
@@ -206,13 +244,11 @@ struct AccessSettingsView: View {
                         .accessibilityLabel("Refused")
                     Text(AccessText.refusal(refusal, in: overview))
                         .aryaText(AryaFont.body, AryaColor.ink)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.leading, AryaSpace.s2)
-                    Spacer(minLength: AryaSpace.s2)
-                    if let steward = refusal.steward {
-                        Text(AccessText.steward(steward, in: overview))
-                            .aryaText(AryaFont.caption, AryaColor.inkFaint)
-                    }
+                        .padding(.vertical, AryaSpace.s1)
+                    Spacer(minLength: 0)
                 }
                 .help(HumanText.sentence(refusal.reason))
             }
@@ -314,13 +350,19 @@ struct TeamsList: View {
     let overview: AccessOverview
     let source: (any AccessSettingsSource)?
     let model: AccessModel
+    /// Shows "TEAMS n" before New team… (the window page has no tabs to count them).
+    var titled = false
     @AryaState private var editing: String?
     @AryaState private var name = ""
     @AryaState private var members: Set<String> = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            HStack(spacing: AryaSpace.s1) {
+                if titled {
+                    Text("TEAMS").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    Text("\(overview.teams.count)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
                 Spacer()
                 Button("New team…") { start(nil) }.buttonStyle(.aryaQuiet)
                     .disabled(source == nil || editing != nil)
@@ -337,17 +379,21 @@ struct TeamsList: View {
                     editor(team)
                 } else {
                     TableRowFrame {
-                        Text(team.name).aryaText(AryaFont.bodyStrong, AryaColor.ink)
-                            .frame(width: AccessLayout.team, alignment: .leading)
-                        Text(AccessText.list(team.members.map { AccessText.who($0) }))
-                            .aryaText(AryaFont.body, AryaColor.inkMuted)
-                            .lineLimit(1)
-                        Spacer(minLength: AryaSpace.s2)
-                        Text("\(team.members.count)").aryaText(
-                            AryaFont.monoSmall, AryaColor.inkFaint)
-                        Button("Edit") { start(team) }.buttonStyle(.aryaTertiary)
-                            .padding(.leading, AryaSpace.s2)
-                            .accessibilityLabel("Edit team \(team.name)")
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack(spacing: AryaSpace.s2) {
+                                Text(team.name).aryaText(AryaFont.bodyStrong, AryaColor.ink)
+                                Text("\(team.members.count)").aryaText(
+                                    AryaFont.monoSmall, AryaColor.inkFaint)
+                                Spacer(minLength: AryaSpace.s2)
+                                Button("Edit") { start(team) }.buttonStyle(.aryaTertiary)
+                                    .accessibilityLabel("Edit team \(team.name)")
+                            }
+                            Text(AccessText.list(team.members.map { AccessText.who($0) }))
+                                .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, AryaSpace.s1)
                     }
                 }
             }
@@ -450,6 +496,7 @@ struct FlowChecks: View {
 /// The inspector beside Access: what each level allows and who may change access.
 struct AccessInspector: View {
     let model: AccessModel
+    var now = Date()
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
@@ -467,6 +514,20 @@ struct AccessInspector: View {
                     Text("CAN CHANGE ACCESS").aryaText(AryaFont.label, AryaColor.inkFaint)
                     ForEach(AccessText.admins(overview), id: \.self) { name in
                         Text(name).aryaText(AryaFont.body, AryaColor.ink)
+                    }
+                }
+                if !overview.changes.isEmpty {
+                    VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                        Text("RECENT CHANGES").aryaText(AryaFont.label, AryaColor.inkFaint)
+                        ForEach(overview.changes, id: \.seq) { change in
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(AccessText.change(change, in: overview))
+                                    .aryaText(AryaFont.caption, AryaColor.ink)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Text(AccessText.byline(change.by, change.at, now: now))
+                                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                            }
+                        }
                     }
                 }
                 VStack(alignment: .leading, spacing: AryaSpace.s1) {

@@ -87,6 +87,8 @@ public struct AccessOverview: Sendable, Hashable, Codable {
     public var people: [String]
     public var resources: [AccessResource]
     public var lastChange: AccessChangeSummary?
+    /// The latest changes, newest first (at most 12), for the audit trail.
+    public var changes: [AccessChangeSummary] = []
 }
 
 extension Workspace {
@@ -126,7 +128,17 @@ extension Workspace {
         for grant in book.grants where grant.grant.subject.hasPrefix("person:") {
             person(grant.grant.subject)
         }
-        let last = book.changes.values.max { $0.seq < $1.seq }
+        let recent = book.changes.values.sorted { $0.seq > $1.seq }.prefix(12)
+        func summary(_ change: AccessChangeRecord) -> AccessChangeSummary {
+            AccessChangeSummary(
+                seq: change.seq, text: Self.describe(change), by: change.by, at: change.at.date,
+                undoable: change.undoneBy == nil && AccessAdmin.undo(change.seq, book: book) != nil,
+                kind: Self.changeKind(change), grant: Self.grantSummary(change),
+                team: change.team.map {
+                    AccessTeamSummary(id: $0.team, name: $0.name, members: $0.members)
+                },
+                undone: change.undoneBy != nil)
+        }
         return AccessOverview(
             enforced: !book.isEmpty,
             teams: teams.map { AccessTeamSummary(id: $0.team, name: $0.name, members: $0.members) },
@@ -143,16 +155,7 @@ extension Workspace {
                     reason: $0.refused.reason, resources: $0.refused.resources)
             },
             people: people.sorted(), resources: resources,
-            lastChange: last.map {
-                AccessChangeSummary(
-                    seq: $0.seq, text: Self.describe($0), by: $0.by, at: $0.at.date,
-                    undoable: $0.undoneBy == nil && AccessAdmin.undo($0.seq, book: book) != nil,
-                    kind: Self.changeKind($0), grant: Self.grantSummary($0),
-                    team: $0.team.map {
-                        AccessTeamSummary(id: $0.team, name: $0.name, members: $0.members)
-                    },
-                    undone: $0.undoneBy != nil)
-            })
+            lastChange: recent.first.map(summary), changes: recent.map(summary))
     }
 
     /// Grants `level` on `resource` to `subject` (`access.granted`, by `person`).

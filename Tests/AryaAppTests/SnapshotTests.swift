@@ -759,7 +759,8 @@ enum SnapshotSpace {
     static let pixels = (width: 2800, height: 2000)
     /// Component crops at their own size; they report no empty share.
     static let parts: Set<String> = [
-        "app-settings", "governance-settings", "improve-proposal-full", "improve-trajectories",
+        "access", "access-refusals", "app-settings", "governance-settings", "improve-proposal-full",
+        "improve-trajectories",
         "onboarding-gate",
         "governance-policy", "governance-retention", "governance-run-controls",
         "run-controls-dry-run",

@@ -153,6 +153,7 @@ import Testing
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try png.write(to: url)
+        SnapshotSpace.report(name, file: file, png: png, dir: dir)
     }
 
     private func render(
