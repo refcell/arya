@@ -366,6 +366,18 @@ check_refusal() {
   has_entry refusals action message.correct person person:sam ||
     { echo "    no recorded refusal of sam's correction"; return 1; }
 }
+check_last_revoked() {
+  expect change "$(get lastChange.kind)" revoked &&
+    expect subject "$(get lastChange.grant.subject)" person:priya &&
+    expect enforced "$(get enforced)" true
+}
+check_enforced_empty() {
+  expect enforced "$(get enforced)" true &&
+    expect "grants in force" "$(get grants.0.subject)" ""
+}
+check_enforcement_off() {
+  expect change "$(get lastChange.kind)" enforcement && expect enforced "$(get enforced)" false
+}
 check_access_undone() {
   has_entry grants subject person:sam level use || { echo "    sam has no use grant"; return 1; }
 }
@@ -609,8 +621,9 @@ step "only the opportunity stays open" findings live check_one_finding_open \
 step "templates: five examples to start from" templates setup check_templates template list
 step "start a steward from a template" templates setup check_from_template \
   template use lead_follow_up --id st_leads --owner person:priya
-# Access (M3.6 #13): with grants in force, a correction needs a use grant on the steward.
-# Priya's grant keeps access enforced once sam's is revoked; undo gives it back.
+# Access (M3.6 #13): with grants in force, a correction needs a use grant on the steward;
+# undo gives a revoked grant back. Enforcement fails closed (decision 0066): with the last grant
+# revoked every correction is refused, until `access enforce off`.
 step "access: priya may use triage" access setup check_granted \
   access grant use steward:st_triage person:priya --reason "runs the support desk"
 step "access: sam may use triage" access setup check_granted \
@@ -624,6 +637,16 @@ refused_step "without it, sam's correction is refused" access setup "has no use 
 step "the refusal is recorded" access setup check_refusal access list --refusals 5
 step "undo the revoke: sam may use triage" access setup check_access_undone \
   access undo "${access_revoke:-0}"
+step "revoke sam's grant again" access setup check_revoked \
+  access revoke use steward:st_triage person:sam
+step "revoke the last grant: priya's" access setup check_last_revoked \
+  access revoke use steward:st_triage person:priya
+refused_step "with none in force, it is refused" access setup "nobody holds one" \
+  message st_triage "Gift card refunds go to sales." --as person:priya --intent correct
+step "access list: still enforced" access setup check_enforced_empty access list
+step "enforce off: nothing is refused" access setup check_enforcement_off access enforce off
+step "with it off, a correction is kept" access setup check_message_kept \
+  message st_triage "Store credit questions go to billing." --as person:priya --intent correct
 step "verify the ledger" setup - check_verify ledger verify
 
 case "$state" in

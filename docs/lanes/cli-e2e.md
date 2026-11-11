@@ -169,8 +169,10 @@ M4:
 ## Log
 - 2026-11-11: access e2e (CEO, M3.6 #13): seven steps before the ledger verify (92 steps):
   grants to priya and sam, sam's correction kept, revoke, the correction refused (65) and
-  recorded as `access.refused`, undo restores the grant. Priya's grant keeps access enforced
-  (an empty grant book enforces nothing). ROADMAP #13 done: 16 done, 2 partial.
+  recorded as `access.refused`, undo restores the grant. ROADMAP #13 done: 16 done, 2 partial.
+- 2026-11-11: fail-closed access e2e (decision 0066, workspace's ask): six more steps (98):
+  revoke both grants, the last revoke stays enforced, a correction is refused ("nobody holds
+  one"), `access list` still enforced with no grants, `access enforce off`, a correction kept.
 - 2026-11-11: seed text and budgets (CEO): seeded sentences keep acronyms ("the CFO", c3bf3e59).
   After workspace's budget fix (201eb49e): `just e2e` ok (85 steps); a fresh busy seed has 1414
   runs, 37 failed, all `adapter_failed` (seeded on purpose), 0 `budget`; triage grades 460 runs.

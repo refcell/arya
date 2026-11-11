@@ -180,7 +180,8 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11:
     use and approve (2483d6af), Settings > Access (8018d0ad), and `arya access
     list|grant|revoke|team|undo` with message intents honoring grants (0ea50e55). e2e: a refused
     approver is recorded, the allowed one approves; grant, a correction passes, revoke, the
-    correction is refused and recorded, undo; verify the ledger.
+    correction is refused and recorded, undo; with the last grant revoked a correction is
+    still refused until `access enforce off`; verify the ledger.
 14. Sandboxed execution, encryption at rest, retention (governance). Done: the OS sandbox,
     encryption (d87306ce) and re-sealing older history (24284e8a), retention applied by
     archiving (ed96bb79), all in the app (6c940da4). e2e: retention, signed export and import.
