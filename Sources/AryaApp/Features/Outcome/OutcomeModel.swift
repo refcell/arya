@@ -241,6 +241,17 @@ struct OutcomeState: Hashable, Sendable {
     /// Measured days the status and FINDINGS look back over.
     static let recentDays = 5
 
+    /// The reason beside the status pill: the missed line when any day missed (why it is
+    /// recovering or at risk), else the clause after the metric in the workspace's status
+    /// line ("on track, improving."); nil while paused or unread.
+    var why: String? {
+        guard status != .paused else { return nil }
+        if let missedText { return missedText }
+        guard let reason else { return nil }
+        guard let colon = reason.range(of: ": ", options: .backwards) else { return reason }
+        return String(reason[colon.upperBound...])
+    }
+
     /// The workspace's `missed its target on 4 of the last 7 days` when read, else "missed 3
     /// of 5 days" from the ledger when any recent day missed.
     var missedText: String? {

@@ -80,16 +80,12 @@ struct OutcomeLineContent: View {
             }
             OutcomeStatusPill(status: state.status)
                 .help(state.reason ?? state.status.word)
-            if let reason = state.reason {
-                // Why the pill says what it says, verbatim from the workspace.
-                Text(reason).aryaText(AryaFont.caption, AryaColor.inkMuted)
-                    .lineLimit(1).truncationMode(.tail)
-                    .help(reason)
-                    .layoutPriority(-1)
-            }
-            if let missed = state.missedText, state.status != .paused {
-                Text(missed).aryaText(AryaFont.monoSmall, AryaColor.inkMuted).lineLimit(1)
-                    .help(missed)
+            if let why = state.why {
+                // Why the pill says what it says, in the workspace's words; wraps rather than
+                // cutting off.
+                Text(why).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    .help(state.reason ?? why)
             }
             if let owner {
                 Text("owned by \(owner)").aryaText(AryaFont.caption, AryaColor.inkMuted)

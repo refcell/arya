@@ -103,6 +103,9 @@ M3:
   CLI's `--choice` needs no JSON. Metrics are `OutcomeMetrics.series` in UTC-day windows.
 
 ## Questions
+- (from app-outcome) `ImpactSummary.summary` reads "... (high confidence). over the last 7
+  days": `Impact.swift` appends " over <period>" after the sentence's own period; please put
+  the period inside the sentence.
 
 - (from app-views) Step definition (review #18): the app counts a step with `RunThreadText.isStep`: each tool call, action (approval asks included), message, and delegation; decisions, thinking, status and the run end are not steps. Please make `visibleSteps` / `stepIndex` / `estimatedSteps` use the same rule so the header, brief and thread agree.
 - (from app-outcome) overviewFindings: (1) the missed-target line counts over the whole trend ("11 of the last 12") while the header status uses the last 5 measured days; please expose `missed`/`window` on stewardLive or outcome (or use 5) so status and FINDINGS share one window; (2) give regressed proposals kind `negative` (the app maps link proposal to red meanwhile) and say "N of M cases" rather than listing every case id.

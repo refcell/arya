@@ -301,10 +301,12 @@ private func triage() -> OutcomeSnapshot {
     #expect(state.status == OutcomeStatus.onTrack)
     #expect(state.reason == "reply_rate 0.90, target ≥ 0.90: on track, flat.")
     #expect(state.missedText == nil)
+    #expect(state.why == "on track, flat.")
     let missed = "missed its target on 4 of the last 7 days"
     let recovering = state.applying(OutcomeReads(metrics: [primary], missedText: .some(missed)))
     #expect(recovering.status == OutcomeStatus.recovering)
     #expect(recovering.missedText == missed)
+    #expect(recovering.why == missed)
     // Without reads the ledger estimate stands.
     #expect(state.applying(nil) == state)
 }
