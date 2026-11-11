@@ -436,6 +436,16 @@ import Testing
             .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
             .background(AryaColor.canvas)
         try write("run-short", scheme: scheme, render(short, dark: dark))
+        // A finished run checked later (app-views): resolved and reopened inline, a refused
+        // step in red with its reason.
+        let checkedStore = FeatureStore(
+            workspace: PreviewWorkspace(events: PreviewFixtures.checked(now: now), now: now),
+            now: now)
+        await checkedStore.reload()
+        let checked = RunStreamView(store: checkedStore, run: PreviewFixtures.checkedRun)
+            .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+            .background(AryaColor.canvas)
+        try write("run-checks", scheme: scheme, render(checked, dark: dark))
         let liveOutput = RunStreamView(
             store: liveStore, run: PreviewFixtures.inProgressRun, initialTab: .output
         )

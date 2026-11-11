@@ -146,9 +146,14 @@ struct RunWork: Hashable, Sendable {
         case .action(let action):
             var meta: [String] = []
             if let binding = action.binding { meta.append("via \(binding)") }
-            meta.append(ActionWords.outcome(action))
+            if action.refusal != nil, let note = RunThreadText.actionNote(action) {
+                meta.append(note)
+            } else {
+                meta.append(ActionWords.outcome(action))
+            }
+            if let check = action.check { meta.append(check.text(since: step.at)) }
             var sections: [WorkBlock.Section] = []
-            if action.params != [:] {
+            if action.params != [:], action.params != .null {
                 sections.append(.init(label: "params", text: action.params.prettyText))
             }
             if !action.rationale.isEmpty {

@@ -567,4 +567,79 @@ extension PreviewFixtures {
         }
         return log.events
     }
+
+    /// A finished run whose actions were checked later (app-views): one resolved after four
+    /// days, one reopened, and one step refused because the person it acts for has no use
+    /// grant on billing.
+    static let checkedRun = "run_checked"
+
+    static func checked(now: Date) -> [FeatureEvent] {
+        var log = FeatureEventBuilder(start: now.addingTimeInterval(-5 * 86_400))
+        let run = checkedRun
+        let system = FeatureActor(kind: .system, id: "arya")
+        log.add(
+            "run.started", run: run, after: 0,
+            [
+                "trigger": "message", "adapter": "fake-triage", "effort": "medium",
+                "input": "person:priya hands this to you: Refund ORDER-2210 and close ISSUE-31",
+            ])
+        log.add(
+            "run.tool.call", run: run, after: 1,
+            ["id": "t1", "tool": "tracker.get", "binding": "tracker", "input": ["id": "ISSUE-31"]])
+        log.add("run.tool.result", run: run, after: 1, ["id": "t1", "output": ["state": "open"]])
+        let actions: [(String, String, String, FeatureJSON)] = [
+            ("a1", "label", "tracker:ISSUE-31", ["label": "refund"]),
+            ("a2", "refund", "billing:ORDER-2210", ["amount": 48, "currency": "USD"]),
+            ("a3", "close", "tracker:ISSUE-31", .null),
+        ]
+        for (id, kind, target, params) in actions {
+            let binding = String(target.split(separator: ":").first ?? "")
+            log.add(
+                "action.proposed", run: run, actor: system, after: 1,
+                [
+                    "action": [
+                        "id": .string(id), "kind": .string(kind), "target": .string(target),
+                        "binding": .string(binding), "params": params,
+                    ],
+                    "disposition": "auto", "reason": "auto",
+                ])
+            if id == "a2" {
+                log.add(
+                    "action.rejected", run: run, actor: system, after: 0.2,
+                    ["action": "a2", "reason": "access:use"])
+                log.add(
+                    "finding.raised", run: run, actor: system, after: 0.1,
+                    [
+                        "finding": "access-a2", "kind": "problem", "needsPerson": true,
+                        "title": .string(
+                            "Access refused: person:priya has no use grant"
+                                + " for refund on billing"),
+                    ])
+            } else {
+                log.add(
+                    "action.executed", run: run, actor: system, after: 0.5,
+                    ["action": .string(id), "output": "done"])
+            }
+        }
+        log.add(
+            "run.finished", run: run, after: 1,
+            [
+                "status": "completed",
+                "summary": "Labeled and closed ISSUE-31; the refund was refused.",
+            ])
+        log.add(
+            "action.checked", run: run, actor: system, after: 2 * 86_400,
+            [
+                "action": "a3", "kind": "close", "binding": "tracker",
+                "target": "tracker:ISSUE-31", "attempt": 1, "status": "reopened",
+                "note": "Reopened by the customer.",
+            ])
+        log.add(
+            "action.checked", run: run, actor: system, after: 2 * 86_400,
+            [
+                "action": "a1", "kind": "label", "binding": "tracker",
+                "target": "tracker:ISSUE-31", "attempt": 2, "status": "resolved",
+            ])
+        return log.events
+    }
 }

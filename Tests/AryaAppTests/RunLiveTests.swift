@@ -307,3 +307,26 @@ import Testing
     #expect(runs.first?.steps == 5)
     #expect(runs.first?.meta.hasPrefix("5 steps · ") == true)
 }
+
+@Test func checksSettleActionsInlineAndRefusedStepsSayWhy() throws {
+    let events = PreviewFixtures.checked(now: FeatureTestClock.now)
+    let stream = RunStream.build(events: events, run: PreviewFixtures.checkedRun)
+    let actions = stream.steps.compactMap { step -> (StreamStep, ProposedActionStep)? in
+        if case .action(let action) = step.kind { return (step, action) }
+        return nil
+    }
+    try #require(actions.count == 3)
+    let (labelStep, label) = actions[0]
+    #expect(label.check?.text(since: labelStep.at) == "✓ resolved after 4 d")
+    let (closeStep, close) = actions[2]
+    #expect(close.check?.text(since: closeStep.at) == "✗ reopened after 2 d")
+    let refund = actions[1].1
+    #expect(RunThreadText.failed(refund))
+    #expect(
+        RunThreadText.actionNote(refund)
+            == "refused: Priya has no use grant for refund on billing")
+    let brief = RunBrief.build(stream: stream, events: events, expected: nil)
+    #expect(brief.plan.map(\.mark) == [.done, .done, .blocked, .done])
+    #expect(ActionCheck.span(90) == "1 min")
+    #expect(ActionCheck.span(5 * 3600) == "5 h")
+}

@@ -64,6 +64,11 @@ struct ProposedActionStep: Hashable, Sendable {
     var params: FeatureJSON = [:]
     /// Executed as a dry run (`action.executed` output `{dryRun: true}`): drafted, not applied.
     var dryRun = false
+    /// The latest follow-up check of an executed action (`action.checked`, runtime 0054).
+    var check: ActionCheck? = nil
+    /// Why the step was refused, in plain words: a missing use grant (`access:use`) or a
+    /// person without an approve grant (`approval.refused`).
+    var refusal: String? = nil
 
     /// The full content the action would write, for actions that carry text (a reply, a
     /// comment, a message), shown in full on its approval.
@@ -499,8 +504,44 @@ private struct RunStreamProjector {
             attachRoutine(p["action"]?.string, p["output"])
         case "action.rejected":
             update(p["action"]?.string, .rejected(rule: p["reason"]?.string ?? "policy: deny"))
+        case "action.checked":
+            guard let status = p["status"]?.string else { return }
+            // When arya looked (the event's time); the binding's own `at` is left to it.
+            let at = event.at
+            amend(p["action"]?.string) {
+                $0.check = ActionCheck(
+                    status: status.lowercased(), at: at,
+                    attempt: Int(p["attempt"]?.number ?? 1), note: p["note"]?.string)
+            }
+        case "finding.raised":
+            // A refused use raises a finding `access-<action>` (runtime bc85267f).
+            guard let id = p["finding"]?.string, id.hasPrefix("access-"),
+                let title = p["title"]?.string
+            else { return }
+            let reason = title.replacingOccurrences(of: "Access refused: ", with: "")
+            amend(String(id.dropFirst("access-".count))) {
+                $0.refusal = EntityName.humanize(reason)
+            }
+        case "approval.refused":
+            guard let approval = p["approval"]?.string else { return }
+            let who = EntityName.plain(p["by"]?.string ?? "local")
+            var reason = "\(who == "local" ? "You" : who) may not approve this"
+            if case .array(let people)? = p["people"], !people.isEmpty {
+                let names = people.compactMap(\.string).map(EntityName.plain)
+                reason += "; " + names.joined(separator: " or ") + " can"
+            }
+            if let note = p["note"]?.string, !note.isEmpty { reason += " (\(note))" }
+            amend(approvalAction[approval]) { $0.refusal = reason }
         default: break
         }
+    }
+
+    private mutating func amend(_ action: String?, _ change: (inout ProposedActionStep) -> Void) {
+        guard let action, let index = actionIndex[action],
+            case .action(var step) = steps[index].kind
+        else { return }
+        change(&step)
+        steps[index].kind = .action(step)
     }
 
     private mutating func update(_ action: String?, _ outcome: ActionOutcome, dryRun: Bool = false)
@@ -970,5 +1011,35 @@ enum RunTitle {
         let words = kind.replacingOccurrences(of: "_", with: " ")
             .replacingOccurrences(of: "-", with: " ").lowercased()
         return words.isEmpty ? "act" : words
+    }
+}
+
+/// A follow-up check of an executed action: how its target stood when arya looked again.
+struct ActionCheck: Hashable, Sendable {
+    /// `resolved`, `reopened`, `open`, `unknown`, or the binding's own word.
+    var status: String
+    var at: Date
+    var attempt: Int
+    var note: String?
+
+    /// Resolved and reopened settle the action; others are checked again.
+    var settled: Bool { ["resolved", "reopened"].contains(status) }
+
+    /// "✓ resolved after 4 d", "✗ reopened after 2 h", "checked 1×: open".
+    func text(since: Date) -> String {
+        let after = ActionCheck.span(at.timeIntervalSince(since))
+        switch status {
+        case "resolved": return "✓ resolved after \(after)"
+        case "reopened": return "✗ reopened after \(after)"
+        default: return "checked \(attempt)×: \(status)"
+        }
+    }
+
+    /// "12 min", "5 h", "4 d".
+    static func span(_ seconds: Double) -> String {
+        let seconds = max(0, seconds)
+        if seconds < 3600 { return "\(max(1, Int(seconds / 60))) min" }
+        if seconds < 86_400 { return "\(Int(seconds / 3600)) h" }
+        return "\(Int(seconds / 86_400)) d"
     }
 }

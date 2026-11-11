@@ -186,8 +186,11 @@ private struct ThreadLine: View {
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
         case .action(let action):
             MarkGlyph(mark: StreamStepText.mark(step.kind))
-            Text(action.kind).aryaText(AryaFont.mono, AryaColor.ink)
-            if !action.target.isEmpty { EntityLabel(ref: action.target) }
+            let refused = RunThreadText.failed(action)
+            Text(action.kind).aryaText(AryaFont.mono, refused ? AryaColor.negative : AryaColor.ink)
+            if !action.target.isEmpty {
+                EntityLabel(ref: action.target, color: refused ? AryaColor.negative : AryaColor.ink)
+            }
             if let result = RunThreadText.arrow(action.params).map(EntityName.humanize) {
                 Text("→ \(result)").aryaText(AryaFont.mono, AryaColor.inkMuted).lineLimit(1)
             }
@@ -195,6 +198,15 @@ private struct ThreadLine: View {
                 Text(note).aryaText(
                     AryaFont.monoSmall,
                     RunThreadText.failed(action) ? AryaColor.negative : AryaColor.inkFaint)
+            }
+            if let check = action.check {
+                Text(check.text(since: step.at)).aryaText(
+                    AryaFont.monoSmall,
+                    check.status == "resolved"
+                        ? AryaColor.positive
+                        : check.status == "reopened" ? AryaColor.negative : AryaColor.inkFaint
+                )
+                .help(check.note ?? "")
             }
             if ["ask", "deny"].contains(action.policy),
                 let policy = AryaPolicy(rawValue: action.policy)
@@ -337,6 +349,9 @@ struct InlineApproval: View {
                 }
                 Text(RunThreadText.approvalMeta(action)).aryaText(
                     AryaFont.monoSmall, AryaColor.inkFaint)
+                if let refusal = action.refusal {
+                    Text("Refused: \(refusal)").aryaText(AryaFont.caption, AryaColor.negative)
+                }
                 HStack(spacing: AryaSpace.s2) {
                     Spacer()
                     if let correct {
@@ -477,6 +492,7 @@ enum RunThreadText {
     }
 
     static func failed(_ action: ProposedActionStep) -> Bool {
+        if action.refusal != nil, !isAwaiting(action) { return true }
         switch action.outcome {
         case .failed, .rejected, .denied: return true
         default: return false
@@ -484,7 +500,13 @@ enum RunThreadText {
     }
 
     /// A short note after an action's line; nil when the mark says it all (it ran).
+    static func isAwaiting(_ action: ProposedActionStep) -> Bool {
+        if case .awaitingApproval = action.outcome { return true }
+        return false
+    }
+
     static func actionNote(_ action: ProposedActionStep) -> String? {
+        if let refusal = action.refusal, !isAwaiting(action) { return "refused: \(refusal)" }
         switch action.outcome {
         case .executed: return action.dryRun ? ActionWords.done(action) : nil
         case .proposed, .awaitingApproval: return nil
