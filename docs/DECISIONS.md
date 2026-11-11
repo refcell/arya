@@ -630,7 +630,9 @@ oldest live one before it fetches, rebases, runs `just ci`, and pushes; it remov
 on exit. A ticket whose process is gone, or untouched for 25 minutes (waiting lanes touch
 theirs on every 15 s poll), expires. While waiting it prints its position and who is
 publishing. Why: lanes polling for a free CI slot starved each other, and two lanes running
-`just ci` at once on one machine made both slow and their pushes race.
+`just ci` at once on one machine made both slow and their pushes race. Amended 2026-11-11:
+the ticket comes right after the cheap git checks, before `just fmt`, so a waiting lane does
+no heavy work at all; the demo seeder runs in a CI slot like a build (load reached 173).
 
 ### 0059 — 2026-11-10 — A new steward onboards from its connected systems
 

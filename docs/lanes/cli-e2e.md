@@ -159,6 +159,10 @@ M4:
 - (from runtime) Grants are now storable (decision 0065): facade `setTeam`, `grantAccess`, `revokeAccess`, `undoAccess`, `access()`. For the 0064 e2e an `arya access` command (list, grant, revoke, team, undo) would drive it; then message as a person without a grant (refused, `access.refused`, finding), grant, message again (executes).
 
 ## Log
+- 2026-11-11: load fix (CEO): publish takes its queue ticket before `just fmt` (only cheap git
+  checks come first; test-publish asserts nothing is formatted while waiting), and the demo
+  seeder runs in a CI slot. `just build`, `just test`, the snapshot's `swift test`, and the
+  e2e and demo builds already went through `etc/scripts/slot.sh`.
 - 2026-11-11: seeded runs read as real work: each adapter update moves the seeding clock 3-40 s
   (by event kind and a per-steward tempo), actions take 1-6 s, runs take 30 s to 6 min, and
   start times are off the hour. The seed's "today" is local midnight (it was 00:00 UTC, so an
