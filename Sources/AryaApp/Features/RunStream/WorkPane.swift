@@ -84,6 +84,8 @@ struct WorkPane: View {
     /// Log and output lines shown under the Tools and Diff blocks: enough to reach the pane's
     /// bottom on a 1000 pt window, so the pane ends in the run's latest lines, not blank.
     static let logTail = 30
+    /// The log's last lines under the Tools tab's output, which comes first.
+    static let toolsLogTail = 12
 
     private var tabs: some View {
         HStack(spacing: AryaSpace.s3) {
@@ -134,19 +136,20 @@ struct WorkPane: View {
                 }
                 .id(block.id)
             }
-            if !work.log.isEmpty {
-                // The log tails under the blocks, so the pane reads as a working session.
-                Text("LOG").aryaText(AryaFont.label, AryaColor.inkFaint)
-                    .padding(.top, AryaSpace.s3).padding(.bottom, AryaSpace.s1)
-                ForEach(work.log.suffix(WorkPane.logTail)) { WorkLineView(line: $0) }
-                if running && work.output.isEmpty { BlinkingCaret() }
-            }
             if !work.output.isEmpty {
-                // And what the adapter printed last, so one tab shows the whole session.
+                // What the adapter printed last, right under the blocks: the latest tool calls
+                // stay in view while the run goes.
                 Text("OUTPUT").aryaText(AryaFont.label, AryaColor.inkFaint)
                     .padding(.top, AryaSpace.s3).padding(.bottom, AryaSpace.s1)
                 ForEach(work.output.suffix(WorkPane.logTail)) { WorkLineView(line: $0) }
                 if running { BlinkingCaret() }
+            }
+            if !work.log.isEmpty {
+                // Then the log's last lines, so the pane reads as a working session.
+                Text("LOG").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    .padding(.top, AryaSpace.s3).padding(.bottom, AryaSpace.s1)
+                ForEach(work.log.suffix(WorkPane.toolsLogTail)) { WorkLineView(line: $0) }
+                if running && work.output.isEmpty { BlinkingCaret() }
             }
         case .diff:
             if work.diffs.isEmpty { empty("This run changed nothing.") }

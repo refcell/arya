@@ -80,3 +80,37 @@ import Testing
     let long = FeatureJSON.object(["text": .string(String(repeating: "a", count: 80))])
     #expect(RunWork.blockText(long).contains("\n"))
 }
+
+@Test func outputLeavesOutTheHandshakeAndKeepsTheLatestLines() {
+    func event(_ seq: Int, _ direction: String, _ message: FeatureJSON) -> FeatureEvent {
+        FeatureEvent(
+            seq: seq, id: "e\(seq)", at: FeatureTestClock.now, steward: "s", run: "r",
+            actor: .localUser, type: "run.adapter.event",
+            payload: ["direction": .string(direction), "message": message])
+    }
+    var events = [
+        event(1, "sent", ["id": 1, "method": "initialize", "params": ["v": 1]]),
+        event(2, "received", ["id": 1, "result": ["capabilities": ["tools": true]]]),
+        event(3, "sent", ["id": 2, "method": "run/start", "params": ["input": "x"]]),
+        event(4, "received", ["id": 2, "result": ["ok": true]]),
+        event(45, "sent", ["id": 3, "method": "run/cost", "params": ["session": "x"]]),
+        event(46, "received", ["id": 3, "result": ["costMicros": 40650]]),
+    ]
+    for n in 0..<40 {
+        events.append(
+            event(
+                5 + n, "received",
+                [
+                    "method": "run/event",
+                    "params": ["event": ["kind": "tool_call", "tool": .string("crm.get \(n)")]],
+                ]))
+    }
+    let lines = RunWork.outputLines(events, timeZone: TimeZone(identifier: "UTC")!)
+    #expect(lines.count == 40)
+    #expect(!lines.contains { $0.tag.contains("initialize") || $0.tag.contains("run/start") })
+    #expect(!lines.contains { $0.text.contains("capabilities") || $0.text.contains("ok") })
+    #expect(!lines.contains { $0.tag.contains("run/cost") || $0.text.contains("costMicros") })
+    let tail = lines.suffix(WorkPane.logTail)
+    #expect(tail.first?.text == "crm.get 10")
+    #expect(tail.last?.text == "crm.get 39")
+}

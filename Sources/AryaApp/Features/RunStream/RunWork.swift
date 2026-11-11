@@ -300,8 +300,16 @@ struct RunWork: Hashable, Sendable {
     /// The adapter's wire lines, and each live step's output as one growing line per stretch
     /// of chunks (`run.step.output`). With step records, the adapter's own `tool_output`
     /// notifications are left out, since the same text arrives as chunks.
+    /// The protocol handshake and cost polls: kept in LOG, left out of OUTPUT, so the output
+    /// shows the work.
+    static let handshake: Set<String> = [
+        "initialize", "initialized", "capabilities", "run/start", "run/cost", "shutdown", "exit",
+    ]
+
     static func outputLines(_ mine: [FeatureEvent], timeZone: TimeZone) -> [WorkLine] {
         let stepped = mine.contains { $0.type == "run.step.started" }
+        // Request ids of handshake calls, so their replies are left out too.
+        var handshakeIDs: Set<String> = []
         var tools: [String: String] = [:]
         var lines: [WorkLine] = []
         var open: String?
@@ -309,7 +317,14 @@ struct RunWork: Hashable, Sendable {
             let p = event.payload
             switch event.type {
             case "run.adapter.event":
-                let kind = p["message"]?["params"]?["event"]?["kind"]?.string
+                let message = p["message"] ?? .null
+                let id = message["id"].map(\.compactText)
+                if let method = message["method"]?.string, handshake.contains(method) {
+                    if let id { handshakeIDs.insert(id) }
+                    continue
+                }
+                if message["method"] == nil, let id, handshakeIDs.contains(id) { continue }
+                let kind = message["params"]?["event"]?["kind"]?.string
                 if stepped, kind == "tool_output" { continue }
                 lines.append(outputLine(event, timeZone: timeZone))
                 open = nil
