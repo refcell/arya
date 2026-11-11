@@ -436,3 +436,7 @@ M4:
   The run inspector lists the run's steps (up to 20, clock in the gutter) under its facts, as
   app-views asked; `NeedsYouRunSteps` takes a title and a limit.
 - Visual check (run): moves (2) no dead space, the inspector column reads as the run; run 46.
+- Published f8f59656 (run steps in the inspector). Review 26: the Needs you run link wrapped
+  to two lines and cut at a word ("Ran spot-duplicate-charges on ORDER-1218."); the button
+  label no-truncate rule had clipped it with no ellipsis.
+- Visual check (needs-you): moves (3) real controls, the run link reads whole; needs-you 58.

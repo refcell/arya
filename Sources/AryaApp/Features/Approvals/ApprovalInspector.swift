@@ -8,6 +8,8 @@ struct ApprovalInspector: View {
     @ObservedObject var store: FeatureStore
     var approval: String
     var openRun: ((String, String) -> Void)?
+    /// Characters of the run title the column shows on two lines.
+    static let runTitleLimit = 64
     /// Off where the approval block above already states the policy (Needs you detail).
     var showsPolicy = true
 
@@ -22,9 +24,19 @@ struct ApprovalInspector: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Run").aryaText(AryaFont.label, AryaColor.inkFaint)
                         if let openRun, let steward = facts.stewardID {
-                            Button(facts.runTitle) { openRun(run, steward) }
-                                .buttonStyle(.aryaTertiary)
-                                .help("Open this run's thread")
+                            // A long title wraps to two lines, cut at a word, never clipped.
+                            Button {
+                                openRun(run, steward)
+                            } label: {
+                                Text(AryaTrim.words(facts.runTitle, limit: Self.runTitleLimit))
+                                    .aryaText(AryaFont.body, AryaColor.ink)
+                                    .underline()
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Open this run's thread: \(facts.runTitle)")
                         } else {
                             Text(facts.runTitle).aryaText(AryaFont.body, AryaColor.ink)
                         }
