@@ -45,7 +45,10 @@ private func first(
     #expect(kinds.contains("decision"))
     #expect(update.steps.contains { $0.title == "Decided billing" })
     #expect(update.steps.contains { $0.kind == "action" && $0.title.hasPrefix("Proposed label") })
-    #expect(update.stepCount == update.steps.count)
+    // Steps are the rows the user sees: not the start, the end, or the decision.
+    #expect(update.stepCount == update.steps.filter(\.isVisible).count)
+    #expect(update.stepCount < update.steps.count)
+    #expect(update.steps.first { $0.kind == "decision" }?.isVisible == false)
     #expect(update.steps.first?.text == "Sort MSG-9")
 }
 
@@ -96,10 +99,13 @@ private func first(
     let live = try await workspace.liveRuns()
     #expect(live.map(\.run.id) == ["run_live"])
     let run = try #require(live.first)
-    #expect(run.stepCount == 1)
+    // Only the start so far: no visible step yet.
+    #expect(run.stepCount == 0)
     #expect(run.lastStep == "Started")
     let finished = try #require(await workspace.observe(run: done.id).first { _ in true })
-    #expect(run.progress == 1 / Double(finished.stepCount))
+    #expect(finished.stepCount > 0)
+    #expect(run.progress == 0)
+    #expect(run.estimatedSteps == finished.stepCount)
     #expect(run.stewardName == (try await workspace.stewards().first?.name))
 }
 

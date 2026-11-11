@@ -95,3 +95,27 @@ func busyDemoHomeRunBarsSumToRunsInThoseDays() async throws {
     }
     #expect(try await workspace.runHistory(timeZone: utc).total == fleet)
 }
+
+/// One step definition (CEO): on the busy home, `runFacts.stepIndex` equals the visible rows
+/// `observe(run:)` yields for the run's thread.
+@Test(.enabled(if: sharedDemoHome() != nil, "no shared seeded demo home in this clone"))
+func busyDemoHomeStepsAreTheVisibleThreadRows() async throws {
+    let seed = try #require(sharedDemoHome())
+    let home = FileManager.default.temporaryDirectory
+        .appendingPathComponent("arya-demo-\(UUID().uuidString)")
+    try FileManager.default.copyItem(at: seed, to: home)
+    defer { try? FileManager.default.removeItem(at: home) }
+    let workspace = try await Workspace.open(home: home)
+    let runs = try await workspace.runs().filter { $0.parent == nil }.prefix(6)
+    #expect(!runs.isEmpty)
+    for run in runs {
+        var rows = 0
+        for await update in workspace.observe(run: run.id) {
+            rows += update.steps.filter(\.isVisible).count
+        }
+        let facts = try #require(try await workspace.runFacts(run: run.id))
+        #expect(facts.stepIndex == rows, "\(run.id)")
+        #expect(try await workspace.visibleSteps(run: run.id) == rows)
+        if facts.status != "running" { #expect(facts.estimatedSteps == nil) }
+    }
+}

@@ -25,6 +25,43 @@ public struct LiveStep: Sendable, Hashable, Codable {
     /// True for a failing tool result, an error, or a failed run or action.
     public var isError: Bool
     public var time: Date
+    /// True when the step is a row the user sees in the run thread, and so counts as a step:
+    /// a tool call, a proposed action (approval asks included), or a message. Start and end,
+    /// thinking, tool output and results, status lines, and decisions are bookkeeping.
+    public var isVisible: Bool = false
+
+    private enum CodingKeys: String, CodingKey {
+        case seq, run, kind, title, text, tool, callID, isError, time, isVisible
+    }
+
+    init(
+        seq: Int, run: String, kind: String, title: String, text: String?, tool: String?,
+        callID: String?, isError: Bool, time: Date
+    ) {
+        self.seq = seq
+        self.run = run
+        self.kind = kind
+        self.title = title
+        self.text = text
+        self.tool = tool
+        self.callID = callID
+        self.isError = isError
+        self.time = time
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        seq = try c.decode(Int.self, forKey: .seq)
+        run = try c.decode(String.self, forKey: .run)
+        kind = try c.decode(String.self, forKey: .kind)
+        title = try c.decode(String.self, forKey: .title)
+        text = try c.decodeIfPresent(String.self, forKey: .text)
+        tool = try c.decodeIfPresent(String.self, forKey: .tool)
+        callID = try c.decodeIfPresent(String.self, forKey: .callID)
+        isError = try c.decode(Bool.self, forKey: .isError)
+        time = try c.decode(Date.self, forKey: .time)
+        isVisible = try c.decodeIfPresent(Bool.self, forKey: .isVisible) ?? false
+    }
 }
 
 /// What changed in one run since the previous update.
@@ -34,7 +71,7 @@ public struct LiveUpdate: Sendable, Hashable {
     public var status: RunSummary.Status
     /// The new steps, oldest first; the first update of a stream carries every step so far.
     public var steps: [LiveStep]
-    /// Steps so far in the run.
+    /// Steps so far in the run: rows the user sees (`LiveStep.isVisible`), as `runFacts`.
     public var stepCount: Int
     /// 0...1: steps so far against the steward's usual run length, capped at 0.95 while
     /// running and 1 once ended; nil without earlier finished runs to compare with.
@@ -58,6 +95,12 @@ public struct LiveRun: Sendable, Hashable {
 }
 
 extension Workspace {
+    /// Steps of a run: the rows the user sees in its thread (each tool call, proposed action,
+    /// and message), the one definition behind `runFacts.stepIndex`, `liveRuns`, and estimates.
+    public func visibleSteps(run: String) throws -> Int {
+        try facadeState().live.visibleSteps(run: RunID(unchecked: run))
+    }
+
     /// Runs in progress, oldest first.
     public func liveRuns(timeZone: TimeZone = .current) async throws -> [LiveRun] {
         let running = try await runs().filter { $0.status == .running }.reversed()
@@ -70,7 +113,7 @@ extension Workspace {
             let id = RunID(unchecked: run.id)
             return LiveRun(
                 run: run, stewardName: names[run.steward] ?? run.steward,
-                stepCount: tally.counts[id] ?? 0, lastStep: tally.lastTitle[id],
+                stepCount: tally.visibleSteps(run: id), lastStep: tally.lastTitle[id],
                 progress: tally.progress(run: id, steward: StewardID(unchecked: run.steward)),
                 started: TimeText(run.startedAt, now: now, timeZone: timeZone),
                 elapsedSeconds: max(0, now.timeIntervalSince(run.startedAt)),
@@ -119,7 +162,7 @@ extension Workspace {
                             LiveUpdate(
                                 run: run.rawValue, steward: steward.rawValue, status: status,
                                 steps: changed[run] ?? [],
-                                stepCount: tally.counts[run] ?? 0,
+                                stepCount: tally.visibleSteps(run: run),
                                 progress: tally.progress(run: run, steward: steward)))
                         if endsWithRun, status != .running { return true }
                     }
@@ -145,31 +188,38 @@ struct LiveTally: Sendable {
     private(set) var lastTitle: [RunID: String] = [:]
     private(set) var stewards: [RunID: StewardID] = [:]
     private(set) var status: [RunID: RunSummary.Status] = [:]
-    /// Step counts of ended runs, per steward, oldest first.
+    /// Visible step counts of ended runs, per steward, oldest first.
     private(set) var ended: [StewardID: [Int]] = [:]
+    /// The same, per steward and run kind (`trigger`, else `input.kind`): "st_x|manual".
+    private var endedByKind: [String: [Int]] = [:]
+    private var kinds: [RunID: String] = [:]
     /// Tool calls and results already shown, by "run:call": the adapter's wire record and the
     /// runtime's `run.step.*` events describe the same call, and only the first is shown.
     private var calls: Set<String> = []
     private var results: Set<String> = []
 
-    /// The median steps of the steward's last five ended runs, when any ended.
-    func usualSteps(steward: StewardID) -> Int? {
-        let recent = (ended[steward] ?? []).suffix(5).sorted()
+    /// Steps of `run` so far: rows the user sees in its thread (the one step definition).
+    func visibleSteps(run: RunID) -> Int { counts[run] ?? 0 }
+
+    /// The median visible steps of the steward's last five ended runs of `run`'s kind, else of
+    /// any kind, when any ended.
+    func usualSteps(steward: StewardID, run: RunID? = nil) -> Int? {
+        let byKind = run.flatMap { kinds[$0] }.flatMap { endedByKind["\(steward.rawValue)|\($0)"] }
+        let recent = (byKind ?? ended[steward] ?? []).suffix(5).sorted()
         return recent.isEmpty ? nil : max(1, recent[recent.count / 2])
     }
 
-    /// Steps so far against the steward's usual run length.
     /// The step estimate a screen shows: none once the run ended (it shows steps done), and
     /// while it runs never below the steps it already took.
     func estimate(run: RunID, steward: StewardID) -> Int? {
         guard (status[run] ?? .running) == .running else { return nil }
-        return usualSteps(steward: steward).map { max($0, counts[run] ?? 0) }
+        return usualSteps(steward: steward, run: run).map { max($0, counts[run] ?? 0) }
     }
 
     func progress(run: RunID, steward: StewardID) -> Double? {
         let state = status[run] ?? .running
         if state != .running { return 1 }
-        guard let usual = usualSteps(steward: steward) else { return nil }
+        guard let usual = usualSteps(steward: steward, run: run) else { return nil }
         return min(0.95, Double(counts[run] ?? 0) / Double(usual))
     }
 
@@ -177,6 +227,12 @@ struct LiveTally: Sendable {
     mutating func add(_ event: Event) -> [LiveStep] {
         guard let run = event.run else { return [] }
         if let steward = event.steward { stewards[run] = steward }
+        if event.type.rawValue == RunEventType.started {
+            let payload = event.payload
+            kinds[run] =
+                payload["trigger"]?.stringValue ?? payload["input"]?["kind"]?.stringValue
+                ?? "manual"
+        }
         let made = Self.steps(event, run: run).filter { step in
             guard let call = step.callID.map({ "\(run.rawValue):\($0)" }) else { return true }
             switch step.kind {
@@ -188,13 +244,16 @@ struct LiveTally: Sendable {
         }
         guard let newest = made.last else { return [] }
         if keepSteps { steps[run, default: []] += made }
-        counts[run, default: 0] += made.count
+        counts[run, default: 0] += made.filter(\.isVisible).count
         lastTitle[run] = newest.title
         let type = event.type.rawValue
         if type == RunEventType.finished || type == RunEventType.failed {
             status[run] = type == RunEventType.finished ? .finished : .failed
             if let steward = stewards[run] {
                 ended[steward, default: []].append(counts[run] ?? 0)
+                if let kind = kinds[run] {
+                    endedByKind["\(steward.rawValue)|\(kind)", default: []].append(counts[run] ?? 0)
+                }
             }
         } else if status[run] == nil {
             status[run] = .running
@@ -203,6 +262,15 @@ struct LiveTally: Sendable {
     }
 
     static func steps(_ event: Event, run: RunID) -> [LiveStep] {
+        let proposed = event.type.rawValue == ActionEventType.proposed
+        return rawSteps(event, run: run).map { step in
+            var step = step
+            step.isVisible = step.kind == "tool_call" || step.kind == "message" || proposed
+            return step
+        }
+    }
+
+    private static func rawSteps(_ event: Event, run: RunID) -> [LiveStep] {
         let payload = event.payload
         func step(
             _ kind: String, _ title: String, text: String? = nil, tool: String? = nil,
