@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Make .build/demo-home current for `just snapshot`: reseed it when it is missing, on a new
 # day (its history is relative to today), or when any seed input (etc/examples/**,
-# etc/scripts/demo.sh, Sources/AryaDemo/**) changed since it was seeded, else reuse it. The
-# seed stamp is a hash of those inputs and the date, kept in the home.
+# etc/scripts/demo.sh, Sources/AryaDemo/**, Sources/Arya/Seeding.swift) changed since it was
+# seeded, else reuse it. The seed stamp is a hash of those inputs and the date, kept in the home.
 #
 # Worktrees of one clone share seeded homes: a fresh seed is copied to
 # <git common dir>/arya-demo-homes/<stamp>, and a worktree with the same stamp copies it from
@@ -13,8 +13,9 @@ cd "$(git rev-parse --show-toplevel)"
 
 home=.build/demo-home
 stamp="$home/.seed"
-want=$({ date -u +%F; find etc/scripts/demo.sh etc/examples Sources/AryaDemo -type f -print0 |
-  sort -z | xargs -0 shasum -a 256; } | shasum -a 256 | cut -d' ' -f1)
+want=$({ date +%F; find etc/scripts/demo.sh etc/examples Sources/AryaDemo \
+  Sources/Arya/Seeding.swift -type f -print0 | sort -z | xargs -0 shasum -a 256; } |
+  shasum -a 256 | cut -d' ' -f1)
 if [ -d "$home" ] && [ "$(cat "$stamp" 2>/dev/null)" = "$want" ]; then
   echo "demo home: reused (current)"
   exit 0

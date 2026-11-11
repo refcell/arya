@@ -19,7 +19,7 @@ struct GeneratedSteward {
     /// The adapter name the charter uses and the script is served under.
     var adapter: String { "demo-\(spec.id.dropFirst(3))" }
 
-    /// Builds it. `today` is 00:00 UTC of the day the demo is seeded, in milliseconds.
+    /// Builds it. `today` is local midnight of the day the demo is seeded, in milliseconds.
     init(_ spec: StewardSpec, templates: URL, today: Int64, rng: inout SeededGenerator)
         throws
     {
@@ -46,7 +46,8 @@ struct GeneratedSteward {
                 let input = "\(spec.prefix)-\(number): \(detail)"
                 let hour = 8 + (slot * 10 / max(count, 1)) + Int.random(in: 0...1, using: &rng)
                 let minute = Int.random(in: 0...59, using: &rng)
-                let at = dayStart + Int64(hour * 3600 + minute * 60) * 1000
+                let second = (number * 17 + slot * 7) % 60
+                let at = dayStart + Int64(hour * 3600 + minute * 60 + second) * 1000
                 let f = (total - Double(day)) / total
                 let noise = Double(Int.random(in: -40...40, using: &rng)) / 1000
                 let dip = badWeek ? 0.14 : 0

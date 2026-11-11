@@ -119,3 +119,22 @@ func busyDemoHomeStepsAreTheVisibleThreadRows() async throws {
         if facts.status != "running" { #expect(facts.estimatedSteps == nil) }
     }
 }
+
+/// On the busy demo home, every active steward has live runs (not just rehearsals) on at least
+/// five of the last seven local days, so RUNS 7D reads as weeks of work, not one burst today.
+@Test(.enabled(if: sharedDemoHome() != nil, "no shared seeded demo home in this clone"))
+func busyDemoHomeHasRunsOnMostOfTheLastWeek() async throws {
+    let seed = try #require(sharedDemoHome())
+    let home = FileManager.default.temporaryDirectory
+        .appendingPathComponent("arya-demo-\(UUID().uuidString)")
+    try FileManager.default.copyItem(at: seed, to: home)
+    defer { try? FileManager.default.removeItem(at: home) }
+    let workspace = try await Workspace.open(home: home)
+    // A paused steward does not run, so only the active ones are held to it.
+    for steward in try await workspace.stewards() where steward.status == .active {
+        let history = try await workspace.runHistory(steward: steward.id)
+        let busy = history.days.filter { $0.runs > 0 }.count
+        #expect(busy >= 5, "\(steward.id): runs on \(busy) of 7 days (\(history.line))")
+        #expect(history.today < history.total, "\(steward.id): every run is today")
+    }
+}

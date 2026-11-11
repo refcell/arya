@@ -39,9 +39,19 @@ struct DemoSeeder {
     var paceMillis: Int? = nil
 
     private var nowMillis: Int64 { Int64((now.timeIntervalSince1970 * 1000).rounded(.down)) }
-    private var today: Int64 { nowMillis - nowMillis % 86_400_000 }
+    /// Local midnight of the seeding day, so "N days ago at 9" is a local day and hour, and a
+    /// seed made in the evening does not move the history into tomorrow (00:00 UTC).
+    private var today: Int64 {
+        let now = Date(timeIntervalSince1970: Double(nowMillis) / 1000)
+        return Int64(Calendar.current.startOfDay(for: now).timeIntervalSince1970 * 1000)
+    }
     private func at(daysAgo: Int, hour: Double) -> Int64 {
         today - Int64(daysAgo) * 86_400_000 + Int64(hour * 3_600_000)
+    }
+
+    /// A stable 0-59 min, 0-59 s offset, so example runs do not start on the hour.
+    private func spread(_ index: Int) -> Int64 {
+        Int64((index * 37) % 60) * 60_000 + Int64((index * 23 + 11) % 60) * 1000
     }
 
     /// Seeds the home and says what it holds.
@@ -121,7 +131,7 @@ struct DemoSeeder {
             let day = 29 - index
             steps.append(
                 (
-                    at(daysAgo: day, hour: Double(8 + day % 5)),
+                    at(daysAgo: day, hour: Double(8 + day % 5)) + spread(index),
                     .run(steward: "st_triage", input: message)
                 ))
         }
@@ -132,11 +142,15 @@ struct DemoSeeder {
         for (folder, steward, hour) in [
             ("refunds", "st_refunds", 13.5), ("digest", "st_digest", 7.5),
         ] {
-            for line in try lines(examples.appendingPathComponent("\(folder)/history.txt")) {
+            let history = try lines(examples.appendingPathComponent("\(folder)/history.txt"))
+            for (index, line) in history.enumerated() {
                 let parts = line.split(separator: "\t", maxSplits: 1).map(String.init)
                 guard parts.count == 2, let days = Int(parts[0]) else { continue }
                 steps.append(
-                    (at(daysAgo: days, hour: hour), .run(steward: steward, input: parts[1])))
+                    (
+                        at(daysAgo: days, hour: hour) + spread(index) * 3,
+                        .run(steward: steward, input: parts[1])
+                    ))
             }
         }
         steps.append((at(daysAgo: 2, hour: 16), .pause(steward: "st_digest")))
@@ -310,8 +324,16 @@ struct DemoSeeder {
     }
 
     /// Steps up to now, in time order; equal times keep their order.
+    /// Sorted by time, with steps scheduled on the hour or half hour moved a stable 0-19 min
+    /// later, so runs that messages and reports start do not read as clockwork.
     private func sorted(_ steps: [(Int64, DemoStep)]) -> [(Int64, DemoStep)] {
-        steps.filter { $0.0 <= nowMillis }.enumerated()
+        steps.enumerated()
+            .map { index, step in
+                guard step.0 % 1_800_000 == 0 else { return step }
+                let offset = Int64((index * 7) % 20) * 60_000 + Int64((index * 13 + 5) % 60) * 1000
+                return (step.0 + offset, step.1)
+            }
+            .filter { $0.0 <= nowMillis }.enumerated()
             .sorted {
                 $0.element.0 != $1.element.0 ? $0.element.0 < $1.element.0 : $0.offset < $1.offset
             }
