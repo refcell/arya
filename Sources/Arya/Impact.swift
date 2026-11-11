@@ -263,15 +263,18 @@ extension Workspace {
                         + "the oldest since \(since)",
                     link: .init(kind: "approval", id: oldest.id)))
         }
-        let week = now.addingTimeInterval(-7 * 86_400)
-        let failed = try await runs(steward: steward).filter {
-            $0.status == .failed && ($0.endedAt ?? $0.startedAt) >= week
+        // The same count as RUNS 7 DAYS (`runHistory`): live top-level runs, not rehearsals.
+        let history = try await runHistory(steward: steward, timeZone: timeZone)
+        let since = history.days.first?.start ?? now
+        let newest = try await runs(steward: steward).first {
+            $0.status == .failed && $0.parent == nil && $0.trigger != "case"
+                && $0.startedAt >= since
         }
-        if let newest = failed.first {
+        if history.failed > 0, let newest {
             out.append(
                 OverviewFinding(
                     kind: "negative",
-                    text: "\(failed.count) \(failed.count == 1 ? "run" : "runs") failed this week",
+                    text: "\(Self.count(history.failed, "run", "runs")) failed this week",
                     link: .init(kind: "run", id: newest.id)))
         }
         for event in try facadeState().bySteward[record.id] ?? []

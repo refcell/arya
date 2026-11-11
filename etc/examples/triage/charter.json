@@ -169,7 +169,7 @@
   "limits": {
     "maxTurns": 10,
     "timeoutSeconds": 60,
-    "maxCostMicros": 0
+    "maxCostMicros": 2000000
   },
   "scorer": {
     "kind": "exact",

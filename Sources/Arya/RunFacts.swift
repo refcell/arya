@@ -39,6 +39,10 @@ public struct RunFacts: Sendable, Hashable, Codable {
     public var progress: Double?
     /// True when the run drafted actions and applied none.
     public var dryRun: Bool
+    /// Spend in micro-dollars: the run's recorded cost once it ended; while running, the cost
+    /// so far (the adapter's latest `run/cost` answer, polled after each assistant turn), or
+    /// nil before the first answer.
+    public var costMicros: Int? = nil
 }
 
 /// What a steward is doing now, for NOW, the inspector's RUNNING, and SCHEDULE.
@@ -94,8 +98,14 @@ extension Workspace {
         var drafted = 0
         var failed = 0
         var decisions = 0
+        var costSoFar: Int?
         for event in state.byRun[record.id] ?? [] {
             switch event.type.rawValue {
+            case EventType.runAdapterEvent.rawValue:
+                guard event.payload["direction"]?.stringValue == "received",
+                    let micros = event.payload["message"]?["result"]?["costMicros"]?.intValue
+                else { continue }
+                costSoFar = Int(micros)
             case ActionEventType.proposed: proposed += 1
             case ActionEventType.executed:
                 if event.payload["dryRun"] == true { drafted += 1 } else { applied += 1 }
@@ -120,6 +130,7 @@ extension Workspace {
             stepIndex: state.live.visibleSteps(run: record.id),
             estimatedSteps: state.live.estimate(run: record.id, steward: record.steward),
             progress: state.live.progress(run: record.id, steward: record.steward),
-            dryRun: drafted > 0 && applied == 0)
+            dryRun: drafted > 0 && applied == 0,
+            costMicros: end == nil ? costSoFar : summary.costMicros)
     }
 }

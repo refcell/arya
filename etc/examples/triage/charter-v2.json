@@ -52,7 +52,7 @@
   ],
   "id": "st_triage",
   "limits": {
-    "maxCostMicros": 0,
+    "maxCostMicros": 2000000,
     "maxTurns": 10,
     "timeoutSeconds": 60
   },

@@ -332,3 +332,40 @@ private func first(
     try await add("run_proxy", StepEventType.started.rawValue, ["step": "c9", "tool": "search"])
     #expect(try await workspace.runFacts(run: "run_proxy")?.toolCalls == 1)
 }
+
+@Test func runningRunsShowTheirCostSoFar() async throws {
+    let opened = try await Opened([
+        FakeScript.Run(result: liveResult, cost: CostResult(costMicros: 4_200))
+    ])
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try inboxCharterJSON())
+    let done = try await workspace.startRun(steward: "st_inbox", input: "First")
+    #expect(try await workspace.runFacts(run: done.id)?.costMicros == 4_200)
+
+    var started: Event?
+    try workspace.reader.forEach { event in
+        if event.run?.rawValue == done.id, event.type.rawValue == RunEventType.started {
+            started = event
+        }
+    }
+    let start = try #require(started)
+    let live = RunID(unchecked: "run_paid")
+    _ = try await workspace.sink.append(
+        RuntimeEventDraft(
+            type: RunEventType.started, steward: start.steward, run: live,
+            actor: .localUser, payload: start.payload))
+    #expect(try await workspace.runFacts(run: live.rawValue)?.costMicros == nil)
+    for micros in [900, 2_500] {
+        _ = try await workspace.sink.append(
+            RuntimeEventDraft(
+                type: EventType.runAdapterEvent.rawValue, steward: start.steward, run: live,
+                actor: .localUser,
+                payload: [
+                    "direction": "received",
+                    "message": [
+                        "jsonrpc": "2.0", "id": 7, "result": ["costMicros": .int(Int64(micros))],
+                    ],
+                ]))
+    }
+    #expect(try await workspace.runFacts(run: live.rawValue)?.costMicros == 2_500)
+}

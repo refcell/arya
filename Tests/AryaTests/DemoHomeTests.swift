@@ -198,6 +198,41 @@ private func currentDemoSeed() -> URL? {
         #expect(lead > 0, "the live steward spent nothing today")
     }
 
+    /// Every active steward on the busy demo home reads like real work (review VC42): its
+    /// outcome has data, its primary metric has at least five daily readings in the last week,
+    /// and at most two of its live runs failed in the last seven days (the seeded bad week is
+    /// three weeks back). A seed whose runs fail (a charter limit, a broken script) trips it.
+    @Test func busyDemoHomeOutcomesHaveReadingsAndFewFailures() async throws {
+        guard let seed = currentDemoSeed() else {
+            print("busy demo home: no seed from today's inputs yet; just snapshot to check")
+            return
+        }
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent("arya-demo-\(UUID().uuidString)")
+        try FileManager.default.copyItem(at: seed, to: home)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let workspace = try await Workspace.open(home: home)
+        for steward in try await workspace.stewards() where steward.status == .active {
+            let outcome = try await workspace.outcome(steward: steward.id, windows: 7)
+            #expect(outcome.status != .noData, "\(steward.id): no data")
+            // Refunds and digest follow their history files' cadence (every two to three days).
+            let readings = outcome.trend.filter { $0.value != nil }.count
+            let sparse = ["st_refunds", "st_digest"].contains(steward.id)
+            #expect(readings >= (sparse ? 2 : 5), "\(steward.id): \(readings) daily readings of 7")
+            let history = try await workspace.runHistory(steward: steward.id)
+            #expect(history.failed <= 2, "\(steward.id): \(history.line)")
+            let overBudget = try await workspace.runs(steward: steward.id)
+                .filter { $0.failureReason == "budget" }.count
+            #expect(overBudget == 0, "\(steward.id): \(overBudget) runs failed on budget")
+            let findings = try await workspace.overviewFindings(steward: steward.id)
+            for finding in findings where finding.text.hasSuffix("failed this week") {
+                #expect(
+                    finding.text.hasPrefix("\(history.failed) "),
+                    "\(finding.text) vs \(history.line)")
+            }
+        }
+    }
+
     /// A copy of the shared seed whose adapter profiles point at the copy and this build's fake
     /// adapter, so it can run like `just snapshot`'s home; nil without a seed or the adapter.
     private func runnableDemoHome() throws -> URL? {
