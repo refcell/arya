@@ -143,30 +143,22 @@ enum ReviewText {
     /// "history history-export.json item MSG-120 by person:sam at 2026-10-09T09:00:00Z,
     /// reopened: Rerouted…" reads "MSG-120 · Sam · Oct 9 · reopened: Rerouted…".
     static func source(_ text: String, now: Date) -> String {
+        // Only the workspace's `… by <who> at <timestamp>` shape is rewritten; anything else
+        // shows as written.
+        guard let by = text.range(of: " by "),
+            let at = text.range(of: " at ", range: by.upperBound..<text.endIndex)
+        else { return text }
+        let after = text[at.upperBound...]
+        let stamp = after.prefix { !$0.isWhitespace && $0 != "," }
+        guard let date = AryaTime.parse(iso: String(stamp)) else { return text }
+        let who = String(text[by.upperBound..<at.lowerBound])
         var parts: [String] = []
-        var rest = Substring(text)
-        if let item = rest.range(of: " item ") {
-            let after = rest[item.upperBound...]
-            let id = after.prefix { !$0.isWhitespace && $0 != "," }
-            parts.append(String(id))
-            rest = after.dropFirst(id.count)
+        if let item = text.range(of: " item ", range: text.startIndex..<by.lowerBound) {
+            parts.append(String(text[item.upperBound..<by.lowerBound]))
         }
-        if let by = rest.range(of: " by ") {
-            let after = rest[by.upperBound...]
-            let who = after.prefix { !$0.isWhitespace && $0 != "," }
-            parts.append(OutcomePeople.actor(String(who), names: [:]))
-            rest = after.dropFirst(who.count)
-        }
-        if let at = rest.range(of: " at ") {
-            let after = rest[at.upperBound...]
-            let stamp = after.prefix { !$0.isWhitespace && $0 != "," }
-            if let date = ISO8601DateFormatter().date(from: String(stamp)) {
-                parts.append(AryaTime.label(date, now: now))
-                rest = after.dropFirst(stamp.count)
-            }
-        }
-        let tail = rest.drop { $0 == "," || $0 == " " }
-        if parts.isEmpty { return text }
+        parts.append(OutcomePeople.actor(who, names: [:]))
+        parts.append(AryaTime.label(date, now: now))
+        let tail = after.dropFirst(stamp.count).drop { $0 == "," || $0 == " " }
         if !tail.isEmpty { parts.append(String(tail)) }
         return parts.joined(separator: " · ")
     }

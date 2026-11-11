@@ -111,4 +111,5 @@ private let now = FeatureTestClock.now
     #expect(source.hasSuffix(" · reopened: Rerouted from security to account."))
     #expect(!source.contains("person:") && !source.contains("T09:00"))
     #expect(ReviewText.source("seeded by hand", now: now) == "seeded by hand")
+    #expect(ReviewText.source("by sam at noon", now: now) == "by sam at noon")
 }

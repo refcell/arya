@@ -76,6 +76,11 @@ public enum AryaTime {
         return "\(seconds / 86_400)d ago"
     }
 
+    /// A ledger timestamp (`2026-10-09T09:00:00Z`) as a date; nil when it is not one.
+    public static func parse(iso text: String) -> Date? {
+        ISO8601DateFormatter().date(from: text)
+    }
+
     /// An absolute time for tooltips, in a given time zone.
     public static func absolute(_ date: Date, timeZone: TimeZone) -> String {
         var calendar = Calendar(identifier: .gregorian)
