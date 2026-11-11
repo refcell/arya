@@ -86,10 +86,15 @@ struct PersonThreadView: View {
                 Text(FeatureTime.relative(entry.at, now: store.now))
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             }
-            Text(entry.text.isEmpty ? "(no text)" : HumanText.sentence(entry.text))
-                .aryaText(AryaFont.body, entry.text.isEmpty ? AryaColor.inkFaint : AryaColor.ink)
-                .fixedSize(horizontal: false, vertical: true)
-                .textSelection(.enabled)
+            Text(
+                entry.text.isEmpty
+                    ? "(no text)"
+                    : entry.action == "report"
+                        ? PeopleReportText.prose(entry.text) : HumanText.sentence(entry.text)
+            )
+            .aryaText(AryaFont.body, entry.text.isEmpty ? AryaColor.inkFaint : AryaColor.ink)
+            .fixedSize(horizontal: false, vertical: true)
+            .textSelection(.enabled)
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
@@ -233,7 +238,7 @@ struct PersonInspector: View {
                                     entry.inbound ? AryaColor.inkMuted : AryaColor.accent
                                 )
                                 .frame(width: 56, alignment: .leading)
-                            Text(HumanText.sentence(entry.text)).aryaText(
+                            Text(PeopleReportText.prose(entry.text)).aryaText(
                                 AryaFont.caption, AryaColor.ink
                             )
                             .lineLimit(2)

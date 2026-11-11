@@ -162,3 +162,23 @@ final class ReportDigestStore: ObservableObject {
         return error.localizedDescription
     }
 }
+
+/// Report text as a person reads it: refs as names and snake-case keys ("routed_within_1h",
+/// a metric) in words, for reports stored before the runtime wrote words itself.
+enum PeopleReportText {
+    private static let key = try? NSRegularExpression(
+        pattern: #"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b"#)
+
+    static func prose(_ text: String) -> String {
+        let named = HumanText.sentence(text)
+        guard let key, named.contains("_") else { return named }
+        var result = named
+        let range = NSRange(named.startIndex..., in: named)
+        for match in key.matches(in: named, range: range).reversed() {
+            guard let whole = Range(match.range, in: result) else { continue }
+            result.replaceSubrange(
+                whole, with: StewardPulseView.metricWords(String(result[whole])))
+        }
+        return result
+    }
+}

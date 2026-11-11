@@ -321,3 +321,8 @@ and receive a periodic report from it.
   Arya learned too (one helper for both scopes), "Not with this steward" starts open, and
   the inspector's LAST MESSAGES shows 8. Visual check, `empty.tsv` verbatim: people.png 46,
   people-memory.png 46, people-thread.png 49, people-learned.png 51.
+- 2026-11-11 (CEO VC48): reports name the metric in words. The runtime's metric line writes
+  "routed within 1h", and `PeopleReportText.prose` turns stored keys and refs into words in
+  the Reports pane, past reports and report entries in the person thread. The newest past
+  report starts open. Visual check, `empty.tsv` verbatim: reports.png 79, people-thread.png
+  49, people-thread-live.png 47.

@@ -70,7 +70,7 @@ struct PeopleReportSection: View {
                 Text(digest.configured ? "NEXT REPORT" : "PREVIEW")
                     .aryaText(AryaFont.label, AryaColor.inkFaint)
                 ForEach(Array(digest.lines.enumerated()), id: \.offset) { _, line in
-                    Text(HumanText.sentence(line)).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                    Text(PeopleReportText.prose(line)).aryaText(AryaFont.monoSmall, AryaColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
@@ -167,10 +167,13 @@ struct PeopleReportSection: View {
 struct PeopleReportHistoryView: View {
     @ObservedObject var store: FeatureStore
     let directory: PeopleDirectory
+    /// The report shown open; nil until a person picks one, when the newest is open, and ""
+    /// once they close it.
     @AryaState private var open: String?
 
     var body: some View {
         let history = PeopleReportHistory(events: store.events, steward: directory.steward)
+        let newest = history.sent.first?.id
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: AryaSpace.s2) {
                 Text("PAST REPORTS").aryaText(AryaFont.label, AryaColor.inkFaint)
@@ -183,15 +186,18 @@ struct PeopleReportHistoryView: View {
                 Text("None sent yet.").aryaText(AryaFont.caption, AryaColor.inkFaint)
             }
             ForEach(history.sent) { sent in
-                row(sent)
-                if open == sent.id {
-                    Text(HumanText.sentence(sent.text)).aryaText(AryaFont.monoSmall, AryaColor.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                        .padding(AryaSpace.s3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small))
+                let shown = (open ?? newest) == sent.id
+                row(sent, shown: shown)
+                if shown {
+                    Text(PeopleReportText.prose(sent.text)).aryaText(
+                        AryaFont.monoSmall, AryaColor.ink
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                    .padding(AryaSpace.s3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small))
                 }
                 AryaHairline()
             }
@@ -200,13 +206,13 @@ struct PeopleReportHistoryView: View {
         .accessibilityLabel("Past reports")
     }
 
-    private func row(_ sent: PeopleReportHistory.Sent) -> some View {
+    private func row(_ sent: PeopleReportHistory.Sent, shown: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
-            DisclosureChevron(isExpanded: open == sent.id)
+            DisclosureChevron(isExpanded: shown)
             Text(FeatureTime.relative(sent.at, now: store.now))
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 .frame(minWidth: 44, alignment: .leading)
-            Text(HumanText.sentence(sent.subject)).aryaText(AryaFont.caption, AryaColor.ink)
+            Text(PeopleReportText.prose(sent.subject)).aryaText(AryaFont.caption, AryaColor.ink)
                 .lineLimit(1)
             Spacer(minLength: AryaSpace.s3)
             ForEach(sent.recipients) { recipient in
@@ -220,7 +226,7 @@ struct PeopleReportHistoryView: View {
         .frame(minHeight: AryaSize.rowHeight)
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(AryaMotion.quick) { open = open == sent.id ? nil : sent.id }
+            withAnimation(AryaMotion.quick) { open = shown ? "" : sent.id }
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)

@@ -76,3 +76,11 @@ private func events(report: FeatureJSON? = nil, sent: Bool = false) -> [FeatureE
         #expect(stop.title == "Stop the daily report")
     }
 }
+
+/// Reports stored before the runtime wrote words still read in words and names.
+@MainActor @Test func storedReportsReadMetricKeysAndRefsInWords() {
+    #expect(
+        PeopleReportText.prose(
+            "routed_within_1h 0.89 against a target of 0.95; Route inbox:MSG-140")
+            == "routed within 1h 0.89 against a target of 0.95; Route MSG-140")
+}

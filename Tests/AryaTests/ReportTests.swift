@@ -107,3 +107,11 @@ private func reportCharter(_ report: ReportConfig?) throws -> Data {
 private func json(_ entry: LedgerEntry) throws -> JSONValue {
     try CanonicalJSON.decode(JSONValue.self, from: Data(entry.payload.utf8))
 }
+
+@Test func theMetricLineNamesTheMetricInWords() {
+    let outcome = OutcomeSummary(
+        steward: "st", outcome: "o", metric: "routed_within_1h", unit: "", direction: "up",
+        target: 0.95, current: nil, trend: [], windowSeconds: 86_400, status: .onTrack)
+    #expect(
+        ReportText.metric(outcome, cadence: .weekly) == "routed within 1h: no value recorded yet.")
+}

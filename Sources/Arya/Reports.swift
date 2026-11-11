@@ -202,11 +202,13 @@ enum ReportText {
         return out
     }
 
+    /// The metric line, naming the metric in words ("routed within 1h"), never its key.
     static func metric(_ outcome: OutcomeSummary, cadence: ReportConfig.Cadence) -> String {
+        let name = outcome.metric.replacingOccurrences(of: "_", with: " ")
         guard let current = outcome.current else {
-            return "\(outcome.metric): no value recorded yet."
+            return "\(name): no value recorded yet."
         }
-        var line = "\(outcome.metric) \(value(current, outcome.unit))"
+        var line = "\(name) \(value(current, outcome.unit))"
         if let target = outcome.target {
             let status = outcome.status == .onTrack ? "on track" : "behind"
             line += " against a target of \(value(target, outcome.unit)) (\(status))"
