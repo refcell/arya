@@ -163,6 +163,8 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11:
 9. Metrics, or evaluations built from its work and expert judgment (eval). Done: metrics, the
    rubric judge, learned checks from corrections and agreements (fff15ee0, 73b922e6), and a
    casebook built from accepted runs (cbde7e1e). e2e: metric series, checks, casebook build.
+   Deferred (eval lane retired, workspace holds them): learned checks as a proposal gate
+   (waits on ledger confirming `checks.built`) and a charter-level `ScorerSpec.judge`.
 10. Fleets: fan out sub-agents (runtime; connect). Done: crew delegation, in-run
     `host/delegate` children (6b26d22b), and the crew fan-out view following the run live
     (50c7fd6d). Snapshot: `crew-fanout-live`; e2e: a crew run whose child only proposes.
