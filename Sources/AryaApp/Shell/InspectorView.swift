@@ -67,8 +67,14 @@ struct StewardContext: Equatable {
         let connections = (charter?["bindings"]?.array ?? []).compactMap { binding -> String? in
             guard let id = binding["id"]?.string else { return nil }
             let scopes = ["read", "actions"].filter { !(binding[$0]?.strings.isEmpty ?? true) }
-            let name = id.hasPrefix("person:") ? OutcomePeople.name(id) : id
-            return ([name, binding["kind"]?.string ?? ""] + [scopes.joined(separator: ", ")])
+            // A person reads as their name and part: "Maya · owner", "Lee · billing lead".
+            if binding["kind"]?.string == "person" || id.hasPrefix("person:") {
+                let name = binding["name"]?.string ?? OutcomePeople.name(id)
+                let part =
+                    charter?["owner"]?.string == id ? "owner" : binding["role"]?.string ?? ""
+                return [name, part].filter { !$0.isEmpty }.joined(separator: " · ")
+            }
+            return ([id, binding["kind"]?.string ?? ""] + [scopes.joined(separator: ", ")])
                 .filter { !$0.isEmpty }.joined(separator: " · ")
         }
         var counts: [String: Int] = [:]
@@ -235,7 +241,8 @@ struct InspectorView: View {
                         approvals: model.approvals, events: events, now: now,
                         serve: model.featureStore?.serve,
                         live: model.liveLines,
-                        stewardLive: model.stewardLive[steward.id], fleet: model.fleetStatus)
+                        stewardLive: model.stewardLive[steward.id], fleet: model.fleetStatus,
+                        history: model.runHistory[steward.id])
                 ) { model.navigation.approval = $0 }
             } else if let id = id ?? model.approvals.first?.id {
                 FeatureRegistry.approvalInspector(model.featureContext(), approval: id)
@@ -258,11 +265,13 @@ struct InspectorView: View {
             let rows = PortfolioRow.build(
                 stewards: model.stewards, runs: model.runs, approvals: model.approvals,
                 events: events, now: now, serve: model.featureStore?.serve,
-                departments: model.departments, live: model.liveLines, fleet: model.fleetStatus)
+                departments: model.departments, live: model.liveLines, fleet: model.fleetStatus,
+                histories: model.runHistory)
             FleetPulseView(
                 pulse: FleetPulse.build(
                     stewards: model.stewards, runs: model.runs, approvals: model.approvals,
-                    events: events, live: model.liveLines, fleet: model.fleetStatus, now: now),
+                    events: events, live: model.liveLines, fleet: model.fleetStatus,
+                    history: model.fleetHistory, now: now),
                 departments: model.departments.isEmpty ? [] : PortfolioDepartments.lines(rows),
                 waiting: FleetPulseView.waiting(
                     model.approvals,
@@ -326,7 +335,8 @@ struct InspectorView: View {
                 steward: steward, runs: model.runs[steward.id] ?? [], approvals: model.approvals,
                 events: events, now: now, serve: model.featureStore?.serve,
                 live: model.liveLines,
-                stewardLive: model.stewardLive[steward.id], fleet: model.fleetStatus)
+                stewardLive: model.stewardLive[steward.id], fleet: model.fleetStatus,
+                history: model.runHistory[steward.id])
         ) { id in
             model.navigation.showApprovals()
             model.navigation.approval = id

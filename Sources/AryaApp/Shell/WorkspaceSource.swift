@@ -83,6 +83,10 @@ protocol WorkspaceSource: Sendable {
     func serveReason() async -> String?
     /// Each steward's live state (workspace `stewardLive(steward:)`), by id.
     func stewardLives(_ ids: [String]) async -> [String: StewardLive]
+    /// Each steward's runs per day over 7 days (workspace `runHistory`).
+    func runHistories(_ ids: [String]) async -> [String: RunHistory]
+    /// The whole home's runs per day over 7 days.
+    func fleetRunHistory() async -> RunHistory?
     /// Each steward's outcome status by id (workspace `fleet()`).
     func fleetStatus() async -> [String: String]
     /// Example stewards to start from (workspace `templates()`).
@@ -116,6 +120,10 @@ extension WorkspaceSource {
     func serveReason() async -> String? { nil }
 
     func stewardLives(_ ids: [String]) async -> [String: StewardLive] { [:] }
+
+    func runHistories(_ ids: [String]) async -> [String: RunHistory] { [:] }
+
+    func fleetRunHistory() async -> RunHistory? { nil }
 
     func fleetStatus() async -> [String: String] { [:] }
 
@@ -277,6 +285,14 @@ extension Workspace: WorkspaceSource {
             ((try? await fleet()) ?? []).map { ($0.steward, $0.status) },
             uniquingKeysWith: { first, _ in first })
     }
+
+    func runHistories(_ ids: [String]) async -> [String: RunHistory] {
+        var out: [String: RunHistory] = [:]
+        for id in ids { out[id] = try? await runHistory(steward: id) }
+        return out
+    }
+
+    func fleetRunHistory() async -> RunHistory? { try? await runHistory(steward: nil) }
 
     func stewardLives(_ ids: [String]) async -> [String: StewardLive] {
         var out: [String: StewardLive] = [:]

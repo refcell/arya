@@ -62,7 +62,7 @@ struct ApprovalQueueView: View {
                         rows(queue.pending, events: events, current: keys.current?.id)
                         NeedsYouHints()
                     }
-                    if !queue.decided.isEmpty { decided(queue.decided) }
+                    if !queue.decided.isEmpty { decided(queue.decided, events: events) }
                 }
                 .padding(.horizontal, AryaSpace.s3)
                 .padding(.vertical, AryaSpace.s3)
@@ -74,7 +74,7 @@ struct ApprovalQueueView: View {
                 VStack(alignment: .leading, spacing: AryaSpace.s4) {
                     FeatureWriteErrorLine(store: store)
                     if let current = keys.current {
-                        detail(current, events: events)
+                        detail(current, pending: queue.pending, events: events)
                             .id(current.id)
                             .transition(.opacity)
                     } else {
@@ -166,27 +166,64 @@ struct ApprovalQueueView: View {
         }
     }
 
-    /// The selected approval in full.
-    @ViewBuilder
-    private func detail(_ current: ApprovalItem, events: [FeatureEvent]) -> some View {
+    /// The selected approval in full, in two columns: the request and its run on the left, its
+    /// context (who may approve, the policy, earlier decisions, what else this steward holds)
+    /// on the right.
+    private func detail(_ current: ApprovalItem, pending: [ApprovalItem], events: [FeatureEvent])
+        -> some View
+    {
         let detail = NeedsYouDetail.build(item: current, events: events)
-        InlineApproval(
-            action: detail.action, approval: current.id, source: detail.source,
-            texts: store.approvalTexts[current.id], primary: false,
-            decide: decide, showsKeys: true,
-            correct: current.run == nil || openRun == nil ? nil : { correct(current) })
-        AryaHairline()
-        ApprovalInspector(store: store, approval: current.id, openRun: openRun, showsPolicy: false)
-        if current.kind != "question" {
-            ApproversLine(events: events, steward: current.steward, kind: current.kind)
+        let others = pending.filter { $0.steward == current.steward && $0.id != current.id }
+        return HStack(alignment: .top, spacing: AryaSpace.s6) {
+            VStack(alignment: .leading, spacing: AryaSpace.s4) {
+                InlineApproval(
+                    action: detail.action, approval: current.id, source: detail.source,
+                    texts: store.approvalTexts[current.id], primary: false,
+                    decide: decide, showsKeys: true,
+                    correct: current.run == nil || openRun == nil ? nil : { correct(current) })
+                if let run = current.run {
+                    NeedsYouRunSteps(steps: NeedsYouRunSteps.lines(events: events, run: run))
+                }
+                if current.kind == "routine",
+                    let subject = RoutineApprovalSubject.find(events: events, approval: current.id)
+                {
+                    RoutineApprovalDetail(store: store, subject: subject)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            VStack(alignment: .leading, spacing: AryaSpace.s4) {
+                ApprovalInspector(
+                    store: store, approval: current.id, openRun: openRun, showsPolicy: true)
+                if current.kind != "question" {
+                    ApproversLine(events: events, steward: current.steward, kind: current.kind)
+                }
+                if !others.isEmpty { alsoWaiting(others) }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        if let run = current.run {
-            NeedsYouRunSteps(steps: NeedsYouRunSteps.lines(events: events, run: run))
-        }
-        if current.kind == "routine",
-            let subject = RoutineApprovalSubject.find(events: events, approval: current.id)
-        {
-            RoutineApprovalDetail(store: store, subject: subject)
+    }
+
+    /// The steward's other requests waiting, each one click away.
+    private func alsoWaiting(_ items: [ApprovalItem]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Also waiting from this steward").aryaText(AryaFont.label, AryaColor.inkFaint)
+                .frame(height: AryaSize.rowHeight)
+            ForEach(items.prefix(8)) { item in
+                Button {
+                    move(item.id)
+                } label: {
+                    HStack(spacing: AryaSpace.s2) {
+                        Text(ActionWords.sentence(kind: item.kind, target: item.target))
+                            .aryaText(AryaFont.caption, AryaColor.ink).lineLimit(1)
+                        Spacer(minLength: AryaSpace.s2)
+                        Text(AryaTime.label(item.requestedAt, now: store.now, style: .short))
+                            .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    }
+                    .frame(height: AryaSize.rowHeight)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -203,26 +240,30 @@ struct ApprovalQueueView: View {
         }
     }
 
-    private func decided(_ items: [ApprovalItem]) -> some View {
-        DisclosureGroup {
-            VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                ForEach(items.prefix(20)) { item in
-                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                        Text("\(item.kind) \(item.target)").aryaText(
-                            AryaFont.mono, AryaColor.inkMuted
-                        )
-                        .lineLimit(1).truncationMode(.middle)
-                        Spacer(minLength: AryaSpace.s2)
-                        if let decision = item.decision {
-                            Text(ApprovalText.verdict(decision, now: store.now))
-                                .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                        }
-                    }
+    /// The latest decisions, shown under the queue: what it was and who said what, when.
+    private func decided(_ items: [ApprovalItem], events: [FeatureEvent]) -> some View {
+        let names = StewardNames.build(events: events)
+        return VStack(alignment: .leading, spacing: 0) {
+            Text("Recent decisions").aryaText(AryaFont.label, AryaColor.inkFaint)
+                .frame(height: AryaSize.rowHeight)
+            ForEach(items.prefix(10)) { item in
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(
+                        item.kind == "question"
+                            ? item.summary
+                            : ActionWords.sentence(kind: item.kind, target: item.target)
+                    )
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(1)
+                    Text(
+                        [
+                            item.steward.map { names[$0] ?? $0 },
+                            item.decision.map { ApprovalText.verdict($0, now: store.now) },
+                        ].compactMap { $0 }.joined(separator: " · ")
+                    )
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
                 }
+                .padding(.vertical, AryaSpace.s1)
             }
-            .padding(.top, AryaSpace.s2)
-        } label: {
-            Text("Recent decisions").aryaText(AryaFont.overline, AryaColor.inkFaint)
         }
     }
 
@@ -251,23 +292,15 @@ private struct NeedsYouRow: View {
                         .aryaText(AryaFont.mono, isSelected ? AryaColor.ink : AryaColor.inkMuted)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                    // The steward's name is never clipped; the reason gets its own line, cut
-                    // at a word, with the whole of it in the tooltip.
-                    if let stewardName {
-                        Text(stewardName)
-                            .aryaText(AryaFont.caption, AryaColor.inkMuted)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    if let why {
-                        Text(AryaTrim.words(why, limit: Self.whyLimit))
-                            .aryaText(AryaFont.caption, AryaColor.inkFaint)
-                            .lineLimit(1)
-                            .help(why)
-                    }
+                    // Line 2 is context, never the action again: the steward (never clipped),
+                    // what the request is about cut at a word, and how long it has waited.
+                    Text(line2)
+                        .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .help(context ?? line2)
                 }
-                Spacer(minLength: AryaSpace.s2)
-                Text(AryaTime.label(item.requestedAt, now: now, style: .short))
-                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                Spacer(minLength: 0)
             }
             .padding(.vertical, AryaSpace.s1)
             .padding(.horizontal, AryaSpace.s2)
@@ -285,20 +318,40 @@ private struct NeedsYouRow: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    /// Characters of the reason that fit the queue column on one caption line.
-    static let whyLimit = 44
+    /// Characters of line 2 that fit the queue column on one caption line.
+    static let lineLimit = 48
+
+    /// "Lead follow-up · demo request, wants pricing · waiting 2h".
+    private var line2: String {
+        let waiting = "waiting \(AryaTime.label(item.requestedAt, now: now, style: .short))"
+        let fixed = [stewardName, waiting].compactMap { $0 }
+        let room = Self.lineLimit - fixed.joined(separator: " · ").count - 3
+        let about = context.map { AryaTrim.words($0, limit: max(12, room)) }
+        return ([stewardName, about, waiting].compactMap { $0 }).joined(separator: " · ")
+    }
+
+    /// What the request is about, from its summary without a leading "LEAD-1095:" label, in
+    /// people's words; nil when it would only repeat the action.
+    var context: String? { NeedsYouRow.context(item) }
+
+    static func context(_ item: ApprovalItem) -> String? {
+        var text = item.summary.isEmpty ? item.rationale : item.summary
+        if let colon = text.range(of: ": "), text[..<colon.lowerBound].count <= 40 {
+            text = String(text[colon.upperBound...])
+        }
+        text = ActionWords.humanize(text)
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(["."]))
+        guard !text.isEmpty, !text.lowercased().hasPrefix("wants to"),
+            text != ActionWords.sentence(kind: item.kind, target: item.target)
+        else { return nil }
+        return text.prefix(1).lowercased() + text.dropFirst()
+    }
 
     private var risk: ActionRisk { ActionRisk(kind: item.kind) }
 
     private var title: String {
         item.kind == "question"
             ? item.summary : ActionWords.sentence(kind: item.kind, target: item.target)
-    }
-
-    /// The reason, else the summary; nil when both are empty.
-    private var why: String? {
-        let text = item.rationale.isEmpty ? item.summary : item.rationale
-        return text.isEmpty || item.kind == "question" ? nil : ActionWords.humanize(text)
     }
 
     /// High risk reads negative, medium warning, low faint; questions faint.
@@ -356,7 +409,7 @@ enum NeedsYouDetail {
             }
             return nil
         }.first
-        let action =
+        var action =
             found
             ?? ProposedActionStep(
                 actionID: item.actionID, kind: item.kind,
@@ -364,6 +417,8 @@ enum NeedsYouDetail {
                 rationale: item.rationale, policy: "ask",
                 outcome: .awaitingApproval(approval: item.id),
                 params: item.kind == "question" ? ["text": .string(item.summary)] : [:])
+        // The card says the reason the way the queue row does.
+        action.rationale = ActionWords.humanize(action.rationale)
         return (action, stream?.input)
     }
 }

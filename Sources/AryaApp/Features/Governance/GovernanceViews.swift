@@ -606,7 +606,7 @@ enum GovernanceText {
     }
 
     static func autonomyLine(_ policy: PolicySummary) -> String {
-        let autonomy = policy.autonomy.map { "autonomy \($0) · " } ?? ""
+        let autonomy = policy.autonomy.map { "\(ActionWords.autonomy($0)) · " } ?? ""
         return "\(autonomy)Anything not listed: \(policy.fallback)"
     }
 

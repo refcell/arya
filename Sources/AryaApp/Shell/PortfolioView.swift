@@ -40,6 +40,7 @@ struct PortfolioRow: Identifiable, Equatable {
         stewards: [StewardSummary], runs: [String: [RunSummary]], approvals: [ApprovalSummary],
         events: [FeatureEvent], now: Date, serve: FeatureServe? = nil,
         departments: [String: String] = [:], live: [LiveLine] = [], fleet: [String: String] = [:],
+        histories: [String: RunHistory] = [:],
         timeZone: TimeZone = .current
     ) -> [PortfolioRow] {
         let going = StatusBarLine.running(live)
@@ -69,8 +70,9 @@ struct PortfolioRow: Identifiable, Equatable {
             }
             let mine = runs[steward.id] ?? []
             let last = mine.map(\.startedAt).max()
-            let (totals, failed) = StewardPulse.perDay(
-                mine.filter { $0.parent == nil }, now: now, timeZone: timeZone)
+            // Workspace `runHistory` per steward: rehearsal bursts never flatten the bars.
+            let totals = histories[steward.id]?.days.map(\.runs) ?? []
+            let failed = histories[steward.id]?.days.map(\.failed) ?? []
             let cost = StewardPulse.costToday(mine, now: now, timeZone: timeZone)
             return PortfolioRow(
                 id: steward.id, name: steward.name, outcome: steward.outcome, metric: metric,
@@ -130,7 +132,8 @@ struct PortfolioView: View {
         let rows = PortfolioRow.build(
             stewards: model.stewards, runs: model.runs, approvals: model.approvals,
             events: events, now: now, serve: model.featureStore?.serve,
-            departments: model.departments, live: model.liveLines, fleet: model.fleetStatus)
+            departments: model.departments, live: model.liveLines, fleet: model.fleetStatus,
+            histories: model.runHistory)
         let grouped = rows.contains { !$0.department.isEmpty }
         let total = rows.count == 1 ? "1 steward" : "\(rows.count) stewards"
         VStack(alignment: .leading, spacing: AryaSpace.s3) {

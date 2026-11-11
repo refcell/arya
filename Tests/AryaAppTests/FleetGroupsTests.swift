@@ -235,3 +235,10 @@ import Testing
     }
     #expect(rendered.last?.steward == "st_c")
 }
+
+@Test func remindersNameTheThingAndAutonomyReadsAsASentence() {
+    #expect(
+        ActionWords.humanize("Wants to remind inv:INV-1066.")
+            == "Wants to remind about invoice INV-1066.")
+    #expect(ActionWords.autonomy("act_medium") == "Acts alone on medium risk")
+}

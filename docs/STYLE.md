@@ -285,7 +285,7 @@ One number for the reviewer and every lane, printed by `just snapshot` and kept 
   (the most common luminance in the window), or it lies in a uniform run of 32 pt or more
   across or down: hairlines and blank fills count as empty.
 - The share is the fraction of 24 pt blocks (one row tall) with no content point in them.
-- Target: at most 35% on every steward and fleet screen.
+- Target: at most 30% on every steward and fleet screen.
 
 
 

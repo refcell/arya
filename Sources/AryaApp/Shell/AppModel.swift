@@ -35,6 +35,10 @@ final class AppModel {
     /// Each steward's outcome status by id (workspace `fleet()`): `on_track`, `off_track`,
     /// `no_target`, or `no_data`. The one source for "behind" (`StatusMapping.isBehind`).
     var fleetStatus: [String: String] = [:]
+    /// Runs per day by steward id (workspace `runHistory`), the one source for run bars.
+    var runHistory: [String: RunHistory] = [:]
+    /// The whole home's runs per day (workspace `runHistory(steward: nil)`).
+    var fleetHistory: RunHistory?
     /// Each steward's department by id (workspace `portfolio()`); empty when none is set.
     var departments: [String: String] = [:]
     /// Sidebar department groups folded shut.
@@ -127,6 +131,8 @@ final class AppModel {
             serveReason = await source.serveReason()
             stewardLive = await source.stewardLives(stewards.map(\.id))
             fleetStatus = await source.fleetStatus()
+            runHistory = await source.runHistories(stewards.map(\.id))
+            fleetHistory = await source.fleetRunHistory()
             departments = await source.departments()
             problem = nil
             announce(approvals, stewards: stewards)

@@ -20,7 +20,7 @@ enum ActionWords {
     /// Verb phrases for common kinds; `%@` is the target's plain name.
     static let phrases: [String: String] = [
         "send-email": "Send an email to %@", "email": "Email %@", "reply": "Reply to %@",
-        "refund": "Refund %@", "remind": "Remind %@", "publish": "Publish %@",
+        "refund": "Refund %@", "remind": "Remind about %@", "publish": "Publish %@",
         "comment": "Comment on %@", "update": "Update %@", "label": "Label %@",
         "route": "Route %@", "note": "Add a note to %@", "assign": "Assign %@",
         "close": "Close %@", "escalate": "Escalate %@", "follow-up": "Follow up with %@",
@@ -31,13 +31,34 @@ enum ActionWords {
     /// reads "Send an email to LEAD-1095"; unknown kinds read "Archive LEAD-1095".
     static func sentence(kind raw: String, target: String) -> String {
         let word = kind(raw)
-        let name = EntityName.plain(target)
+        let parts = EntityName.split(target)
+        // The noun only when the id does not already say it ("LEAD-1095" needs no "lead").
+        let noun = parts.system.flatMap { nouns[$0] }
+            .flatMap { parts.name.lowercased().hasPrefix($0) ? nil : $0 }
+        let name = noun.map { "\($0) \(parts.name)" } ?? parts.name
         if let phrase = phrases[word], !name.isEmpty {
             return phrase.replacingOccurrences(of: "%@", with: name)
         }
         let verb = word.replacingOccurrences(of: "-", with: " ")
         let title = verb.prefix(1).uppercased() + verb.dropFirst()
         return name.isEmpty ? title : "\(title) \(name)"
+    }
+
+    /// What a ref's system calls the thing: "inv:INV-1066" is "invoice INV-1066".
+    static let nouns: [String: String] = [
+        "inv": "invoice", "invoice": "invoice", "lead": "lead", "acct": "account",
+        "cmt": "commitment", "vnd": "vendor", "rel": "release", "order": "order",
+    ]
+
+    /// A charter's autonomy level as a sentence: `act_medium` reads "Acts alone on medium risk".
+    static func autonomy(_ level: String) -> String {
+        switch level {
+        case "observe": "Watches only, acts on nothing"
+        case "suggest": "Suggests; a person acts"
+        case "act_low": "Acts alone on low risk"
+        case "act_medium": "Acts alone on medium risk"
+        default: kind(level).replacingOccurrences(of: "-", with: " ")
+        }
     }
 
     /// Machine text in a sentence as people read it: refs become names and a leading
@@ -47,7 +68,9 @@ enum ActionWords {
         if text.hasPrefix(prefix) {
             let rest = text.dropFirst(prefix.count)
             let parts = rest.split(separator: " ", maxSplits: 1).map(String.init)
-            if parts.count == 2, parts[0].contains("_") || parts[0].contains("-") {
+            if parts.count == 2,
+                parts[0].contains("_") || parts[0].contains("-") || phrases[kind(parts[0])] != nil
+            {
                 var target = parts[1]
                 let stop = target.hasSuffix(".")
                 if stop { target.removeLast() }

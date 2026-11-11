@@ -418,3 +418,10 @@ M4:
   overview 45%, portfolio-live 51%, needs-you 65%.
 - Visual check (`just snapshot` portfolio-live, needs-you, overview): moves (2), and the empty
   share is measured instead of judged.
+- Review 21: every runs bar reads workspace `runHistory` (portfolio RUNS 7D, the steward
+  pulse with its `line`, fleet RUNS · 7 DAYS and runs today); `StewardPulse.perDay` is gone.
+  Needs you rows use line 2 for context ("Lead follow-up · demo request, wants pricing ·
+  waiting 2h"), never the action again. The detail pane has two columns (request and run;
+  policy, approvers, the steward's other requests). Recent decisions show under the queue.
+  Card reasons say "Wants to remind about invoice INV-1066". Person connections read "Maya ·
+  owner". Governance's policy line says "Acts alone on medium risk". Dead-space target 30%.

@@ -25,16 +25,39 @@ import Testing
         #expect(StewardPulse.countdown(to: now.addingTimeInterval(3 * 86_400), now: now) == "in 3d")
     }
 
-    @Test func runsPerDayCountsAWeekOldestFirstWithFailures() {
-        let runs = [
-            run("a", "s", hoursAgo: 0.5), run("b", "s", hoursAgo: 1, status: .failed),
-            run("c", "s", hoursAgo: 30), run("old", "s", hoursAgo: 24 * 9),
-        ]
-        let (totals, failed) = StewardPulse.perDay(runs, now: now, timeZone: utc)
-        #expect(totals.count == 7)
-        #expect(totals.last == 2)
-        #expect(failed.last == 1)
-        #expect(totals.reduce(0, +) == 3)
+    @Test func runBarsComeFromTheWorkspaceRunHistory() {
+        // The ledger's runs say nothing here; the workspace's history (rehearsals apart) wins.
+        let start = now.timeIntervalSinceReferenceDate
+        var days: [String] = []
+        for index in 0..<7 {
+            let runs = index == 6 ? 2 : 1
+            let failed = index == 6 ? 1 : 0
+            let rehearsals = index == 3 ? 120 : 0
+            let day = start + Double(index - 6) * 86_400
+            days.append(
+                "{\"start\":\(day),\"runs\":\(runs),\"failed\":\(failed),"
+                    + "\"rehearsals\":\(rehearsals)}")
+        }
+        let json =
+            "{\"steward\":\"s\",\"days\":[\(days.joined(separator: ","))],\"total\":8,"
+            + "\"failed\":1,\"today\":2,\"line\":\"8 runs in 7 days, 2 today, 1 failed\"}"
+        guard let history = try? JSONDecoder().decode(RunHistory.self, from: Data(json.utf8))
+        else {
+            Issue.record("RunHistory did not decode")
+            return
+        }
+        let steward = StewardSummary(
+            id: "s", name: "S", outcome: "o", charterVersion: 1, status: .active, ready: true)
+        let pulse = StewardPulse.build(
+            steward: steward, runs: [run("a", "s", hoursAgo: 1)], approvals: [], events: [],
+            now: now, history: history, timeZone: utc)
+        #expect(pulse.runsPerDay == [1, 1, 1, 1, 1, 1, 2])
+        #expect(pulse.failedPerDay.last == 1)
+        #expect(pulse.runsLine == "8 runs in 7 days, 2 today, 1 failed")
+        let fleet = FleetPulse.build(
+            stewards: [steward], runs: [:], approvals: [], events: [], history: history, now: now,
+            timeZone: utc)
+        #expect(fleet.runsPerDay.max() == 2 && fleet.runsToday == 2)
     }
 
     @Test func costTodayIsADashWhenUnknown() {

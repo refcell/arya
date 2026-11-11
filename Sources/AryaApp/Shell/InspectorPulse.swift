@@ -14,6 +14,8 @@ struct StewardPulse: Equatable {
     var behind: Bool
     /// Top-level runs per day, oldest first, today last.
     var runsPerDay: [Int]
+    /// Workspace `runHistory().line`, "14 runs in 7 days, 2 today", shown verbatim.
+    var runsLine: String = ""
     var failedPerDay: [Int]
     /// "$0.0042 today", "—" when no run today reported a cost.
     var costToday: String
@@ -30,7 +32,7 @@ struct StewardPulse: Equatable {
         steward: StewardSummary, runs: [RunSummary], approvals: [ApprovalSummary],
         events: [FeatureEvent], now: Date, serve: FeatureServe? = nil, live: [LiveLine] = [],
         stewardLive: StewardLive? = nil, fleet: [String: String] = [:],
-        timeZone: TimeZone = .current
+        history: RunHistory? = nil, timeZone: TimeZone = .current
     ) -> StewardPulse {
         let series = MetricSeries.build(events: events, steward: steward.id)
         var value = "—"
@@ -38,8 +40,9 @@ struct StewardPulse: Equatable {
             let latest = series?.latest.map { StatusMapping.metric($0.value) } ?? "—"
             value = latest + (definition.target.map { " / \(StatusMapping.metric($0))" } ?? "")
         }
-        let (totals, failed) = perDay(
-            runs.filter { $0.parent == nil }, now: now, timeZone: timeZone)
+        // Bars from workspace `runHistory` only: live top-level runs, rehearsals apart.
+        let totals = history?.days.map(\.runs) ?? []
+        let failed = history?.days.map(\.failed) ?? []
         // One source and one format with NOW and the status bar (app-outcome).
         let state = OutcomeState.build(
             events: events, steward: steward.id, now: now, serve: serve)
@@ -66,7 +69,7 @@ struct StewardPulse: Equatable {
             metricName: series?.definition.name, metricValue: value,
             series: (series?.points ?? []).suffix(14).map(\.value),
             behind: StatusMapping.isBehind(steward, fleet: fleet, meetsTarget: series?.meetsTarget),
-            runsPerDay: totals, failedPerDay: failed,
+            runsPerDay: totals, runsLine: history?.line ?? "", failedPerDay: failed,
             costToday: costToday(runs, now: now, timeZone: timeZone),
             nextWake: steward.status == .paused ? "paused" : next,
             // Workspace `stewardLive` when read, else its `liveRuns()` (the same tally).
@@ -74,24 +77,6 @@ struct StewardPulse: Equatable {
                 ?? live.filter { $0.steward == steward.id }.count,
             approvals: approvals.filter { $0.steward == steward.id },
             decisions: OutcomeContext.build(events: events, steward: steward.id).decisions)
-    }
-
-    /// Runs started on each of the last `days` local days, oldest first, and the failed ones.
-    static func perDay(_ runs: [RunSummary], now: Date, timeZone: TimeZone) -> ([Int], [Int]) {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        let today = calendar.startOfDay(for: now)
-        var totals = Array(repeating: 0, count: days)
-        var failed = Array(repeating: 0, count: days)
-        for run in runs {
-            let day = calendar.startOfDay(for: run.startedAt)
-            guard let back = calendar.dateComponents([.day], from: day, to: today).day,
-                (0..<days).contains(back)
-            else { continue }
-            totals[days - 1 - back] += 1
-            if run.status == .failed { failed[days - 1 - back] += 1 }
-        }
-        return (totals, failed)
     }
 
     /// "$0.0042 today", or "—" when no run started today reported a cost.
@@ -139,8 +124,8 @@ struct FleetPulse: Equatable {
 
     static func build(
         stewards: [StewardSummary], runs: [String: [RunSummary]], approvals: [ApprovalSummary],
-        events: [FeatureEvent], live: [LiveLine] = [], fleet: [String: String] = [:], now: Date,
-        timeZone: TimeZone = .current
+        events: [FeatureEvent], live: [LiveLine] = [], fleet: [String: String] = [:],
+        history: RunHistory? = nil, now: Date, timeZone: TimeZone = .current
     ) -> FleetPulse {
         var onTrack = 0
         var behind = 0
@@ -174,11 +159,10 @@ struct FleetPulse: Equatable {
             }
         }
         let all = runs.values.flatMap { $0 }
-        let top = all.filter { $0.parent == nil }
-        let (totals, failed) = StewardPulse.perDay(top, now: now, timeZone: timeZone)
         return FleetPulse(
             onTrack: onTrack, behind: behind, paused: paused, waiting: approvals.count,
-            runsPerDay: totals, failedPerDay: failed, runsToday: totals.last ?? 0,
+            runsPerDay: history?.days.map(\.runs) ?? [],
+            failedPerDay: history?.days.map(\.failed) ?? [], runsToday: history?.today ?? 0,
             costToday: StewardPulse.costToday(all, now: now, timeZone: timeZone),
             running: StatusBarLine.running(live).count,
             movers: movers.sorted { $0.1 > $1.1 }.prefix(3).map(\.0))
@@ -233,8 +217,8 @@ struct StewardPulseView: View {
                 HStack {
                     Text("Runs · 7 days").aryaText(AryaFont.label, AryaColor.inkFaint)
                     Spacer()
-                    Text("\(pulse.runsPerDay.reduce(0, +)) total")
-                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                    Text(pulse.runsLine).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                        .lineLimit(1)
                 }
                 DayBars(pulse.runsPerDay, failed: pulse.failedPerDay)
             }
