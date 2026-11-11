@@ -393,3 +393,43 @@ import Testing
     #expect(HumanText.stepVerb("reply") == "Reply to")
     #expect(HumanText.stepVerb("label") == "Label")
 }
+
+@Test func aFailedEarlierRunReadsByWhatItWasAsked() {
+    let started = FeatureEvent(
+        seq: 1, id: "ev_1", at: Date(timeIntervalSince1970: 0), steward: "st_a", run: "run_1",
+        actor: FeatureActor(kind: .system, id: "arya"), type: "run.started",
+        payload: ["input": "New message MSG-140\nbody"])
+    #expect(
+        EarlierRun.failure(reason: "budget", started: started)
+            == "Failed (budget): New message MSG-140")
+    #expect(EarlierRun.failure(reason: "budget", started: nil) == "Failed (budget)")
+}
+
+/// Review #30: the thread never cuts an argument or result mid-word; a cut ends at a word
+/// end with a trailing ellipsis, and anything short is shown whole.
+@Test func threadStringsNeverCutMidWord() {
+    func cleanCut(_ shown: String, of original: String) -> Bool {
+        guard shown.hasSuffix("…") else { return shown == original }
+        let kept = String(shown.dropLast())
+        guard original.hasPrefix(kept), !kept.isEmpty else { return false }
+        let next = original.dropFirst(kept.count).first
+        return next.map { " /-.,;:".contains($0) } ?? true
+    }
+    let corpus = [
+        "200-seat team", "similar deals this quarter", "label:billing duplicate charge",
+        "routines/flag-duplicate-charges.sh", "LEAD-LIVE", #"{"found":2}"#,
+        "Three similar teams bought the annual plan, so drafting a reply with the pricing "
+            + "page and the annual discount for teams over two hundred seats",
+        "Check that every duplicate-charge refund went out before the end of the week, "
+            + "then tell Priya which ones are still open",
+    ]
+    for text in corpus {
+        let shown = RunThreadText.shown(text)
+        #expect(cleanCut(shown, of: text), "\(shown)")
+        if text.count <= RunThreadText.shownLimit { #expect(!shown.contains("…")) }
+    }
+    for text in corpus {
+        let label = HumanText.clip(text, max: RunBriefView.labelChars)
+        #expect(cleanCut(label, of: text), "\(label)")
+    }
+}

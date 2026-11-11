@@ -27,7 +27,7 @@ struct EarlierRun: Hashable, Sendable, Identifiable {
             let started = events.first { $0.run == id && $0.type == "run.started" }
             let summary =
                 end.payload["summary"]?.string?.split(separator: "\n").first.map(String.init)
-                ?? end.payload["reason"]?.string ?? "run"
+                ?? Self.failure(reason: end.payload["reason"]?.string, started: started)
             let parts = RunTitle.parts(
                 summary: summary, dryRun: end.payload["dryRun"]?.bool == true)
             let steps = RunThreadText.steps(RunStream.build(events: events, run: id).steps)
@@ -37,6 +37,15 @@ struct EarlierRun: Hashable, Sendable, Identifiable {
                 title: parts.title, isDryRun: parts.isDryRun, steps: steps.count,
                 seconds: started.map { end.at.timeIntervalSince($0.at) })
         }
+    }
+
+    /// A failed run without a summary, by what it was asked to do: "Failed (budget): New
+    /// message MSG-140"; "Failed (budget)" when it had no input.
+    static func failure(reason: String?, started: FeatureEvent?) -> String {
+        let head = reason.map { "Failed (\($0))" } ?? "Failed"
+        let input = started?.payload["input"]?.string?.split(separator: "\n").first
+            .map { EntityName.humanize(String($0)) }
+        return input.map { head + ": " + $0 } ?? head
     }
 
     /// "4 steps · 2.4 s".

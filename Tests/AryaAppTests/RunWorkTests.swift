@@ -73,3 +73,10 @@ import Testing
     #expect(ActionWords.done(reply) == "sent")
     #expect(RunWork.oneLine(["body": "a\nb"], limit: 100) == "{\"body\":\"a\nb\"}")
 }
+
+@Test func shortValuesStayOnOneLineInTheToolsPane() {
+    #expect(RunWork.blockText(["query": "200-seat team"]) == #"{"query":"200-seat team"}"#)
+    #expect(RunWork.blockText(.string("plain text")) == "plain text")
+    let long = FeatureJSON.object(["text": .string(String(repeating: "a", count: 80))])
+    #expect(RunWork.blockText(long).contains("\n"))
+}

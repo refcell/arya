@@ -94,7 +94,8 @@ struct RunHeader: View {
                 accessory
             }
             Text(metrics.text).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
             if let progress {
                 HStack(spacing: AryaSpace.s2) {
                     AryaSpinner()
@@ -180,11 +181,14 @@ private struct ThreadLine: View {
                 .lineLimit(1).fixedSize()
                 .help(call.tool)
             if let argument {
-                Text(argument).aryaText(AryaFont.mono, AryaColor.inkMuted)
-                    .lineLimit(1).truncationMode(.middle)
+                Text(RunThreadText.shown(argument)).aryaText(AryaFont.mono, AryaColor.inkMuted)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    .help(argument)
             }
             if let output = call.output, let result = RunThreadText.arrow(output) {
-                Text("→ \(result)").aryaText(AryaFont.mono, AryaColor.inkMuted).lineLimit(1)
+                Text("→ \(RunThreadText.shown(result))")
+                    .aryaText(AryaFont.mono, AryaColor.inkMuted)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
             }
             Text(RunThreadText.toolMeta(call, elapsed: now.timeIntervalSince(step.at)))
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
@@ -198,7 +202,9 @@ private struct ThreadLine: View {
                 EntityLabel(ref: action.target, color: refused ? AryaColor.negative : AryaColor.ink)
             }
             if let result = RunThreadText.arrow(action.params).map(EntityName.humanize) {
-                Text("→ \(result)").aryaText(AryaFont.mono, AryaColor.inkMuted).lineLimit(1)
+                Text("→ \(RunThreadText.shown(result))")
+                    .aryaText(AryaFont.mono, AryaColor.inkMuted)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
             }
             if let note = RunThreadText.actionNote(action) {
                 Text(note).aryaText(
@@ -501,6 +507,12 @@ enum RunThreadText {
     }
 
     /// "via tracker · live · 1.2 s", or "via shell · running… 3 s" with the time so far.
+    /// An argument or result as the thread shows it: whole when short, else cut at a word end
+    /// with a trailing ellipsis (never mid-word; it may wrap to a second line).
+    static let shownLimit = 72
+
+    static func shown(_ text: String) -> String { HumanText.clip(text, max: shownLimit) }
+
     static func toolMeta(_ call: ToolCallStep, elapsed: Double? = nil) -> String {
         var parts = [
             call.binding.map { "via \(EntityName.plain($0))" },

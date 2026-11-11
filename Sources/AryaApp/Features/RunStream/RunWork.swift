@@ -104,6 +104,16 @@ struct RunWork: Hashable, Sendable {
         }
     }
 
+    /// What fits on one line of the Tools pane stays on one line (`{"query":"200-seat team"}`);
+    /// longer values are laid out one key per line.
+    static let compactWidth = 64
+
+    static func blockText(_ value: FeatureJSON) -> String {
+        if case .string = value { return value.prettyText }
+        let compact = value.compactText
+        return compact.count <= compactWidth && !compact.contains("\n") ? compact : value.prettyText
+    }
+
     static func build(
         stream: RunStream, events: [FeatureEvent], timeZone: TimeZone = .current
     ) -> RunWork {
@@ -134,10 +144,10 @@ struct RunWork: Hashable, Sendable {
         let mark = StreamStepText.mark(step.kind)
         switch step.kind {
         case .toolCall(let call):
-            var sections = [WorkBlock.Section(label: "input", text: call.input.prettyText)]
+            var sections = [WorkBlock.Section(label: "input", text: blockText(call.input))]
             if let output = call.output {
                 sections.append(
-                    .init(label: call.isError ? "error" : "output", text: output.prettyText))
+                    .init(label: call.isError ? "error" : "output", text: blockText(output)))
             }
             return WorkBlock(
                 id: step.id, mark: mark, title: call.tool,
@@ -154,7 +164,7 @@ struct RunWork: Hashable, Sendable {
             if let check = action.check { meta.append(check.text(since: step.at)) }
             var sections: [WorkBlock.Section] = []
             if action.params != [:], action.params != .null {
-                sections.append(.init(label: "params", text: action.params.prettyText))
+                sections.append(.init(label: "params", text: blockText(action.params)))
             }
             if !action.rationale.isEmpty {
                 sections.append(.init(label: "why", text: action.rationale))
