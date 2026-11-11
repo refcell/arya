@@ -854,12 +854,12 @@ final class SnapshotWatchdog: @unchecked Sendable {
     private let item: DispatchWorkItem
 
     /// 60 s on a quiet machine, stretched by the load per core so a busy machine is not
-    /// mistaken for a hang (a real hang still stops, just later).
+    /// mistaken for a hang; at most 600 s, so a real hang still stops.
     static var budget: Double {
         var load = [Double](repeating: 0, count: 1)
         let cores = Double(max(1, ProcessInfo.processInfo.activeProcessorCount))
         let busy = getloadavg(&load, 1) == 1 ? load[0] / cores : 1
-        return 60 * max(1, busy)
+        return min(600, 60 * max(1, busy))
     }
 
     init(_ state: String, seconds: Double = SnapshotWatchdog.budget) {
