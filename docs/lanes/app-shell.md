@@ -447,3 +447,8 @@ M4:
   follow-up check status, and related runs on the same targets. Needs you lists the steward's
   recent runs in the inspector and the whole run in the detail: needs-you 58 → 52.
 - Visual check (run, run-approval, needs-you): moves (2) no dead space; run 44, run-approval 47.
+- The sidebar ends with a folding Activity feed on every screen: the fleet's latest 8 events
+  (time, steward, what; a failed run in red) from `FleetActivity.lines`, one click to the
+  steward. Its fold is kept with the department folds under the key "Activity".
+- Visual check (needs-you, overview, portfolio-live): moves (2) no dead space and (4) a live
+  feel; needs-you 52 → 49, portfolio-live 50 → 48, overview 44.

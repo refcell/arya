@@ -86,10 +86,73 @@ struct RailView: View {
                     }
                 }
             }
+            activity
         }
         .padding(.horizontal, AryaSpace.s2)
         .padding(.top, AryaSize.trafficLightInset)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Lines in the sidebar's Activity feed.
+    nonisolated static let activityLimit = 8
+    /// The fold key for the Activity feed (kept with the department folds).
+    nonisolated static let activityKey = "Activity"
+
+    /// The fleet's latest events under the stewards, folded like a department: what is
+    /// happening now on every screen, one click from the steward.
+    @ViewBuilder private var activity: some View {
+        if case .loaded(let events) = model.featureStore?.state {
+            let lines = FleetActivity.lines(
+                events: events, stewards: model.stewards, now: now, limit: Self.activityLimit)
+            let folded = model.collapsedDepartments.contains(Self.activityKey)
+            if !lines.isEmpty {
+                Button {
+                    withAnimation(AryaMotion.frozenByProcess ? nil : AryaMotion.quick) {
+                        if folded {
+                            model.collapsedDepartments.remove(Self.activityKey)
+                        } else {
+                            model.collapsedDepartments.insert(Self.activityKey)
+                        }
+                    }
+                } label: {
+                    RailDepartmentHeader(
+                        Self.activityKey, count: lines.count, collapsed: folded, waiting: 0,
+                        behind: 0, running: false)
+                }
+                .buttonStyle(.plain)
+                .help(folded ? "Show the fleet's latest events" : "Hide the activity feed")
+                .padding(.top, AryaSpace.s2)
+                if !folded {
+                    ForEach(lines) { line in activityRow(line) }
+                }
+            }
+        }
+    }
+
+    private func activityRow(_ line: FleetActivity.Line) -> some View {
+        Button {
+            model.navigation.select(steward: line.steward)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                Text(line.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    .frame(width: FleetActivity.timeWidth, alignment: .leading)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(line.name).aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(1)
+                    Text(line.text)
+                        .aryaText(
+                            AryaFont.monoSmall,
+                            line.failed ? AryaColor.negative : AryaColor.inkFaint
+                        )
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, AryaSpace.s1)
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("\(line.name) \(line.text), \(line.time)")
     }
 
     /// The steward's metric series from the ledger, when the feature store has loaded it.
