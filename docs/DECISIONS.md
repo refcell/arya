@@ -723,3 +723,18 @@ A nil source, or a source returning nil, enforces nothing, so homes without gran
 before. `view` is the workspace's to enforce in reads. Why: a steward acting for someone must
 not reach further than that person may, and the refusal must be visible, not silent.
 
+### 0065 — 2026-11-10 — Grants and teams are ledger events, changed by the owner or an access admin
+
+Context: 0064 enforces grants but nothing stored them, and Settings ▸ Access needs them now.
+Decision: grants and teams are home-wide ledger events with the person as actor:
+`access.granted` and `access.revoked` (`{grant, reason?, undoes?}`) and `access.team` (a team's
+name and whole member list; no members disbands it). Each refusal 0064 makes is also recorded
+as `access.refused` (`{person, level, action, resources, reason, approval?}`) on its steward and
+run, so the Refused list and the audit read one event. `AccessBook` folds them; the workspace
+enforces from it unless the wiring supplies grants, and a home with neither grants nor teams
+enforces nothing. Only the local owner, or someone with `approve` on `*`, changes access; any
+change is undone by recording its inverse (`undoes` names the change). The facade has
+`access()`, `grantAccess`, `revokeAccess`, `setTeam`, and `undoAccess`
+(`Sources/Arya/Access.swift`, which the workspace lane may take over). Why: who may do what has
+to be attributable and reversible like every other change in arya.
+

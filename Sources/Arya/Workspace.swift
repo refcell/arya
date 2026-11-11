@@ -42,12 +42,19 @@ public actor Workspace {
         leases = wiring.leases
         sink = try LedgerEventSink(home: home, ambient: wiring.ambient)
         reader = LedgerReader(home: home)
-        approvalQueue = ApprovalQueue(sink: sink, ambient: wiring.ambient, access: wiring.access)
+        // Grants come from the ledger unless the wiring supplies them (runtime decision 0065).
+        let ledger = sink
+        let access: AccessSource =
+            wiring.access ?? { _ in
+                let book = try await ledger.book(AccessBook.self)
+                return book.isEmpty ? nil : book.inForce
+            }
+        approvalQueue = ApprovalQueue(sink: sink, ambient: wiring.ambient, access: access)
         dispatcher = ActionDispatcher(
             sink: sink, approvals: approvalQueue,
             executor: RoutineActionExecutor(
                 home: home, fallback: wiring.executor, runner: wiring.routines),
-            access: wiring.access)
+            access: access)
         engine = RunEngine(
             sink: sink, ambient: wiring.ambient, adapters: wiring.adapters, dispatcher: dispatcher,
             approvals: approvalQueue,

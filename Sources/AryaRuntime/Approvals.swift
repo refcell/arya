@@ -264,6 +264,14 @@ public struct ApprovalQueue: Sendable {
                     ApprovalRefused(
                         approval: record.id, by: person.id, people: holders,
                         rule: Access.approveRule, note: reason))))
+        _ = try await sink.append(
+            RuntimeEventDraft(
+                type: AccessEventType.refused, steward: record.steward, run: record.run,
+                actor: person,
+                payload: try Payload.encode(
+                    AccessRefused(
+                        person: who, level: .approve, action: action.kind,
+                        resources: resources, reason: reason, approval: record.id))))
         throw ApprovalError.notPermitted(record.id, reason: reason)
     }
 

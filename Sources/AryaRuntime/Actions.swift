@@ -170,7 +170,16 @@ public struct ActionDispatcher: Sendable {
                     try await approvals.request(.action(action), steward: charter.id, run: run).id
             case .deny:
                 try await reject(action.id, charter.id, run, reason: verdict.reason)
-                if let refusal { try await raiseRefusal(refusal, action, charter.id, run) }
+                if let refusal, let principal {
+                    try await append(
+                        AccessEventType.refused, charter.id, run, .system,
+                        AccessRefused(
+                            person: principal, level: .use, action: action.kind,
+                            resources: Access.resources(
+                                of: action, steward: charter.id, charter: charter),
+                            reason: refusal))
+                    try await raiseRefusal(refusal, action, charter.id, run)
+                }
             }
             disposals.append(disposal)
         }

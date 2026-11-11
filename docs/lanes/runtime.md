@@ -298,3 +298,4 @@ M4:
   (`OnboardSummary.records`, 0063); follow-up checks per action (`checks(steward:)`,
   `CheckSummary`, 0054); re-plan runs and why (0046, input kind `replan`); grant refusals and
   approve refusals (0064). Findings, drafts, onboarding, steps, reports, and delegations are shown.
+- 2026-11-10: grant store (0065): `access.*` events, `AccessBook`, gated changes (owner or approve on `*`) with undo, `access.refused` audit event, facade `access()` and writes; Settings ▸ Access next.
