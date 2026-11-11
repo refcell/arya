@@ -171,6 +171,10 @@ M4:
 - 2026-11-11: access e2e (CEO, M3.6 #13): seven steps before the ledger verify (92 steps):
   grants to priya and sam, sam's correction kept, revoke, the correction refused (65) and
   recorded as `access.refused`, undo restores the grant. ROADMAP #13 done: 16 done, 2 partial.
+- 2026-11-11: ingestion e2e (CEO, M3.6 #2, decision 0067): six steps after the folder import
+  (104): ingest, ingest again (0 added, 2 passes), the export moved away (a failed pass with
+  `lastError`, records kept), restored with two appended rows (the pass resumes and adds 2).
+  ROADMAP #2 done: 17 done, 1 partial (#11).
 - 2026-11-11: fail-closed access e2e (decision 0066, workspace's ask): six more steps (98):
   revoke both grants, the last revoke stays enforced, a correction is refused ("nobody holds
   one"), `access list` still enforced with no grants, `access enforce off`, a correction kept.

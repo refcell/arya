@@ -147,6 +147,38 @@ check_binding_history() {
     expect "first case" "$(get added.0)" hist-MSG-040
 }
 check_folder_steward() { expect id "$(get summary.id)" st_folder; }
+check_ingested() {
+  expect added "$(get 0.lastAdded)" "$(get 0.records)" && expect complete "$(get 0.complete)" true &&
+    [ "$(get 0.records)" -gt 0 ] || { echo "    $(get 0.line)"; return 1; }
+  ingested=$(get 0.records)
+}
+check_ingested_again() {
+  expect added "$(get 0.lastAdded)" 0 && expect records "$(get 0.records)" "${ingested:-}" &&
+    expect passes "$(get 0.passes)" 2
+}
+check_ingest_failed() {
+  [ -n "$(get 0.lastError)" ] || { echo "    no error recorded: $(get 0.line)"; return 1; }
+  expect added "$(get 0.lastAdded)" 0 && expect records "$(get 0.records)" "${ingested:-}"
+}
+check_ingest_resumed() {
+  expect added "$(get 0.lastAdded)" 2 && expect error "$(get 0.lastError)" "" &&
+    expect records "$(get 0.records)" "$((${ingested:-0} + 2))"
+}
+# Restores the folder's export with two later messages after its last record.
+append_history_rows() {
+  local file="$work/inbox-folder/history.saved" row="$work/history-row.json" i=0 id
+  while plutil -extract "history.$i" json -o /dev/null "$file" 2>/dev/null; do i=$((i + 1)); done
+  for id in MSG-301 MSG-302; do
+    plutil -extract history.0 json -o "$row" "$file"
+    plutil -replace id -string "$id" "$row"
+    plutil -replace record.id -string "$id" "$row"
+    plutil -replace at -string 2026-10-20T09:00:00Z "$row"
+    plutil -replace input -string "New message $id: Charged twice" "$row"
+    plutil -insert "history.$i" -json "$(cat "$row")" "$file"
+    i=$((i + 1))
+  done
+  mv "$file" "$work/inbox-folder/history.json"
+}
 check_folder_history() {
   expect added "$(get added)" 25 && expect invalid "$(get invalid)" 0 &&
     expect "first case" "$(get added.0)" hist-MSG-136
@@ -554,6 +586,19 @@ step "a steward on a real folder connector" history setup check_folder_steward \
   steward create --charter "$work/folder.json"
 step "import its history with --from" history setup check_folder_history \
   history import st_folder --from inbox
+# Ingestion (M3.6 #2, decision 0067): paged from a stored cursor, deduped by source id, and a
+# failed pass resumes where it stopped.
+step "ingest the folder's history" history setup check_ingested \
+  history ingest st_folder --binding inbox
+step "ingest again: nothing twice" history setup check_ingested_again \
+  history ingest st_folder --binding inbox
+script_step "the folder's export goes missing" history \
+  mv "$work/inbox-folder/history.json" "$work/inbox-folder/history.saved"
+step "a failed pass is recorded" history setup check_ingest_failed \
+  history ingest st_folder --binding inbox
+script_step "it comes back with two new rows" history append_history_rows
+step "resume: only the two new rows" history setup check_ingest_resumed \
+  history ingest st_folder --binding inbox
 step "sam asks; a run answers" connect live check_asked \
   message st_triage "Which refunds are still waiting?" --as person:sam
 step "sam's correction is kept as memory" connect live check_message_kept \

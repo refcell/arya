@@ -108,13 +108,13 @@ redesigned Overview and run-approval screens; the other screens still await revi
 
 Functional parity comes before polishing any one screen. Each item has a status (done,
 partial, missing) judged on what works end to end in the app on real data, the commits that
-built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11: 16 done,
-2 partial, 0 missing.
+built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11: 17 done,
+1 partial, 0 missing.
 
 | #  | Item                                   | Status  |
 | -- | -------------------------------------- | ------- |
 | 1  | Outcome, guardrails, ownership         | done    |
-| 2  | Self-onboarding                        | partial |
+| 2  | Self-onboarding                        | done    |
 | 3  | Train on history                       | done    |
 | 4  | Learn from results after acting        | done    |
 | 5  | Changes simulated before going live    | done    |
@@ -137,14 +137,15 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11:
    (b611e046), set from the wizard (205d5c5e), and an owner and department on every charter
    (618b1ce6). e2e: create, editor proposal through its gate and readiness, `steward metrics`
    (primary vs target).
-2. Self-onboarding (runtime, workspace; app-outcome). Partial: onboarding from directory and
+2. Self-onboarding (runtime, workspace; app-outcome). Done: onboarding from directory and
    process bindings (b8ac5b7b), the onboarding state (8ffeb88a), and the "getting to know your
    team" overview (7406e974), and history ingestion (decision 0067): every connection's `history`
    paged from a stored cursor, incremental, resumable and deduped by source id, with records,
    cursor and last error per connection (`ingestion(steward:)`, `arya history ingest`, shown in
    `arya steward onboarding`), feeding onboarding's systems step and one memory note per
    source; the busy seed reads every seeded connector twice. e2e: `steward onboarding` (24
-   history cases, 7 steps); the ingestion step is cli-e2e's.
+   history cases, 7 steps); a folder connector ingested twice adds nothing the second time, a
+   pass without its export records the error, and the next pass resumes with only new rows.
 3. Train on history (eval; app-views). Done: history import as cases and the review queue
    (e3187fc7, 91452312), import from a binding and a real folder connector (a05aad51,
    e02b9fd3), and the go-live gate. e2e: import, rehearse with history, review, agree,
