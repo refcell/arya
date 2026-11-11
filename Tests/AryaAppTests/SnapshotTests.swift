@@ -595,6 +595,18 @@ import Testing
     /// The run the Diff window shows: real work (3+ steps) and 2+ hunks, one proposing a
     /// routine when any does, then the most hunks and steps. The busy home must have one.
     static func diffShowcase(_ runs: [RunSummary], events: [FeatureEvent]) -> RunSummary? {
+        // One pick per test process: the dark and light passes show the same run even when
+        // the live run finishes in between.
+        if let id = ShowcasePick.shared.id { return runs.first { $0.id == id } }
+        let running = Set(runs.filter { $0.status == .running }.map(\.id))
+        let pick = pickShowcase(runs.filter { !running.contains($0.id) }, events: events)
+        ShowcasePick.shared.id = pick?.id
+        return pick
+    }
+
+    private static func pickShowcase(_ runs: [RunSummary], events: [FeatureEvent])
+        -> RunSummary?
+    {
         let touched = Set(
             events.filter { ["routine.proposed", "action.proposed"].contains($0.type) }
                 .compactMap(\.run))
@@ -609,7 +621,8 @@ import Testing
             }
             .filter { $0.steps >= 3 && $0.hunks >= 2 }
         let best = scored.max {
-            ($0.routine ? 1 : 0, $0.hunks, $0.steps) < ($1.routine ? 1 : 0, $1.hunks, $1.steps)
+            ($0.routine ? 1 : 0, $0.hunks, $0.steps, $1.run.id)
+                < ($1.routine ? 1 : 0, $1.hunks, $1.steps, $0.run.id)
         }
         if ProcessInfo.processInfo.environment["ARYA_SNAPSHOT_HOME"] != nil {
             #expect(best != nil, "run-diff-window needs a run with 3+ steps and 2+ hunks")
@@ -956,4 +969,16 @@ final class SnapshotWatchdog: @unchecked Sendable {
     }
 
     func cancel() { item.cancel() }
+}
+
+/// The Diff window's run, chosen once per test process (`SnapshotTests.diffShowcase`).
+final class ShowcasePick: @unchecked Sendable {
+    static let shared = ShowcasePick()
+    private let lock = NSLock()
+    private var value: String?
+
+    var id: String? {
+        get { lock.withLock { value } }
+        set { lock.withLock { value = newValue } }
+    }
 }

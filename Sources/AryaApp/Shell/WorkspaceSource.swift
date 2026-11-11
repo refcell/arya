@@ -261,7 +261,8 @@ extension Workspace: WorkspaceSource {
             toolCalls: facts.toolCalls, actionsProposed: facts.actionsProposed,
             actionsApplied: facts.actionsApplied, actionsDrafted: facts.actionsDrafted,
             actionsWaiting: facts.actionsWaiting, stepIndex: facts.stepIndex,
-            estimatedSteps: facts.estimatedSteps, dryRun: facts.dryRun)
+            estimatedSteps: facts.estimatedSteps, dryRun: facts.dryRun,
+            costMicros: facts.costMicros)
     }
 
     nonisolated func observeRun(_ run: String) -> AsyncStream<Void> {

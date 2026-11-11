@@ -448,3 +448,12 @@ import Testing
             == "over budget: spent $0.02, limit $0.00")
     #expect(HumanText.failure("idle_timeout") == "idle timeout")
 }
+
+@Test func aRunningHeaderShowsCostSoFar() {
+    var metrics = RunMetrics()
+    metrics.costMicros = 12_000
+    metrics.costSoFar = true
+    #expect(metrics.text.hasSuffix("$0.01 so far"))
+    metrics.costSoFar = false
+    #expect(metrics.text.hasSuffix("$0.01"))
+}

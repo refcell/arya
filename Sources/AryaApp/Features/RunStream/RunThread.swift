@@ -75,6 +75,8 @@ struct RunHeader: View {
         metrics.elapsed = facts.elapsedText(now: now)
         metrics.decisions = facts.decisions
         metrics.actions = facts.actionsProposed
+        if let cost = facts.costMicros, cost > 0 { metrics.costMicros = cost }
+        metrics.costSoFar = facts.running
         return metrics
     }
 

@@ -67,6 +67,8 @@ struct FeatureRunFacts: Hashable, Sendable {
     var estimatedSteps: Int?
     /// True when the run drafted actions and applied none.
     var dryRun: Bool
+    /// Cost so far while running, the recorded cost once ended; nil when none is known.
+    var costMicros: Int? = nil
 }
 
 extension FeatureRunFacts {

@@ -104,6 +104,8 @@ M3:
 
 ## Questions
 
+- (from app-views) Live cost: the app now shows RunFacts.costMicros in the running header ("$0.01 so far") and the inspector reads it too, but for the snapshot's live run (demo lead follow-up adapter, step 4 after 2m) it is nil: no run/cost answer arrives mid-run. Could the demo/fake adapters answer run/cost while running (or RunFacts estimate cost so far from tokens)?
+
 - (from app-views) Cost so far on a running run: could RunFacts carry `costMicros` (and tokens) while the run is live, so the run header can show it instead of "cost —"?
 - (from app-outcome) `ImpactSummary.summary` reads "... (high confidence). over the last 7
   days": `Impact.swift` appends " over <period>" after the sentence's own period; please put

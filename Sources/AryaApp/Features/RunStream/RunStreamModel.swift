@@ -704,6 +704,8 @@ struct RunMetrics: Hashable, Sendable {
     var seconds: Double?
     var tokens: Int?
     var costMicros: Int?
+    /// The run is still going, so its cost reads "$0.01 so far".
+    var costSoFar = false
     var decisions: Int?
     var actions: Int?
     /// The one elapsed text (`FeatureRunFacts.elapsedText`), set by the header; it replaces
@@ -722,7 +724,7 @@ struct RunMetrics: Hashable, Sendable {
         if let actions { parts.append(RunMetrics.count(actions, "action")) }
         if let tokens, tokens > 0 { parts.append("\(RunMetrics.grouped(tokens)) tokens") }
         if let costMicros, costMicros > 0 {
-            parts.append(RunMetrics.dollars(costMicros))
+            parts.append(RunMetrics.dollars(costMicros) + (costSoFar ? " so far" : ""))
         } else {
             parts.append("cost —")
         }
