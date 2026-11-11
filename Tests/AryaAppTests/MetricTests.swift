@@ -17,7 +17,7 @@ private let now = FeatureTestClock.now
     let latest = try #require(series.latest)
     #expect(abs(latest.value - 0.93) < 1e-9)
     #expect(series.meetsTarget == false)
-    #expect(MetricText.title(series.definition) == "triaged_within_1h (ratio), target 0.95 or more")
+    #expect(MetricText.title(series.definition) == "triaged within 1h (ratio), target 0.95 or more")
 }
 
 @Test func summaryStatesLatestTrendAndTarget() {

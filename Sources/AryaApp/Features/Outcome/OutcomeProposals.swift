@@ -317,24 +317,24 @@ struct OutcomeProposalRow: View {
     private var story: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
-                Text(review.title).aryaText(AryaFont.bodyStrong, AryaColor.ink)
+                Text(MetricText.sentence(review.title)).aryaText(AryaFont.bodyStrong, AryaColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: AryaSpace.s3)
                 actions
             }
             summary
             if let owns = review.impact.ownsSentence {
-                Text(owns).aryaText(AryaFont.body, AryaColor.ink)
+                Text(MetricText.sentence(owns)).aryaText(AryaFont.body, AryaColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
             }
             if let loosens = review.impact.loosensSentence {
-                Text(loosens).aryaText(AryaFont.body, AryaColor.ink)
+                Text(MetricText.sentence(loosens)).aryaText(AryaFont.body, AryaColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
             }
             if let neutral = review.impact.neutralSentence {
-                Text(neutral).aryaText(AryaFont.body, AryaColor.inkMuted)
+                Text(MetricText.sentence(neutral)).aryaText(AryaFont.body, AryaColor.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             ForEach(review.worse + review.better) { change in
@@ -343,7 +343,8 @@ struct OutcomeProposalRow: View {
                 ) { expanded = expanded == change.id ? nil : change.id }
             }
             if let whatIf {
-                Text(whatIf).aryaText(AryaFont.body, AryaColor.inkMuted).textSelection(.enabled)
+                Text(MetricText.sentence(whatIf)).aryaText(AryaFont.body, AryaColor.inkMuted)
+                    .textSelection(.enabled)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -367,7 +368,7 @@ struct OutcomeProposalRow: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Charter diff, \(diff.added) added, \(diff.removed) removed")
                 // Refs as names ("person:lee" is "Lee"), like every other line on screen.
-                if diffOpen(diff) { DiffBlock(HumanText.sentence(diff.text)) }
+                if diffOpen(diff) { DiffBlock(MetricText.sentence(HumanText.sentence(diff.text))) }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

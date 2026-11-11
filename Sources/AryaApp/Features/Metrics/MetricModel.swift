@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// A charter's outcome metric definition.
 struct MetricDefinition: Hashable, Sendable {
@@ -97,6 +98,33 @@ struct MetricSeries: Hashable, Sendable {
 enum MetricText {
     static func value(_ value: Double) -> String { String(format: "%.2f", value) }
 
+    /// A metric's name on every screen, the one formatter: charters carry no separate label,
+    /// so the key reads in words ("first_reply_within_1d" reads "first reply within 1d").
+    static func name(_ key: String) -> String { key.replacingOccurrences(of: "_", with: " ") }
+
+    /// The key for words a person typed: "routed within 1h" is stored "routed_within_1h".
+    static func key(_ words: String) -> String { words.replacingOccurrences(of: " ", with: "_") }
+
+    /// A text field's binding that shows a metric key in words and stores the key.
+    static func words(_ key: Binding<String>) -> Binding<String> {
+        Binding(get: { name(key.wrappedValue) }, set: { key.wrappedValue = Self.key($0) })
+    }
+
+    /// Every metric key in a sentence as words ("routed_within_1h missed its target…" reads
+    /// "routed within 1h missed its target…"), for workspace lines shown verbatim otherwise.
+    static func sentence(_ text: String) -> String {
+        let range = NSRange(text.startIndex..., in: text)
+        var out = text
+        for match in snake.matches(in: text, range: range).reversed() {
+            guard let found = Range(match.range, in: out) else { continue }
+            out.replaceSubrange(found, with: name(String(out[found])))
+        }
+        return out
+    }
+
+    private static let snake = try! NSRegularExpression(
+        pattern: #"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b"#)
+
     /// The one way a reading shows against its target (header, METRICS, portfolio, inspector):
     /// "0.84", "12" for whole numbers of 10 or more. When the workspace says off target but the
     /// reading rounds to the target, it gains decimals until the gap shows ("0.897" against
@@ -129,7 +157,7 @@ enum MetricText {
 
     /// "triaged_within_1h (ratio), target 0.95 or more".
     static func title(_ definition: MetricDefinition) -> String {
-        var text = definition.name
+        var text = name(definition.name)
         if !definition.unit.isEmpty { text += " (\(definition.unit))" }
         if let target = definition.target {
             text +=
@@ -141,9 +169,9 @@ enum MetricText {
     /// The chart's accessibility label: latest value, trend, and target status.
     static func summary(_ series: MetricSeries) -> String {
         guard let latest = series.latest else {
-            return "\(series.definition.name): no readings yet."
+            return "\(name(series.definition.name)): no readings yet."
         }
-        var text = "\(series.definition.name) is \(value(latest.value))"
+        var text = "\(name(series.definition.name)) is \(value(latest.value))"
         if let trend = series.trend, series.points.count >= 2 {
             let previous = value(series.points[series.points.count - 2].value)
             switch trend {

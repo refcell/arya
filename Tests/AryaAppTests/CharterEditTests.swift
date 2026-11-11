@@ -134,7 +134,7 @@ private let live = LiveCharter(steward: "st_triage", version: 3, charter: liveCh
     #expect(draft.problems(.metric) == ["The bound for reopen_rate must be a number."])
     draft.guardrailMetrics[0].name = "routed_within_1h"
     draft.guardrailMetrics[0].target = ""
-    #expect(draft.problems(.metric) == ["routed_within_1h is already the main metric."])
+    #expect(draft.problems(.metric) == ["routed within 1h is already the main metric."])
 }
 
 /// A new steward's owner reaches the draft the workspace creates it from.

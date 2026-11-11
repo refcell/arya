@@ -131,6 +131,17 @@ is. Fix these five first; this lane owns its share:
 - (from runtime) Onboarding now reads `history` too (decision 0063): `OnboardSummary.records` (nil when none); notes tagged `history` with kinds `people`, `routing`, `outcomes`, `resolutions`. Show the record count on the getting-to-know-your-team card.
 
 ## Log
+- 2026-11-11: one metric, one name (CEO #32). `MetricText.name(key)` is the one formatter
+  (charters carry no label, so the key reads in words) and `MetricText.sentence` puts every key
+  in a workspace line into words: header, METRICS caption and guardrails, FINDINGS, IMPACT
+  (summary and kinds), go-live gate, proposals, the Metrics tab, wizard cards and problems.
+  The charter editor's metric fields show words and store the key (`MetricText.words`). The
+  inspector's `metricWords` calls it. Overview fill (aa1d5eea): series under the chart, 8-day
+  table with GAP, METRICS title on the chart column, writes inline when the line fits, recap in
+  the columns, zero series read "none in the last N days".
+  Visual check (empty.tsv): overview.png 34, overview-live.png 34, improve.png 38. Texts of
+  overview, overview-live, improve, improve-proposals, charter-editor(-2), onboarding hold no
+  metric key; the one snake word left is the inspector's tool table `send_email` (app-shell).
 
 ### 2026-11-11 KNOWS in names, one reading formatter, onboarding records, re-plan line
 - KNOWS renders subjects through `HumanText.name` and text through `HumanText.sentence`, and

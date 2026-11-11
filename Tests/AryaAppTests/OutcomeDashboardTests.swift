@@ -1,5 +1,6 @@
 import AryaDesign
 import Foundation
+import SwiftUI
 import Testing
 
 @testable import AryaApp
@@ -62,7 +63,7 @@ private func log() -> [FeatureEvent] {
     let metrics = OutcomeMetrics.build(
         events: log(), steward: steward, state: state, now: now, statuses: statuses)
     let guardrails = metrics.series.filter(\.guardrail)
-    #expect(guardrails.map(\.name) == ["reopen_rate"])
+    #expect(guardrails.map(\.name) == ["reopen rate"])
     #expect(guardrails.first?.value == "0.08 / ≤ 0.05")
     #expect(guardrails.first?.tone == .negative)
     #expect(guardrails.first?.values == [0.04, 0.08])
@@ -232,4 +233,20 @@ private func log() -> [FeatureEvent] {
     #expect(MetricText.figure(0.84, target: 0.90, offTarget: true) == "0.84 / 0.90")
     #expect(MetricText.figure(nil, target: 0.90, offTarget: false) == "— / 0.90")
     #expect(MetricText.reading(12, target: nil, offTarget: false) == "12")
+}
+
+@Test func metricKeysReadAsWordsInSentences() {
+    #expect(MetricText.name("first_reply_within_1d") == "first reply within 1d")
+    #expect(
+        MetricText.sentence("routed_within_1h missed its target on 4 of 5 days")
+            == "routed within 1h missed its target on 4 of 5 days")
+    #expect(MetricText.sentence("Nov 9: 0.95 over 3 readings") == "Nov 9: 0.95 over 3 readings")
+}
+
+@Test func aMetricFieldShowsWordsAndStoresTheKey() {
+    var stored = "routed_within_1h"
+    let field = MetricText.words(Binding(get: { stored }, set: { stored = $0 }))
+    #expect(field.wrappedValue == "routed within 1h")
+    field.wrappedValue = "reopen rate"
+    #expect(stored == "reopen_rate")
 }

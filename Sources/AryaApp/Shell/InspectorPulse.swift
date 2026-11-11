@@ -202,7 +202,7 @@ struct StewardPulseView: View {
 
     /// A metric key in words: "first_reply_within_1d" reads "first reply within 1d".
     static func metricWords(_ key: String) -> String {
-        key.replacingOccurrences(of: "_", with: " ")
+        MetricText.name(key)
     }
 
     var body: some View {

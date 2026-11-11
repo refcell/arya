@@ -265,7 +265,8 @@ struct NewStewardFields: View {
 
     @ViewBuilder private var metric: some View {
         labeled("Metric") {
-            CharterTextField(placeholder: "routed_within_1h", text: $draft.metric, mono: true)
+            CharterTextField(
+                placeholder: "routed within 1h", text: MetricText.words($draft.metric), mono: true)
         }
         HStack(alignment: .bottom, spacing: AryaSpace.s3) {
             labeled("Target") {
@@ -288,7 +289,8 @@ struct NewStewardFields: View {
                 ForEach($draft.guardrailMetrics) { $row in
                     HStack(alignment: .bottom, spacing: AryaSpace.s2) {
                         CharterTextField(
-                            placeholder: "reopen_rate", text: $row.name, mono: true)
+                            placeholder: "reopen rate", text: MetricText.words($row.name),
+                            mono: true)
                         NewStewardChoice(
                             selection: $row.direction,
                             options: [("down", "at most"), ("up", "at least")])

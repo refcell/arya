@@ -164,7 +164,7 @@ struct NewStewardDraft: Hashable, Sendable {
                     out.append("The bound for \(row.name.trimmed) must be a number.")
                 }
                 if row.name.trimmed == metric.trimmed {
-                    out.append("\(row.name.trimmed) is already the main metric.")
+                    out.append("\(MetricText.name(row.name.trimmed)) is already the main metric.")
                 }
             }
             if Set(names).count < names.count { out.append("A guardrail metric is listed twice.") }

@@ -337,9 +337,11 @@ enum OutcomeText {
     /// "triaged_within_1h at 0.95 or more", the success definition a metric implies.
     static func success(_ metric: MetricDefinition?) -> String {
         guard let metric else { return "No success metric in the charter." }
-        guard let target = metric.target else { return "\(metric.name) keeps improving." }
+        guard let target = metric.target else {
+            return "\(MetricText.name(metric.name)) keeps improving."
+        }
         let side = metric.direction == .up ? "or more" : "or less"
-        return "\(metric.name) at \(MetricText.value(target)) \(side)."
+        return "\(MetricText.name(metric.name)) at \(MetricText.value(target)) \(side)."
     }
 
     /// "Review 1 approval", the primary action when something waits on the person.
@@ -350,7 +352,9 @@ enum OutcomeText {
     /// "triaged_within_1h is 0.93 against a target of 0.95, at risk."
     static func spoken(_ state: OutcomeState) -> String {
         guard let metric = state.metric else { return "No outcome metric." }
-        var text = "\(metric.name) is " + (state.latest.map(MetricText.value) ?? "not measured")
+        var text =
+            "\(MetricText.name(metric.name)) is "
+            + (state.latest.map(MetricText.value) ?? "not measured")
         if let target = metric.target { text += " against a target of \(MetricText.value(target))" }
         text += ", \(state.status.word)"
         if let missed = state.missedText { text += ", \(missed)" }

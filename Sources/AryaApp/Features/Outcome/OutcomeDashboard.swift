@@ -162,7 +162,8 @@ struct OutcomeMetrics: Hashable, Sendable {
             " / \(status.direction == "down" ? "≤" : "≥") \(MetricText.target($0))"
         }
         return OutcomeSeries(
-            name: status.name, value: value + (bound ?? ""), values: status.trend.compactMap { $0 },
+            name: MetricText.name(status.name), value: value + (bound ?? ""),
+            values: status.trend.compactMap { $0 },
             tone: status.status == "off_track" ? .negative : .plain, guardrail: true,
             target: status.target, line: status.line)
     }
@@ -348,7 +349,7 @@ struct OutcomeMetricsPanel: View {
     /// "routed_within_1h by day over 30 days, target 0.95 or more".
     private var heading: String {
         guard let metric = metrics.metric else { return "\(OutcomeMetrics.windowDays) days" }
-        var text = "\(metric.name) by day over \(OutcomeMetrics.windowDays) days"
+        var text = "\(MetricText.name(metric.name)) by day over \(OutcomeMetrics.windowDays) days"
         if let target = metric.target {
             text += ", target \(MetricText.target(target)) or "
             text += metric.direction == .up ? "more" : "less"
@@ -586,7 +587,7 @@ struct OutcomeFindingsSection: View {
             ForEach(findings) { finding in
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                     Text(mark(finding.kind)).aryaText(AryaFont.monoSmall, color(finding.kind))
-                    Text(finding.text).aryaText(AryaFont.body, AryaColor.ink)
+                    Text(MetricText.sentence(finding.text)).aryaText(AryaFont.body, AryaColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(minHeight: AryaSize.rowHeight)
@@ -618,12 +619,13 @@ struct OutcomeImpactSection: View {
 
     var body: some View {
         OutcomeSection("Impact", trailing: "from \(impact.readings) readings") {
-            Text(impact.summary).aryaText(AryaFont.body, AryaColor.inkMuted)
+            Text(MetricText.sentence(impact.summary)).aryaText(AryaFont.body, AryaColor.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(minHeight: AryaSize.rowHeight)
             ForEach(impact.rows) { row in
                 HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                    Text(row.label).aryaText(AryaFont.mono, AryaColor.ink)
+                    // Action kinds in words too ("send_email" reads "send email").
+                    Text(MetricText.sentence(row.label)).aryaText(AryaFont.mono, AryaColor.ink)
                         .frame(width: AryaSize.outcomeSeriesLabel, alignment: .leading)
                     Text(OutcomeDashboardText.credit(row.credit))
                         .aryaText(AryaFont.mono, OutcomeImpact.tone(row))
@@ -666,7 +668,7 @@ enum OutcomeDashboardText {
     }
 
     static func chart(_ metrics: OutcomeMetrics) -> String {
-        let name = metrics.metric?.name ?? "The metric"
+        let name = metrics.metric.map { MetricText.name($0.name) } ?? "The metric"
         guard let first = metrics.points.first?.value, let last = metrics.points.last?.value else {
             return "\(name): not enough readings."
         }

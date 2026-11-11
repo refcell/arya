@@ -38,7 +38,7 @@ struct GoLiveGateRow: View {
                     "\(GoLiveGateText.title(condition.key)): \(condition.met ? "met" : "not met"), "
                         + condition.detail)
             }
-            Text(gate.summary).aryaText(AryaFont.body, AryaColor.inkMuted)
+            Text(MetricText.sentence(gate.summary)).aryaText(AryaFont.body, AryaColor.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

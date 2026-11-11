@@ -74,9 +74,11 @@ struct OutcomeLineContent: View {
                     if let why = state.why {
                         // Why the pill says what it says, whole and in the workspace's words,
                         // on its own line under the KPI.
-                        Text(why).aryaText(AryaFont.caption, AryaColor.inkMuted)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .help(state.reason ?? why)
+                        Text(MetricText.sentence(why)).aryaText(
+                            AryaFont.caption, AryaColor.inkMuted
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
+                        .help(state.reason ?? why)
                     }
                     Spacer(minLength: AryaSpace.s2)
                     // When it runs next and how much it ran, the same reads as NOW and RUNS.
@@ -106,7 +108,7 @@ struct OutcomeLineContent: View {
                     Text("/ \(MetricText.target(target))")
                         .aryaText(AryaFont.mono, AryaColor.inkFaint)
                 }
-                Text(state.metric?.name ?? "no metric")
+                Text(state.metric.map { MetricText.name($0.name) } ?? "no metric")
                     .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                     .lineLimit(1)
             }

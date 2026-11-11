@@ -29,7 +29,7 @@ private func triage() -> OutcomeSnapshot {
     #expect(summary.latest.map { abs($0 - 0.93) < 1e-9 } == true)
     #expect(summary.status == .atRisk)
     #expect(summary.points.count >= 5)
-    #expect(summary.success == "triaged_within_1h at 0.95 or more.")
+    #expect(summary.success == "triaged within 1h at 0.95 or more.")
     #expect(summary.outcome.hasPrefix("Every new issue"))
     #expect(OutcomeText.change(summary.points)?.hasPrefix("+0.") == true)
 }
@@ -166,7 +166,7 @@ private func triage() -> OutcomeSnapshot {
     #expect(OutcomeText.review(3) == "Review 3 approvals")
     #expect(
         OutcomeText.spoken(triage().state)
-            == "triaged_within_1h is 0.93 against a target of 0.95, at risk, missed 5 of 5 days.")
+            == "triaged within 1h is 0.93 against a target of 0.95, at risk, missed 5 of 5 days.")
     #expect(OutcomeActivity.State.executed.mark == "✓")
     #expect(OutcomeActivity.State.waiting.mark == "◷")
 }
