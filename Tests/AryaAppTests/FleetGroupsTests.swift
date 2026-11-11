@@ -264,3 +264,7 @@ import Testing
     let cost = lines.first { $0.0 == "Cost" }?.1
     #expect(cost == RunMetrics.dollars(40_000) + " so far")
 }
+
+@MainActor @Test func pulseNamesTheMetricInWords() {
+    #expect(StewardPulseView.metricWords("first_reply_within_1d") == "first reply within 1d")
+}

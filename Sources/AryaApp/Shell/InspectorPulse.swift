@@ -200,17 +200,22 @@ struct StewardPulseView: View {
     /// Runs the Needs you inspector lists.
     static let recentLimit = 10
 
+    /// A metric key in words: "first_reply_within_1d" reads "first reply within 1d".
+    static func metricWords(_ key: String) -> String {
+        key.replacingOccurrences(of: "_", with: " ")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
             if let name = pulse.metricName {
                 VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(pulse.metricValue)
-                            .aryaText(
-                                AryaFont.metric, pulse.behind ? AryaColor.negative : AryaColor.ink)
-                        Spacer(minLength: AryaSpace.s2)
-                        Text(name).aryaText(AryaFont.monoSmall, AryaColor.inkMuted).lineLimit(1)
-                    }
+                    // The metric in words on its own line, wrapping rather than clipping:
+                    // "first reply within 1d", never the key.
+                    Text(Self.metricWords(name)).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(pulse.metricValue)
+                        .aryaText(
+                            AryaFont.metric, pulse.behind ? AryaColor.negative : AryaColor.ink)
                     if pulse.series.count > 1 {
                         Sparkline(pulse.series, onTarget: !pulse.behind, width: nil, height: 32)
                     }
@@ -218,7 +223,9 @@ struct StewardPulseView: View {
             }
             HStack(spacing: AryaSpace.s3) {
                 PulseFigure(label: "Next wake", value: pulse.nextWake)
-                PulseFigure(label: "Cost today", value: pulse.costToday)
+                PulseFigure(
+                    label: "Cost today",
+                    value: pulse.costToday.replacingOccurrences(of: " today", with: ""))
                 PulseFigure(
                     label: "Running", value: pulse.running == 0 ? "idle" : "\(pulse.running)",
                     tone: pulse.running == 0 ? AryaColor.inkMuted : AryaColor.positive)
@@ -369,7 +376,9 @@ struct FleetPulseView: View {
             HStack(spacing: AryaSpace.s3) {
                 PulseFigure(label: "Waiting", value: "\(pulse.waiting)")
                 PulseFigure(label: "Runs today", value: "\(pulse.runsToday)")
-                PulseFigure(label: "Cost today", value: pulse.costToday)
+                PulseFigure(
+                    label: "Cost today",
+                    value: pulse.costToday.replacingOccurrences(of: " today", with: ""))
             }
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
                 HStack {

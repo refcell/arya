@@ -492,3 +492,10 @@ M4:
   `inspectorCostIsTheHeadersCostSoFar`.
 - Visual check (run, run-approval, overview-live): moves (4); empty.tsv: run 33, run-approval
   36, overview-live 45.
+- 2026-11-11 VC46 (main red): the inspector's steward block showed the metric key, clipped
+  ("first_reply.within_"), and the gate failed run-live-window. The pulse now names the metric
+  in words on its own wrapping line ("first reply within 1d"); the charter has no display
+  label. "Cost today" no longer repeats "today" in its value, so it fits. The gate reads a
+  "." inside a snake-case word as "_", since the recognizer confuses them.
+- Visual check (run-live-window, run, needs-you, overview): moves (2); empty.tsv:
+  run-live-window 30, run 33, needs-you 57, overview 39.

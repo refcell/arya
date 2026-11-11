@@ -85,7 +85,9 @@ enum SnapshotText {
             // OCR may split a metric name at a space, so any snake-case word that is part of
             // a metric name counts as the metric.
             let line = text.split(separator: " ").map { word -> String in
-                let bare = word.trimmingCharacters(in: .punctuationCharacters)
+                // OCR may read "_" as "." inside a snake-case word.
+                let read = word.trimmingCharacters(in: .punctuationCharacters)
+                let bare = read.contains("_") ? read.replacingOccurrences(of: ".", with: "_") : read
                 return bare.contains("_") && metricNames.contains(where: { $0.contains(bare) })
                     ? "metric" : String(word)
             }.joined(separator: " ")
