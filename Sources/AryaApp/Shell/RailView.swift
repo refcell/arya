@@ -94,59 +94,58 @@ struct RailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Decisions the sidebar lists on All stewards.
-    nonisolated static let decisionsLimit = 6
+    /// Outcome lines the sidebar lists on All stewards.
+    nonisolated static let outcomesLimit = 7
 
-    /// On All stewards, where the page has its own Fleet activity, the sidebar's lower half
-    /// lists the latest decisions instead: what people said to which steward, and when.
+    /// On All stewards, where the page has its own Fleet activity and the inspector the queue,
+    /// the sidebar's lower half says what each department's outcomes did this week.
     @ViewBuilder private var decisions: some View {
         if case .loaded(let events) = model.featureStore?.state,
             model.navigation.destination == .portfolio
         {
-            let names = StewardNames.build(events: events)
-            let decided = ApprovalQueue.build(events: events).decided
-                .sorted {
-                    ($0.decision?.at ?? $0.requestedAt) > ($1.decision?.at ?? $1.requestedAt)
-                }
-                .prefix(Self.decisionsLimit)
-            if !decided.isEmpty {
+            let series = model.stewards.compactMap { steward in
+                MetricSeries.build(events: events, steward: steward.id).map { (steward, $0) }
+            }
+            let groups = DepartmentOutcomes.capped(
+                DepartmentOutcomes.build(series: series, departments: model.departments),
+                limit: Self.outcomesLimit)
+            if !groups.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Recent decisions").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    Text("This week").aryaText(AryaFont.label, AryaColor.inkFaint)
                         .padding(.horizontal, AryaSpace.s1)
                         .frame(height: AryaSize.rowHeight)
-                    ForEach(Array(decided)) { item in
-                        Button {
-                            if let steward = item.steward {
-                                model.navigation.select(steward: steward)
-                            }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text(
-                                    item.kind == "question"
-                                        ? item.summary
-                                        : ActionWords.sentence(kind: item.kind, target: item.target)
-                                )
-                                .aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(1)
-                                Text(
-                                    [
-                                        item.steward.map { names[$0] ?? $0 },
-                                        item.decision.map { ApprovalText.verdict($0, now: now) },
-                                    ].compactMap { $0 }.joined(separator: " · ")
-                                )
-                                .aryaText(AryaFont.caption, AryaColor.inkFaint)
-                                .fixedSize(horizontal: false, vertical: true)
-                            }
+                    ForEach(groups) { group in
+                        Text(group.department).aryaText(AryaFont.caption, AryaColor.inkMuted)
                             .padding(.horizontal, AryaSpace.s1)
-                            .padding(.vertical, AryaSpace.s1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                            .padding(.top, AryaSpace.s1)
+                        ForEach(group.lines) { line in
+                            outcomeRow(line)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.top, AryaSpace.s2)
             }
         }
+    }
+
+    private func outcomeRow(_ line: DepartmentOutcomes.Line) -> some View {
+        Button {
+            model.navigation.select(steward: line.id)
+        } label: {
+            (Text(line.name + " ").foregroundStyle(AryaColor.ink)
+                + Text(line.text)
+                .foregroundStyle(
+                    line.good == false
+                        ? AryaColor.negative
+                        : line.good == true ? AryaColor.positive : AryaColor.inkFaint))
+                .aryaText(AryaFont.caption, AryaColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, AryaSpace.s1)
+                .padding(.vertical, 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// Lines in the sidebar's Activity feed.

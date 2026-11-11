@@ -314,7 +314,7 @@ struct InspectorView: View {
     }
 
     /// Runs the fleet inspector lists under the oldest waiting.
-    static let fleetRunsLimit = 8
+    static let fleetRunsLimit = 10
 
     /// The fleet's latest finished work in words: what each run did, whose it was, when.
     @ViewBuilder private var fleetRecentRuns: some View {

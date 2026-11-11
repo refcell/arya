@@ -524,3 +524,12 @@ M4:
   Activity would repeat the page), and the fleet inspector lists recent runs in words.
 - Visual check (needs-you, portfolio-live, overview, new-steward): moves (2); empty.tsv:
   needs-you 51, portfolio-live 42, overview 34, new-steward 88.
+- 2026-11-11 review #33: Needs you's bottom third: the queue column lists 16 recent decisions,
+  Next up adds the next request's own run trail, "Decided for this steward" lists 14, and the
+  inspector's recent runs 16. The overview title line carries "department · charter vN ·
+  status" on the right. The inspector's Waiting rows add why and how long. Portfolio sidebar:
+  "This week" per department (back on target, fell below, still behind, moves; at most 7,
+  steady ones left out), replacing the decisions copy of the queue; the fleet inspector lists
+  10 recent runs. Block maps come from `.lane/blockmap.swift` (same rule as `SnapshotSpace`).
+- Visual check (needs-you, overview, run, portfolio-live): moves (2); empty.tsv: needs-you 37,
+  overview 32, run 31, portfolio-live 42.

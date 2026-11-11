@@ -198,7 +198,7 @@ struct StewardPulseView: View {
     let openApproval: (String) -> Void
 
     /// Runs the Needs you inspector lists.
-    static let recentLimit = 10
+    static let recentLimit = 16
 
     /// A metric key in words: "first_reply_within_1d" reads "first reply within 1d".
     static func metricWords(_ key: String) -> String {
@@ -266,7 +266,14 @@ struct StewardPulseView: View {
                                 )
                                 .aryaText(AryaFont.caption, AryaColor.ink)
                                 .lineLimit(1)
+                                .layoutPriority(1)
+                                // Why it waits, as far as the row allows, and for how long.
+                                Text(ActionWords.humanize(approval.text))
+                                    .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                                    .lineLimit(1)
                                 Spacer(minLength: 0)
+                                Text(AryaTime.label(approval.requestedAt, now: now, style: .short))
+                                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                             }
                             .frame(height: AryaSize.rowHeight)
                             .contentShape(Rectangle())

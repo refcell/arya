@@ -509,3 +509,91 @@ struct FleetActivity: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
+
+/// What each department's outcomes did over the last week, for the sidebar on All stewards:
+/// recoveries, misses, and moves, never a copy of the queue.
+enum DepartmentOutcomes {
+    struct Line: Identifiable, Hashable {
+        var id: String
+        var name: String
+        /// "back on target, 0.84 → 0.96", "fell below target, 0.80 → 0.75", "0.90 → 0.96".
+        var text: String
+        /// True when the move is the good way (or recovered); false when it missed or slid.
+        var good: Bool?
+    }
+
+    struct Group: Identifiable, Hashable {
+        var id: String { department }
+        var department: String
+        var lines: [Line]
+    }
+
+    /// At most `limit` lines that moved (steady ones left out), in group order, so the list
+    /// fits under the threads without running off the window.
+    static func capped(_ groups: [Group], limit: Int) -> [Group] {
+        var left = limit
+        return groups.compactMap { group in
+            let lines = Array(group.lines.filter { $0.good != nil }.prefix(max(0, left)))
+            left -= lines.count
+            return lines.isEmpty ? nil : Group(department: group.department, lines: lines)
+        }
+    }
+
+    /// Readings back the comparison starts from: a week of daily points.
+    static let window = 7
+
+    /// One line per steward with at least two readings; departments by name, Unassigned last,
+    /// and inside each the misses first, then recoveries, then moves.
+    static func build(series: [(StewardSummary, MetricSeries)], departments: [String: String])
+        -> [Group]
+    {
+        var groups: [String: [(Line, Int)]] = [:]
+        for (steward, metric) in series where metric.points.count >= 2 {
+            let latest = metric.points[metric.points.count - 1].value
+            let start = metric.points[max(0, metric.points.count - 1 - window)].value
+            let move = "\(MetricText.value(start)) → \(MetricText.value(latest))"
+            let up = metric.definition.direction == .up
+            func meets(_ value: Double) -> Bool? {
+                metric.definition.target.map { up ? value >= $0 : value <= $0 }
+            }
+            let line: (Line, Int)
+            switch (meets(start), meets(latest)) {
+            case (false?, true?):
+                line = (
+                    Line(
+                        id: steward.id, name: steward.name, text: "back on target, " + move,
+                        good: true), 1
+                )
+            case (true?, false?):
+                line = (
+                    Line(
+                        id: steward.id, name: steward.name,
+                        text: "fell below target, " + move, good: false), 0
+                )
+            case (_, false?):
+                line = (
+                    Line(
+                        id: steward.id, name: steward.name, text: "still behind, " + move,
+                        good: false), 0
+                )
+            default:
+                let delta = latest - start
+                let good: Bool? = abs(delta) < 0.005 ? nil : (delta > 0) == up
+                line = (
+                    Line(
+                        id: steward.id, name: steward.name,
+                        text: abs(delta) < 0.005 ? "steady at \(MetricText.value(latest))" : move,
+                        good: good), 2
+                )
+            }
+            groups[departments[steward.id] ?? "Unassigned", default: []].append(line)
+        }
+        return groups.keys.sorted {
+            ($0 == "Unassigned" ? 1 : 0, $0) < ($1 == "Unassigned" ? 1 : 0, $1)
+        }.map { department in
+            Group(
+                department: department,
+                lines: (groups[department] ?? []).sorted { $0.1 < $1.1 }.map(\.0))
+        }
+    }
+}

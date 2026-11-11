@@ -275,3 +275,44 @@ import Testing
     let next = ApprovalQueueView.nextUp(after: items[3], in: items).map(\.id)
     #expect(next == ["ap5", "ap1", "ap2"])
 }
+
+@Test func departmentOutcomesSayRecoveriesAndMisses() throws {
+    func series(_ values: [Double]) -> MetricSeries {
+        MetricSeries(
+            definition: MetricDefinition(name: "m", unit: "ratio", direction: .up, target: 0.9),
+            points: values.enumerated().map {
+                MetricPoint(
+                    day: Date(timeIntervalSince1970: Double($0.offset) * 86_400),
+                    value: $0.element, count: 1)
+            })
+    }
+    func steward(_ id: String) -> StewardSummary {
+        StewardSummary(
+            id: id, name: id.capitalized, outcome: "", charterVersion: 1, status: .active,
+            ready: true)
+    }
+    let groups = DepartmentOutcomes.build(
+        series: [
+            (steward("a"), series([0.80, 0.95])), (steward("b"), series([0.95, 0.85])),
+            (steward("c"), series([0.92, 0.92])),
+        ],
+        departments: ["a": "Sales", "b": "Sales"])
+    #expect(groups.map(\.department) == ["Sales", "Unassigned"])
+    #expect(
+        groups[0].lines.map(\.text) == [
+            "fell below target, 0.95 → 0.85", "back on target, 0.80 → 0.95",
+        ])
+    #expect(groups[1].lines.first?.text == "steady at 0.92")
+}
+
+@Test func departmentOutcomesCapLeavesSteadyOut() {
+    let line = { (id: String, good: Bool?) in
+        DepartmentOutcomes.Line(id: id, name: id, text: "t", good: good)
+    }
+    let groups = [
+        DepartmentOutcomes.Group(department: "A", lines: [line("a", false), line("b", nil)]),
+        DepartmentOutcomes.Group(department: "B", lines: [line("c", true), line("d", true)]),
+    ]
+    let capped = DepartmentOutcomes.capped(groups, limit: 2)
+    #expect(capped.flatMap(\.lines).map(\.id) == ["a", "c"])
+}

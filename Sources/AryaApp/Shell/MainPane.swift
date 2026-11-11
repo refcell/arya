@@ -58,11 +58,19 @@ struct MainPane: View {
 struct PageTitle: View {
     let title: String
     let subtitle: String
+    /// Facts on the title's line, right-aligned: "Unassigned · charter v1".
+    var detail: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
-            Text(title).aryaText(AryaFont.title, AryaColor.ink)
-                .accessibilityAddTraits(.isHeader)
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
+                Text(title).aryaText(AryaFont.title, AryaColor.ink)
+                    .accessibilityAddTraits(.isHeader)
+                if let detail {
+                    Spacer(minLength: AryaSpace.s3)
+                    Text(detail).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
+                }
+            }
             if !subtitle.isEmpty {
                 Text(subtitle).aryaText(AryaFont.body, AryaColor.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -113,8 +121,14 @@ struct StewardPage: View {
     private var stewardPage: some View {
         VStack(alignment: .leading, spacing: 0) {
             // The outcome line below carries the page's one primary action (app-outcome).
-            PageTitle(title: steward.name, subtitle: steward.outcome)
-                .padding(.horizontal, AryaSize.pagePadding)
+            PageTitle(
+                title: steward.name, subtitle: steward.outcome,
+                detail: [
+                    model.departments[steward.id] ?? "Unassigned",
+                    "charter v\(steward.charterVersion)", steward.status.rawValue,
+                ].joined(separator: " · ")
+            )
+            .padding(.horizontal, AryaSize.pagePadding)
             FeatureRegistry.outcomeLine(model.featureContext())
                 .padding(.horizontal, AryaSize.pagePadding)
                 .padding(.top, AryaSpace.s3)

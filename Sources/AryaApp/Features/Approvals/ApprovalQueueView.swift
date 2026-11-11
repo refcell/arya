@@ -219,7 +219,11 @@ struct ApprovalQueueView: View {
     /// How many upcoming requests `nextUp(after:in:)` returns; the detail previews the first.
     static let nextLimit = 3
     /// How many of the steward's own decisions the context column lists.
-    static let stewardDecidedLimit = 8
+    static let stewardDecidedLimit = 14
+    /// How many recent decisions the queue column lists under the queue.
+    static let decidedLimit = 16
+    /// Steps of the next request's run the preview shows.
+    static let nextStepsLimit = 6
 
     /// The requests after `current` in queue order, wrapping to the start: what A or D leads to.
     static func nextUp(after current: ApprovalItem, in pending: [ApprovalItem]) -> [ApprovalItem] {
@@ -270,6 +274,14 @@ struct ApprovalQueueView: View {
                             Text(ActionWords.humanize(source))
                                 .aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if let run = item.run {
+                            let steps = NeedsYouRunSteps.lines(
+                                events: events, run: run, limit: Self.nextStepsLimit)
+                            if !steps.isEmpty {
+                                NeedsYouRunSteps(steps: steps, title: "Its run so far")
+                                    .padding(.top, AryaSpace.s1)
+                            }
                         }
                         if !next.action.rationale.isEmpty {
                             Text("Why").aryaText(AryaFont.label, AryaColor.inkFaint)
@@ -365,7 +377,7 @@ struct ApprovalQueueView: View {
         return VStack(alignment: .leading, spacing: 0) {
             Text("Recent decisions").aryaText(AryaFont.label, AryaColor.inkFaint)
                 .frame(height: AryaSize.rowHeight)
-            ForEach(items.prefix(10)) { item in
+            ForEach(items.prefix(Self.decidedLimit)) { item in
                 VStack(alignment: .leading, spacing: 0) {
                     Text(
                         item.kind == "question"
