@@ -53,6 +53,12 @@ struct OutcomeReads: Hashable, Sendable {
     var impact: FeatureImpact?
     var onboarding: FeatureOnboarding?
     var metrics: [FeatureMetricStatus]?
+    /// The evaluation window's missed line (`outcomeWindow.missedText`): `.some(nil)` when
+    /// read and nothing missed, nil when not read.
+    var missedText: String?? = nil
+
+    /// The primary metric's status read.
+    var primary: FeatureMetricStatus? { metrics?.first { $0.role == "primary" } }
 }
 
 /// A steward's onboarding as the workspace reports it (`onboardingState`, the latest onboard

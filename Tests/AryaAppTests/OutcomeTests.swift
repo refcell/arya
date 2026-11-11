@@ -284,3 +284,27 @@ private func triage() -> OutcomeSnapshot {
             == ["body: Hi", "to: ana"])
     #expect(OutcomeActivityFeed.writes(nil, kind: "note").isEmpty)
 }
+
+@Test func theHeaderTakesItsStatusReasonAndMissedLineFromTheWorkspace() {
+    let metric = MetricDefinition(name: "reply_rate", unit: "ratio", direction: .up, target: 0.9)
+    // A ledger mean a hair under the bound reads at risk on its own.
+    var state = OutcomeState(
+        outcome: "", metric: metric,
+        points: [MetricPoint(day: Date(timeIntervalSince1970: 0), value: 0.8999, count: 1)],
+        status: .atRisk, success: "", readiness: .ready(charterVersion: 1),
+        autonomy: OutcomeAutonomy.build(charter: nil), wake: .onDemand, trend: [])
+    let primary = FeatureMetricStatus(
+        name: "reply_rate", unit: "ratio", direction: "up", target: 0.9, role: "primary",
+        current: 0.9, trend: [], status: "on_track", movement: "flat",
+        line: "reply_rate 0.90, target ≥ 0.90: on track, flat.")
+    state = state.applying(OutcomeReads(metrics: [primary], missedText: .some(nil)))
+    #expect(state.status == OutcomeStatus.onTrack)
+    #expect(state.reason == "reply_rate 0.90, target ≥ 0.90: on track, flat.")
+    #expect(state.missedText == nil)
+    let missed = "missed its target on 4 of the last 7 days"
+    let recovering = state.applying(OutcomeReads(metrics: [primary], missedText: .some(missed)))
+    #expect(recovering.status == OutcomeStatus.recovering)
+    #expect(recovering.missedText == missed)
+    // Without reads the ledger estimate stands.
+    #expect(state.applying(nil) == state)
+}

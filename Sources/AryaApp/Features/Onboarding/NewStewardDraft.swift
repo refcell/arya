@@ -295,7 +295,17 @@ struct NewStewardDraft: Hashable, Sendable {
             guardrails: Self.lines(guardrails), autonomy: autonomy.rawValue, rules: rules,
             bindings: bindings, effort: effort, triggers: triggers, adapter: adapter.trimmed,
             level: level, owner: owner.trimmed.isEmpty ? nil : owner.trimmed,
-            department: department.trimmed.isEmpty ? nil : department.trimmed)
+            department: department.trimmed.isEmpty ? nil : department.trimmed,
+            guardrailMetrics: namedGuardrailMetrics.isEmpty ? nil : namedGuardrailMetrics)
+    }
+
+    /// The guardrail metric rows with a name, as the facade's draft carries them.
+    var namedGuardrailMetrics: [StewardDraft.GuardrailMetric] {
+        guardrailMetrics.filter { !$0.name.trimmed.isEmpty }.map {
+            StewardDraft.GuardrailMetric(
+                name: $0.name.trimmed, unit: $0.unit.trimmed, direction: $0.direction,
+                target: Double($0.target.trimmed))
+        }
     }
 
     /// A filled-in example: the generic support-inbox steward the demo home uses.
@@ -424,6 +434,17 @@ enum NewStewardPreview {
             "effort": .string(draft.effort),
         ]
         charter["owner"] = draft.owner.map(FeatureJSON.string)
+        if let metrics = draft.guardrailMetrics, !metrics.isEmpty {
+            charter["guardrailMetrics"] = .array(
+                metrics.map { metric -> FeatureJSON in
+                    var out: [String: FeatureJSON] = [
+                        "name": .string(metric.name), "unit": .string(metric.unit),
+                        "direction": .string(metric.direction),
+                    ]
+                    out["target"] = metric.target.map(FeatureJSON.number)
+                    return .object(out)
+                })
+        }
         return .object(charter)
     }
 }

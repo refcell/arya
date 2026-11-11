@@ -132,6 +132,23 @@ is. Fix these five first; this lane owns its share:
 
 ## Log
 
+### 2026-11-10 Improve (eval retired; app-outcome owns it), review #20, wizard metrics
+- Improve review card in words: `ReviewText.difference` reads "Chose security; the person
+  chose account", `ReviewText.source` reads "MSG-120 · Sam · Oct 9 · reopened: …" (raw text
+  stays as the tooltip). Its fields sit on their own row, so "Note (optional)" shows whole;
+  learned checks wrap to two lines; the header's Review button keeps its whole label.
+- What worked: the bar is the success rate (resolved of settled), so 21/21 and 63/63 both
+  fill it; counts stay as text under a RESOLVED column; the header tally that repeated the
+  sentence is gone. Kinds then choices split evenly over two columns when wide.
+- Proposals: the case for a change on the left, its charter diff on the right.
+- The improve state renders at the pinned window size (red on main: it was 1280 x 800).
+- Header (review #20): the status pill takes the primary metric's `metricStatuses` status
+  (on target, an inclusive bound, is on track, never at risk), its `line` sits beside the
+  pill as the reason, and the missed text is `outcomeWindow.missedText` verbatim
+  (`outcomeMissedText(steward:)`); the line loads its own reads on every tab.
+- Wizard: guardrail metrics for a new steward go through `StewardDraft.guardrailMetrics` and
+  show in the preview charter; M3.6 #1 is done end to end.
+
 ### 2026-11-10 CEO review #8: one schedule source, honest status and impact
 - One source for scheduler state: `FeatureServe` (Outcome/OutcomeServe.swift) maps workspace
   `serveStatus()` through `WorkspaceSource.serveSchedule()`; `OutcomeState.build(serve:)`

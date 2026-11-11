@@ -48,10 +48,11 @@ struct LearnedChecksPanel: View {
                 }
             }
             .frame(width: AryaSpace.s3)
-            Text(line.caseID).aryaText(AryaFont.mono, AryaColor.ink)
-                .frame(minWidth: 120, alignment: .leading)
+            Text(line.caseID).aryaText(AryaFont.mono, AryaColor.ink).fixedSize()
+            // Wraps to a second line rather than cutting the check off mid-word.
             Text(line.text).aryaText(AryaFont.body, AryaColor.ink)
-                .lineLimit(1).truncationMode(.tail)
+                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                .help(line.text)
             if line.passed == false {
                 Text(line.found).aryaText(AryaFont.monoSmall, AryaColor.negative)
             }

@@ -87,9 +87,15 @@ struct OverviewTab: View {
         let onboarding = try? await store.workspace.onboarding(steward: steward)
         let metrics = try? await store.workspace.metricStatuses(
             steward: steward, windows: OutcomeMetrics.seriesDays)
+        let missed: String?? =
+            if let read = try? await store.workspace.outcomeMissedText(steward: steward) {
+                .some(read)
+            } else {
+                nil
+            }
         store.outcomeReads[steward] = OutcomeReads(
             live: live, findings: findings, impact: impact ?? nil, onboarding: onboarding,
-            metrics: metrics)
+            metrics: metrics, missedText: missed)
         if let queue = try? await store.workspace.reviewQueue(steward: steward) {
             store.reviewQueues[steward] = queue
         }
@@ -106,9 +112,10 @@ struct OverviewTab: View {
     }
 
     private func content(_ events: [FeatureEvent]) -> some View {
-        let snapshot = OutcomeSnapshot.build(
+        var snapshot = OutcomeSnapshot.build(
             events: events, steward: steward, now: store.now, lastSeen: lastSeen,
             serve: store.serve)
+        snapshot.state = snapshot.state.applying(store.outcomeReads[steward])
         let seenAt = lastSeen.flatMap { seq in events.last { $0.seq <= seq }?.at }
         return ScrollView {
             VStack(alignment: .leading, spacing: AryaSpace.s4) {

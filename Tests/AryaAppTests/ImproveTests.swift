@@ -95,3 +95,20 @@ private let now = FeatureTestClock.now
     #expect(run != nil)
     #expect(run != "run_r3" && run != "run_r7")
 }
+
+@Test func theReviewCardReadsTheDifferenceAndSourceInWords() {
+    #expect(
+        ReviewText.difference("decisions[0].choice: expected account, got security")
+            == "Chose security; the person chose account")
+    #expect(
+        ReviewText.difference("decisions[0].label: expected spam, got bug")
+            == "label: would be bug; the person had spam")
+    let source = ReviewText.source(
+        "history history-export.json item MSG-120 by person:sam at 2026-10-09T09:00:00Z, "
+            + "reopened: Rerouted from security to account.",
+        now: now)
+    #expect(source.hasPrefix("MSG-120 · Sam · "))
+    #expect(source.hasSuffix(" · reopened: Rerouted from security to account."))
+    #expect(!source.contains("person:") && !source.contains("T09:00"))
+    #expect(ReviewText.source("seeded by hand", now: now) == "seeded by hand")
+}

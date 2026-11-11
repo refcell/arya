@@ -13,42 +13,27 @@ struct WhatWorkedPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
-            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                Text("WHAT WORKED").aryaText(AryaFont.overline, AryaColor.inkFaint)
-                tally
-                Spacer(minLength: AryaSpace.s2)
-            }
+            // The sentence carries the counts; the header does not repeat them.
+            Text("WHAT WORKED").aryaText(AryaFont.overline, AryaColor.inkFaint)
             Text(trajectories.sentence).aryaText(AryaFont.body, AryaColor.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
-            group("KINDS", trajectories.credits.filter { $0.axis == "kind" })
-            group("CHOICES", trajectories.credits.filter { $0.axis == "choice" })
+            // Kinds then choices, split evenly over two columns when the panel is wide, else one
+            // column.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: AryaSpace.s5) {
+                    column(halves.first).frame(
+                        minWidth: AryaSize.whatWorkedColumn,
+                        idealWidth: AryaSize.whatWorkedColumn, maxWidth: .infinity)
+                    column(halves.second).frame(
+                        minWidth: AryaSize.whatWorkedColumn,
+                        idealWidth: AryaSize.whatWorkedColumn, maxWidth: .infinity)
+                }
+                column(lines)
+            }
             if hidden > 0 || expanded {
                 Button(expanded ? "Fewer" : "\(hidden) more") { expanded.toggle() }
                     .buttonStyle(.aryaTertiary)
             }
-        }
-    }
-
-    /// Good in green, reopened in red, open muted; or `nothing graded yet`.
-    @ViewBuilder
-    private var tally: some View {
-        if trajectories.good + trajectories.bad + trajectories.pending == 0 {
-            Text(WhatWorkedText.tally(trajectories))
-                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-        } else {
-            HStack(spacing: AryaSpace.s2) {
-                Text("\(trajectories.good) good").aryaText(AryaFont.monoSmall, AryaColor.positive)
-                Text("\(trajectories.bad) reopened")
-                    .aryaText(
-                        AryaFont.monoSmall,
-                        trajectories.bad > 0 ? AryaColor.negative : AryaColor.inkMuted)
-                if trajectories.pending > 0 {
-                    Text("\(trajectories.pending) open")
-                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                }
-            }
-            .monospacedDigit()
-            .accessibilityElement(children: .combine)
         }
     }
 
@@ -58,13 +43,66 @@ struct WhatWorkedPanel: View {
         }
     }
 
-    @ViewBuilder
-    private func group(_ title: String, _ credits: [FeatureTrajectories.Credit]) -> some View {
-        if !credits.isEmpty {
-            Text(title).aryaText(AryaFont.overline, AryaColor.inkFaint)
-                .padding(.top, AryaSpace.s1)
-            ForEach(expanded ? credits : Array(credits.prefix(limit))) { credit in row(credit) }
+    /// One line of the table: a group's header or a credit row.
+    private enum Line: Identifiable {
+        case header(String)
+        case credit(FeatureTrajectories.Credit)
+
+        var id: String {
+            switch self {
+            case .header(let title): "header:\(title)"
+            case .credit(let credit): "credit:\(credit.id)"
+            }
         }
+    }
+
+    private var lines: [Line] {
+        [("KINDS", "kind"), ("CHOICES", "choice")].flatMap { title, axis -> [Line] in
+            let credits = trajectories.credits.filter { $0.axis == axis }
+            guard !credits.isEmpty else { return [] }
+            let shown = expanded ? credits : Array(credits.prefix(limit))
+            return [.header(title)] + shown.map(Line.credit)
+        }
+    }
+
+    /// The lines cut in two at the middle; a header never ends a column, and a group that
+    /// carries on into the second column repeats its header there.
+    private var halves: (first: [Line], second: [Line]) {
+        var cut = (lines.count + 1) / 2
+        if cut > 0, cut < lines.count, case .header = lines[cut - 1] { cut -= 1 }
+        let first = Array(lines.prefix(cut))
+        var second = Array(lines.dropFirst(cut))
+        if case .credit = second.first,
+            let open = first.last(where: { if case .header = $0 { true } else { false } })
+        {
+            second.insert(open, at: 0)
+        }
+        return (first, second)
+    }
+
+    private func column(_ lines: [Line]) -> some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            ForEach(lines) { line in
+                switch line {
+                case .header(let title): header(title)
+                case .credit(let credit): row(credit)
+                }
+            }
+        }
+    }
+
+    /// The group name over the names, then the column labels over their columns.
+    private func header(_ title: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+            Text(title).aryaText(AryaFont.overline, AryaColor.inkFaint)
+                .frame(minWidth: 56, maxWidth: 140, alignment: .leading)
+            Text("RESOLVED").aryaText(AryaFont.overline, AryaColor.inkFaint)
+                .frame(minWidth: 52, alignment: .trailing)
+            Text("LAG").aryaText(AryaFont.overline, AryaColor.inkFaint)
+                .frame(minWidth: 28, alignment: .trailing)
+            Spacer(minLength: 0)
+        }
+        .padding(.top, AryaSpace.s1)
     }
 
     private func row(_ credit: FeatureTrajectories.Credit) -> some View {
@@ -96,8 +134,7 @@ struct WhatWorkedPanel: View {
                 .fixedSize()
                 // One chip column, so every bar starts at the same x.
                 .frame(minWidth: 88, alignment: .leading)
-                TrajectoryBar(
-                    resolved: credit.resolved, reopened: credit.reopened, open: credit.pending)
+                TrajectoryBar(rate: credit.rate ?? 0)
             }
         }
         .frame(minHeight: AryaSize.rowHeight)
@@ -169,20 +206,16 @@ enum WhatWorkedText {
     }
 }
 
-/// Resolved, reopened, and still-open outcomes as one proportional bar filling its row.
+/// The success rate (resolved of settled) as a bar: 21/21 and 63/63 both fill the row; the
+/// counts stay in the text beside it.
 struct TrajectoryBar: View {
-    var resolved: Int
-    var reopened: Int
-    var open: Int
+    var rate: Double
 
     var body: some View {
         GeometryReader { box in
-            let total = CGFloat(max(1, resolved + reopened + open))
-            HStack(spacing: 0) {
-                segment(resolved, total, box.size.width, AryaColor.positive)
-                segment(reopened, total, box.size.width, AryaColor.negative)
-                segment(open, total, box.size.width, AryaColor.rule)
-            }
+            Rectangle()
+                .fill(rate >= 0.5 ? AryaColor.positive : AryaColor.negative)
+                .frame(width: box.size.width * CGFloat(min(max(rate, 0), 1)))
         }
         .frame(minWidth: AryaSize.rowHeight * 2, maxWidth: .infinity)
         .frame(height: AryaSpace.s1)
@@ -190,10 +223,9 @@ struct TrajectoryBar: View {
         .clipShape(Capsule())
         .accessibilityHidden(true)
     }
+}
 
-    private func segment(
-        _ count: Int, _ total: CGFloat, _ width: CGFloat, _ color: Color
-    ) -> some View {
-        Rectangle().fill(color).frame(width: width * CGFloat(count) / total)
-    }
+extension AryaSize {
+    /// One What worked group's narrowest column when kinds and choices sit side by side.
+    static let whatWorkedColumn: CGFloat = 480
 }

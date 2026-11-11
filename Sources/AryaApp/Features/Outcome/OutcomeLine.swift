@@ -17,11 +17,30 @@ struct OutcomeLine: View {
             let live = LiveCharter.find(events: events, steward: steward)
         {
             let state = OutcomeState.build(events: events, steward: steward, now: store.now)
+                .applying(store.outcomeReads[steward])
             let waiting = StewardOverview.build(events: events, steward: steward).waitingApprovals
             OutcomeLineContent(
                 state: state, waiting: waiting, review: review, runNow: runNow,
-                owner: OutcomeLineContent.owner(live.charter, events: events, steward: steward))
+                owner: OutcomeLineContent.owner(live.charter, events: events, steward: steward)
+            )
+            .task(id: "\(steward):\(events.count)") { await loadHeadline() }
         }
+    }
+
+    /// The header's own reads on any tab: the metric statuses and the window's missed line.
+    private func loadHeadline() async {
+        let metrics = try? await store.workspace.metricStatuses(
+            steward: steward, windows: OutcomeMetrics.seriesDays)
+        let missed: String?? =
+            if let read = try? await store.workspace.outcomeMissedText(steward: steward) {
+                .some(read)
+            } else {
+                nil
+            }
+        var reads = store.outcomeReads[steward] ?? OutcomeReads()
+        reads.metrics = metrics ?? reads.metrics
+        reads.missedText = missed ?? reads.missedText
+        if reads != store.outcomeReads[steward] { store.outcomeReads[steward] = reads }
     }
 }
 
@@ -60,8 +79,17 @@ struct OutcomeLineContent: View {
                     .frame(maxWidth: AryaSize.outcomeSparklineWidth)
             }
             OutcomeStatusPill(status: state.status)
+                .help(state.reason ?? state.status.word)
+            if let reason = state.reason {
+                // Why the pill says what it says, verbatim from the workspace.
+                Text(reason).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    .lineLimit(1).truncationMode(.tail)
+                    .help(reason)
+                    .layoutPriority(-1)
+            }
             if let missed = state.missedText, state.status != .paused {
-                Text(missed).aryaText(AryaFont.monoSmall, AryaColor.inkMuted).fixedSize()
+                Text(missed).aryaText(AryaFont.monoSmall, AryaColor.inkMuted).lineLimit(1)
+                    .help(missed)
             }
             if let owner {
                 Text("owned by \(owner)").aryaText(AryaFont.caption, AryaColor.inkMuted)
@@ -71,8 +99,9 @@ struct OutcomeLineContent: View {
             Spacer(minLength: AryaSpace.s4)
             if waiting > 0 {
                 Button(OutcomeText.review(waiting), action: review).buttonStyle(.aryaPrimary)
+                    .fixedSize()
             } else {
-                Button("Run now", action: runNow).buttonStyle(.aryaSecondary)
+                Button("Run now", action: runNow).buttonStyle(.aryaSecondary).fixedSize()
             }
         }
         .accessibilityElement(children: .contain)

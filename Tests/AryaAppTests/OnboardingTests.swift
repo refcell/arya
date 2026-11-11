@@ -122,3 +122,20 @@ import Testing
 @Test func firstLaunchSaysWhatAryaIsInOneSentence() {
     #expect(FirstLaunchView.sentence.split(separator: ".").count == 1)
 }
+
+@Test func aNewStewardCarriesItsGuardrailMetrics() throws {
+    var answers = NewStewardDraft.example
+    #expect(answers.stewardDraft().guardrailMetrics == nil)
+    answers.addGuardrailMetric()
+    answers.guardrailMetrics[0].name = " reopen_rate "
+    answers.guardrailMetrics[0].target = "0.05"
+    answers.addGuardrailMetric()
+    let draft = answers.stewardDraft()
+    let metric = try #require(draft.guardrailMetrics?.first)
+    #expect(draft.guardrailMetrics?.count == 1)
+    #expect(metric.name == "reopen_rate")
+    #expect(metric.direction == "down")
+    #expect(metric.target == 0.05)
+    let charter = NewStewardPreview.charter(draft)
+    #expect(charter["guardrailMetrics"]?.array?.first?["name"]?.string == "reopen_rate")
+}

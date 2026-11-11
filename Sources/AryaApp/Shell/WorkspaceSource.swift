@@ -61,6 +61,8 @@ protocol WorkspaceSource: Sendable {
     func onboardRun(steward: String) async throws -> String
     /// `Workspace.metricStatuses(steward:windows:)`.
     func metricStatusList(steward: String, windows: Int) async throws -> [FeatureMetricStatus]
+    /// `Workspace.outcomeWindow(steward:).missedText`, verbatim.
+    func outcomeMissedText(steward: String) async throws -> String?
     /// One person's thread with a steward, oldest first.
     func conversationEntries(steward: String, person: String) async throws
         -> [FeatureConversationEntry]
@@ -181,6 +183,10 @@ extension WorkspaceSource {
 
     func metricStatusList(steward: String, windows: Int) async throws -> [FeatureMetricStatus] {
         throw FeatureReadError.unavailable("metric statuses")
+    }
+
+    func outcomeMissedText(steward: String) async throws -> String? {
+        throw FeatureReadError.unavailable("outcome window")
     }
 
     func conversationEntries(steward: String, person: String) async throws
@@ -477,6 +483,10 @@ extension Workspace: WorkspaceSource {
                 role: $0.role, current: $0.current, trend: $0.trend.map(\.value),
                 status: $0.status.rawValue, movement: $0.movement, line: $0.line)
         }
+    }
+
+    func outcomeMissedText(steward: String) async throws -> String? {
+        try await outcomeWindow(steward: steward).missedText
     }
 
     func onboardRun(steward: String) async throws -> String {

@@ -192,6 +192,9 @@ protocol FeatureOutcomeReads: Sendable {
     func runOnboarding(steward: String) async throws -> String
     /// The primary metric and each guardrail metric over the last `windows` days.
     func metricStatuses(steward: String, windows: Int) async throws -> [FeatureMetricStatus]
+    /// The evaluation window's `missed its target on 4 of the last 7 days`, verbatim; nil
+    /// when nothing missed.
+    func outcomeMissedText(steward: String) async throws -> String?
 }
 
 extension FeatureOutcomeReads {
@@ -268,5 +271,9 @@ extension FeatureOutcomeReads {
 
     func metricStatuses(steward: String, windows: Int) async throws -> [FeatureMetricStatus] {
         throw FeatureReadError.unavailable("metric statuses")
+    }
+
+    func outcomeMissedText(steward: String) async throws -> String? {
+        throw FeatureReadError.unavailable("outcome window")
     }
 }

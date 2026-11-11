@@ -227,6 +227,10 @@ struct OutcomeState: Hashable, Sendable {
     /// status and FINDINGS both use this window.
     var missed = 0
     var window = 0
+    /// The workspace's own missed line and status line, when read (`applying(_:)`).
+    var windowMissed: String?? = nil
+    /// The primary metric's `line` from `metricStatuses`, shown beside the status pill.
+    var reason: String? = nil
     /// The last five live triggered runs that ended, oldest first: true when it finished.
     var triggers: [Bool] = []
     /// Values for the sparkline: daily means, or each reading while there is under two days.
@@ -237,9 +241,33 @@ struct OutcomeState: Hashable, Sendable {
     /// Measured days the status and FINDINGS look back over.
     static let recentDays = 5
 
-    /// "missed 3 of 5 days", when any recent day missed.
+    /// The workspace's `missed its target on 4 of the last 7 days` when read, else "missed 3
+    /// of 5 days" from the ledger when any recent day missed.
     var missedText: String? {
-        missed > 0 ? "missed \(missed) of \(window) \(window == 1 ? "day" : "days")" : nil
+        if let windowMissed { return windowMissed }
+        return missed > 0 ? "missed \(missed) of \(window) \(window == 1 ? "day" : "days")" : nil
+    }
+
+    /// The workspace's reads replace the ledger's estimates (one source per fact): the status
+    /// comes from the primary metric's `metricStatuses` status (on target, an inclusive
+    /// bound, is on track), its line is the reason, and the missed text is the evaluation
+    /// window's.
+    func applying(_ reads: OutcomeReads?) -> OutcomeState {
+        guard let reads else { return self }
+        var state = self
+        if let missedText = reads.missedText { state.windowMissed = missedText }
+        guard let primary = reads.primary else { return state }
+        state.reason = primary.line
+        guard status != .paused else { return state }
+        switch primary.status {
+        case "on_track": state.status = state.missedText == nil ? .onTrack : .recovering
+        case "off_track":
+            state.status = [.atRisk, .offTrack].contains(status) ? status : .atRisk
+        case "no_target": state.status = .noTarget
+        case "no_data": state.status = .noData
+        default: break
+        }
+        return state
     }
 
     static func build(

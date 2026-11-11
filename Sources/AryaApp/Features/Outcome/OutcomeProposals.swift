@@ -280,6 +280,41 @@ struct OutcomeProposalRow: View {
     @AryaState private var showDiff: Bool?
 
     var body: some View {
+        // The case for the change on the left, its charter diff on the right when there is
+        // room; one column otherwise. Both ask for the same ideal width, so a long title or a
+        // wide diff line (it scrolls) does not decide the layout.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: AryaSpace.s5) {
+                story.frame(
+                    minWidth: AryaSize.proposalColumn, idealWidth: AryaSize.proposalColumn,
+                    maxWidth: .infinity)
+                diffColumn.frame(
+                    minWidth: AryaSize.proposalColumn, idealWidth: AryaSize.proposalColumn,
+                    maxWidth: .infinity)
+            }
+            VStack(alignment: .leading, spacing: AryaSpace.s2) {
+                story
+                diffColumn
+            }
+        }
+        .confirmationDialog(
+            review.regressed ? "Accept a change that got worse?" : "Accept this change?",
+            isPresented: $confirming, titleVisibility: .visible
+        ) {
+            Button(review.regressed ? "Accept anyway" : "Accept", role: .destructive) {
+                perform(
+                    review.regressed
+                        ? .overrideProposal(review.id, reason: ProposalText.confirm(review))
+                        : .acceptProposal(review.id))
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(ProposalText.confirm(review))
+        }
+    }
+
+    /// Title and actions, the rehearsal summary, what it changes, and the cases it moved.
+    private var story: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
                 Text(review.title).aryaText(AryaFont.bodyStrong, AryaColor.ink)
@@ -302,6 +337,21 @@ struct OutcomeProposalRow: View {
                 Text(neutral).aryaText(AryaFont.body, AryaColor.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            ForEach(review.worse + review.better) { change in
+                OutcomeCaseChangeRow(
+                    change: change, isExpanded: expanded == change.id
+                ) { expanded = expanded == change.id ? nil : change.id }
+            }
+            if let whatIf {
+                Text(whatIf).aryaText(AryaFont.body, AryaColor.inkMuted).textSelection(.enabled)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The charter diff behind its counts.
+    @ViewBuilder private var diffColumn: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s2) {
             if let diff = review.diff {
                 Button {
                     showDiff = !diffOpen(diff)
@@ -318,29 +368,8 @@ struct OutcomeProposalRow: View {
                 .accessibilityLabel("Charter diff, \(diff.added) added, \(diff.removed) removed")
                 if diffOpen(diff) { DiffBlock(diff.text) }
             }
-            ForEach(review.worse + review.better) { change in
-                OutcomeCaseChangeRow(
-                    change: change, isExpanded: expanded == change.id
-                ) { expanded = expanded == change.id ? nil : change.id }
-            }
-            if let whatIf {
-                Text(whatIf).aryaText(AryaFont.body, AryaColor.inkMuted).textSelection(.enabled)
-            }
         }
-        .confirmationDialog(
-            review.regressed ? "Accept a change that got worse?" : "Accept this change?",
-            isPresented: $confirming, titleVisibility: .visible
-        ) {
-            Button(review.regressed ? "Accept anyway" : "Accept", role: .destructive) {
-                perform(
-                    review.regressed
-                        ? .overrideProposal(review.id, reason: ProposalText.confirm(review))
-                        : .acceptProposal(review.id))
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(ProposalText.confirm(review))
-        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var summary: some View {
@@ -460,4 +489,9 @@ struct OutcomeCaseChangeRow: View {
 
 extension AryaSize {
     static let backtestLabel: CGFloat = 88
+}
+
+extension AryaSize {
+    /// A proposal column's narrowest width when the story and its diff sit side by side.
+    static let proposalColumn: CGFloat = 420
 }
