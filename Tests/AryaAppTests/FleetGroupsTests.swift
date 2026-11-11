@@ -242,3 +242,11 @@ import Testing
             == "Wants to remind about invoice INV-1066.")
     #expect(ActionWords.autonomy("act_medium") == "Acts alone on medium risk")
 }
+
+@Test func runContextSaysUsageAndPolicyInWords() {
+    var facts = RunMetrics()
+    facts.tokens = 2100
+    facts.costMicros = 4200
+    #expect(RunContext.usage(facts) == "2.1k tokens · \(RunMetrics.dollars(4200))")
+    #expect(RunContext.usage(RunMetrics()) == nil)
+}

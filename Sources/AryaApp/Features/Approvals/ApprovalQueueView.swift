@@ -185,7 +185,9 @@ struct ApprovalQueueView: View {
                     decide: decide, showsKeys: true,
                     correct: current.run == nil || openRun == nil ? nil : { correct(current) })
                 if let run = current.run {
-                    NeedsYouRunSteps(steps: NeedsYouRunSteps.lines(events: events, run: run))
+                    NeedsYouRunSteps(
+                        steps: NeedsYouRunSteps.lines(
+                            events: events, run: run, limit: NeedsYouRunSteps.detailLimit))
                 }
                 if current.kind == "routine",
                     let subject = RoutineApprovalSubject.find(events: events, approval: current.id)
@@ -375,6 +377,8 @@ struct NeedsYouRunSteps: View {
     var title = "Run so far"
 
     static let limit = 6
+    /// Steps the Needs you detail shows: the column has room for the whole run.
+    static let detailLimit = 16
 
     static func lines(events: [FeatureEvent], run: String, limit: Int = limit)
         -> [(time: String, text: String)]

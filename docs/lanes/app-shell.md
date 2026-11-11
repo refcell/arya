@@ -441,3 +441,9 @@ M4:
   to two lines and cut at a word ("Ran spot-duplicate-charges on ORDER-1218."); the button
   label no-truncate rule had clipped it with no ellipsis.
 - Visual check (needs-you): moves (3) real controls, the run link reads whole; needs-you 58.
+- Review 28: the run inspector no longer repeats the thread's steps. Under the facts it shows
+  what the thread lacks (`RunContext`): usage (tokens and cost), the systems touched with
+  targets, the policy behind each action (ran on its own or asked a person, and the rule),
+  follow-up check status, and related runs on the same targets. Needs you lists the steward's
+  recent runs in the inspector and the whole run in the detail: needs-you 58 → 52.
+- Visual check (run, run-approval, needs-you): moves (2) no dead space; run 44, run-approval 47.

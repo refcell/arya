@@ -188,7 +188,16 @@ struct PulseFigure: View {
 /// The steward pulse block at the top of the steward inspector.
 struct StewardPulseView: View {
     let pulse: StewardPulse
+    /// Top-level runs to list under the pulse, newest first; empty lists none (Needs you
+    /// passes them, where the column has room).
+    var recentRuns: [RunSummary] = []
+    var now = Date()
+    var title: (RunSummary) -> String = { StatusMapping.threadTitle(of: $0) }
+    var openRun: ((RunSummary) -> Void)? = nil
     let openApproval: (String) -> Void
+
+    /// Runs the Needs you inspector lists.
+    static let recentLimit = 10
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
@@ -263,6 +272,43 @@ struct StewardPulseView: View {
                     }
                 }
             }
+            if !recentRuns.isEmpty { recent }
+        }
+    }
+}
+
+extension StewardPulseView {
+    /// The steward's latest runs: age, a pass or fail dot, and the title; a click opens it.
+    fileprivate var recent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Recent runs").aryaText(AryaFont.label, AryaColor.inkFaint)
+                .frame(height: AryaSize.rowHeight)
+            ForEach(recentRuns.prefix(Self.recentLimit)) { run in
+                Button {
+                    openRun?(run)
+                } label: {
+                    HStack(spacing: AryaSpace.s2) {
+                        StatusDot(Self.state(run))
+                        Text(title(run)).aryaText(AryaFont.caption, AryaColor.ink).lineLimit(1)
+                        Spacer(minLength: AryaSpace.s2)
+                        Text(ThreadRow.shortTime(run.startedAt, now: now))
+                            .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    }
+                    .frame(height: AryaSize.rowHeight)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(openRun == nil)
+                .help(title(run))
+            }
+        }
+    }
+
+    static func state(_ run: RunSummary) -> AryaStatus {
+        switch run.status {
+        case .running: .running
+        case .failed: .failed
+        case .finished: .done
         }
     }
 }

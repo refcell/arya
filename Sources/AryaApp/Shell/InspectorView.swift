@@ -246,7 +246,13 @@ struct InspectorView: View {
                         serve: model.featureStore?.serve,
                         live: model.liveLines,
                         stewardLive: model.stewardLive[steward.id], fleet: model.fleetStatus,
-                        history: model.runHistory[steward.id])
+                        history: model.runHistory[steward.id]),
+                    recentRuns: (model.runs[steward.id] ?? []).filter { $0.parent == nil }
+                        .sorted { $0.startedAt > $1.startedAt },
+                    now: now, title: { model.title(of: $0) },
+                    openRun: { run in
+                        model.navigation.select(steward: run.steward, showRun: run.id)
+                    }
                 ) { model.navigation.approval = $0 }
             } else if let id = id ?? model.approvals.first?.id {
                 FeatureRegistry.approvalInspector(model.featureContext(), approval: id)
@@ -296,9 +302,6 @@ struct InspectorView: View {
         }
     }
 
-    /// Steps the run inspector lists under the facts.
-    static let runStepLimit = 20
-
     private func runContent(_ run: RunSummary) -> some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             Text(model.title(of: run)).aryaText(AryaFont.bodyStrong, AryaColor.ink)
@@ -311,11 +314,16 @@ struct InspectorView: View {
                 fact(label, value)
             }
             FeatureRegistry.crewFanout(model.featureContext(), run: run.id)
-            // The run's steps under its facts, newest last, so the column reads as the run.
-            NeedsYouRunSteps(
-                steps: NeedsYouRunSteps.lines(
-                    events: events, run: run.id, limit: Self.runStepLimit),
-                title: "Steps"
+            // What the thread beside it lacks: usage, systems, policy, checks, related runs.
+            let context = RunContext.build(events: events, run: run.id)
+            if let usage = context.usage { fact("Usage", usage) }
+            RunContextView(
+                context: context,
+                title: { id in
+                    (model.runs[run.steward] ?? []).first { $0.id == id }
+                        .map { model.title(of: $0) } ?? id
+                },
+                openRun: { id in model.navigation.select(steward: run.steward, showRun: id) }
             )
             .padding(.top, AryaSpace.s2)
         }
