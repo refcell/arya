@@ -94,21 +94,25 @@ struct PersonThreadView: View {
     }
 
     private var composer: some View {
-        HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
             AryaSegmented(
                 MessageIntent.allCases.map { ($0, $0.label) }, selection: intent
             ) { intent = $0 }
-            TextField(PeopleThreadText.placeholder(person.name), text: $text)
-                .textFieldStyle(.plain)
-                .aryaText(AryaFont.body, AryaColor.ink)
-                .padding(.horizontal, AryaSpace.s2)
-                .padding(.vertical, AryaSpace.s1)
-                .background(AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small))
-                .frame(maxWidth: .infinity)
-                .onSubmit(send)
-            Button("Send", action: send)
-                .buttonStyle(.aryaSecondary)
-                .disabled(trimmed.isEmpty)
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                TextField(PeopleThreadText.placeholder(person.name), text: $text)
+                    .textFieldStyle(.plain)
+                    .aryaText(AryaFont.body, AryaColor.ink)
+                    .padding(.horizontal, AryaSpace.s2)
+                    .padding(.vertical, AryaSpace.s1)
+                    .background(
+                        AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small)
+                    )
+                    .frame(maxWidth: .infinity)
+                    .onSubmit(send)
+                Button("Send", action: send)
+                    .buttonStyle(.aryaSecondary)
+                    .disabled(trimmed.isEmpty)
+            }
         }
         .padding(.top, AryaSpace.s1)
     }

@@ -304,11 +304,8 @@ struct PeopleView: View {
                     Button("Remove…", role: .destructive) { removing = person.id }
                 }
             }
+            // Reach and approvals are in the detail header beside the list.
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {
-                Text(person.reach).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                if let approves = PeopleText.approves(person.approves) {
-                    Text(approves).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                }
                 Text(PeopleThreadText.counts(thread)).aryaText(
                     AryaFont.monoSmall, AryaColor.inkFaint)
                 if let reports = PeopleThreadText.reports(thread, now: store.now) {

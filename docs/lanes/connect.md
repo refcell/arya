@@ -275,3 +275,28 @@ and receive a periodic report from it.
   runs a newer live version. e2e steps 54-58 and the demo's shared routine (CEO unblock).
   Visual check: `routines-library` on the reseeded demo selects `spot-duplicate-charges`: both
   stewards "pinned be8641ab646d", 75% pass · 9 runs, history with Priya's adoption.
+- 2026-11-10 (CEO review 16 addendum, 19, 20; runtime surfaces): Adapters show a display name
+  from the profile's optional `label` (`Workspace.adapterLabels()`); the id stays in the
+  tooltip. The inspector's Test connection is a plain button; the row Test stays quiet.
+  People is a list on the left (two-line rows: role, counts, last contact, stewards) and the
+  selected person on the right: messages per day for 14 days, their threads per steward, the
+  conversation and composer, REMEMBERS ABOUT <name> (`personMemory(person:)`, decision 0061,
+  with who said it and which steward keeps it), LEARNED FROM, and WAITING ON (their
+  questions and the held actions they approve). Everyone opens on the person contacted
+  most recently. Connections adds calls per day for 14 days, with adapters and recent calls
+  in two columns. The Routines library is a split: rows on the left (name, live versions,
+  stewards, pass rate, sparkline, an UPGRADE AVAILABLE pill), runs per day and recent
+  changes under them, and the selected routine's script, newest diff and run history on the
+  right. The inspector's Upgrade proposes the followed steward's version
+  (`routineUpgrades()`, `upgradeRoutine(steward:name:by:)`, decision 0062) in place of the
+  old Update to …. Routine text wraps to two lines instead of clipping (review 20). The demo
+  seeds seven preferences and triage's version 2 of `spot-duplicate-charges`. New states:
+  `people-memory` and `routines-upgrade`.
+  Recent calls drop the connection column (the target names it; bare reads get it as a
+  prefix). The composer puts Ask, Correct and Hand off above a full-width field.
+  Visual check (empty share, window / main pane): people 67/59 → 47/39, people-memory 48/40,
+  connections 51/44 → 46/39, connections-detail 51/45 → 42/30, routines-library 77/86 →
+  49/43, routines-upgrade 49/43. Only connections-detail meets the 35% target. People and
+  Routines end above the bottom of the window on this demo: nine people, two routines, nine
+  runs. No text clips mid-phrase in these states. Message previews and inspector lines still
+  end in an ellipsis.
