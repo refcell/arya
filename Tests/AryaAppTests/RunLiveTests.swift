@@ -330,3 +330,30 @@ import Testing
     #expect(ActionCheck.span(90) == "1 min")
     #expect(ActionCheck.span(5 * 3600) == "5 h")
 }
+
+@Test func everyActionKindApprovesWithAVerbNeverABareNoun() {
+    let kinds = [
+        "label", "assign", "reply", "route", "refund", "close", "comment", "send_email", "mark",
+        "post", "note", "routine", "message", "email", "invoice", "webhook", "set_priority",
+        "follow-up", "handoff", "escalation", "archive", "notify", "report", "ticket",
+    ]
+    for kind in kinds + Array(HumanText.nounEffects.keys) {
+        let label = HumanText.approveLabel(kind: kind)
+        let effect = String(label.dropFirst("Approve and ".count))
+        let first = effect.split(separator: " ").first.map(String.init) ?? ""
+        #expect(label.hasPrefix("Approve and "), "\(kind): \(label)")
+        #expect(HumanText.verbs.contains(first), "\(kind) reads \(label)")
+    }
+    #expect(HumanText.approveLabel(kind: "routine") == "Approve and run the routine")
+    #expect(
+        HumanText.approveLabel(kind: "routine", params: ["version": "1a2b3c"])
+            == "Approve and update the routine")
+    #expect(HumanText.approveLabel(kind: "webhook") == "Approve and call the webhook")
+    #expect(HumanText.approveLabel(kind: "frobnicator") == "Approve and carry out the frobnicator")
+    #expect(HumanText.approveLabel(kind: "question") == "Approve")
+    #expect(
+        HumanText.change(
+            "input: none → ORDER-1218", kind: "routine", params: ["name": "refund-check"])
+            == "Routine refund-check for ORDER-1218")
+    #expect(HumanText.change("to: none → person:alex", kind: "assign") == "to: Alex")
+}

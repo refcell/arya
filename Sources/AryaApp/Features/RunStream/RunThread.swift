@@ -314,7 +314,8 @@ struct InlineApproval: View {
                     Text(content).aryaText(AryaFont.body, AryaColor.ink).textSelection(.enabled)
                 } else {
                     if let change = texts?.change {
-                        Text(change).aryaText(AryaFont.mono, AryaColor.ink)
+                        Text(HumanText.change(change, kind: action.kind, params: action.params))
+                            .aryaText(AryaFont.mono, AryaColor.ink)
                             .textSelection(.enabled)
                     } else if let summary = ActionSummary.sentence(action) {
                         Text(summary).aryaText(AryaFont.body, AryaColor.ink)
@@ -526,7 +527,7 @@ enum RunThreadText {
 
     /// "Approve and reply"; a question is just "Approve".
     static func approveLabel(_ action: ProposedActionStep) -> String {
-        action.kind == "question" ? "Approve" : "Approve and \(RunTitle.verb(action.kind))"
+        HumanText.approveLabel(kind: action.kind, params: action.params)
     }
 
     /// "Reply to inbox:MSG-201".

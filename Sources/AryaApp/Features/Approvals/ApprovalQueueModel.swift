@@ -16,7 +16,7 @@ struct ApprovalItem: Identifiable, Hashable, Sendable {
 
     /// The primary button label, naming the effect: "Approve and assign".
     var approveLabel: String {
-        kind == "question" ? "Approve" : "Approve and \(RunTitle.verb(kind))"
+        HumanText.approveLabel(kind: kind)
     }
 }
 
