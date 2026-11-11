@@ -224,11 +224,20 @@ struct StewardPulseView: View {
                     tone: pulse.running == 0 ? AryaColor.inkMuted : AryaColor.positive)
             }
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                HStack {
-                    Text("Runs · 7 days").aryaText(AryaFont.label, AryaColor.inkFaint)
-                    Spacer()
-                    Text(pulse.runsLine).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                        .lineLimit(1)
+                // The label and the counts share a line when they fit; the counts wrap below
+                // rather than clip ("1 fai…").
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        Text("Runs · 7 days").aryaText(AryaFont.label, AryaColor.inkFaint)
+                        Spacer()
+                        Text(pulse.runsLine).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                            .fixedSize()
+                    }
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Runs · 7 days").aryaText(AryaFont.label, AryaColor.inkFaint)
+                        Text(pulse.runsLine).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 DayBars(pulse.runsPerDay, failed: pulse.failedPerDay)
             }

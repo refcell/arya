@@ -305,9 +305,10 @@ happened and to what: "Labeled MSG-201 as billing". No exclamation marks or emoj
 No machine id reaches a person outside the run's TOOLS and LOG panes: not `person:sam`,
 `st_triage`, `inbox:MSG-140`, nor `snake_case_words`. Use `HumanText` and `ActionWords`.
 The snapshot run reads every state's text back from the PNG and fails a state that shows one
-(`SnapshotText`). Charter metric names are allowed as written. States still being fixed are
-listed with their lane in `etc/app/rawtext-pending.txt`, and the owner deletes the line once
-the state is clean.
+(`SnapshotText`), in every state, strictly. Charter metric names are allowed as written.
+A state may be excused for a while only by a line in `etc/app/rawtext-pending.txt` that names
+its owner lane, the date, and why (`<state> <lane> <YYYY-MM-DD> <reason>`); a test rejects
+any other line, and the owner deletes it once the state is clean.
 
 ## Accessibility
 

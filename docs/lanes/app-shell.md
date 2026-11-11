@@ -469,3 +469,16 @@ M4:
   thread), workspace (routines "by st_triage"). "the cfo" vs "the CFO" is seed text (cli-e2e).
 - Visual check (needs-you, overview, portfolio-live, new-steward): moves (2) and (4);
   empty.tsv: needs-you 51, overview 40, portfolio-live 51, new-steward 88.
+- 2026-11-11 VC44 / review #31: the raw-id gate is strict. Any raw id in any state (the
+  governance suite too) fails `just snapshot`. `etc/app/rawtext-pending.txt` excuses a state
+  only with `<state> <lane> <YYYY-MM-DD> <reason>`, and a test rejects other lines. The full
+  run found 4 after the cleanup, now listed with owners: run-approval and governance-run
+  (app-views: "person:sam hands this to you"), governance-run-controls (governance: "label
+  inbox:MSG-140 → unlabel"), people-thread-live (connect: "reply inbox:MSG-140").
+  The run inspector hides an empty section (reverses the dashes), shows Usage only when known,
+  and fills its lower half with the steward it serves: metric vs target, runs over 7 days,
+  waiting, recent decisions, recent runs. People counts one identity per person
+  ("person:sam" = "sam"). Activity rows wrap to 2 lines and never cut the action (5 rows). The
+  Needs you runs line wraps under its label instead of clipping "1 fai…".
+- Visual check (run, run-approval, overview, needs-you): moves (2) and (4); empty.tsv: run 32,
+  run-approval 36, overview 40, needs-you 52.

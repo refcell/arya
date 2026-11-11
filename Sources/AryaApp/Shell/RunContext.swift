@@ -147,42 +147,36 @@ struct RunContextView: View {
     var openRun: ((String) -> Void)?
 
     var body: some View {
-        // Every section shows, a dash while a live run has not got there yet.
+        // A section shows only when it has something: an empty heading is dead chrome.
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
-            section("Touched") {
-                if context.systems.isEmpty { dash }
-                ForEach(context.systems, id: \.self) { line in
-                    Text(line).aryaText(AryaFont.monoSmall, AryaColor.ink)
-                        .fixedSize(horizontal: false, vertical: true)
+            if !context.systems.isEmpty {
+                section("Touched") {
+                    ForEach(context.systems, id: \.self) { line in
+                        Text(line).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
-            section("Policy") {
-                if context.policy.isEmpty { dash } else { lines(context.policy) }
-            }
-            section("Follow-up checks") {
-                if context.checks.isEmpty { dash } else { lines(context.checks) }
-            }
-            section("Related runs") {
-                if context.related.isEmpty { dash }
-                ForEach(context.related, id: \.self) { run in
-                    Button {
-                        openRun?(run)
-                    } label: {
-                        Text(title(run)).aryaText(AryaFont.caption, AryaColor.ink)
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+            if !context.policy.isEmpty { section("Policy") { lines(context.policy) } }
+            if !context.checks.isEmpty { section("Follow-up checks") { lines(context.checks) } }
+            if !context.related.isEmpty {
+                section("Related runs") {
+                    ForEach(context.related, id: \.self) { run in
+                        Button {
+                            openRun?(run)
+                        } label: {
+                            Text(title(run)).aryaText(AryaFont.caption, AryaColor.ink)
+                                .lineLimit(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(openRun == nil)
+                        .help(title(run))
                     }
-                    .buttonStyle(.plain)
-                    .disabled(openRun == nil)
-                    .help(title(run))
                 }
             }
         }
-    }
-
-    private var dash: some View {
-        Text("—").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
     }
 
     private func section(_ label: String, @ViewBuilder _ content: () -> some View) -> some View {

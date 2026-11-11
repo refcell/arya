@@ -63,6 +63,13 @@ struct StewardContext: Equatable {
     /// People who acted on this steward (approved, corrected, edited), most active first.
     var people: [String]
 
+    /// One identity per person: "person:sam", "Sam", and "sam" count as the same person.
+    static func personKey(_ id: String) -> String {
+        guard id != "local" else { return id }  // the local user reads "You"
+        let bare = id.hasPrefix("person:") ? String(id.dropFirst("person:".count)) : id
+        return "person:" + bare.lowercased()
+    }
+
     static func build(
         events: [FeatureEvent], steward: String, now: Date, serve: FeatureServe? = nil
     ) -> StewardContext {
@@ -82,7 +89,7 @@ struct StewardContext: Equatable {
         }
         var counts: [String: Int] = [:]
         for event in events where event.steward == steward && event.actor.kind == .human {
-            counts[event.actor.id, default: 0] += 1
+            counts[personKey(event.actor.id), default: 0] += 1
         }
         let names = OutcomePeople.names(events: events, steward: steward)
         let people = counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
@@ -316,7 +323,7 @@ struct InspectorView: View {
             FeatureRegistry.crewFanout(model.featureContext(), run: run.id)
             // What the thread beside it lacks: usage, systems, policy, checks, related runs.
             let context = RunContext.build(events: events, run: run.id)
-            fact("Usage", context.usage ?? "—")
+            if let usage = context.usage { fact("Usage", usage) }
             RunContextView(
                 context: context,
                 title: { id in
@@ -326,6 +333,29 @@ struct InspectorView: View {
                 openRun: { id in model.navigation.select(steward: run.steward, showRun: id) }
             )
             .padding(.top, AryaSpace.s2)
+            // Below the run, the outcome it serves: the steward's metric, runs, and recent runs.
+            if let steward = model.stewards.first(where: { $0.id == run.steward }) {
+                Text(steward.name).aryaText(AryaFont.label, AryaColor.inkFaint)
+                    .padding(.top, AryaSpace.s2)
+                StewardPulseView(
+                    pulse: StewardPulse.build(
+                        steward: steward, runs: model.runs[steward.id] ?? [],
+                        approvals: model.approvals, events: events, now: now,
+                        serve: model.featureStore?.serve, live: model.liveLines,
+                        stewardLive: model.stewardLive[steward.id], fleet: model.fleetStatus,
+                        history: model.runHistory[steward.id]),
+                    recentRuns: (model.runs[steward.id] ?? [])
+                        .filter { $0.parent == nil && $0.id != run.id }
+                        .sorted { $0.startedAt > $1.startedAt },
+                    now: now, title: { model.title(of: $0) },
+                    openRun: { other in
+                        model.navigation.select(steward: other.steward, showRun: other.id)
+                    }
+                ) { id in
+                    model.navigation.showApprovals()
+                    model.navigation.approval = id
+                }
+            }
         }
         .task(id: run.id) { await model.featureStore?.loadRunFacts(run.id) }
     }

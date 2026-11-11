@@ -94,7 +94,7 @@ struct RailView: View {
     }
 
     /// Lines in the sidebar's Activity feed.
-    nonisolated static let activityLimit = 6
+    nonisolated static let activityLimit = 5
     /// The fold key for the Activity feed (kept with the department folds).
     nonisolated static let activityKey = "Activity"
 
@@ -138,7 +138,8 @@ struct RailView: View {
         Button {
             model.navigation.select(steward: line.steward)
         } label: {
-            // One line: time, the steward, and what it did; a click opens the steward.
+            // Time, the steward, and what it did, wrapping rather than cutting the action; a
+            // click opens the steward.
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                 Text(line.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     .frame(width: FleetActivity.timeWidth, alignment: .leading)
@@ -146,11 +147,12 @@ struct RailView: View {
                     + Text(line.said)
                     .foregroundStyle(line.failed ? AryaColor.negative : AryaColor.inkFaint))
                     .aryaText(AryaFont.caption, AryaColor.inkMuted)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, AryaSpace.s1)
-            .frame(height: AryaSize.rowHeight)
+            .padding(.vertical, AryaSpace.s1)
+            .frame(minHeight: AryaSize.rowHeight)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

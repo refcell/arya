@@ -3,6 +3,8 @@ import Foundation
 import Testing
 import Vision
 
+@testable import AryaApp
+
 /// The raw-id gate (STYLE.md "Raw ids"): every line of text in a rendered state is read
 /// back, and a machine id outside the run's TOOLS and LOG panes fails the snapshot run. Those
 /// panes show tool input and output verbatim, so lines that read as JSON or log fields (`{`,
@@ -25,20 +27,41 @@ enum SnapshotText {
     /// Exact strings that may show an id.
     static let allowed: [String] = []
 
-    /// States known to show raw ids, with their owning lane (`etc/app/rawtext-pending.txt`):
-    /// reported, not failed, until the owner fixes them and removes the line. Every other
-    /// state fails on its first raw id, so a clean state can never regress.
-    static let pending: Set<String> = {
+    /// States excused for a while (`etc/app/rawtext-pending.txt`, owner, date, and reason on
+    /// each line): reported, not failed. Every other state fails on its first raw id.
+    static let pending: Set<String> = Set(pendingLines().map(\.state))
+
+    /// One line of the pending file: `<state> <lane> <YYYY-MM-DD> <reason>`.
+    struct PendingLine: Equatable {
+        var state: String
+        var lane: String
+        var date: String
+        var reason: String
+
+        /// Nil unless the line has all four parts and a real date.
+        static func parse(_ line: String) -> PendingLine? {
+            let parts = line.split(separator: " ", maxSplits: 3).map(String.init)
+            guard parts.count == 4, !parts[3].trimmingCharacters(in: .whitespaces).isEmpty
+            else { return nil }
+            let day = DateFormatter()
+            day.locale = Locale(identifier: "en_US_POSIX")
+            day.dateFormat = "yyyy-MM-dd"
+            guard day.date(from: parts[2]) != nil else { return nil }
+            return PendingLine(state: parts[0], lane: parts[1], date: parts[2], reason: parts[3])
+        }
+    }
+
+    /// The pending file's lines that are not comments or blank, as written.
+    static func pendingText() -> [String] {
         let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .appendingPathComponent("../../etc/app/rawtext-pending.txt").standardizedFileURL
         let text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        return Set(
-            text.split(separator: "\n").compactMap { line -> String? in
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else { return nil }
-                return trimmed.split(separator: " ").first.map(String.init)
-            })
-    }()
+        return text.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+    }
+
+    /// Well-formed pending lines only: a line without owner, date, and reason excuses nothing.
+    static func pendingLines() -> [PendingLine] { pendingText().compactMap(PendingLine.parse) }
 
     /// Every line of text in the rendered PNG, read with the system's text recognizer
     /// (offscreen hosting views build no accessibility tree): what a person would read.
@@ -90,4 +113,25 @@ enum SnapshotText {
         Issue.record(
             Comment(rawValue: "\(file) shows raw ids: " + bad.prefix(6).joined(separator: " | ")))
     }
+}
+
+@MainActor @Test func rawIdPendingLinesNameAnOwnerADateAndAReason() {
+    for line in SnapshotText.pendingText() {
+        #expect(
+            SnapshotText.PendingLine.parse(line) != nil,
+            Comment(
+                rawValue: "rawtext-pending.txt needs <state> <lane> <YYYY-MM-DD> <reason>: " + line)
+        )
+    }
+    #expect(SnapshotText.PendingLine.parse("overview app-outcome") == nil)
+    #expect(SnapshotText.PendingLine.parse("overview app-outcome soon fixing it") == nil)
+    #expect(
+        SnapshotText.PendingLine.parse("overview app-outcome 2026-11-11 seed note shows person:lee")
+            != nil)
+}
+
+@Test func peopleCountOnePersonOnce() {
+    #expect(StewardContext.personKey("person:sam") == StewardContext.personKey("sam"))
+    #expect(StewardContext.personKey("Sam") == StewardContext.personKey("person:sam"))
+    #expect(StewardContext.personKey("person:lee") != StewardContext.personKey("person:sam"))
 }
