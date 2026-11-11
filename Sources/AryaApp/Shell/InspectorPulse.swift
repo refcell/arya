@@ -250,12 +250,12 @@ struct StewardPulseView: View {
                                 StatusDot(.needsYou)
                                 // The target, not the why-label (several share one).
                                 Text(
-                                    ActionWords.line(
+                                    ActionWords.sentence(
                                         kind: approval.actionKind ?? approval.kind.rawValue,
                                         target: approval.target ?? "")
                                 )
-                                .aryaText(AryaFont.monoSmall, AryaColor.ink)
-                                .lineLimit(1).truncationMode(.head)
+                                .aryaText(AryaFont.caption, AryaColor.ink)
+                                .lineLimit(1)
                                 Spacer(minLength: 0)
                             }
                             .frame(height: AryaSize.rowHeight)
@@ -299,6 +299,10 @@ struct FleetPulseView: View {
     let open: (String) -> Void
     var openApproval: (String) -> Void = { _ in }
 
+    static let countWidth: CGFloat = 16
+    static let waitingWidth: CGFloat = 64
+    static let behindWidth: CGFloat = 60
+
     /// The oldest approvals across the fleet, at most `limit`.
     static func waiting(
         _ approvals: [ApprovalSummary], names: [String: String], now: Date, limit: Int = 6
@@ -307,7 +311,7 @@ struct FleetPulseView: View {
             Waiting(
                 id: approval.id, steward: names[approval.steward] ?? approval.steward,
                 text: approval.actionKind.map {
-                    ActionWords.line(kind: $0, target: approval.target ?? "")
+                    ActionWords.sentence(kind: $0, target: approval.target ?? "")
                 } ?? approval.text,
                 age: ThreadRow.shortTime(approval.requestedAt, now: now))
         }
@@ -373,11 +377,15 @@ struct FleetPulseView: View {
                             if line.running > 0 { AryaLiveDot() }
                             Spacer(minLength: AryaSpace.s2)
                             Text("\(line.stewards)").aryaText(
-                                AryaFont.monoSmall, AryaColor.inkFaint)
+                                AryaFont.monoSmall, AryaColor.inkFaint
+                            )
+                            .frame(width: Self.countWidth, alignment: .trailing)
                             Text(line.waiting > 0 ? "\(line.waiting) waiting" : "")
                                 .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                                .frame(width: Self.waitingWidth, alignment: .trailing)
                             Text(line.behind > 0 ? "\(line.behind) behind" : "")
                                 .aryaText(AryaFont.monoSmall, AryaColor.negative)
+                                .frame(width: Self.behindWidth, alignment: .trailing)
                         }
                         .frame(height: AryaSize.rowHeight)
                     }
@@ -393,8 +401,8 @@ struct FleetPulseView: View {
                         } label: {
                             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                                 VStack(alignment: .leading, spacing: 0) {
-                                    Text(item.text).aryaText(AryaFont.mono, AryaColor.ink)
-                                        .lineLimit(1).truncationMode(.middle)
+                                    Text(item.text).aryaText(AryaFont.caption, AryaColor.ink)
+                                        .lineLimit(1)
                                     Text(item.steward)
                                         .aryaText(AryaFont.caption, AryaColor.inkFaint)
                                 }

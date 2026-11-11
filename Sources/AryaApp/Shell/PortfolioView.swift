@@ -325,6 +325,8 @@ struct FleetActivity: View {
         var name: String
         var text: String
         var failed: Bool
+        /// When it happened; lines are strictly newest first.
+        var at: Date = .distantPast
     }
 
     let lines: [Line]
@@ -362,21 +364,54 @@ struct FleetActivity: View {
             candidates.append(
                 Line(
                     id: event.id, time: ThreadRow.shortTime(event.at, now: now),
-                    steward: steward, name: name, text: text, failed: failed))
+                    steward: steward, name: name, text: text, failed: failed, at: event.at))
         }
-        return interleave(candidates, limit: limit)
+        // Strictly newest first; stewards interleave only among lines of the same minute.
+        let ordered = candidates.enumerated().sorted {
+            $0.element.at != $1.element.at ? $0.element.at > $1.element.at : $0.offset < $1.offset
+        }.map(\.element)
+        var out: [Line] = []
+        var bucket: [Line] = []
+        func flush() {
+            out += interleave(bucket, limit: bucket.count, keepRest: true)
+            bucket = []
+        }
+        for line in ordered {
+            if let first = bucket.first, minute(first.at) != minute(line.at) { flush() }
+            bucket.append(line)
+        }
+        flush()
+        return Array(out.prefix(limit))
+    }
+
+    /// The first half of `lines` fills the left column top to bottom, the rest the right, so
+    /// reading down the left and then down the right keeps the list's order.
+    static func columns(_ lines: [Line]) -> (left: [Line], right: [Line]) {
+        let half = (lines.count + 1) / 2
+        return (Array(lines.prefix(half)), Array(lines.dropFirst(half)))
+    }
+
+    private static func minute(_ date: Date) -> Int {
+        Int((date.timeIntervalSinceReferenceDate / 60).rounded(.down))
     }
 
     /// Newest first, but at most `run` lines in a row from one steward: a busy steward's
     /// extra lines wait until another steward's line has been shown. Stops when only the busy
     /// steward is left.
-    static func interleave(_ lines: [Line], limit: Int, run: Int = 2) -> [Line] {
+    /// `keepRest` appends what is left once only the busy steward remains, instead of
+    /// dropping it.
+    static func interleave(_ lines: [Line], limit: Int, run: Int = 2, keepRest: Bool = false)
+        -> [Line]
+    {
         var pending = lines
         var out: [Line] = []
         while out.count < limit, !pending.isEmpty {
             let tail = out.suffix(run).map(\.steward)
             let blocked = tail.count == run && Set(tail).count == 1 ? tail.first : nil
-            guard let index = pending.firstIndex(where: { $0.steward != blocked }) else { break }
+            guard let index = pending.firstIndex(where: { $0.steward != blocked }) else {
+                if keepRest { out += pending.prefix(limit - out.count) }
+                break
+            }
             out.append(pending.remove(at: index))
         }
         return out
@@ -391,11 +426,11 @@ struct FleetActivity: View {
                 Text("Nothing yet.").aryaText(AryaFont.caption, AryaColor.inkFaint)
                     .frame(height: AryaSize.rowHeight)
             }
-            // Two columns side by side, newest top left, so the stream fills the page width.
-            let half = (lines.count + 1) / 2
+            // One list newest first, split into two columns read down then across.
+            let columns = Self.columns(lines)
             HStack(alignment: .top, spacing: AryaSpace.s6) {
-                column(Array(lines.prefix(half)))
-                column(Array(lines.dropFirst(half)))
+                column(columns.left)
+                column(columns.right)
             }
         }
     }

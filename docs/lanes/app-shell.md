@@ -406,3 +406,12 @@ M4:
   (`AryaTrim.words`), with the full reason in a tooltip.
 - Visual check (`just snapshot` portfolio, portfolio-live, needs-you): moves (2) dead space and
   (3) no mid-word clipping.
+- Review 19/20: fleet activity sorts one list strictly by time (stewards interleave only
+  within a minute) and splits it down then across (`FleetActivity.columns`, tested over the
+  rendered order). Needs you and the inspector say actions as sentences with names
+  (`ActionWords.sentence`, `ActionWords.humanize` over app-views' `EntityName`): "Send an email
+  to LEAD-1095", "Wants to send an email to LEAD-1095." The dead-space method is in STYLE.md
+  ("Dead space") and every full state is pinned to 1400 x 1000 pt; run-short moved to it. Now:
+  overview 45%, portfolio-live 51%, needs-you 65%.
+- Visual check (`just snapshot` portfolio-live, needs-you, overview): moves (2), and the empty
+  share is measured instead of judged.

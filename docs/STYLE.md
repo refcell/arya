@@ -273,7 +273,21 @@ with a quiet ×. Never a window-wide banner and never an error type's raw descri
 One `body`/`inkMuted` line, and one sentence of guidance when the reason is not obvious. No
 large type, no illustration.
 
-## Motion
+## Dead space
+
+One number for the reviewer and every lane, printed by `just snapshot` and kept in
+`.build/snapshots/empty.tsv` (one row per PNG, `SnapshotSpace` in the snapshot test):
+
+- Every full state renders the whole window at 1400 x 1000 pt (2800 x 2000 px). A state at
+  any other size fails the snapshot test unless it is a named component part
+  (`SnapshotSpace.parts`), which reports no share.
+- Sampled once per point. A point is blank when its luminance is within 3% of the background
+  (the most common luminance in the window), or it lies in a uniform run of 32 pt or more
+  across or down: hairlines and blank fills count as empty.
+- The share is the fraction of 24 pt blocks (one row tall) with no content point in them.
+- Target: at most 35% on every steward and fleet screen.
+
+
 
 New lines fade in over 120 ms; disclosures animate height over 160 ms; the live dot's ring
 grows and fades every 1.6 s; hover and press take 80 ms; the inspector slides in from the

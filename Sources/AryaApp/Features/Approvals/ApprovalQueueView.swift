@@ -292,13 +292,13 @@ private struct NeedsYouRow: View {
 
     private var title: String {
         item.kind == "question"
-            ? item.summary : ActionWords.line(kind: item.kind, target: item.target)
+            ? item.summary : ActionWords.sentence(kind: item.kind, target: item.target)
     }
 
     /// The reason, else the summary; nil when both are empty.
     private var why: String? {
         let text = item.rationale.isEmpty ? item.summary : item.rationale
-        return text.isEmpty || item.kind == "question" ? nil : text
+        return text.isEmpty || item.kind == "question" ? nil : ActionWords.humanize(text)
     }
 
     /// High risk reads negative, medium warning, low faint; questions faint.

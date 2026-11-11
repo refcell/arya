@@ -433,11 +433,9 @@ import Testing
         // A short run (app-views): the brief above the thread fills the pane: who started it,
         // the steps ticked so far and those expected, what it read.
         let short = RunStreamView(store: liveStore, run: PreviewFixtures.inProgressRun)
-            .frame(width: 1280, height: 800, alignment: .topLeading)
+            .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
             .background(AryaColor.canvas)
-        try write(
-            "run-short", scheme: scheme,
-            render(short, dark: dark, size: NSSize(width: 1280, height: 800)))
+        try write("run-short", scheme: scheme, render(short, dark: dark))
         let liveOutput = RunStreamView(
             store: liveStore, run: PreviewFixtures.inProgressRun, initialTab: .output
         )
@@ -631,7 +629,7 @@ import Testing
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try png.write(to: url)
-        SnapshotSpace.report(file, png: png, dir: dir)
+        SnapshotSpace.report(name, file: file, png: png, dir: dir)
     }
 
     /// A panel on the canvas at `size`, padded like a pane.
@@ -697,48 +695,97 @@ import Testing
     }
 }
 
-/// How much of a state is blank, as an objective dead-space number. The PNG is cut into
-/// 48 px blocks (24 pt, one row at 2x); a block is empty when every pixel is within 10 levels
-/// of its first, so blank canvas and blank panes count and text, hairlines, bars, and badges
-/// do not. Printed per state and kept, one row per file, in `empty.tsv` next to the PNGs.
+/// How much of a state is blank, one number for the reviewer and every lane (STYLE.md "Dead
+/// space"). Every full state renders the whole window at 1400 x 1000 pt (2800 x 2000 px); a
+/// different size fails unless the state is a named component part. A pixel is blank when its
+/// luminance is within 3% of the background (the most common luminance) or it lies in a uniform
+/// run of 32 pt or more across or down (hairlines, blank fills). The share is of 24 pt blocks
+/// (one row) with no content pixel in them.
 enum SnapshotSpace {
-    static func emptyFraction(_ png: Data, block: Int = 48, tolerance: Int = 10) -> Double? {
+    static let pixels = (width: 2800, height: 2000)
+    /// Component crops at their own size; they report no empty share.
+    static let parts: Set<String> = [
+        "app-settings", "governance-settings", "improve-proposal-full", "improve-trajectories",
+        "onboarding-gate",
+        "governance-policy", "governance-retention", "governance-run-controls",
+        "run-controls-dry-run",
+    ]
+
+    /// Sampled once per point (every other pixel at 2x); `block` and `run` are in points.
+    static func emptyFraction(
+        _ png: Data, tolerance: Double = 0.03, run: Int = 32, block: Int = 24
+    ) -> Double? {
         guard let bitmap = NSBitmapImageRep(data: png), let data = bitmap.bitmapData,
             bitmap.bitsPerSample == 8, bitmap.samplesPerPixel >= 3
         else { return nil }
-        let width = bitmap.pixelsWide
-        let height = bitmap.pixelsHigh
-        let row = bitmap.bytesPerRow
-        let step = bitmap.bitsPerPixel / 8
+        let width = bitmap.pixelsWide / 2
+        let height = bitmap.pixelsHigh / 2
+        let row = bitmap.bytesPerRow * 2
+        let step = bitmap.bitsPerPixel / 8 * 2
+        var luma = [Double](repeating: 0, count: width * height)
+        var histogram = [Int](repeating: 0, count: 256)
+        for y in 0..<height {
+            for x in 0..<width {
+                let at = y * row + x * step
+                let value =
+                    (0.2126 * Double(data[at]) + 0.7152 * Double(data[at + 1])
+                        + 0.0722 * Double(data[at + 2])) / 255
+                luma[y * width + x] = value
+                histogram[min(255, Int(value * 255))] += 1
+            }
+        }
+        let background = Double(histogram.indices.max { histogram[$0] < histogram[$1] } ?? 0) / 255
+        var blank = luma.map { abs($0 - background) <= tolerance }
+        // Long uniform runs: hairlines and blank fills carry no content.
+        func mark(_ indices: [Int]) {
+            var start = 0
+            for k in 1...indices.count {
+                let ends =
+                    k == indices.count || abs(luma[indices[k]] - luma[indices[start]]) > 0.004
+                if ends {
+                    if k - start >= run { for m in start..<k { blank[indices[m]] = true } }
+                    start = k
+                }
+            }
+        }
+        for y in 0..<height { mark(Array((y * width)..<(y * width + width))) }
+        for x in 0..<width { mark(Array(stride(from: x, to: width * height, by: width))) }
+        // A block (one row tall) is empty when nothing in it is content.
         var empty = 0
         var total = 0
         for top in stride(from: 0, to: height - block + 1, by: block) {
             for left in stride(from: 0, to: width - block + 1, by: block) {
-                let first = top * row + left * step
-                var uniform = true
+                total += 1
+                var clear = true
                 scan: for y in top..<(top + block) {
-                    for x in left..<(left + block) {
-                        let at = y * row + x * step
-                        for channel in 0..<3
-                        where abs(Int(data[at + channel]) - Int(data[first + channel])) > tolerance
-                        {
-                            uniform = false
-                            break scan
-                        }
+                    for x in left..<(left + block) where !blank[y * width + x] {
+                        clear = false
+                        break scan
                     }
                 }
-                total += 1
-                if uniform { empty += 1 }
+                if clear { empty += 1 }
             }
         }
         return total == 0 ? nil : Double(empty) / Double(total)
     }
 
-    static func report(_ file: String, png: Data, dir: String) {
+    /// Checks the size and records the empty share in `empty.tsv`, one row per file.
+    static func report(_ name: String, file: String, png: Data, dir: String) {
+        guard let bitmap = NSBitmapImageRep(data: png) else { return }
+        let full = bitmap.pixelsWide == pixels.width && bitmap.pixelsHigh == pixels.height
+        guard full else {
+            if !parts.contains(name) {
+                let size = "\(bitmap.pixelsWide) x \(bitmap.pixelsHigh) px"
+                Issue.record(
+                    Comment(
+                        rawValue: "snapshot state \(name) is \(size); every state renders the"
+                            + " whole window at 1400 x 1000 pt"))
+            }
+            return
+        }
         guard let fraction = emptyFraction(png) else { return }
         let percent = Int((fraction * 100).rounded())
         print("empty \(file): \(percent)%")
-        // One row per file, newest value; the dark and light tests write in parallel.
         lock.withLock {
             let url = URL(fileURLWithPath: dir).appendingPathComponent("empty.tsv")
             let old = (try? String(contentsOf: url, encoding: .utf8)) ?? ""

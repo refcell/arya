@@ -180,3 +180,58 @@ import Testing
                 && out[index].steward == out[index - 2].steward))
     }
 }
+
+@MainActor @Test func fleetActivityIsNewestFirstAndMixesOnlyWithinAMinute() {
+    let now = Date(timeIntervalSince1970: 1_700_000_040)
+    let stewards = ["st_a", "st_b"].map {
+        StewardSummary(
+            id: $0, name: $0, outcome: "o", charterVersion: 1, status: .active, ready: true)
+    }
+    var log = FeatureEventBuilder(start: now.addingTimeInterval(-7200))
+    log.add("run.started", steward: "st_b", run: "r0")  // two hours ago
+    log.add("run.started", steward: "st_a", run: "r1", after: 7100)  // same minute ...
+    log.add("run.started", steward: "st_a", run: "r2", after: 1)
+    log.add("run.started", steward: "st_a", run: "r3", after: 1)
+    log.add("run.started", steward: "st_b", run: "r4", after: 1)  // ... as this one
+    let lines = FleetActivity.lines(events: log.events, stewards: stewards, now: now)
+    let times = lines.map(\.at)
+    // Never older before newer across minutes; the old st_b line stays last.
+    #expect(lines.last?.steward == "st_b" && times.last == times.min())
+    #expect(lines.prefix(3).map(\.steward).contains("st_b"))
+    #expect(lines.count == 5)
+}
+
+@Test func actionsReadAsSentencesWithNames() {
+    #expect(
+        ActionWords.sentence(kind: "send_email", target: "lead:LEAD-1095")
+            == "Send an email to LEAD-1095")
+    #expect(ActionWords.sentence(kind: "archive", target: "inbox:MSG-1") == "Archive MSG-1")
+    #expect(
+        ActionWords.humanize("Wants to send_email lead:LEAD-1095.")
+            == "Wants to send an email to LEAD-1095.")
+    #expect(ActionWords.humanize("Billing owns inbox:MSG-2") == "Billing owns MSG-2")
+}
+
+@MainActor @Test func fleetActivityColumnsReadNewestFirstDownThenAcross() {
+    let now = Date(timeIntervalSince1970: 1_700_100_000)
+    let stewards = ["st_a", "st_b", "st_c"].map {
+        StewardSummary(
+            id: $0, name: $0, outcome: "o", charterVersion: 1, status: .active, ready: true)
+    }
+    // A busy steward's burst, an older line from another, and a reload that appended an old
+    // event last (the ledger's order is not time order).
+    var log = FeatureEventBuilder(start: now.addingTimeInterval(-6000))
+    for index in 0..<9 {
+        log.add("run.started", steward: "st_a", run: "a\(index)", after: 600)
+    }
+    log.add("run.started", steward: "st_b", run: "b0", after: 30)
+    log.add("run.started", steward: "st_c", run: "c0", at: now.addingTimeInterval(-7200))
+    let lines = FleetActivity.lines(events: log.events, stewards: stewards, now: now)
+    let columns = FleetActivity.columns(lines)
+    let rendered = columns.left + columns.right
+    #expect(rendered.count == lines.count)
+    for index in 1..<rendered.count {
+        #expect(rendered[index - 1].at >= rendered[index].at)
+    }
+    #expect(rendered.last?.steward == "st_c")
+}

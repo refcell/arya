@@ -16,4 +16,46 @@ enum ActionWords {
         let title = word.prefix(1).uppercased() + word.dropFirst()
         return target.isEmpty ? title : "\(title) \(target)"
     }
+
+    /// Verb phrases for common kinds; `%@` is the target's plain name.
+    static let phrases: [String: String] = [
+        "send-email": "Send an email to %@", "email": "Email %@", "reply": "Reply to %@",
+        "refund": "Refund %@", "remind": "Remind %@", "publish": "Publish %@",
+        "comment": "Comment on %@", "update": "Update %@", "label": "Label %@",
+        "route": "Route %@", "note": "Add a note to %@", "assign": "Assign %@",
+        "close": "Close %@", "escalate": "Escalate %@", "follow-up": "Follow up with %@",
+        "notify": "Notify %@", "post": "Post to %@", "message": "Message %@",
+    ]
+
+    /// An action as a sentence with the target as a name: "send_email" on "lead:LEAD-1095"
+    /// reads "Send an email to LEAD-1095"; unknown kinds read "Archive LEAD-1095".
+    static func sentence(kind raw: String, target: String) -> String {
+        let word = kind(raw)
+        let name = EntityName.plain(target)
+        if let phrase = phrases[word], !name.isEmpty {
+            return phrase.replacingOccurrences(of: "%@", with: name)
+        }
+        let verb = word.replacingOccurrences(of: "-", with: " ")
+        let title = verb.prefix(1).uppercased() + verb.dropFirst()
+        return name.isEmpty ? title : "\(title) \(name)"
+    }
+
+    /// Machine text in a sentence as people read it: refs become names and a leading
+    /// "Wants to <kind> <ref>" becomes the action's sentence.
+    static func humanize(_ text: String) -> String {
+        let prefix = "Wants to "
+        if text.hasPrefix(prefix) {
+            let rest = text.dropFirst(prefix.count)
+            let parts = rest.split(separator: " ", maxSplits: 1).map(String.init)
+            if parts.count == 2, parts[0].contains("_") || parts[0].contains("-") {
+                var target = parts[1]
+                let stop = target.hasSuffix(".")
+                if stop { target.removeLast() }
+                let action = sentence(kind: parts[0], target: target)
+                return prefix + action.prefix(1).lowercased() + action.dropFirst()
+                    + (stop ? "." : "")
+            }
+        }
+        return EntityName.humanize(text)
+    }
 }
