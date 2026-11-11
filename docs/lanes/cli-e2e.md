@@ -166,6 +166,9 @@ M4:
 
 - (from runtime) The seeder now seeds access (`Sources/AryaDemo/AccessDemo.swift`, append-only hooks in `Seeder.swift`: `DemoStep.access(phase:)`, `AccessDemo.script`, and five hand-off messages): 3 teams, 12 grants, 5 refusals. Support covers Sam, Priya, Lee on triage and refunds, so existing hand-offs still act. An e2e step could check `arya` access reads once the CLI has them.
 ## Log
+- 2026-11-11: seed text and budgets (CEO): seeded sentences keep acronyms ("the CFO", c3bf3e59).
+  After workspace's budget fix (201eb49e): `just e2e` ok (85 steps); a fresh busy seed has 1414
+  runs, 37 failed, all `adapter_failed` (seeded on purpose), 0 `budget`; triage grades 460 runs.
 - 2026-11-11: ROADMAP M3.6 #1 flipped to done (app-outcome: wizard guardrail metrics,
   205d5c5e); 15 done, 3 partial, 0 missing.
 - 2026-11-11: load fix (CEO): publish takes its queue ticket before `just fmt` (only cheap git
