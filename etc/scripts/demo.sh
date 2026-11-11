@@ -37,7 +37,8 @@ if [ ! -x "$bin/arya-demo" ] || [ ! -x "$bin/arya-fake-adapter" ] || [ ! -x "$bi
   fi
 fi
 # Live: the fake adapter takes about 1.5 s per event, tool output streamed.
-"$bin/arya-demo" "$home" "$PWD/etc/examples" ${live:+--pace-ms 1500}
+# Seeding uses two cores for minutes, so it takes a CI slot like a build.
+etc/scripts/slot.sh "$bin/arya-demo" "$home" "$PWD/etc/examples" ${live:+--pace-ms 1500}
 echo "demo: seeded $home; render it with \`just snapshot\` (offscreen, no window)"
 if [ -n "$live" ]; then
   echo "demo: serving $home with demo pace (Ctrl-C to stop)"

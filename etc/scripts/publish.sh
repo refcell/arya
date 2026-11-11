@@ -2,10 +2,11 @@
 # Publish local commits to main under push races (docs/DECISIONS.md 0029). Run with
 # `just publish <TestFilter>`, where the filter names your lane's tests (`AryaCLITests`).
 #
-#   0. preflight: refuse a dirty tree or a rebase in progress, wait out a stale
-#      `index.lock`, run `just fmt`, and commit any formatting it changed on its own; then
-#      wait for this lane's turn in the publish queue (first come first served,
-#      etc/scripts/publish-queue.sh), so lanes never race each other's `just ci`;
+#   0. preflight: refuse a dirty tree or a rebase in progress, and wait out a stale
+#      `index.lock` (cheap checks, so a bad state fails at once); then wait for this lane's
+#      turn in the publish queue (first come first served, etc/scripts/publish-queue.sh)
+#      before any heavy work, so one lane formats, builds, and tests at a time; then run
+#      `just fmt` and commit any formatting it changed on its own;
 #   1. fetch and rebase on origin/main, run the full `just ci`, push;
 #   2. on a rejected push, rebase again; without conflicts, re-check with tidy, build, and the
 #      filtered tests and push, at most three times; then go back to step 1.
@@ -80,6 +81,10 @@ preflight() {
     printf '%s\n' "$dirty" | sed 's/^/    /'
     exit 1
   fi
+}
+
+# format: `just fmt` in this lane's turn, committing only what it changed.
+format() {
   run "just fmt" "$just" fmt
   # The tree was clean before `just fmt`, so changed Swift files are formatting; anything else
   # changed meanwhile (an edit racing the publish) and is never committed here.
@@ -138,6 +143,7 @@ docs_only() {
 preflight
 take_ticket
 wait_for_turn
+format
 say "fetch and rebase on origin/main"
 rebase
 if docs_only; then

@@ -148,6 +148,7 @@ if want queue; then
   check "a dead ticket expires" test ! -e "$root/queue/$((now - 30))-$dead"
   check "a stale ticket expires" test ! -e "$root/queue/$((now - 20))-$stale"
   check "pushed nothing while waiting" origin_lacks "feat: queued"
+  check "formats nothing while waiting" not_ran fmt
   { kill "$holder" "$stale" && wait "$holder" "$stale"; } 2>/dev/null || true
   status=0
   wait "$waiting" || status=$?
