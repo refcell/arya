@@ -52,11 +52,11 @@ private func twoPending() -> [FeatureEvent] {
     #expect(denied.verdict == .denied)
     #expect(denied.actor == .localUser)
     #expect(
-        ApprovalText.verdict(denied, now: denied.at) == "Denied by local: over budget · now")
+        ApprovalText.verdict(denied, now: denied.at) == "Denied by you: over budget · now")
     let granted = try #require(queue.decided[1].decision)
     #expect(
         ApprovalText.verdict(granted, now: granted.at.addingTimeInterval(90))
-            == "Approved by local · 1m")
+            == "Approved by you · 1m")
 }
 
 @Test func expiredApprovalsLeaveTheQueue() {

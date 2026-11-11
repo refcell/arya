@@ -96,7 +96,7 @@ private func rehearsal(_ log: [FeatureEvent] = events) throws -> RehearsalItem {
     let list = RehearsalList.build(events: await workspace.events())
     let mark = try #require(list.readyMark(steward: PreviewFixtures.steward, charterVersion: 1))
     #expect(mark.rehearsal == item.id)
-    #expect(RehearsalsText.ready(mark, now: mark.at) == "Ready since just now, marked by local")
+    #expect(RehearsalsText.ready(mark, now: mark.at) == "Ready since just now, marked by you")
     #expect(list.canMarkReady(list.rehearsals[0]) == false)
 }
 

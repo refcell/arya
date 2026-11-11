@@ -86,7 +86,7 @@ enum RoutinesText {
     /// "Proposed 4d5e6f by st_triage: Label duplicates directly".
     static func history(_ event: RoutineEvent) -> String {
         let verb = event.kind.rawValue.prefix(1).uppercased() + event.kind.rawValue.dropFirst()
-        var text = "\(verb) \(shortVersion(event.version)) by \(event.actor.id)"
+        var text = "\(verb) \(shortVersion(event.version)) by \(HumanText.actor(event.actor))"
         let detail = event.summary.isEmpty ? event.reason : event.summary
         if !detail.isEmpty { text += ": \(detail)" }
         return text

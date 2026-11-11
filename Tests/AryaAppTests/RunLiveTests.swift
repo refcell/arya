@@ -357,3 +357,15 @@ import Testing
             == "Routine refund-check for ORDER-1218")
     #expect(HumanText.change("to: none → person:alex", kind: "assign") == "to: Alex")
 }
+
+@Test func theLocalOperatorReadsAsYouEverywhere() {
+    for id in ["local", "human:local", "person:local"] { #expect(HumanText.actor(id) == "you") }
+    #expect(HumanText.actor(FeatureActor.localUser) == "you")
+    #expect(HumanText.actor(FeatureActor(kind: .human, id: "priya")) == "Priya")
+    #expect(HumanText.actor("person:sam") == "Sam")
+    #expect(HumanText.actor(FeatureActor(kind: .steward, id: "st_triage")) == "st_triage")
+    let at = Date(timeIntervalSince1970: 1_000)
+    let decision = ApprovalDecision(verdict: .granted, actor: .localUser, reason: "", at: at)
+    #expect(ApprovalText.verdict(decision, now: at).hasPrefix("Approved by you"))
+    #expect(GovernanceText.people(["person:sam", "local"]) == "Sam, you")
+}

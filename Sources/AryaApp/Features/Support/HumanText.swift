@@ -6,6 +6,25 @@ enum HumanText {
     /// "person:alex" -> "Alex", "tracker:ISSUE-7" -> "ISSUE-7".
     static func name(_ ref: String) -> String { EntityName.plain(ref) }
 
+    /// The ids the person at this home goes by, with or without a kind.
+    static let localIDs: Set<String> = ["local", "human:local", "person:local"]
+
+    /// Who did something, the one rule for every "by …": the person at this home is "you",
+    /// a person reads as their name ("person:priya" is "Priya"), anyone else by their ref.
+    static func actor(_ id: String) -> String {
+        if localIDs.contains(id) { return "you" }
+        for prefix in ["person:", "human:"] where id.hasPrefix(prefix) {
+            let bare = id.dropFirst(prefix.count)
+            return bare.prefix(1).uppercased() + bare.dropFirst()
+        }
+        return EntityName.plain(id)
+    }
+
+    /// `actor(_:)` for an event's actor: a human's id is a person.
+    static func actor(_ actor: FeatureActor) -> String {
+        actor.kind == .human ? Self.actor("person:" + actor.id) : Self.actor(actor.id)
+    }
+
     /// Every ref in a sentence as a name: "Assign tracker:ISSUE-7 to person:alex" reads
     /// "Assign ISSUE-7 to Alex".
     static func sentence(_ text: String) -> String { EntityName.humanize(text) }

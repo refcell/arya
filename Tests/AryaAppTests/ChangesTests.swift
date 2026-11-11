@@ -59,7 +59,7 @@ private let failing = PreviewFixtures.failingProposal
     #expect(list.open.isEmpty)
     #expect(
         list.closed.map { ChangesText.state($0.state) } == [
-            "Accepted by local over a failed gate", "Rejected by local: too broad",
+            "Accepted by you over a failed gate", "Rejected by you: too broad",
         ])
 }
 

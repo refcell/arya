@@ -116,15 +116,15 @@ enum ChangesText {
         return "Regressed: " + gate.regressions.joined(separator: ", ")
     }
 
-    /// The closed state: "Accepted by local", "Accepted by local over a failed gate",
-    /// "Rejected by local: too broad".
+    /// The closed state: "Accepted by you", "Accepted by you over a failed gate",
+    /// "Rejected by you: too broad".
     static func state(_ state: ProposalItem.State) -> String {
         switch state {
         case .open: return "Open"
         case .accepted(let by, let overridden):
-            return "Accepted by \(by.id)" + (overridden ? " over a failed gate" : "")
+            return "Accepted by \(HumanText.actor(by))" + (overridden ? " over a failed gate" : "")
         case .rejected(let by, let reason):
-            return "Rejected by \(by.id)" + (reason.isEmpty ? "" : ": \(reason)")
+            return "Rejected by \(HumanText.actor(by))" + (reason.isEmpty ? "" : ": \(reason)")
         }
     }
 

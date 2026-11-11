@@ -195,7 +195,7 @@ struct UndoList: View {
                     }
                     Spacer(minLength: AryaSpace.s3)
                     if let by = option.undoneBy {
-                        Chip("undone · \(by)", textColor: AryaColor.inkFaint)
+                        Chip("undone · \(HumanText.actor(by))", textColor: AryaColor.inkFaint)
                     } else {
                         Button("Undo") { undo(option) }.buttonStyle(.aryaSecondary)
                     }
@@ -618,8 +618,10 @@ enum GovernanceText {
 
     /// Approver ids as names, people first and "you" (`local`) last: "Sam, you".
     static func people(_ ids: [String]) -> String {
-        let named = ids.filter { $0 != "local" }.map(PeopleDirectory.displayName)
-        guard ids.contains("local") else { return named.joined(separator: ", ") }
+        let named = ids.filter { !HumanText.localIDs.contains($0) }.map(HumanText.actor)
+        guard ids.contains(where: HumanText.localIDs.contains) else {
+            return named.joined(separator: ", ")
+        }
         return named.isEmpty ? "You" : (named + ["you"]).joined(separator: ", ")
     }
 

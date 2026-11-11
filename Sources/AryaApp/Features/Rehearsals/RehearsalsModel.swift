@@ -225,9 +225,10 @@ enum RehearsalsText {
         result.leak ? "leak" : (result.passed ? "passed" : "failed")
     }
 
-    /// "Ready since 2m ago, marked by local".
+    /// "Ready since 2m ago, marked by you".
     static func ready(_ mark: ReadyRecord, now: Date) -> String {
-        "Ready since \(FeatureTime.phrase(mark.at, now: now)), marked by \(mark.by.id)"
+        let when = FeatureTime.phrase(mark.at, now: now)
+        return "Ready since \(when), marked by \(HumanText.actor(mark.by))"
     }
 }
 

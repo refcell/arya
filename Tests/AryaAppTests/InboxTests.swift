@@ -27,7 +27,7 @@ private let now = FeatureTestClock.now
     #expect(written[0].payload["note"] == "A duplicate of ISSUE-4.")
     let item = try #require(InboxList.build(events: await workspace.events()).items.first)
     #expect(item.state == .answered("A duplicate of ISSUE-4.", by: .localUser))
-    #expect(InboxText.state(item.state) == "Answered by local: A duplicate of ISSUE-4.")
+    #expect(InboxText.state(item.state) == "Answered by you: A duplicate of ISSUE-4.")
     await #expect(throws: FeatureWriteError.alreadyDecided(PreviewFixtures.question)) {
         try await workspace.record(.answer(approval: PreviewFixtures.question, text: "again"))
     }
@@ -43,7 +43,7 @@ private let now = FeatureTestClock.now
     log.add("approval.denied", actor: .localUser, ["approval": "q2", "note": "Not mine."])
     let list = InboxList.build(events: log.events)
     #expect(list.items.map(\.id) == ["q1", "q2"])
-    #expect(InboxText.state(list.items[1].state) == "Declined by local: Not mine.")
+    #expect(InboxText.state(list.items[1].state) == "Declined by you: Not mine.")
 }
 
 @Test func overviewSummarizesTheSteward() async throws {

@@ -71,9 +71,9 @@ struct MemoryList: Hashable, Sendable {
 
 /// Text for the memory view, kept apart from layout so it can be tested.
 enum MemoryText {
-    /// "by st_triage · from run_0001 (ev_6) · 2m ago", "by local · from case case-0007".
+    /// "by st_triage · from run_0001 (ev_6) · 2m ago", "by you · from case case-0007".
     static func provenance(_ item: MemoryItem, now: Date) -> String {
-        var parts = ["by \(item.author.id)"]
+        var parts = ["by \(HumanText.actor(item.author))"]
         if let run = item.run {
             parts.append("from \(run)" + (item.event.map { " (\($0))" } ?? ""))
         }
@@ -82,9 +82,9 @@ enum MemoryText {
         return parts.joined(separator: " · ")
     }
 
-    /// "Retracted by local: outdated".
+    /// "Retracted by you: outdated".
     static func retraction(_ retraction: MemoryItem.Retraction) -> String {
-        "Retracted by \(retraction.by.id)"
+        "Retracted by \(HumanText.actor(retraction.by))"
             + (retraction.reason.isEmpty ? "" : ": \(retraction.reason)")
     }
 }

@@ -243,7 +243,7 @@ private struct CaseLine: View {
                     AryaFont.body, AryaColor.inkMuted)
             }
             ForEach(Array(result.corrections.enumerated()), id: \.offset) { _, record in
-                Text("Corrected by \(record.by.id): \(record.text)")
+                Text("Corrected by \(HumanText.actor(record.by)): \(record.text)")
                     .aryaText(AryaFont.caption, AryaColor.inkMuted)
             }
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {

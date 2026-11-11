@@ -81,9 +81,9 @@ enum InboxText {
     static func state(_ state: InboxItem.State) -> String {
         switch state {
         case .waiting: return "Waiting for an answer"
-        case .answered(let text, let actor): return "Answered by \(actor.id): \(text)"
+        case .answered(let text, let actor): return "Answered by \(HumanText.actor(actor)): \(text)"
         case .declined(let note, let actor):
-            return "Declined by \(actor.id)" + (note.map { ": \($0)" } ?? "")
+            return "Declined by \(HumanText.actor(actor))" + (note.map { ": \($0)" } ?? "")
         case .expired: return "Expired without an answer"
         }
     }

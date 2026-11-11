@@ -18,7 +18,7 @@ private let now = FeatureTestClock.now
     let fromCase = list.live[0]
     #expect(
         MemoryText.provenance(fromCase, now: fromCase.addedAt)
-            == "by local · from case case-0007 · now")
+            == "by you · from case case-0007 · now")
 }
 
 @Test func retractingRecordsTheLocalUserAndMovesTheNote() async throws {
@@ -31,7 +31,7 @@ private let now = FeatureTestClock.now
     let list = MemoryList.build(events: await workspace.events())
     #expect(list.live.map(\.id) == [PreviewFixtures.correctionNote])
     let retraction = try #require(list.retracted.first?.retraction)
-    #expect(MemoryText.retraction(retraction) == "Retracted by local: outdated")
+    #expect(MemoryText.retraction(retraction) == "Retracted by you: outdated")
     await #expect(throws: FeatureWriteError.alreadyRetracted(note)) {
         try await workspace.record(.retractMemory(note: note, reason: ""))
     }

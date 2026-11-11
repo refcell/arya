@@ -14,10 +14,10 @@ enum ApprovalText {
             .compactMap { $0 }.joined(separator: " · ")
     }
 
-    /// "Approved by local · 1m ago", "Denied by local: on leave", "Expired".
+    /// "Approved by you · 1m ago", "Denied by Sam: on leave", "Expired".
     static func verdict(_ decision: ApprovalDecision, now: Date) -> String {
         let when = FeatureTime.relative(decision.at, now: now)
-        let who = decision.actor.id
+        let who = HumanText.actor(decision.actor)
         switch decision.verdict {
         case .granted: return "Approved by \(who) · \(when)"
         case .denied:
