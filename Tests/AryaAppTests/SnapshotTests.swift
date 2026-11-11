@@ -520,9 +520,10 @@ import Testing
             } else {
                 nil
             }
+        let runs = try? await store.workspace.runHistory(steward: steward)
         store.outcomeReads[steward] = OutcomeReads(
             live: live, findings: findings, impact: impact ?? nil, metrics: metrics,
-            missedText: missed)
+            missedText: missed, runs: runs)
     }
 
     /// The seeded demo home when `ARYA_SNAPSHOT_HOME` is set, else the fake workspace.

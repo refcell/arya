@@ -102,7 +102,7 @@ struct OutcomeMetrics: Hashable, Sendable {
     /// without it, other metric readings in the ledger show as plain rows.
     static func build(
         events: [FeatureEvent], steward: String, state: OutcomeState, now: Date,
-        statuses: [FeatureMetricStatus]? = nil
+        statuses: [FeatureMetricStatus]? = nil, runs: FeatureRunHistory? = nil
     ) -> OutcomeMetrics {
         let ledger = OutcomeLedger(events: events, steward: steward)
         let from = now.addingTimeInterval(-Double(windowDays) * day)
@@ -125,6 +125,17 @@ struct OutcomeMetrics: Hashable, Sendable {
             count("held for you", ledger.holds),
             count("failed runs", failed, tone: .negative),
         ]
+        // Run counts come from the workspace's run history when read (one source with the
+        // inspector): its line verbatim, and its failed runs.
+        if let runs {
+            series[0] = OutcomeSeries(
+                name: "runs", value: runs.line, values: runs.runs.map(Double.init),
+                line: runs.line)
+            series[3] = OutcomeSeries(
+                name: "failed runs", value: "\(runs.failedTotal) / 7d",
+                values: runs.failed.map(Double.init),
+                tone: runs.failedTotal > 0 ? .negative : .plain)
+        }
         if let statuses {
             series += statuses.filter { $0.role == "guardrail" }.map(guardrail)
             return OutcomeMetrics(metric: state.metric, points: points, series: series)
@@ -383,10 +394,14 @@ struct OutcomeMetricsPanel: View {
             OutcomeSparkline(
                 values: series.values, target: series.target,
                 height: AryaSize.outcomeSeriesSpark)
+            // At least the value column, wider for a whole workspace line ("14 runs in 7 days,
+            // 2 today"); the sparkline gives way.
             Text(series.value)
                 .aryaText(AryaFont.monoSmall, color(series.tone))
                 .monospacedDigit()
-                .frame(width: AryaSize.outcomeSeriesValue, alignment: .trailing)
+                .lineLimit(1)
+                .frame(minWidth: AryaSize.outcomeSeriesValue, alignment: .trailing)
+                .layoutPriority(1)
         }
         .frame(height: AryaSize.rowHeight)
         .accessibilityElement(children: .ignore)

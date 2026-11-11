@@ -195,6 +195,8 @@ protocol FeatureOutcomeReads: Sendable {
     /// The evaluation window's `missed its target on 4 of the last 7 days`, verbatim; nil
     /// when nothing missed.
     func outcomeMissedText(steward: String) async throws -> String?
+    /// Runs per day over the last 7 local days, the one source for run counts.
+    func runHistory(steward: String) async throws -> FeatureRunHistory
 }
 
 extension FeatureOutcomeReads {
@@ -275,5 +277,9 @@ extension FeatureOutcomeReads {
 
     func outcomeMissedText(steward: String) async throws -> String? {
         throw FeatureReadError.unavailable("outcome window")
+    }
+
+    func runHistory(steward: String) async throws -> FeatureRunHistory {
+        throw FeatureReadError.unavailable("run history")
     }
 }

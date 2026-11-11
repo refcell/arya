@@ -93,9 +93,10 @@ struct OverviewTab: View {
             } else {
                 nil
             }
+        let runs = try? await store.workspace.runHistory(steward: steward)
         store.outcomeReads[steward] = OutcomeReads(
             live: live, findings: findings, impact: impact ?? nil, onboarding: onboarding,
-            metrics: metrics, missedText: missed)
+            metrics: metrics, missedText: missed, runs: runs)
         if let queue = try? await store.workspace.reviewQueue(steward: steward) {
             store.reviewQueues[steward] = queue
         }
@@ -146,7 +147,8 @@ struct OverviewTab: View {
                 OutcomeMetricsPanel(
                     metrics: OutcomeMetrics.build(
                         events: events, steward: steward, state: snapshot.state, now: store.now,
-                        statuses: store.outcomeReads[steward]?.metrics),
+                        statuses: store.outcomeReads[steward]?.metrics,
+                        runs: store.outcomeReads[steward]?.runs),
                     now: store.now)
                 let reads = store.outcomeReads[steward]
                 let impact = reads?.impact.map(OutcomeImpact.build)

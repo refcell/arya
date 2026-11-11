@@ -61,6 +61,21 @@ struct OutcomeLineContent: View {
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            line
+            if let why = state.why {
+                // Why the pill says what it says, whole and in the workspace's words, on its
+                // own line under the KPI.
+                Text(why).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .help(state.reason ?? why)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(OutcomeText.spoken(state))
+    }
+
+    private var line: some View {
         HStack(alignment: .center, spacing: AryaSpace.s4) {
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                 Text(state.latest.map(MetricText.value) ?? "—")
@@ -80,13 +95,6 @@ struct OutcomeLineContent: View {
             }
             OutcomeStatusPill(status: state.status)
                 .help(state.reason ?? state.status.word)
-            if let why = state.why {
-                // Why the pill says what it says, in the workspace's words; wraps rather than
-                // cutting off.
-                Text(why).aryaText(AryaFont.caption, AryaColor.inkMuted)
-                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                    .help(state.reason ?? why)
-            }
             if let owner {
                 Text("owned by \(owner)").aryaText(AryaFont.caption, AryaColor.inkMuted)
                     .lineLimit(1)
@@ -100,8 +108,6 @@ struct OutcomeLineContent: View {
                 Button("Run now", action: runNow).buttonStyle(.aryaSecondary).fixedSize()
             }
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(OutcomeText.spoken(state))
     }
 }
 

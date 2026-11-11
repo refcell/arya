@@ -61,6 +61,8 @@ protocol WorkspaceSource: Sendable {
     func onboardRun(steward: String) async throws -> String
     /// `Workspace.metricStatuses(steward:windows:)`.
     func metricStatusList(steward: String, windows: Int) async throws -> [FeatureMetricStatus]
+    /// `Workspace.runHistory(steward:days:)` over 7 days.
+    func runHistorySummary(steward: String) async throws -> FeatureRunHistory
     /// `Workspace.outcomeWindow(steward:).missedText`, verbatim.
     func outcomeMissedText(steward: String) async throws -> String?
     /// One person's thread with a steward, oldest first.
@@ -195,6 +197,10 @@ extension WorkspaceSource {
 
     func outcomeMissedText(steward: String) async throws -> String? {
         throw FeatureReadError.unavailable("outcome window")
+    }
+
+    func runHistorySummary(steward: String) async throws -> FeatureRunHistory {
+        throw FeatureReadError.unavailable("run history")
     }
 
     func conversationEntries(steward: String, person: String) async throws
@@ -503,6 +509,13 @@ extension Workspace: WorkspaceSource {
 
     func outcomeMissedText(steward: String) async throws -> String? {
         try await outcomeWindow(steward: steward).missedText
+    }
+
+    func runHistorySummary(steward: String) async throws -> FeatureRunHistory {
+        let history = try await runHistory(steward: steward, days: 7)
+        return FeatureRunHistory(
+            runs: history.days.map(\.runs), failed: history.days.map(\.failed),
+            failedTotal: history.failed, line: history.line)
     }
 
     func onboardRun(steward: String) async throws -> String {

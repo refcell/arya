@@ -58,6 +58,9 @@ struct OutcomeReads: Hashable, Sendable {
     /// read and nothing missed, nil when not read.
     var missedText: String?? = nil
 
+    /// Runs per day over 7 days (`runHistory`), the one source for run counts.
+    var runs: FeatureRunHistory? = nil
+
     /// The primary metric's status read.
     var primary: FeatureMetricStatus? { metrics?.first { $0.role == "primary" } }
 }
@@ -107,5 +110,17 @@ struct FeatureMetricStatus: Hashable, Sendable {
     /// `improving`, `worsening`, `flat`, or `unknown`.
     var movement: String
     /// `reply_minutes 42 minutes, target ≤ 60: on track, improving.`
+    var line: String
+}
+
+/// A steward's runs on each of the last 7 local days (`Workspace.runHistory`), the same read the
+/// inspector and portfolio bars use.
+struct FeatureRunHistory: Hashable, Sendable {
+    /// Top-level live runs per day, oldest first; the last is today.
+    var runs: [Int]
+    /// Of those, the failed ones.
+    var failed: [Int]
+    var failedTotal: Int
+    /// Shown verbatim: `14 runs in 7 days, 2 today, 1 failed`.
     var line: String
 }

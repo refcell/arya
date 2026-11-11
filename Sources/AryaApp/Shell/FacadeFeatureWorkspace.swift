@@ -112,6 +112,10 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.outcomeMissedText(steward: steward)
     }
 
+    func runHistory(steward: String) async throws -> FeatureRunHistory {
+        try await source.runHistorySummary(steward: steward)
+    }
+
     func eventDetail(seq: Int) async throws -> FeatureEventDetail? {
         try await source.eventDetail(seq: seq)
     }

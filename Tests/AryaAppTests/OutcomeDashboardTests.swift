@@ -206,3 +206,19 @@ private func log() -> [FeatureEvent] {
     #expect(OutcomeImpact.tone(impact.rows[1]) == AryaColor.inkMuted)
     #expect(OutcomeDashboardText.credit(-0.001) == "±0.00")
 }
+
+/// METRICS' runs row is the workspace's run history line verbatim, the same count the
+/// inspector shows (it once read "19 / 7d" from the ledger beside "14 runs in 7 days").
+@Test func metricsRunCountsComeFromRunHistory() {
+    let events = PreviewFixtures.triage(now: now)
+    let state = OutcomeState.build(events: events, steward: PreviewFixtures.steward, now: now)
+    let history = FeatureRunHistory(
+        runs: [2, 0, 3, 1, 4, 2, 2], failed: [0, 0, 1, 0, 0, 0, 0], failedTotal: 1,
+        line: "14 runs in 7 days, 2 today, 1 failed")
+    let metrics = OutcomeMetrics.build(
+        events: events, steward: PreviewFixtures.steward, state: state, now: now, runs: history)
+    let runs = metrics.series.first { $0.name == "runs" }
+    #expect(runs?.value == "14 runs in 7 days, 2 today, 1 failed")
+    #expect(runs?.values == [2, 0, 3, 1, 4, 2, 2])
+    #expect(metrics.series.first { $0.name == "failed runs" }?.value == "1 / 7d")
+}
