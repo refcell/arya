@@ -102,29 +102,65 @@ struct OutcomeActivityRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
-            Button(action: toggle) {
-                HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                    Text(item.state.mark).aryaText(AryaFont.mono, markColor)
-                    Text(OutcomeActivityText.phrase(item)).aryaText(AryaFont.mono, AryaColor.ink)
-                        .lineLimit(1)
-                    Text(item.reason.isEmpty ? "no reason given" : HumanText.sentence(item.reason))
-                        .aryaText(AryaFont.body, AryaColor.inkFaint)
-                        .lineLimit(1)
-                    Spacer(minLength: AryaSpace.s2)
-                    Text(AryaTime.label(item.at, now: now, style: .short))
-                        .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                        .help(AryaTime.absolute(item.at, timeZone: .current))
+            // One write rides on the action's own row whenever the whole line fits; otherwise
+            // it gets its own line beneath.
+            if let single {
+                ViewThatFits(in: .horizontal) {
+                    line(single)
+                    VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                        line(nil)
+                        writes
+                    }
                 }
-                .frame(minHeight: AryaSize.outcomeRowHeight)
-                .contentShape(Rectangle())
+            } else {
+                line(nil)
+                if !item.writes.isEmpty { writes }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(OutcomeActivityText.spoken(item))
-            .accessibilityHint(
-                item.state == .waiting
-                    ? "Opens the approval" : "Shows the policy, risk, and run")
-            if !item.writes.isEmpty { writes }
             if isExpanded { detail }
+        }
+    }
+
+    private func line(_ write: String?) -> some View {
+        Button(action: toggle) {
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                Text(item.state.mark).aryaText(AryaFont.mono, markColor)
+                Text(OutcomeActivityText.phrase(item)).aryaText(AryaFont.mono, AryaColor.ink)
+                    .lineLimit(1)
+                Text(item.reason.isEmpty ? "no reason given" : HumanText.sentence(item.reason))
+                    .aryaText(AryaFont.body, AryaColor.inkFaint)
+                    .lineLimit(1)
+                if let write { writeText(write) }
+                Spacer(minLength: AryaSpace.s2)
+                Text(AryaTime.label(item.at, now: now, style: .short))
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    .help(AryaTime.absolute(item.at, timeZone: .current))
+            }
+            .frame(minHeight: AryaSize.outcomeRowHeight)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(OutcomeActivityText.spoken(item))
+        .accessibilityHint(
+            item.state == .waiting
+                ? "Opens the approval" : "Shows the policy, risk, and run")
+    }
+
+    /// The action's only write, when it has exactly one.
+    private var single: String? { item.writes.count == 1 ? item.writes[0] : nil }
+
+    private func writeText(_ line: String) -> some View {
+        Text("+ " + HumanText.sentence(line))
+            .aryaText(AryaFont.monoSmall, writeColor)
+            .strikethrough(item.state == .rejected || item.state == .failed)
+            .lineLimit(1).fixedSize()
+            .help(line)
+    }
+
+    private var writeColor: Color {
+        switch item.state {
+        case .executed: AryaColor.positive
+        case .failed, .rejected: AryaColor.negative
+        case .waiting, .proposed: AryaColor.inkMuted
         }
     }
 

@@ -119,7 +119,7 @@ struct OverviewTab: View {
         snapshot.state = snapshot.state.applying(store.outcomeReads[steward])
         let seenAt = lastSeen.flatMap { seq in events.last { $0.seq <= seq }?.at }
         return ScrollView {
-            VStack(alignment: .leading, spacing: AryaSpace.s4) {
+            VStack(alignment: .leading, spacing: AryaSpace.s3) {
                 if !snapshot.state.readiness.isReady {
                     if let onboarding = store.outcomeReads[steward]?.onboarding {
                         OnboardingPanel(
@@ -136,14 +136,8 @@ struct OverviewTab: View {
                         }
                     }
                 }
-                if let recap = OutcomeRecapText.paragraph(
+                let recap = OutcomeRecapText.paragraph(
                     snapshot.recap, seenAt: seenAt, now: store.now)
-                {
-                    Text(recap).aryaText(AryaFont.body, AryaColor.inkMuted)
-                        .lineSpacing(AryaSpace.s1)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                }
                 OutcomeMetricsPanel(
                     metrics: OutcomeMetrics.build(
                         events: events, steward: steward, state: snapshot.state, now: store.now,
@@ -154,7 +148,7 @@ struct OverviewTab: View {
                 let impact = reads?.impact.map(OutcomeImpact.build)
                 // Each panel drops into the shorter column, so both columns reach RECENT
                 // together whatever a steward has to say.
-                OutcomeColumns(spacing: AryaSpace.s5, rowSpacing: AryaSpace.s4) {
+                OutcomeColumns(spacing: AryaSpace.s5, rowSpacing: AryaSpace.s2) {
                     OutcomeNowSection(
                         now: OutcomeNow.build(
                             events: events, steward: steward, state: snapshot.state,
@@ -169,6 +163,12 @@ struct OverviewTab: View {
                     if let impact { OutcomeImpactSection(impact: impact) }
                     OutcomeKnowsSection(
                         notes: OutcomeContext.build(events: events, steward: steward).notes)
+                    // What changed since the person last looked, in the column with room.
+                    if let recap {
+                        Text(recap).aryaText(AryaFont.body, AryaColor.inkMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                    }
                 }
                 OutcomeActivitySection(
                     activity: snapshot.activity, now: store.now, openRun: openRun,
@@ -181,7 +181,7 @@ struct OverviewTab: View {
                 }
             }
             .padding(.horizontal, AryaSpace.s4)
-            .padding(.vertical, AryaSpace.s4)
+            .padding(.bottom, AryaSpace.s4)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -193,6 +193,9 @@ struct OverviewTab: View {
 struct OutcomeColumns: Layout {
     var spacing: CGFloat
     var rowSpacing: CGFloat
+    /// The leading column's share of the width: NOW, PLAN and IMPACT lines are short, while
+    /// FINDINGS sentences wrap less in the wider trailing column.
+    var leading: CGFloat = AryaSize.outcomeLeadingShare
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? 800
@@ -204,27 +207,42 @@ struct OutcomeColumns: Layout {
         in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         let (spots, _) = place(subviews, width: bounds.width)
-        let column = (bounds.width - spacing) / 2
+        let widths = columns(bounds.width)
         for (subview, spot) in zip(subviews, spots) {
             subview.place(
                 at: CGPoint(x: bounds.minX + spot.x, y: bounds.minY + spot.y), anchor: .topLeading,
-                proposal: ProposedViewSize(width: column, height: nil))
+                proposal: ProposedViewSize(width: widths[spot.x == 0 ? 0 : 1], height: nil))
         }
     }
 
+    private func columns(_ width: CGFloat) -> [CGFloat] {
+        let room = max(0, width - spacing)
+        return [room * leading, room * (1 - leading)]
+    }
+
     private func place(_ subviews: Subviews, width: CGFloat) -> ([CGPoint], [CGFloat]) {
-        let column = max(0, (width - spacing) / 2)
+        let widths = columns(width)
         var heights: [CGFloat] = [0, 0]
         var spots: [CGPoint] = []
         for subview in subviews {
-            let size = subview.sizeThatFits(ProposedViewSize(width: column, height: nil))
-            let index = heights[1] < heights[0] ? 1 : 0
+            // Measure in both columns; take the one that ends higher.
+            let sizes = widths.map {
+                subview.sizeThatFits(ProposedViewSize(width: $0, height: nil))
+            }
+            let ends = (0..<2).map {
+                (heights[$0] == 0 ? 0 : heights[$0] + rowSpacing) + sizes[$0].height
+            }
+            let index = ends[1] < ends[0] ? 1 : 0
             let top = heights[index] == 0 ? 0 : heights[index] + rowSpacing
-            spots.append(CGPoint(x: index == 0 ? 0 : column + spacing, y: top))
-            if size.height > 0 { heights[index] = top + size.height }
+            spots.append(CGPoint(x: index == 0 ? 0 : widths[0] + spacing, y: top))
+            if sizes[index].height > 0 { heights[index] = top + sizes[index].height }
         }
         return (spots, heights)
     }
+}
+
+extension AryaSize {
+    static let outcomeLeadingShare: CGFloat = 0.44
 }
 
 /// Success, readiness, autonomy, and next wake, behind a disclosure.
@@ -281,32 +299,48 @@ struct OutcomePlanSection: View {
 
     var body: some View {
         OutcomeSection("Plan", trailing: "\(plan.doneCount)/\(plan.activeCount)") {
-            ForEach(plan.steps) { step in
-                HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
-                    Text(step.status.mark)
-                        .aryaText(AryaFont.mono, color(step.status))
-                        .accessibilityLabel(step.status.word)
-                    Text(step.title)
-                        .aryaText(
-                            AryaFont.body,
-                            step.status == .dropped ? AryaColor.inkFaint : AryaColor.ink
-                        )
-                        .strikethrough(step.status == .dropped)
-                    if let note = step.note {
-                        Text(note).aryaText(AryaFont.caption, AryaColor.inkFaint)
-                    }
+            // Steps without notes are short, so why the plan changed sits beside them.
+            if plan.steps.allSatisfy({ $0.note == nil }), plan.reason != nil {
+                HStack(alignment: .top, spacing: AryaSpace.s4) {
+                    VStack(alignment: .leading, spacing: 0) { steps }.fixedSize()
+                    change
                 }
-                .frame(minHeight: AryaSize.outcomeRowHeight)
+            } else {
+                steps
+                change
             }
-            if let reason = plan.reason {
-                Text(
-                    OutcomePlan.changeLine(
-                        reason, when: AryaTime.label(plan.updated, now: now, style: .long))
-                )
-                .aryaText(AryaFont.caption, AryaColor.inkFaint)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, AryaSpace.s1)
+        }
+    }
+
+    @ViewBuilder private var steps: some View {
+        ForEach(plan.steps) { step in
+            HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                Text(step.status.mark)
+                    .aryaText(AryaFont.mono, color(step.status))
+                    .accessibilityLabel(step.status.word)
+                Text(step.title)
+                    .aryaText(
+                        AryaFont.body,
+                        step.status == .dropped ? AryaColor.inkFaint : AryaColor.ink
+                    )
+                    .strikethrough(step.status == .dropped)
+                if let note = step.note {
+                    Text(note).aryaText(AryaFont.caption, AryaColor.inkFaint)
+                }
             }
+            .frame(minHeight: AryaSize.outcomeRowHeight)
+        }
+    }
+
+    @ViewBuilder private var change: some View {
+        if let reason = plan.reason {
+            Text(
+                OutcomePlan.changeLine(
+                    reason, when: AryaTime.label(plan.updated, now: now, style: .long))
+            )
+            .aryaText(AryaFont.caption, AryaColor.inkFaint)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, AryaSpace.s1)
         }
     }
 

@@ -314,14 +314,27 @@ struct OutcomeMetricsPanel: View {
     let now: Date
 
     var body: some View {
-        // The chart spans the stream; the series sit beneath it in as many columns as fit.
-        OutcomeSection("Metrics", trailing: "\(OutcomeMetrics.windowDays) days") {
+        Group {
             VStack(alignment: .leading, spacing: AryaSpace.s3) {
+                // The chart and its operating series on the left under the section's title,
+                // the last week as numbers on the right from the same top row.
                 HStack(alignment: .top, spacing: AryaSpace.s5) {
-                    chart.frame(maxWidth: .infinity)
+                    VStack(alignment: .leading, spacing: AryaSpace.s2) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("METRICS").aryaText(AryaFont.overline, AryaColor.inkFaint)
+                            Spacer(minLength: AryaSpace.s2)
+                            Text(heading).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                                .lineLimit(1)
+                        }
+                        .frame(height: AryaSize.rowHeight)
+                        chart
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(metrics.series.filter { !$0.guardrail }) { row($0) }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                     days
                 }
-                grid(metrics.series.filter { !$0.guardrail })
                 let guardrails = metrics.series.filter(\.guardrail)
                 if !guardrails.isEmpty {
                     Text("GUARDRAILS").aryaText(AryaFont.overline, AryaColor.inkFaint)
@@ -330,6 +343,17 @@ struct OutcomeMetricsPanel: View {
             }
             .padding(.top, AryaSpace.s1)
         }
+    }
+
+    /// "routed_within_1h by day over 30 days, target 0.95 or more".
+    private var heading: String {
+        guard let metric = metrics.metric else { return "\(OutcomeMetrics.windowDays) days" }
+        var text = "\(metric.name) by day over \(OutcomeMetrics.windowDays) days"
+        if let target = metric.target {
+            text += ", target \(MetricText.target(target)) or "
+            text += metric.direction == .up ? "more" : "less"
+        }
+        return text
     }
 
     @ViewBuilder private var chart: some View {
@@ -371,12 +395,15 @@ struct OutcomeMetricsPanel: View {
     /// The chart's last week as numbers, newest first: each day's reading and how many
     /// measurements made it. No verdicts here; the header carries the workspace's.
     @ViewBuilder private var days: some View {
-        let recent = Array(metrics.points.suffix(7).reversed())
+        let recent = Array(metrics.points.suffix(AryaSize.outcomeDayRows).reversed())
         if recent.count >= 2 {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text("DAY").frame(maxWidth: .infinity, alignment: .leading)
                     Text("VALUE").frame(width: AryaSize.outcomeDayValue, alignment: .trailing)
+                    if metrics.metric?.target != nil {
+                        Text("GAP").frame(width: AryaSize.outcomeDayValue, alignment: .trailing)
+                    }
                     Text("N").frame(width: AryaSize.outcomeDayCount, alignment: .trailing)
                 }
                 .aryaText(AryaFont.overline, AryaColor.inkFaint)
@@ -388,6 +415,12 @@ struct OutcomeMetricsPanel: View {
                         Text(MetricText.value(point.value))
                             .aryaText(AryaFont.mono, AryaColor.ink)
                             .frame(width: AryaSize.outcomeDayValue, alignment: .trailing)
+                        if let target = metrics.metric?.target {
+                            // The reading less the target: how far the day was from the bar.
+                            Text(OutcomeDashboardText.gap(point.value - target))
+                                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                                .frame(width: AryaSize.outcomeDayValue, alignment: .trailing)
+                        }
                         Text("\(point.count)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                             .frame(width: AryaSize.outcomeDayCount, alignment: .trailing)
                     }
@@ -429,9 +462,16 @@ struct OutcomeMetricsPanel: View {
             Text(series.name).aryaText(AryaFont.caption, AryaColor.inkMuted)
                 .lineLimit(1)
                 .frame(width: AryaSize.outcomeSeriesLabel, alignment: .leading)
-            OutcomeSparkline(
-                values: series.values, target: series.target,
-                height: AryaSize.outcomeSeriesSpark)
+            if !series.values.isEmpty, series.values.allSatisfy({ $0 == 0 }) {
+                // A flat line at zero says less than the words.
+                Text("none in the last \(series.values.count) days")
+                    .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                OutcomeSparkline(
+                    values: series.values, target: series.target,
+                    height: AryaSize.outcomeSeriesSpark)
+            }
             // At least the value column, wider for a whole workspace line ("14 runs in 7 days,
             // 2 today"); the sparkline gives way.
             Text(series.value)
@@ -599,6 +639,13 @@ struct OutcomeImpactSection: View {
 
 /// Text for the dashboard, kept apart from layout so it can be tested.
 enum OutcomeDashboardText {
+    /// "+0.01", "−0.06", "0.00": a day's reading less the target.
+    static func gap(_ value: Double) -> String {
+        let shown = MetricText.value(abs(value))
+        if shown == MetricText.value(0) { return shown }
+        return (value > 0 ? "+" : "−") + shown
+    }
+
     /// Rewrites "Version 1 missed …" into plain words: "The current charter missed …" for
     /// the live version, "Charter version 1 missed …" for an older one.
     static func plain(_ text: String, events: [FeatureEvent], steward: String) -> String {
@@ -631,8 +678,10 @@ enum OutcomeDashboardText {
 }
 
 extension AryaSize {
-    static let outcomeChartHeight: CGFloat = 168
-    static let outcomeDaysWidth: CGFloat = 200
+    static let outcomeChartHeight: CGFloat = 80
+    static let outcomeDaysWidth: CGFloat = 264
+    /// Days in the table beside the chart: as many as its height holds.
+    static let outcomeDayRows = 8
     static let outcomeDayValue: CGFloat = 64
     static let outcomeDayCount: CGFloat = 32
     static let outcomeSeriesWidth: CGFloat = 300

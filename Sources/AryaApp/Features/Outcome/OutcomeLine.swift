@@ -19,9 +19,14 @@ struct OutcomeLine: View {
             let state = OutcomeState.build(events: events, steward: steward, now: store.now)
                 .applying(store.outcomeReads[steward])
             let waiting = StewardOverview.build(events: events, steward: steward).waitingApprovals
+            let reads = store.outcomeReads[steward]
+            let next = OutcomeNow.build(
+                events: events, steward: steward, state: state, now: store.now, live: reads?.live
+            ).next
             OutcomeLineContent(
                 state: state, waiting: waiting, review: review, runNow: runNow,
-                owner: OutcomeLineContent.owner(live.charter, events: events, steward: steward)
+                owner: OutcomeLineContent.owner(live.charter, events: events, steward: steward),
+                status: [next, reads?.runs?.line].compactMap { $0 }.joined(separator: " · ")
             )
             .task(id: "\(steward):\(events.count)") { await loadHeadline() }
         }
@@ -52,6 +57,8 @@ struct OutcomeLineContent: View {
     let runNow: () -> Void
     /// "Maya": who answers for the outcome, by name; nil when the charter names no one.
     var owner: String? = nil
+    /// "Next run 05:55 · 15 runs in 7 days, 2 today".
+    var status: String? = nil
 
     /// The charter's owner by name: "person:maya" reads "Maya".
     static func owner(_ charter: FeatureJSON, events: [FeatureEvent], steward: String) -> String? {
@@ -62,12 +69,22 @@ struct OutcomeLineContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AryaSpace.s1) {
             line
-            if let why = state.why {
-                // Why the pill says what it says, whole and in the workspace's words, on its
-                // own line under the KPI.
-                Text(why).aryaText(AryaFont.caption, AryaColor.inkMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .help(state.reason ?? why)
+            if state.why != nil || status != nil {
+                HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {
+                    if let why = state.why {
+                        // Why the pill says what it says, whole and in the workspace's words,
+                        // on its own line under the KPI.
+                        Text(why).aryaText(AryaFont.caption, AryaColor.inkMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .help(state.reason ?? why)
+                    }
+                    Spacer(minLength: AryaSpace.s2)
+                    // When it runs next and how much it ran, the same reads as NOW and RUNS.
+                    if let status {
+                        Text(status).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                            .lineLimit(1)
+                    }
+                }
             }
         }
         .accessibilityElement(children: .contain)
