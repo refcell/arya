@@ -247,7 +247,8 @@ private func currentDemoSeed() -> URL? {
     /// A copy of the shared seed whose adapter profiles point at the copy and this build's fake
     /// adapter, so it can run like `just snapshot`'s home; nil without a seed or the adapter.
     private func runnableDemoHome() throws -> URL? {
-        guard let seed = sharedDemoHome() else { return nil }
+        // The seed from today's inputs when there is one (its scripts match this build).
+        guard let seed = currentDemoSeed() ?? sharedDemoHome() else { return nil }
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()
         let adapter = root.appendingPathComponent(".build/out/Products/Debug/arya-fake-adapter")
@@ -318,6 +319,20 @@ private func currentDemoSeed() -> URL? {
                 }
             }
             try await Task.sleep(for: .milliseconds(50))
+        }
+        // Cost so far while it runs: the adapter's `run/cost` answer after its first message.
+        var liveCost: Int?
+        if let liveRun, currentDemoSeed() != nil {
+            for _ in 0..<600 {
+                let facts = try await workspace.runFacts(run: liveRun)
+                guard facts?.status == "running" else { break }
+                if let cost = facts?.costMicros, cost > 0 {
+                    liveCost = cost
+                    break
+                }
+                try await Task.sleep(for: .milliseconds(25))
+            }
+            #expect(liveCost != nil, "the live run showed no cost so far while running")
         }
         let done = try await run.value
         #expect(liveRun == done.id)

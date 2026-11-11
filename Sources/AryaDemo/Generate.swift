@@ -296,6 +296,8 @@ struct GeneratedSteward {
                 ["kind": "status", "state": "working", "detail": "reading the pricing question"]
             ],
             "steps": steps, "status": "completed",
+            // What the adapter answers to `run/cost` mid-run, so the live run shows its spend.
+            "cost": ["inputTokens": 7400, "outputTokens": 1230, "costMicros": 40_650],
             "result": ["summary": "Answered the pricing question.", "actions": []],
         ]
     }
