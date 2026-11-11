@@ -42,6 +42,9 @@ private func sharedDemoHome() -> URL? {
         }
 }
 
+/// The busy seeded home's checks, one at a time: each copies the 26 MB seed and folds it, so
+/// running them together starves the timing tests.
+@Suite(.serialized) struct BusyDemoHome {
 /// On the busy demo home, every run's tool count is the runtime's step records the TOOLS tab
 /// lists (distinct step ids), including the run in progress when there is one.
 @Test(.enabled(if: sharedDemoHome() != nil, "no shared seeded demo home in this clone"))
@@ -140,5 +143,121 @@ func busyDemoHomeHasRunsOnMostOfTheLastWeek() async throws {
         let busy = history.days.dropLast().filter { $0.runs > 0 }.count
         #expect(busy >= 5, "\(steward.id): runs on \(busy) of 7 days (\(history.line))")
         #expect(history.today < history.total, "\(steward.id): every run is today")
+    }
+}
+
+    /// A copy of the shared seed whose adapter profiles point at the copy and this build's fake
+    /// adapter, so it can run like `just snapshot`'s home; nil without a seed or the adapter.
+    private func runnableDemoHome() throws -> URL? {
+        guard let seed = sharedDemoHome() else { return nil }
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let adapter = root.appendingPathComponent(".build/out/Products/Debug/arya-fake-adapter")
+        guard FileManager.default.isExecutableFile(atPath: adapter.path) else { return nil }
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent("arya-demo-\(UUID().uuidString)")
+        try FileManager.default.copyItem(at: seed, to: home)
+        let profiles = home.appendingPathComponent("adapters.json")
+        var text = try String(contentsOf: profiles, encoding: .utf8)
+        text = text.replacingOccurrences(
+            of: #""[^"]*/\.build/demo-home/"#, with: "\"\(home.path)/", options: .regularExpression)
+        text = text.replacingOccurrences(
+            of: #""[^"]*/arya-fake-adapter""#, with: "\"\(adapter.path)\"",
+            options: .regularExpression)
+        try text.write(to: profiles, atomically: true, encoding: .utf8)
+        // The live lead run's last step holds for 30 minutes (for the snapshot); cap every pause.
+        for script in try FileManager.default.contentsOfDirectory(
+            at: home.appendingPathComponent("demo"), includingPropertiesForKeys: nil)
+        where script.pathExtension == "json" {
+            let body = try String(contentsOf: script, encoding: .utf8)
+            let capped = body.replacingOccurrences(
+                of: #""sleepMs"\s*:\s*[0-9]{5,}"#, with: "\"sleepMs\": 1500",
+                options: .regularExpression)
+            if capped != body { try capped.write(to: script, atomically: true, encoding: .utf8) }
+        }
+        return home
+    }
+
+    /// Thread rows of a run, counted from one cached state: tool calls by the TOOLS tab's
+    /// precedence (`runFacts.toolCalls`), proposed actions, and messages.
+    private func threadRows(_ workspace: Workspace, run: String) async throws -> (Int, RunFacts) {
+        let state = try workspace.facadeState()
+        let id = RunID(unchecked: run)
+        let record = try #require(state.runs.all.first { $0.id == id })
+        let facts = await workspace.facts(record, state: state, now: Date(), timeZone: .current)
+        let messages = (state.byRun[id] ?? []).flatMap { LiveTally.steps($0, run: id) }
+            .filter { $0.kind == "message" }.count
+        return (facts.toolCalls + facts.actionsProposed + messages, facts)
+    }
+
+    /// One step definition on the busy home's actual runs (review #20): the live lead follow-up
+    /// run `just snapshot` starts, while it runs and once it finished, and seeded finished runs.
+    @Test(.enabled(if: sharedDemoHome() != nil, "no shared seeded demo home in this clone"))
+    func busyDemoHomeLiveAndFinishedRunsCountTheirThreadRows() async throws {
+        guard let home = try runnableDemoHome() else { return }
+        defer { try? FileManager.default.removeItem(at: home) }
+        let workspace = try await Workspace.open(
+            home: home, environment: ProcessInfo.processInfo.environment)
+        let run = Task {
+            try await workspace.startRun(
+                steward: "st_lead_follow_up",
+                input: "LEAD-LIVE: Pricing question from a 200-seat team")
+        }
+        var checkedLive = false
+        var liveRun: String?
+        for _ in 0..<600 {
+            if let live = try await workspace.liveRuns().first(where: {
+                $0.run.steward == "st_lead_follow_up"
+            }), live.stepCount > 0 {
+                let (rows, facts) = try await threadRows(workspace, run: live.run.id)
+                if facts.status == "running" {
+                    #expect(facts.stepIndex == rows)
+                    // A next step is pending: "4 of ~5", never "4 of ~4".
+                    #expect(facts.estimatedSteps.map { $0 >= facts.stepIndex + 1 } ?? true)
+                    checkedLive = true
+                    liveRun = live.run.id
+                    break
+                }
+            }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        let done = try await run.value
+        #expect(liveRun == done.id)
+        let (rows, finished) = try await threadRows(workspace, run: done.id)
+        #expect(finished.stepIndex == rows)
+        #expect(finished.estimatedSteps == nil)
+        var shown = 0
+        for await update in workspace.observe(run: done.id) {
+            shown += update.steps.filter(\.isVisible).count
+        }
+        #expect(shown == rows)
+        if !checkedLive { Issue.record("the live run never showed a step while running") }
+
+        for summary in try await workspace.runs().filter({ $0.parent == nil }).prefix(40) {
+            let (rows, facts) = try await threadRows(workspace, run: summary.id)
+            #expect(facts.stepIndex == rows, "\(summary.id)")
+        }
+    }
+
+    /// Impact never claims more windows with actions than the period has (review #20).
+    @Test(.enabled(if: sharedDemoHome() != nil, "no shared seeded demo home in this clone"))
+    func busyDemoHomeImpactWindowsNeverExceedThePeriod() async throws {
+        let seed = try #require(sharedDemoHome())
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent("arya-demo-\(UUID().uuidString)")
+        try FileManager.default.copyItem(at: seed, to: home)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let workspace = try await Workspace.open(home: home)
+        var rows = 0
+        for steward in try await workspace.stewards() {
+            guard let impact = try await workspace.impact(steward: steward.id) else { continue }
+            let windows = try #require(impact.windows)
+            for row in impact.rows {
+                rows += 1
+                #expect(row.windows <= windows, "\(steward.name): \(row.line)")
+                #expect(row.line.contains("of \(windows) windows"), "\(row.line)")
+            }
+        }
+        #expect(rows > 0)
     }
 }

@@ -152,6 +152,7 @@ M4:
 - (from cli-e2e) Portfolio RUNS 7D still spikes on rehearsal days; read `runHistory` (e3c13075)
   there, as the overview inspector already does?
 - (from runtime) Settings ▸ Access is ready (`Sources/AryaApp/Features/Access`, runtime-owned for M3.6 #13): please make Settings tabbed (General | Access) and host `AccessSettingsView(source: session.model?.access)` in the Access tab, sized `AccessSettingsView.windowSize` (640 × 560). Snapshot states `access`, `access-refusals`.
+- (from workspace) Steps: tool calls in `visibleSteps`/`stepIndex` now follow the TOOLS tab's precedence (step records > proxy > adapter), so one call never counts twice; `LiveUpdate.steps[].isVisible` is marked the same way. While running, `estimatedSteps` ≥ `stepIndex + 1` ('4 of ~5'); nil once ended.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

@@ -33,7 +33,7 @@ public struct RunFacts: Sendable, Hashable, Codable {
     /// `liveRuns()` shows.
     public var stepIndex: Int
     /// While running: the steward's usual steps per run (median of its last five ended runs),
-    /// never below `stepIndex`; nil once the run ended (`stepIndex` is then the steps done).
+    /// at least `stepIndex + 1`; nil once the run ended (`stepIndex` is then the steps done).
     public var estimatedSteps: Int?
     /// 0...1, the same estimate `liveRuns()` shows; 1 once ended.
     public var progress: Double?
@@ -94,11 +94,6 @@ extension Workspace {
         var drafted = 0
         var failed = 0
         var decisions = 0
-        // Tool calls as the TOOLS tab lists them: the runtime's step records win over the
-        // binding proxy's records, which win over the adapter's own notifications.
-        var stepped = Set<String>()
-        var proxied = Set<String>()
-        var reported = Set<String>()
         for event in state.byRun[record.id] ?? [] {
             switch event.type.rawValue {
             case ActionEventType.proposed: proposed += 1
@@ -106,18 +101,12 @@ extension Workspace {
                 if event.payload["dryRun"] == true { drafted += 1 } else { applied += 1 }
             case ActionEventType.failed: failed += 1
             case RunEventType.decision: decisions += 1
-            default:
-                for step in LiveTally.steps(event, run: record.id) where step.kind == "tool_call" {
-                    let id = step.callID ?? "\(step.seq)"
-                    switch event.type {
-                    case StepEventType.started: stepped.insert(id)
-                    case ToolRecordType.call: proxied.insert(id)
-                    default: reported.insert(id)
-                    }
-                }
+            default: continue
             }
         }
-        let tools = !stepped.isEmpty ? stepped : !proxied.isEmpty ? proxied : reported
+        // Tool calls as the TOOLS tab lists them (step records > proxy > adapter), from the
+        // cached tally the step count uses.
+        let tools = state.live.toolCalls(run: record.id)
         let waiting = state.approvals.pending.filter { $0.run == record.id }.count
         let end = summary.endedAt
         let elapsed = max(0, (end ?? now).timeIntervalSince(summary.startedAt))

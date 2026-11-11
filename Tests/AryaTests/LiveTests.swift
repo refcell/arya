@@ -227,8 +227,8 @@ private func first(
     }
     let facts = try #require(try await workspace.runFacts(run: live.rawValue))
     #expect(facts.stepIndex > usual)
-    #expect(facts.estimatedSteps == facts.stepIndex)
-    #expect(try await workspace.liveRuns().first?.estimatedSteps == facts.stepIndex)
+    #expect(facts.estimatedSteps == facts.stepIndex + 1)
+    #expect(try await workspace.liveRuns().first?.estimatedSteps == facts.stepIndex + 1)
 }
 
 @Test func runHistoryCountsLiveRunsPerDayAndKeepsRehearsalsApart() async throws {

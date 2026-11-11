@@ -161,7 +161,7 @@ extension Workspace {
                         continuation.yield(
                             LiveUpdate(
                                 run: run.rawValue, steward: steward.rawValue, status: status,
-                                steps: changed[run] ?? [],
+                                steps: (changed[run] ?? []).map(tally.marked),
                                 stepCount: tally.visibleSteps(run: run),
                                 progress: tally.progress(run: run, steward: steward)))
                         if endsWithRun, status != .running { return true }
@@ -198,8 +198,31 @@ struct LiveTally: Sendable {
     private var calls: Set<String> = []
     private var results: Set<String> = []
 
-    /// Steps of `run` so far: rows the user sees in its thread (the one step definition).
-    func visibleSteps(run: RunID) -> Int { counts[run] ?? 0 }
+    /// Tool call ids per run by source; the TOOLS tab's precedence picks one source: the
+    /// runtime's step records, else the binding proxy's records, else the adapter's own.
+    private var stepCalls: [RunID: Set<String>] = [:]
+    private var proxyCalls: [RunID: Set<String>] = [:]
+    private var adapterCalls: [RunID: Set<String>] = [:]
+
+    /// The tool call ids the run's thread shows, by the TOOLS tab's precedence.
+    func toolCalls(run: RunID) -> Set<String> {
+        if let ids = stepCalls[run], !ids.isEmpty { return ids }
+        if let ids = proxyCalls[run], !ids.isEmpty { return ids }
+        return adapterCalls[run] ?? []
+    }
+
+    /// Steps of `run` so far: rows the user sees in its thread (the one step definition):
+    /// proposed actions and messages, plus tool calls by the TOOLS tab's precedence.
+    func visibleSteps(run: RunID) -> Int { (counts[run] ?? 0) + toolCalls(run: run).count }
+
+    /// `step` with `isVisible` as the thread shows it now (tool calls by precedence).
+    func marked(_ step: LiveStep) -> LiveStep {
+        guard step.kind == "tool_call" else { return step }
+        var step = step
+        step.isVisible = toolCalls(run: RunID(unchecked: step.run)).contains(
+            step.callID ?? "\(step.seq)")
+        return step
+    }
 
     /// The median visible steps of the steward's last five ended runs of `run`'s kind, else of
     /// any kind, when any ended.
@@ -210,17 +233,18 @@ struct LiveTally: Sendable {
     }
 
     /// The step estimate a screen shows: none once the run ended (it shows steps done), and
-    /// while it runs never below the steps it already took.
+    /// while it runs at least one more than the steps it already took.
     func estimate(run: RunID, steward: StewardID) -> Int? {
         guard (status[run] ?? .running) == .running else { return nil }
-        return usualSteps(steward: steward, run: run).map { max($0, counts[run] ?? 0) }
+        // A running run has a next step pending: "4 of ~5", never "4 of ~4".
+        return usualSteps(steward: steward, run: run).map { max($0, visibleSteps(run: run) + 1) }
     }
 
     func progress(run: RunID, steward: StewardID) -> Double? {
         let state = status[run] ?? .running
         if state != .running { return 1 }
         guard let usual = usualSteps(steward: steward, run: run) else { return nil }
-        return min(0.95, Double(counts[run] ?? 0) / Double(usual))
+        return min(0.95, Double(visibleSteps(run: run)) / Double(usual))
     }
 
     @discardableResult
@@ -233,7 +257,16 @@ struct LiveTally: Sendable {
                 payload["trigger"]?.stringValue ?? payload["input"]?["kind"]?.stringValue
                 ?? "manual"
         }
-        let made = Self.steps(event, run: run).filter { step in
+        let raw = Self.steps(event, run: run)
+        for step in raw where step.kind == "tool_call" {
+            let id = step.callID ?? "\(step.seq)"
+            switch event.type {
+            case StepEventType.started: stepCalls[run, default: []].insert(id)
+            case ToolRecordType.call: proxyCalls[run, default: []].insert(id)
+            default: adapterCalls[run, default: []].insert(id)
+            }
+        }
+        let made = raw.filter { step in
             guard let call = step.callID.map({ "\(run.rawValue):\($0)" }) else { return true }
             switch step.kind {
             case "tool_call": return calls.insert(call).inserted
@@ -244,15 +277,17 @@ struct LiveTally: Sendable {
         }
         guard let newest = made.last else { return [] }
         if keepSteps { steps[run, default: []] += made }
-        counts[run, default: 0] += made.filter(\.isVisible).count
+        // Tool calls are counted by precedence in `visibleSteps`; the rest as shown.
+        counts[run, default: 0] += made.filter { $0.isVisible && $0.kind != "tool_call" }.count
         lastTitle[run] = newest.title
         let type = event.type.rawValue
         if type == RunEventType.finished || type == RunEventType.failed {
             status[run] = type == RunEventType.finished ? .finished : .failed
             if let steward = stewards[run] {
-                ended[steward, default: []].append(counts[run] ?? 0)
+                let steps = visibleSteps(run: run)
+                ended[steward, default: []].append(steps)
                 if let kind = kinds[run] {
-                    endedByKind["\(steward.rawValue)|\(kind)", default: []].append(counts[run] ?? 0)
+                    endedByKind["\(steward.rawValue)|\(kind)", default: []].append(steps)
                 }
             }
         } else if status[run] == nil {

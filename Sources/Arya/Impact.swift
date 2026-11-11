@@ -52,6 +52,9 @@ public struct ImpactSummary: Sendable, Hashable, Codable {
     public var summary: String
     /// The evaluation window it covers, `the last 7 days`; nil in summaries written before.
     public var period: String?
+    /// Windows in the period (readings with one before them), with or without actions; every
+    /// row's `windows` is at most this. Rows' `line` already reads "N of M windows".
+    public var windows: Int?
 }
 
 /// A line for the Overview's findings: a steward's own finding, or a change the ledger shows.
@@ -83,6 +86,7 @@ extension Workspace {
         var windows: [(delta: Double, counts: [String: Int])] = []
         var last: Double?
         var readings = 0
+        var intervals = 0
         for event in events {
             let run = event.draft.run?.rawValue ?? ""
             switch event.type {
@@ -107,6 +111,7 @@ extension Workspace {
                     continue
                 }
                 readings += 1
+                if last != nil { intervals += 1 }
                 if let last, !executed.isEmpty {
                     windows.append(
                         (value - last, Dictionary(executed.map { ($0, 1) }, uniquingKeysWith: +)))
@@ -126,7 +131,9 @@ extension Workspace {
             windows, steward: steward, metric: metric, readings: readings, rates: rates,
             limit: limit,
             trajectories: Dictionary(
-                graded.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first }))
+                graded.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first }),
+            intervals: intervals)
+        summary.windows = max(intervals, windows.count)
         let days = window.count
         summary.period = days == 1 ? "today" : "the last \(days) days"
         if let period = summary.period { summary.summary += " over \(period)" }
@@ -136,8 +143,10 @@ extension Workspace {
     static func attribute(
         _ windows: [(delta: Double, counts: [String: Int])], steward: String, metric: Metric,
         readings: Int, rates: [String: EffectSummary], limit: Int,
-        trajectories: [String: TrajectoryCredit] = [:]
+        trajectories: [String: TrajectoryCredit] = [:], intervals: Int? = nil
     ) -> ImpactSummary {
+        // Every window in the period, with or without actions (never fewer than those with).
+        let periodWindows = max(intervals ?? windows.count, windows.count)
         var signature: [String: [Int]] = [:]
         for (index, window) in windows.enumerated() {
             for kind in window.counts.keys { signature[kind, default: []].append(index) }
@@ -190,7 +199,7 @@ extension Workspace {
                     confidenceLevel: level, successRate: rate,
                     trajectory: graded.isEmpty ? nil : graded.map(\.line).joined(separator: "; "),
                     line: "\(label): \(signed(credit)) over \(count) \(noun) in "
-                        + "\(shares.count) of \(windows.count) windows, \(level) confidence")
+                        + "\(shares.count) of \(periodWindows) windows, \(level) confidence")
             }
             .sorted { good($0.credit) > good($1.credit) }
         }
