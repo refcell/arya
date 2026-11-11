@@ -221,7 +221,7 @@ struct PersonInspector: View {
                 }
                 VStack(alignment: .leading, spacing: AryaSpace.s1) {
                     Text("LAST MESSAGES").aryaText(AryaFont.label, AryaColor.inkFaint)
-                    let recent = thread.entries.filter { $0.action != "report" }.suffix(3)
+                    let recent = thread.entries.filter { $0.action != "report" }.suffix(8)
                     if recent.isEmpty {
                         Text("None yet.").aryaText(AryaFont.caption, AryaColor.inkFaint)
                     }

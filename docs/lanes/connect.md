@@ -317,3 +317,7 @@ and receive a periodic report from it.
   `HumanText.action` and questions through `HumanText.sentence`, so people-thread-live renders
   clean; removed its line from `etc/app/rawtext-pending.txt`. Visual check, `empty.tsv`
   verbatim: people-thread-live.png 57, people-memory.png 47.
+- 2026-11-11 (CEO, People toward 30%): steward-scope rows quote the newest message and what
+  Arya learned too (one helper for both scopes), "Not with this steward" starts open, and
+  the inspector's LAST MESSAGES shows 8. Visual check, `empty.tsv` verbatim: people.png 46,
+  people-memory.png 46, people-thread.png 49, people-learned.png 51.

@@ -34,7 +34,7 @@ struct PeopleView: View {
     /// The person whose removal waits on confirmation.
     @AryaState private var removing: String?
     /// The "Not with this steward" group is open.
-    @AryaState private var othersOpen = false
+    @AryaState private var othersOpen = true
 
     var body: some View {
         ScrollView {
@@ -191,6 +191,25 @@ struct PeopleView: View {
         PeopleDetailText.lastMessage(store.events)
     }
 
+    /// The newest message either way, and the newest thing Arya learned from them (unless it
+    /// repeats that message).
+    @ViewBuilder
+    private func recentLines(_ id: String, name: String) -> some View {
+        let last = latest[id]
+        if let last {
+            Text((last.inbound ? name : "Steward") + ": " + HumanText.sentence(last.text))
+                .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+        }
+        if let note = PeopleLearned(events: store.events, person: id).live.first,
+            note.text != last?.text
+        {
+            Text("learned: " + HumanText.sentence(note.text))
+                .aryaText(AryaFont.caption, AryaColor.positive)
+                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private func rosterRow(_ person: PeopleRoster.Person) -> some View {
         let names = person.stewards.map { id in stewards.first { $0.id == id }?.name ?? id }
         return VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -218,19 +237,7 @@ struct PeopleView: View {
                 Text(RosterText.names(names)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             }
             .lineLimit(1)
-            // The newest message either way, and the newest thing Arya learned from them.
-            if let last = latest[person.id] {
-                Text((last.inbound ? person.name : "Steward") + ": " + last.text)
-                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
-                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-            }
-            if let note = PeopleLearned(events: store.events, person: person.id).live.first,
-                note.text != latest[person.id]?.text
-            {
-                Text("learned: " + note.text)
-                    .aryaText(AryaFont.caption, AryaColor.positive)
-                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-            }
+            recentLines(person.id, name: person.name)
         }
         .padding(.vertical, AryaSpace.s2)
         .padding(.horizontal, AryaSpace.s2)
@@ -330,6 +337,7 @@ struct PeopleView: View {
                 }
             }
             .lineLimit(1)
+            recentLines(person.id, name: person.name)
         }
         .padding(.vertical, AryaSpace.s2)
         .padding(.horizontal, AryaSpace.s2)
