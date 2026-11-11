@@ -132,6 +132,18 @@ is. Fix these five first; this lane owns its share:
 
 ## Log
 
+### 2026-11-11 KNOWS in names, one reading formatter, onboarding records, re-plan line
+- KNOWS renders subjects through `HumanText.name` and text through `HumanText.sentence`, and
+  drops the subject when the text opens with it (VC41/42).
+- `MetricText.reading`/`figure` is the one value-against-target formatter (header, METRICS
+  guardrails, portfolio, inspector pulse); it adds decimals only when the workspace says off
+  target and the value rounds to the target ("0.897 / 0.90"). CEO decision: status stays strict.
+- Onboarding's "Learn from past work" leads with `OnboardSummary.records`/`notes`: "Read 412
+  past records → 18 notes." PLAN reads a re-plan as "Re-planned Nov 4 after a setback: …".
+- Visual check (`just snapshot overview overview-live`), empty.tsv rows: overview.png 43,
+  overview-light.png 43, overview-live.png 41, overview-live-light.png 44. The demo home's
+  triage steward rendered with no metric data and 12 failed runs this time (seed state).
+
 ### 2026-11-11 Review #26: one run count, whole reason, a fuller Overview
 - METRICS `runs` is `runHistory(steward:days:7).line` verbatim ("14 runs in 7 days, 2 today"),
   the inspector's own read; `failed runs` uses the same read. The header's reason has its own
