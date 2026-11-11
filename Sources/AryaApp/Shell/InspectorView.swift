@@ -135,7 +135,7 @@ enum RunFacts {
         let soFar = runFacts?.running == true ? " so far" : ""
         out.append(("Cost", micros > 0 ? RunMetrics.dollars(micros) + soFar : "—"))
         if let tokens = facts.tokens, tokens > 0 {
-            out.append(("Tokens", RunMetrics.grouped(tokens)))
+            out.append(("Tokens", RunMetrics.grouped(tokens) + soFar))
         }
         if let runFacts {
             // A finished run has a step count, never an estimate.
@@ -326,14 +326,7 @@ struct InspectorView: View {
             FeatureRegistry.crewFanout(model.featureContext(), run: run.id)
             // What the thread beside it lacks: usage, systems, policy, checks, related runs.
             let context = RunContext.build(events: events, run: run.id)
-            // Usage pairs tokens with cost; while the ledger has no tokens yet the workspace's
-            // cost so far stands in, so it never contradicts the header.
-            if let usage = context.usage {
-                fact("Usage", usage)
-            } else if let micros = model.featureStore?.runFacts[run.id]?.costMicros, micros > 0 {
-                fact(
-                    "Usage", RunMetrics.dollars(micros) + (run.status == .running ? " so far" : ""))
-            }
+            // Cost and Tokens above are the usage; no Usage row to repeat them.
             RunContextView(
                 context: context,
                 title: { id in

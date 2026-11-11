@@ -499,3 +499,9 @@ M4:
   "." inside a snake-case word as "_", since the recognizer confuses them.
 - Visual check (run-live-window, run, needs-you, overview): moves (2); empty.tsv:
   run-live-window 30, run 33, needs-you 57, overview 39.
+- 2026-11-11 VC47: Usage no longer repeats Cost. The inspector shows Cost and Tokens ("so far"
+  while running) and has no Usage row; the live demo run records no tokens yet, so it shows
+  only Cost. The raw-id gate allows one misread character in a metric name ("first_replv"),
+  since OCR confuses v and y (asked by app-outcome after an overview-live misread).
+- Visual check (run-live-window, run, overview-live): moves (4); empty.tsv: run-live-window 31,
+  run 33, overview-live 45.

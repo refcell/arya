@@ -51,6 +51,18 @@ enum SnapshotText {
         }
     }
 
+    /// True when `part` appears in `name` with at most one character misread ("first_replv"
+    /// in "first_reply_within_1d"), since the recognizer confuses v and y, rn and m, _ and ".".
+    static func nearlyContains(_ name: String, _ part: String) -> Bool {
+        if name.contains(part) { return true }
+        let whole = Array(name)
+        let piece = Array(part)
+        guard piece.count >= 4, piece.count <= whole.count else { return false }
+        return (0...(whole.count - piece.count)).contains { start in
+            zip(whole[start..<start + piece.count], piece).filter { $0 != $1 }.count <= 1
+        }
+    }
+
     /// The pending file's lines that are not comments or blank, as written.
     static func pendingText() -> [String] {
         let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
@@ -88,7 +100,8 @@ enum SnapshotText {
                 // OCR may read "_" as "." inside a snake-case word.
                 let read = word.trimmingCharacters(in: .punctuationCharacters)
                 let bare = read.contains("_") ? read.replacingOccurrences(of: ".", with: "_") : read
-                return bare.contains("_") && metricNames.contains(where: { $0.contains(bare) })
+                return bare.contains("_")
+                    && metricNames.contains(where: { nearlyContains($0, bare) })
                     ? "metric" : String(word)
             }.joined(separator: " ")
             let range = NSRange(line.startIndex..., in: line)
@@ -136,4 +149,11 @@ enum SnapshotText {
     #expect(StewardContext.personKey("person:sam") == StewardContext.personKey("sam"))
     #expect(StewardContext.personKey("Sam") == StewardContext.personKey("person:sam"))
     #expect(StewardContext.personKey("person:lee") != StewardContext.personKey("person:sam"))
+}
+
+@MainActor @Test func rawIdGateToleratesOneMisreadInAMetricName() {
+    #expect(SnapshotText.nearlyContains("first_reply_within_1d", "first_replv"))
+    #expect(SnapshotText.nearlyContains("first_reply_within_1d", "within_1d"))
+    #expect(!SnapshotText.nearlyContains("first_reply_within_1d", "adapter_not"))
+    #expect(!SnapshotText.nearlyContains("routed_within_1h", "st_x"))
 }
