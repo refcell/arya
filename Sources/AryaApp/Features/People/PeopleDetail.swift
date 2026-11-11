@@ -326,6 +326,30 @@ enum PeopleDetailText {
         return result
     }
 
+    /// The newest message from or to each person, by person id: their text, or the reply's.
+    static func lastMessage(_ events: [FeatureEvent]) -> [String: (text: String, inbound: Bool)] {
+        var last: [String: (text: String, inbound: Bool)] = [:]
+        for event in events {
+            switch event.type {
+            case "inbox.message":
+                if let who = event.payload["from"]?.string, who.hasPrefix("person:"),
+                    let text = event.payload["text"]?.string ?? event.payload["body"]?.string
+                {
+                    last[who] = (text, true)
+                }
+            case "action.proposed":
+                let action = event.payload["action"]
+                if let who = action?["binding"]?.string, who.hasPrefix("person:"),
+                    let text = action?["params"]?["text"]?.string
+                {
+                    last[who] = (text, false)
+                }
+            default: continue
+            }
+        }
+        return last
+    }
+
     /// When a person last messaged a steward or a steward answered them, by person id.
     static func lastContact(_ events: [FeatureEvent]) -> [String: Date] {
         var last: [String: Date] = [:]

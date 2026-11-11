@@ -115,7 +115,9 @@ struct ConnectionsView: View {
                     .aryaText(
                         AryaFont.monoSmall, calls == 0 ? AryaColor.inkFaint : AryaColor.inkMuted
                     )
-                    .frame(width: 88, alignment: .trailing)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .frame(minWidth: 104, alignment: .trailing)
                 controls(entry, catalog: catalog)
             }
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {

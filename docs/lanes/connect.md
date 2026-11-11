@@ -294,12 +294,15 @@ and receive a periodic report from it.
   `people-memory` and `routines-upgrade`.
   Recent calls drop the connection column (the target names it; bare reads get it as a
   prefix). The composer puts Ask, Correct and Hand off above a full-width field.
-  Visual check (empty share, window / main pane): people 67/59 → 47/39, people-memory 48/40,
-  connections 51/44 → 46/39, connections-detail 51/45 → 42/30, routines-library 77/86 →
-  49/43, routines-upgrade 49/43. Only connections-detail meets the 35% target. People and
-  Routines end above the bottom of the window on this demo: nine people, two routines, nine
-  runs. No text clips mid-phrase in these states. Message previews and inspector lines still
-  end in an ellipsis.
+  Visual check: rendered; empty share is logged from `empty.tsv` in the next entry (review 29
+  rule: whole-window rows only, verbatim). An earlier draft of this line used my own
+  sub-pane metric, which read lower than `empty.tsv`.
 - 2026-11-11 (CEO): `PeopleDirectory.displayName` calls app-views' `HumanText.actor`, so
   connections, governance, reports and person-note provenance name people the same as every
   other by-line, and the person at this home reads "you". Bare ids still read as names.
+- 2026-11-11 (CEO review 29): every People roster row also quotes the newest message
+  (theirs, or the steward's reply) and what Arya learned from them, unless that note repeats
+  the message, so the list column fills down to the person detail. Connections' "N calls · 7d" is
+  one line in a fixed column. Visual check, `empty.tsv` verbatim: people.png 50,
+  people-memory.png 50, connections.png 53, connections-detail.png 53, routines-library.png
+  55, routines-upgrade.png 55, people-thread.png 61, people-learned.png 62.

@@ -610,6 +610,18 @@ private func events() -> [FeatureEvent] {
         #expect(days.map(\.inbound).reduce(0, +) == 1 && days.map(\.outbound).reduce(0, +) == 1)
         #expect(days.last?.outbound == 1)
     }
+
+    /// Roster rows quote the newest message, theirs or the steward's reply to them.
+    @Test func theNewestMessageIsTheirsOrTheReply() {
+        var log = FeatureEventBuilder(start: start)
+        log.add("inbox.message", ["from": "person:sam", "text": "Where is ORDER-1?"])
+        #expect(PeopleDetailText.lastMessage(log.events)["person:sam"]?.text == "Where is ORDER-1?")
+        log.add(
+            "action.proposed",
+            ["action": ["kind": "reply", "binding": "person:sam", "params": ["text": "Shipped."]]])
+        let last = PeopleDetailText.lastMessage(log.events)["person:sam"]
+        #expect(last?.text == "Shipped." && last?.inbound == false)
+    }
 }
 
 @Suite struct RoutineRunHistoryTests {

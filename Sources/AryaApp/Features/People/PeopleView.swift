@@ -187,6 +187,10 @@ struct PeopleView: View {
 
     private var lastContact: [String: Date] { PeopleDetailText.lastContact(store.events) }
 
+    private var latest: [String: (text: String, inbound: Bool)] {
+        PeopleDetailText.lastMessage(store.events)
+    }
+
     private func rosterRow(_ person: PeopleRoster.Person) -> some View {
         let names = person.stewards.map { id in stewards.first { $0.id == id }?.name ?? id }
         return VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -214,6 +218,19 @@ struct PeopleView: View {
                 Text(RosterText.names(names)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             }
             .lineLimit(1)
+            // The newest message either way, and the newest thing Arya learned from them.
+            if let last = latest[person.id] {
+                Text((last.inbound ? person.name : "Steward") + ": " + last.text)
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            }
+            if let note = PeopleLearned(events: store.events, person: person.id).live.first,
+                note.text != latest[person.id]?.text
+            {
+                Text("learned: " + note.text)
+                    .aryaText(AryaFont.caption, AryaColor.positive)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.vertical, AryaSpace.s2)
         .padding(.horizontal, AryaSpace.s2)
