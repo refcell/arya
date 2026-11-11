@@ -300,6 +300,13 @@ JSON text in `content`), is one page, oldest first:
  "next":"50"}
 ```
 
+Ingestion (decision 0067) reads every page from the stored cursor: a pass follows `next` until it
+is absent and keeps the cursor of the last page, so the next pass rereads that page and picks up
+records added after it. Records are deduplicated by `id`, so a binding may serve a record again.
+Each pass is a `history.ingested` event on the steward (`{connection, tool, ids, read, added,
+invalid, complete, cursor?, error?, oldest?, newest?}`, `ids` being only the new ones); a failed
+page leaves `cursor` at the last good page and records `error`.
+
 - `id` is the record's id, the one the binding's `get` tool takes; `at` is when it arrived.
 - `input` is the run input arya would have received for the record.
 - `record` (optional) is the record as `get` returns it, so an importer needs no extra calls.

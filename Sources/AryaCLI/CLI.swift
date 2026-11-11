@@ -111,7 +111,7 @@ enum CLI {
             .propose, .proposals, .readiness,
             .metrics, .memory, .routines, .replay, .bindingProxy:
             try await dispatchImprovement(invocation, backend: backend, output: output)
-        case .historyImport, .review, .checks, .casebookBuild:
+        case .historyImport, .historyIngest, .review, .checks, .casebookBuild:
             try await dispatchHistory(invocation, backend: backend, output: output)
         case .message, .reportShow, .reportSend:
             try await dispatchPeople(invocation, backend: backend, output: output)

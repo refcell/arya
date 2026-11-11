@@ -139,8 +139,12 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11:
    (primary vs target).
 2. Self-onboarding (runtime, workspace; app-outcome). Partial: onboarding from directory and
    process bindings (b8ac5b7b), the onboarding state (8ffeb88a), and the "getting to know your
-   team" overview (7406e974); reading connected systems end to end is still thin ("read 0 of 3
-   systems" in e2e). e2e: `steward onboarding` (24 history cases, 7 steps).
+   team" overview (7406e974), and history ingestion (decision 0067): every connection's `history`
+   paged from a stored cursor, incremental, resumable and deduped by source id, with records,
+   cursor and last error per connection (`ingestion(steward:)`, `arya history ingest`, shown in
+   `arya steward onboarding`), feeding onboarding's systems step and one memory note per
+   source; the busy seed reads every seeded connector twice. e2e: `steward onboarding` (24
+   history cases, 7 steps); the ingestion step is cli-e2e's.
 3. Train on history (eval; app-views). Done: history import as cases and the review queue
    (e3187fc7, 91452312), import from a binding and a real folder connector (a05aad51,
    e02b9fd3), and the go-live gate. e2e: import, rehearse with history, review, agree,

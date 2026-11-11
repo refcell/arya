@@ -177,6 +177,36 @@ private func currentDemoSeed() -> URL? {
     /// Today's spend is never blank on the busy demo home: the fleet spent something today and
     /// so did the live steward, at any hour of seeding (review #26: every COST TODAY read "—"
     /// after midnight, when only the cost-free example scripts had run today).
+    @Test func busyDemoHomeReadsEveryConnectorsHistory() async throws {
+        guard let seed = currentDemoSeed() else {
+            print("busy demo home: no seed from today's inputs yet; just snapshot to check history")
+            return
+        }
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent("arya-demo-\(UUID().uuidString)")
+        try FileManager.default.copyItem(at: seed, to: home)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let workspace = try await Workspace.open(home: home)
+        let statuses = try await workspace.ingestion()
+        #expect(statuses.count >= 11, "\(statuses.map(\.line))")
+        for status in statuses {
+            let who = "\(status.steward) \(status.line)"
+            #expect(status.records > 0 && status.passes >= 2 && status.complete, "\(who)")
+            #expect(status.lastError == nil, "\(who)")
+        }
+        // Yesterday's pass read only what came in since the first (a history longer than one
+        // page also stored a cursor to start from).
+        #expect(statuses.filter { $0.lastAdded > 0 }.count >= 11)
+        #expect(statuses.contains { $0.cursor != nil })
+        // The triage inbox holds its export (25 records with what people chose) too.
+        let triage = statuses.filter { $0.steward == "st_triage" }
+        #expect(triage.first { $0.connection == "inbox" }.map { $0.records >= 25 } == true)
+        for steward in try await workspace.stewards() {
+            let systems = try await workspace.onboardingState(steward: steward.id).steps[0]
+            #expect(systems.done && systems.count == systems.total, "\(systems.detail)")
+        }
+    }
+
     @Test func busyDemoHomeHasSpendToday() async throws {
         guard let seed = currentDemoSeed() else {
             print("busy demo home: no seed from today's inputs yet; just snapshot to check spend")

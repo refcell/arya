@@ -33,6 +33,8 @@ enum DemoStep {
     case upgradeRoutine
     /// Teams and grants (phase 0), then Jules's grants (phase 1) (runtime, `AccessDemo`).
     case access(phase: Int)
+    /// Reads every connection's history from its stored cursor (workspace, M3.6 #2).
+    case ingest(steward: String)
 }
 
 struct DemoSeeder {
@@ -94,14 +96,25 @@ struct DemoSeeder {
         let ambient = Ambient.fixed(start: start, stepMillis: 1, seed: 0xA27A)
         let workspace = try await Workspace.openForSeeding(
             home: home, ambient: ambient, scripts: scripts)
+        let steps = try ingesting(try timeline(generated))
+        await workspace.useHistoryPages(
+            MemoryHistoryPages(
+                items: try connectorHistory(steps, generated),
+                now: { ambient.now().description }))
         var context = Context(
             workspace: workspace, ambient: ambient, nowMillis: nowMillis,
             held: generated.reduce(into: Set<String>()) { $0.formUnion($1.held) },
             generated: Set(generated.map(\.spec.id)))
-        for (when, step) in try timeline(generated) {
+        var ingesting = Duration.zero
+        let clock = ContinuousClock()
+        for (when, step) in steps {
             ambient.advance(to: Timestamp(millis: when))
+            let started = clock.now
             try await context.perform(step, examples: examples)
+            if case .ingest = step { ingesting += clock.now - started }
         }
+        // How long the history passes took, so the seed's time stays visible (M3.6 #2).
+        FileHandle.standardError.write(Data("arya-demo: history passes took \(ingesting)\n".utf8))
         try await writeVisits(workspace)
         let runs = try await workspace.runs().count
         let pending = try await workspace.approvals().count
@@ -134,6 +147,77 @@ struct DemoSeeder {
     }
 
     /// Every step with its time, sorted.
+    /// `steps` with two history passes per steward: 20 minutes after it is set up (the
+    /// history from before it arrived) and yesterday morning (what came in since).
+    private func ingesting(_ steps: [(Int64, DemoStep)]) -> [(Int64, DemoStep)] {
+        var passes: [(Int64, DemoStep)] = []
+        for (when, step) in steps {
+            let steward: String
+            switch step {
+            case .setupTriage: steward = "st_triage"
+            case .setupExample(let id, _): steward = id
+            case .create(let generated): steward = generated.spec.id
+            default: continue
+            }
+            passes.append((when + 20 * 60_000 + 7_000, .ingest(steward: steward)))
+            passes.append((at(daysAgo: 1, hour: 6) + 7_000, .ingest(steward: steward)))
+        }
+        return (steps + passes).enumerated()
+            .sorted { ($0.element.0, $0.offset) < ($1.element.0, $1.offset) }.map(\.element)
+    }
+
+    /// Each seeded connector's history by `steward/binding`: a record for every run the
+    /// steward makes (what the system received) and one five weeks earlier (from before arya),
+    /// plus the triage inbox and refunds billing exports, which carry what people chose.
+    private func connectorHistory(
+        _ steps: [(Int64, DemoStep)], _ generated: [GeneratedSteward]
+    ) throws -> [String: [HistoryItem]] {
+        var charters: [String: Data] = [:]
+        for (steward, folder) in [
+            ("st_triage", "triage"), ("st_refunds", "refunds"), ("st_digest", "digest"),
+        ] {
+            charters[steward] = try Data(
+                contentsOf: examples.appendingPathComponent("\(folder)/charter.json"))
+        }
+        for steward in generated { charters[steward.spec.id] = steward.charter }
+        var inputs: [String: [(Int64, String)]] = [:]
+        for case (let when, .run(let steward, let input)) in steps {
+            inputs[steward, default: []].append((when, input))
+        }
+        var out: [String: [HistoryItem]] = [:]
+        for (steward, charter) in charters {
+            let fields = try JSONSerialization.jsonObject(with: charter) as? [String: Any]
+            let bindings = (fields?["bindings"] as? [[String: Any]] ?? []).filter {
+                $0["kind"] as? String == "mcp"
+            }.compactMap { $0["id"] as? String }
+            for binding in bindings {
+                let prefix = binding.uppercased()
+                var items: [HistoryItem] = []
+                for (index, (when, input)) in (inputs[steward] ?? []).enumerated() {
+                    items.append(
+                        HistoryItem(
+                            id: "\(prefix)-\(index + 1)",
+                            at: Timestamp(millis: when).description, input: input))
+                    items.append(
+                        HistoryItem(
+                            id: "\(prefix)-P\(index + 1)",
+                            at: Timestamp(millis: when - 35 * 86_400_000).description,
+                            input: input))
+                }
+                out["\(steward)/\(binding)"] = items
+            }
+        }
+        for (key, file) in [
+            ("st_triage/inbox", "triage/history-export.json"),
+            ("st_refunds/billing", "refunds/history-export.json"),
+        ] {
+            let data = try Data(contentsOf: examples.appendingPathComponent(file))
+            struct Export: Decodable { var history: [HistoryItem] }
+            out[key, default: []] += try JSONDecoder().decode(Export.self, from: data).history
+        }
+        return out
+    }
+
     private func timeline(_ generated: [GeneratedSteward]) throws -> [(Int64, DemoStep)] {
         var steps: [(Int64, DemoStep)] = [(at(daysAgo: 30, hour: 8), .setupTriage)]
         let triage = try lines(examples.appendingPathComponent("triage/history.txt"))
@@ -503,6 +587,8 @@ struct Context {
 
     mutating func perform(_ step: DemoStep, examples: URL) async throws {
         switch step {
+        case .ingest(let steward):
+            _ = try await workspace.ingestHistory(steward: steward)
         case .setupTriage:
             let folder = examples.appendingPathComponent("triage")
             func file(_ name: String) throws -> Data {

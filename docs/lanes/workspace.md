@@ -310,3 +310,11 @@ M3:
   `setAccessEnforcement`, CLI `arya access enforce on|off`) is the only way off, undoable. The
   workspace gates on `enforced`, not `isEmpty`. Tests `revokingTheLastGrantKeepsEnforcementOn`
   and the CLI access test. Notes to cli-e2e (e2e step), runtime, and app-views.
+- 2026-11-11: M3.6 #2 ingestion depth (CEO, decision 0067). `Sources/Arya/Ingestion.swift`:
+  `ingestHistory` pages each connection's `history` from its stored cursor (incremental,
+  resumable, deduped by source id), one `history.ingested` event per pass; `ingestion()` reads
+  records, cursor, last error per connection. Onboarding counts read systems and lists the
+  status; one memory note per source. `arya history ingest`, onboarding CLI text. The seeder
+  serves every seeded connector from memory (`MemoryHistoryPages`), two passes per steward.
+  Tests: `IngestionTests` (5), CLI `historyIngestAndOnboardingShowIngestionStatus`, busy
+  `busyDemoHomeReadsEveryConnectorsHistory`.

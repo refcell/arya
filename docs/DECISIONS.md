@@ -753,3 +753,21 @@ grants to the runtime and gates corrections whenever it is on. A home that never
 still enforces nothing. The facade has `setAccessEnforcement`; the CLI has `arya access enforce
 on|off`. Why: taking access away must never widen it; turning enforcement off is a decision
 someone makes and can be seen making.
+
+### 0067 — 2026-11-10 — History ingestion is incremental, by cursor, and kept apart from cases
+
+Context: onboarding read a steward's connected systems only through its onboard run, so a home
+showed "read 0 of 3 systems" (M3.6 #2). Decision: the workspace reads each MCP connection's
+`history` tool in passes (`ingestHistory`). A pass starts at the connection's stored cursor,
+follows `next` for at most 20 pages, and keeps the cursor of the last page it read, so the next
+pass reads only what arrived since and a pass that failed resumes where it stopped. Records are
+deduplicated by source `id` over all passes. Each pass is one `history.ingested` event on the
+steward with the new ids, counts, cursor, and any error; `ingestion(steward:)` and
+`ingestion()` fold them into records, passes, cursor, last error, and the time range. A
+connection with records counts as read in onboarding, and the first pass that reads records
+writes one memory note about the source (how many, over when, the usual choice). Turning
+records into casebook cases stays the explicit `importHistory` step, so ingesting never changes
+what a steward rehearses. Pages come from the binding's process unless the caller supplies
+them (`useHistoryPages`; the seeder serves each seeded connector from memory). Why: a steward
+has to know a system's past before acting on it, and a long history must be read once, not
+again on every pass.

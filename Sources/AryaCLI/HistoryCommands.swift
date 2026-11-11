@@ -7,6 +7,8 @@ protocol HistoryBackend: Sendable {
     func importHistory(
         steward: String, file: String?, binding: String?, tool: String?, limit: Int
     ) async throws(CLIError) -> HistoryImportSummary
+    func ingestHistory(steward: String, binding: String?) async throws(CLIError)
+        -> [IngestionStatus]
     func reviewQueue(steward: String) async throws(CLIError) -> ReviewQueueSummary?
     func reviewCase(steward: String, case: String, verdict: String) async throws(CLIError)
         -> ReviewQueueSummary?
@@ -19,6 +21,12 @@ extension HistoryBackend {
         steward: String, file: String?, binding: String?, tool: String?, limit: Int
     ) async throws(CLIError) -> HistoryImportSummary {
         throw .unavailable("importHistory")
+    }
+
+    func ingestHistory(steward: String, binding: String?) async throws(CLIError)
+        -> [IngestionStatus]
+    {
+        throw .unavailable("ingestHistory")
     }
 
     func reviewQueue(steward: String) async throws(CLIError) -> ReviewQueueSummary? {
@@ -64,6 +72,15 @@ extension CommandTable {
                 OptionSpec(
                     name: "limit", kind: .value(placeholder: "n"),
                     help: "most cases to add (default: 200)"),
+            ]),
+        CommandSpec(
+            id: .historyIngest,
+            summary: "Read connected systems' history from the stored cursor (new records only)",
+            positionals: [PositionalSpec(name: "steward", help: "steward id")],
+            options: [
+                OptionSpec(
+                    name: "binding", kind: .value(placeholder: "id"),
+                    help: "one connection (default: every connection)")
             ]),
         CommandSpec(
             id: .review,
@@ -120,6 +137,10 @@ extension CLI {
                 steward: steward, file: values["file"], binding: binding, tool: values["tool"],
                 limit: limit)
             try output.emit(summary, json: json, text: HistoryText.imported)
+        case .historyIngest:
+            let statuses = try await backend.ingestHistory(
+                steward: steward, binding: values["binding"])
+            try output.emit(statuses, json: json, text: HistoryText.ingestion)
         case .review:
             let queue: ReviewQueueSummary?
             if let caseID = values["case"] {
@@ -156,6 +177,10 @@ extension CLI {
 
 /// Plain-text renderings of history imports and the review queue.
 enum HistoryText {
+    static func ingestion(_ statuses: [IngestionStatus]) -> [String] {
+        statuses.isEmpty ? ["No connections."] : statuses.map(\.line)
+    }
+
     static func imported(_ summary: HistoryImportSummary) -> [String] {
         var lines = [summary.summary]
         lines += summary.invalid.map { "  invalid: \($0)" }

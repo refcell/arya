@@ -101,6 +101,7 @@ extension CLI {
 enum StewardReadText {
     static func onboarding(_ state: OnboardingState) -> [String] {
         [state.summary] + state.steps.map { "  [\($0.done ? "x" : " ")] \($0.title): \($0.detail)" }
+            + (state.ingestion ?? []).map { "  history \($0.line)" }
     }
 
     static func gate(_ gate: GoLiveSummary) -> [String] {

@@ -47,6 +47,8 @@ public struct OnboardingState: Sendable, Hashable, Codable {
     public var onboard: OnboardSummary?
     /// Eval's go-live gate behind the `ready` step; nil in older summaries.
     public var goLive: GoLiveSummary?
+    /// History read from each connection: records, cursor, last error; nil in older summaries.
+    public var ingestion: [IngestionStatus]? = nil
 }
 
 extension Workspace {
@@ -69,7 +71,11 @@ extension Workspace {
         // Systems it used in runs, plus those the onboard run read without error.
         let used = context.connections.filter { $0.toolCalls > 0 || $0.actionsExecuted > 0 }
             .map(\.id)
-        let systems = used + (onboard?.sources ?? []).filter { !used.contains($0) }
+        // ... and those whose history it has read.
+        let ingestion = try await self.ingestion(steward: steward)
+        let ingested = ingestion.filter { $0.records > 0 }.map(\.connection)
+        let known = used + (onboard?.sources ?? []).filter { !used.contains($0) }
+        let systems = known + ingested.filter { !known.contains($0) }
         let people = context.people.map(\.id)
         let peopleFound = max(people.count, onboard?.people ?? 0)
         let notes = Set(
@@ -90,6 +96,12 @@ extension Workspace {
                     + (names.count > 4 ? ", and \(names.count - 4) more" : "")
         }
         let total = max(context.connections.count, systems.count)
+        let records = ingestion.reduce(0) { $0 + $1.records }
+        let historyRead =
+            records == 0
+            ? ""
+            : " Read \(Self.count(records, "past record", "past records")) from "
+                + "\(Self.count(ingested.count, "system", "systems"))."
         let steps: [OnboardingState.Step] = [
             .init(
                 key: "systems", title: "Read its systems", done: total > 0 && !systems.isEmpty,
@@ -126,9 +138,10 @@ extension Workspace {
             .init(
                 key: "history", title: "Import history", done: historyCases > 0,
                 count: historyCases, total: nil,
-                detail: historyCases == 0
+                detail: (historyCases == 0
                     ? "No history imported yet."
-                    : "Imported \(Self.count(historyCases, "case", "cases")) from history."),
+                    : "Imported \(Self.count(historyCases, "case", "cases")) from history.")
+                    + historyRead),
             .init(
                 key: "review", title: "Review what it would do",
                 done: (review?.total ?? 0) > 0 && review?.reviewed == review?.total,
@@ -149,7 +162,8 @@ extension Workspace {
             ready: gate.ready,
             summary: next.map {
                 "\(done) of \(steps.count) steps done; next: \($0.title.lowercased())."
-            } ?? "Onboarded: all \(steps.count) steps done.", onboard: onboard, goLive: gate)
+            } ?? "Onboarded: all \(steps.count) steps done.", onboard: onboard, goLive: gate,
+            ingestion: ingestion)
     }
 
     static func count(_ n: Int, _ one: String, _ many: String) -> String {

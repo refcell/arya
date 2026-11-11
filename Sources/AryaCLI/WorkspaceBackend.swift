@@ -477,6 +477,18 @@ extension WorkspaceBackend {
         }
     }
 
+    func ingestHistory(steward: String, binding: String?) async throws(CLIError)
+        -> [IngestionStatus]
+    {
+        let workspace = try await open()
+        return try await call("ingestHistory", rejection: { .invalidInput($0) }) {
+            if let binding {
+                return [try await workspace.ingestHistory(steward: steward, binding: binding)]
+            }
+            return try await workspace.ingestHistory(steward: steward)
+        }
+    }
+
     func buildCasebook(steward: String, limit: Int) async throws(CLIError) -> CasebookBuildSummary {
         let workspace = try await open()
         return try await call("buildCasebook") {

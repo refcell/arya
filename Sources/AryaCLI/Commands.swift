@@ -35,6 +35,7 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case serveInstall = "serve install"
     case serveUninstall = "serve uninstall"
     case historyImport = "history import"
+    case historyIngest = "history ingest"
     case review
     case checks
     case casebookBuild = "casebook build"

@@ -210,6 +210,7 @@ and receive a periodic report from it.
   second triage sweep proposing `spot-duplicate-charges` version 2, and `.upgradeRoutine`,
   which promotes it in triage so refunds has an upgrade (decision 0062). Adapter profiles
   in `adapters.json` carry an optional `label` (the display name). The seed stamp changes.
+- (from workspace) For Connections: `Workspace.ingestion()` lists every steward's connections with history records, last cursor, last error, and a verbatim `line`; `ingestion(steward:)` for one steward; `ingestHistory(steward:binding:)` runs a pass (incremental from the stored cursor). Decision 0067.
 
 ## Log
 

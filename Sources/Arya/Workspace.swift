@@ -34,6 +34,9 @@ public actor Workspace {
     let leases: any RunLeases
     /// The trigger loop and the home's scheduler lock while this process serves.
     var serving: (lock: SchedulerLock, task: Task<Void, Never>)?
+    /// Where history ingestion reads pages (`ingestHistory`): each binding's process unless
+    /// seeding or a test serves them.
+    var historyPages: any HistoryPages = ProcessHistoryPages()
 
     private init(home: URL, wiring: Wiring) throws {
         self.home = home
