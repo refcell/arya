@@ -585,6 +585,17 @@ private func events() -> [FeatureEvent] {
                 stewards: stewards) == "Sam's correction · Support inbox triage")
     }
 
+    /// People read the same everywhere: one rule, `HumanText.actor`.
+    @Test func displayNamesFollowTheOneActorRule() {
+        for id in ["person:priya", "human:priya", "priya"] {
+            #expect(PeopleDirectory.displayName(id) == "Priya")
+        }
+        for id in ["local", "person:local", "human:local"] {
+            #expect(PeopleDirectory.displayName(id) == HumanText.actor("local"))
+        }
+        #expect(PeopleDirectory.displayName("person:sam") == HumanText.actor("person:sam"))
+    }
+
     /// Rows show last contact and the strip counts in and out per day.
     @Test func lastContactAndDailyCountsFollowMessagesAndReplies() {
         var log = FeatureEventBuilder(start: start)

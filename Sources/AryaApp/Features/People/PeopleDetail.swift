@@ -286,7 +286,8 @@ enum PeopleDetailText {
         // Authors arrive as "human:sam", "person:sam" or "sam"; "local" is you.
         let bare = String(note.author.split(separator: ":").last ?? "")
         let author =
-            bare == "local" ? "you" : people[note.author] ?? people["person:" + bare] ?? bare
+            people[note.author] ?? people["person:" + bare]
+            ?? PeopleDirectory.displayName(note.author)
         let source =
             note.tags.contains("correction")
             ? "\(author)'s correction"

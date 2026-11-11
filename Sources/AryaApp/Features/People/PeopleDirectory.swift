@@ -74,10 +74,11 @@ struct PeopleDirectory: Hashable, Sendable {
             systems.flatMap { $0["actions"]?.array?.compactMap(\.string) ?? [] })
     }
 
-    /// "person:alex" → "Alex".
+    /// "person:alex" or "alex" → "Alex", and the person at this home → "you": the one rule in
+    /// `HumanText.actor`, so names read the same on every screen.
     static func displayName(_ id: String) -> String {
-        let bare = id.hasPrefix("person:") ? String(id.dropFirst("person:".count)) : id
-        return bare.prefix(1).uppercased() + bare.dropFirst()
+        HumanText.actor(
+            id.contains(":") || HumanText.localIDs.contains(id) ? id : "person:" + id)
     }
 
     /// Who may approve `kind` under the most specific rule (the kind's, else `*`), as the
