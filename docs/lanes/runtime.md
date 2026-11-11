@@ -299,3 +299,5 @@ M4:
   `CheckSummary`, 0054); re-plan runs and why (0046, input kind `replan`); grant refusals and
   approve refusals (0064). Findings, drafts, onboarding, steps, reports, and delegations are shown.
 - 2026-11-10: grant store (0065): `access.*` events, `AccessBook`, gated changes (owner or approve on `*`) with undo, `access.refused` audit event, facade `access()` and writes; Settings ▸ Access next.
+- 2026-11-10: Settings ▸ Access (`Features/Access`): status and last change with Undo, Grant… form (who, may, on), Grants by resource with Revoke, Teams with New team…/Edit/Disband, Refused list; states `access`, `access-refusals`; Settings tab hook asked of app-shell.
+- Visual check (`just snapshot access access-refusals`, demo home): Access title, "Enforced · 2 grants · 1 team", last change with Undo, Grants by resource with pills and Revoke, Refused rows with time, cross, plain reason, steward and level; one orange Grant…. The demo home has no refusals yet, so that list shows fixtures; the space below short lists stays empty.

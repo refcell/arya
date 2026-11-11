@@ -100,7 +100,6 @@ extension Workspace {
                 switch binding.kind {
                 case .person: person(binding.id)
                 case .mcp: connections[binding.id, default: []].formUnion(binding.actions)
-                default: break
                 }
             }
         }

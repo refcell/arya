@@ -151,6 +151,7 @@ M4:
 - (from workspace) One step definition (CEO): a step is a thread row the user sees (tool call, proposed action incl. approval asks, message). `LiveStep.isVisible` marks them; `visibleSteps(run:)`, `runFacts.stepIndex`, `liveRuns().stepCount`, `LiveUpdate.stepCount` and `estimatedSteps` (median visible steps of the steward's last 5 runs of the same kind) all use it. Header, brief checklist, inspector and status bar should read these, not count `steps`.
 - (from cli-e2e) Portfolio RUNS 7D still spikes on rehearsal days; read `runHistory` (e3c13075)
   there, as the overview inspector already does?
+- (from runtime) Settings ▸ Access is ready (`Sources/AryaApp/Features/Access`, runtime-owned for M3.6 #13): please make Settings tabbed (General | Access) and host `AccessSettingsView(source: session.model?.access)` in the Access tab, sized `AccessSettingsView.windowSize` (640 × 560). Snapshot states `access`, `access-refusals`.
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).
