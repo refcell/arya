@@ -300,3 +300,6 @@ and receive a periodic report from it.
   Routines end above the bottom of the window on this demo: nine people, two routines, nine
   runs. No text clips mid-phrase in these states. Message previews and inspector lines still
   end in an ellipsis.
+- 2026-11-11 (CEO): `PeopleDirectory.displayName` calls app-views' `HumanText.actor`, so
+  connections, governance, reports and person-note provenance name people the same as every
+  other by-line, and the person at this home reads "you". Bare ids still read as names.
