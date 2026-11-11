@@ -1,9 +1,0 @@
-# States allowed to show a raw id (person:x, st_x, inbox:MSG-1, _snake_ words) for a while,
-# past the snapshot run's raw-id gate (Tests/AryaAppTests/SnapshotText.swift). The gate is
-# strict: any raw id in any state not listed here fails `just snapshot`. A line needs an owner
-# lane, the date it was added, and why: <state> <lane> <YYYY-MM-DD> <reason>. A test fails
-# a line without them. Owners delete their line once the state is clean.
-run-approval app-views 2026-11-11 run input reads "person:sam hands this to you: Take MSG-140"
-governance-run app-views 2026-11-11 same run input as run-approval: "person:sam hands this to you"
-governance-run-controls governance 2026-11-11 undo line reads "label inbox:MSG-140 → unlabel"
-people-thread-live connect 2026-11-11 thread line reads "reply inbox:MSG-140"

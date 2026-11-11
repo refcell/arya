@@ -32,9 +32,11 @@ enum PersonWaiting {
                 guard mine else { continue }
                 let text =
                     question
-                    ? (payload["question"]?.string ?? action?["params"]?["text"]?.string ?? kind)
-                    : [ActionWords.kind(kind), action?["target"]?.string ?? ""]
-                        .filter { !$0.isEmpty }.joined(separator: " ")
+                    ? HumanText.sentence(
+                        payload["question"]?.string ?? action?["params"]?["text"]?.string ?? kind)
+                    : HumanText.action(
+                        kind: kind, target: action?["target"]?.string ?? "",
+                        params: action?["params"] ?? .null)
                 open[id] = Item(
                     id: id, steward: event.steward, text: text, at: event.at, question: question)
                 order.append(id)

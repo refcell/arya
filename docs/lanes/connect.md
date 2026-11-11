@@ -313,3 +313,7 @@ and receive a periodic report from it.
   render clean under the gate. Visual check, `empty.tsv` verbatim: connections-connect.png 66,
   connections-detail.png 52, connections-inspector.png 46, connections.png 51,
   people-thread-live.png 60, reports.png 82, routines-library.png 57, routines-upgrade.png 57.
+- 2026-11-11 (CEO, strict raw-id gate): WAITING ON rows read held actions through
+  `HumanText.action` and questions through `HumanText.sentence`, so people-thread-live renders
+  clean; removed its line from `etc/app/rawtext-pending.txt`. Visual check, `empty.tsv`
+  verbatim: people-thread-live.png 57, people-memory.png 47.
