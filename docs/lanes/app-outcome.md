@@ -132,6 +132,19 @@ is. Fix these five first; this lane owns its share:
 
 ## Log
 
+### 2026-11-11 Review #26: one run count, whole reason, a fuller Overview
+- METRICS `runs` is `runHistory(steward:days:7).line` verbatim ("14 runs in 7 days, 2 today"),
+  the inspector's own read; `failed runs` uses the same read. The header's reason has its own
+  full-width line under the KPI. "owned by" goes through `HumanText.actor`.
+- Overview fill: a 7-day DAY / VALUE / N table beside a taller chart (168 pt, five gridlines);
+  `OutcomeColumns` (a two-column masonry `Layout`) drops NOW, FINDINGS, PLAN, IMPACT and KNOWS
+  (the steward's notes) into the shorter column, so RECENT starts higher.
+- Visual check (`just snapshot overview overview-live`): overview 41% (light 41%), was 47%;
+  overview-live 47% (light 47%), was 49%. The remaining empty blocks are the chart's interior,
+  RECENT's ragged right edge, and the sidebar and inspector below their content.
+- Lead reads AT RISK at "0.90 / 0.90": the workspace's status is strict (`current >= target`)
+  and the reading is just under 0.90, rounded for display. The header follows the workspace.
+
 ### 2026-11-10 Improve (eval retired; app-outcome owns it), review #20, wizard metrics
 - Improve review card in words: `ReviewText.difference` reads "Chose security; the person
   chose account", `ReviewText.source` reads "MSG-120 · Sam · Oct 9 · reopened: …" (raw text
