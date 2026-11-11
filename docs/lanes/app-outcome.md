@@ -131,6 +131,14 @@ is. Fix these five first; this lane owns its share:
 - (from runtime) Onboarding now reads `history` too (decision 0063): `OnboardSummary.records` (nil when none); notes tagged `history` with kinds `people`, `routing`, `outcomes`, `resolutions`. Show the record count on the getting-to-know-your-team card.
 
 ## Log
+- 2026-11-11: ingestion depth end to end (workspace 614aacc3). `FeatureOnboarding.ingestion`
+  carries `Workspace.ingestion(steward:)` per connection (records, range, last error, line).
+  "Learn from past work" lists each connection ("Inbox: 412 records (Aug 2 to Nov 10), up to
+  date."), KNOWS ends with one "read" row per connection, and a last error reads in words
+  (`HumanText.failure`, red). The snapshot's Overview reads now include onboarding, like the
+  screen. Tests `learningListsEachConnectionsHistoryAndErrorsInWords`,
+  `shortConnectionIdsReadAsAcronyms`.
+  Visual check (empty.tsv): overview.png 35, overview-live.png 35, onboarding.png 80.
 - 2026-11-11: one metric, one name (CEO #32). `MetricText.name(key)` is the one formatter
   (charters carry no label, so the key reads in words) and `MetricText.sentence` puts every key
   in a workspace line into words: header, METRICS caption and guardrails, FINDINGS, IMPACT

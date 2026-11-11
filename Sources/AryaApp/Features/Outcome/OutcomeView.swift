@@ -162,7 +162,8 @@ struct OverviewTab: View {
                     }
                     if let impact { OutcomeImpactSection(impact: impact) }
                     OutcomeKnowsSection(
-                        notes: OutcomeContext.build(events: events, steward: steward).notes)
+                        notes: OutcomeContext.build(events: events, steward: steward).notes,
+                        read: store.outcomeReads[steward]?.onboarding?.ingestion ?? [])
                     // What changed since the person last looked, in the column with room.
                     if let recap {
                         Text(recap).aryaText(AryaFont.body, AryaColor.inkMuted)

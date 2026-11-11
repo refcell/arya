@@ -527,13 +527,19 @@ extension Workspace: WorkspaceSource {
                 connection.notes.map { FeatureOnboarding.Note(about: connection.id, text: $0) }
             }
         let latest = try await onboarding(steward: steward)
+        let read = (try? await ingestion(steward: steward)) ?? []
         return FeatureOnboarding(
             steps: state.steps.map {
                 FeatureOnboarding.Step(
                     key: $0.key, title: $0.title, done: $0.done, detail: $0.detail)
             },
             summary: state.summary, notes: notes, onboardedAt: latest?.at,
-            records: latest?.records, notesAdded: latest?.notes)
+            records: latest?.records, notesAdded: latest?.notes,
+            ingestion: read.map {
+                FeatureIngestion(
+                    connection: $0.connection, records: $0.records, complete: $0.complete,
+                    lastError: $0.lastError, line: $0.line)
+            })
     }
 
     func metricStatusList(steward: String, windows: Int) async throws -> [FeatureMetricStatus] {

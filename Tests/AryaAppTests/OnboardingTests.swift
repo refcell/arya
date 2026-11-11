@@ -155,3 +155,26 @@ import Testing
     onboarding.notesAdded = nil
     #expect(onboarding.historyLine == "Read 1 past record")
 }
+
+@Test func learningListsEachConnectionsHistoryAndErrorsInWords() {
+    let inbox = FeatureIngestion(
+        connection: "inbox", records: 412, complete: true, lastError: nil,
+        line: "inbox: 412 records (Aug 2 to Nov 10), up to date.")
+    let crm = FeatureIngestion(
+        connection: "crm", records: 40, complete: false, lastError: "rate_limited",
+        line: "crm: 40 records (Oct 1 to Oct 9); the last pass stopped: rate_limited.")
+    #expect(inbox.sentence == "Inbox: 412 records (Aug 2 to Nov 10), up to date.")
+    #expect(crm.shown.text == "40 records (Oct 1 to Oct 9); the last pass stopped: rate limited.")
+    #expect(
+        OnboardingSteps.learnDetail("Read 412 past records → 18 notes", "", read: [inbox])
+            == "Read 412 past records → 18 notes. "
+            + "Inbox: 412 records (Aug 2 to Nov 10), up to date."
+    )
+}
+
+@Test func shortConnectionIdsReadAsAcronyms() {
+    let crm = FeatureIngestion(
+        connection: "crm", records: 187, complete: true, lastError: nil,
+        line: "crm: 187 records (Aug 19 to Nov 9), up to date.")
+    #expect(crm.sentence == "CRM: 187 records (Aug 19 to Nov 9), up to date.")
+}

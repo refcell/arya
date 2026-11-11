@@ -92,6 +92,8 @@ struct FeatureOnboarding: Hashable, Sendable {
     /// and the notes it added.
     var records: Int? = nil
     var notesAdded: Int? = nil
+    /// How much of each connection's history it has read (`Workspace.ingestion(steward:)`).
+    var ingestion: [FeatureIngestion] = []
 
     /// "Read 412 past records → 18 notes", or nil before an onboard run read history.
     var historyLine: String? {
@@ -123,6 +125,36 @@ struct FeatureMetricStatus: Hashable, Sendable {
     var movement: String
     /// `reply_minutes 42 minutes, target ≤ 60: on track, improving.`
     var line: String
+}
+
+/// One connection's history reading (`Workspace.ingestion(steward:)`): records read, range,
+/// and the last pass's error.
+struct FeatureIngestion: Hashable, Sendable {
+    /// The binding id (`inbox`).
+    var connection: String
+    var records: Int
+    var complete: Bool
+    var lastError: String?
+    /// The workspace's line: `inbox: 412 records (Aug 2 to Nov 10), up to date.`
+    var line: String
+
+    /// The line in words, split for a row: "Inbox" and "412 records (Aug 2 to Nov 10), up to
+    /// date."; a last error reads in words ("…; the last pass stopped: rate limited").
+    var shown: (name: String, text: String) {
+        let name = HumanText.name(connection)
+        var text = line
+        if text.hasPrefix(connection + ": ") { text.removeFirst(connection.count + 2) }
+        if let lastError, !lastError.isEmpty {
+            text = text.replacingOccurrences(of: lastError, with: HumanText.failure(lastError))
+        }
+        // A short id is an acronym ("crm" reads "CRM"); a word is capitalized ("Inbox").
+        let title =
+            name.count <= 3 ? name.uppercased() : name.prefix(1).uppercased() + name.dropFirst()
+        return (title, MetricText.sentence(text))
+    }
+
+    /// "Inbox: 412 records (Aug 2 to Nov 10), up to date."
+    var sentence: String { "\(shown.name): \(shown.text)" }
 }
 
 /// A steward's runs on each of the last 7 local days (`Workspace.runHistory`), the same read the

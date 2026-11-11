@@ -132,6 +132,8 @@ struct OutcomeContextSection: View {
 /// person sees what it will act on.
 struct OutcomeKnowsSection: View {
     let notes: [OutcomeContext.Line]
+    /// How much of each connection's history it has read, under the notes.
+    var read: [FeatureIngestion] = []
     /// Notes shown before the rest fold into a count.
     var limit = 6
 
@@ -144,7 +146,7 @@ struct OutcomeKnowsSection: View {
     }
 
     var body: some View {
-        if !notes.isEmpty {
+        if !notes.isEmpty || !read.isEmpty {
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("KNOWS").aryaText(AryaFont.overline, AryaColor.inkFaint)
@@ -165,6 +167,21 @@ struct OutcomeKnowsSection: View {
                 if notes.count > limit {
                     Text("\(notes.count - limit) more under Context")
                         .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                }
+                ForEach(read, id: \.connection) { connection in
+                    let shown = connection.shown
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                        Text("read").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        Text(shown.name).aryaText(AryaFont.mono, AryaColor.ink)
+                        Text(shown.text)
+                            .aryaText(
+                                AryaFont.body,
+                                connection.lastError == nil
+                                    ? AryaColor.inkMuted : AryaColor.negative
+                            )
+                            .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(minHeight: AryaSize.rowHeight, alignment: .leading)
                 }
             }
         }

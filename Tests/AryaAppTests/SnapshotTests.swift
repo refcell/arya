@@ -362,10 +362,22 @@ import Testing
                 now: FeatureTestClock.now)
             await store.reload()
             store.reviewQueues["st_new"] = onboardingQueue(total: 40, reviewed: 12)
-            store.outcomeReads["st_new"] = OutcomeReads(
-                onboarding: onboardingRead(
-                    done: ["systems", "people", "processes", "notes", "history"],
-                    notes: onboardingNotes))
+            // Each connection's history as the workspace reports it; one pass stopped.
+            var read = onboardingRead(
+                done: ["systems", "people", "processes", "notes", "history"],
+                notes: onboardingNotes)
+            read.ingestion = [
+                FeatureIngestion(
+                    connection: "inbox", records: 412, complete: true, lastError: nil,
+                    line: "inbox: 412 records (Aug 2 to Nov 10), up to date."),
+                FeatureIngestion(
+                    connection: "billing", records: 63, complete: false,
+                    lastError: "rate_limited",
+                    line: "billing: 63 records (Aug 19 to Sep 30); "
+                        + "the last pass stopped: rate_limited."
+                ),
+            ]
+            store.outcomeReads["st_new"] = OutcomeReads(onboarding: read)
             try write(
                 "onboarding", scheme: scheme,
                 render(
@@ -558,9 +570,10 @@ import Testing
                 nil
             }
         let runs = try? await store.workspace.runHistory(steward: steward)
+        let onboarding = try? await store.workspace.onboarding(steward: steward)
         store.outcomeReads[steward] = OutcomeReads(
-            live: live, findings: findings, impact: impact ?? nil, metrics: metrics,
-            missedText: missed, runs: runs)
+            live: live, findings: findings, impact: impact ?? nil, onboarding: onboarding,
+            metrics: metrics, missedText: missed, runs: runs)
     }
 
     /// The seeded demo home when `ARYA_SNAPSHOT_HOME` is set, else the fake workspace.
