@@ -430,3 +430,7 @@ M4:
   needs-you 65 → 58, portfolio-live 51 → 50, overview 45 → 43; (3) real controls, approval
   buttons wrap and never clip. Seven daily bars in portfolio RUNS 7D. The snapshot watchdog
   stretches 60 s by load per core, after a false stop at load 190.
+- Published 65317d48 (review 21 items, PortfolioRow typed lets, watchdog capped at 600 s).
+  The run inspector lists the run's steps (up to 20, clock in the gutter) under its facts, as
+  app-views asked; `NeedsYouRunSteps` takes a title and a limit.
+- Visual check (run): moves (2) no dead space, the inspector column reads as the run; run 46.

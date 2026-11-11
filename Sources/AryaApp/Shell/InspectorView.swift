@@ -290,6 +290,9 @@ struct InspectorView: View {
         }
     }
 
+    /// Steps the run inspector lists under the facts.
+    static let runStepLimit = 20
+
     private func runContent(_ run: RunSummary) -> some View {
         VStack(alignment: .leading, spacing: AryaSpace.s2) {
             Text(model.title(of: run)).aryaText(AryaFont.bodyStrong, AryaColor.ink)
@@ -302,6 +305,13 @@ struct InspectorView: View {
                 fact(label, value)
             }
             FeatureRegistry.crewFanout(model.featureContext(), run: run.id)
+            // The run's steps under its facts, newest last, so the column reads as the run.
+            NeedsYouRunSteps(
+                steps: NeedsYouRunSteps.lines(
+                    events: events, run: run.id, limit: Self.runStepLimit),
+                title: "Steps"
+            )
+            .padding(.top, AryaSpace.s2)
         }
         .task(id: run.id) { await model.featureStore?.loadRunFacts(run.id) }
     }

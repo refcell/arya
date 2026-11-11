@@ -371,10 +371,14 @@ private struct NeedsYouRow: View {
 /// The run's newest steps under an approval: clock in the gutter, one line each.
 struct NeedsYouRunSteps: View {
     var steps: [(time: String, text: String)]
+    /// "Run so far" under an approval; the inspector calls the list "Steps".
+    var title = "Run so far"
 
     static let limit = 6
 
-    static func lines(events: [FeatureEvent], run: String) -> [(time: String, text: String)] {
+    static func lines(events: [FeatureEvent], run: String, limit: Int = limit)
+        -> [(time: String, text: String)]
+    {
         let stream = RunStream.build(events: events, run: run)
         return RunThreadText.visible(stream.steps).suffix(limit).map {
             (StreamStepText.clock($0.at), StreamStepText.title($0.kind))
@@ -384,7 +388,7 @@ struct NeedsYouRunSteps: View {
     var body: some View {
         if !steps.isEmpty {
             VStack(alignment: .leading, spacing: AryaSpace.s1) {
-                Text("Run so far").aryaText(AryaFont.label, AryaColor.inkFaint)
+                Text(title).aryaText(AryaFont.label, AryaColor.inkFaint)
                 ForEach(Array(steps.enumerated()), id: \.offset) { _, step in
                     HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                         Text(step.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
