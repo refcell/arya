@@ -250,3 +250,17 @@ import Testing
     #expect(RunContext.usage(facts) == "2.1k tokens · \(RunMetrics.dollars(4200))")
     #expect(RunContext.usage(RunMetrics()) == nil)
 }
+
+@MainActor @Test func inspectorCostIsTheHeadersCostSoFar() {
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    let run = RunSummary(
+        id: "run_live", steward: "st_triage", trigger: "message", charterVersion: 1,
+        status: .running, summary: nil, startedAt: now.addingTimeInterval(-30))
+    let facts = FeatureRunFacts(
+        running: true, started: run.startedAt, elapsedSeconds: 30, decisions: 0, toolCalls: 1,
+        actionsProposed: 0, actionsApplied: 0, actionsDrafted: 0, actionsWaiting: 0,
+        stepIndex: 2, estimatedSteps: 5, dryRun: false, costMicros: 40_000)
+    let lines = RunFacts.lines(run, events: [], now: now, facts: facts)
+    let cost = lines.first { $0.0 == "Cost" }?.1
+    #expect(cost == RunMetrics.dollars(40_000) + " so far")
+}

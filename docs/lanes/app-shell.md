@@ -482,3 +482,9 @@ M4:
   Needs you runs line wraps under its label instead of clipping "1 fai…".
 - Visual check (run, run-approval, overview, needs-you): moves (2) and (4); empty.tsv: run 32,
   run-approval 36, overview 40, needs-you 52.
+- 2026-11-11 VC45: the run inspector's Cost reads the workspace's figure
+  (`FeatureRunFacts.costMicros`), "$0.04 so far" while running, the same as the run header;
+  Usage falls back to that cost while the ledger has no tokens yet. Test
+  `inspectorCostIsTheHeadersCostSoFar`.
+- Visual check (run, run-approval, overview-live): moves (4); empty.tsv: run 33, run-approval
+  36, overview-live 45.

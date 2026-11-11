@@ -129,8 +129,11 @@ enum RunFacts {
         } else {
             out.append(("Duration", facts.seconds.map(FeatureTime.duration) ?? "—"))
         }
-        let micros = facts.costMicros ?? 0
-        out.append(("Cost", micros > 0 ? RunMetrics.dollars(micros) : "—"))
+        // Cost is the workspace's figure, the same one the run header reads ("$0.04 so far"
+        // while running); the ledger fills in only when the workspace has none.
+        let micros = runFacts?.costMicros ?? facts.costMicros ?? 0
+        let soFar = runFacts?.running == true ? " so far" : ""
+        out.append(("Cost", micros > 0 ? RunMetrics.dollars(micros) + soFar : "—"))
         if let tokens = facts.tokens, tokens > 0 {
             out.append(("Tokens", RunMetrics.grouped(tokens)))
         }
@@ -323,7 +326,14 @@ struct InspectorView: View {
             FeatureRegistry.crewFanout(model.featureContext(), run: run.id)
             // What the thread beside it lacks: usage, systems, policy, checks, related runs.
             let context = RunContext.build(events: events, run: run.id)
-            if let usage = context.usage { fact("Usage", usage) }
+            // Usage pairs tokens with cost; while the ledger has no tokens yet the workspace's
+            // cost so far stands in, so it never contradicts the header.
+            if let usage = context.usage {
+                fact("Usage", usage)
+            } else if let micros = model.featureStore?.runFacts[run.id]?.costMicros, micros > 0 {
+                fact(
+                    "Usage", RunMetrics.dollars(micros) + (run.status == .running ? " so far" : ""))
+            }
             RunContextView(
                 context: context,
                 title: { id in
