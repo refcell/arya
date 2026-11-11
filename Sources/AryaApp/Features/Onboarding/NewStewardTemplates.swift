@@ -61,9 +61,9 @@ struct TemplateRow: Equatable, Identifiable {
     var name: String
     var department: String
     var summary: String
-    /// "routed_within_1h ≥ 0.95", "cost_per_lead ≤ 40 usd".
+    /// "routed within 1h ≥ 0.95", "cost per lead ≤ 40 usd".
     var metric: String
-    /// "ask · 2 auto", "act_low".
+    /// "ask · 2 auto", "Acts alone on low risk".
     var policy: String
 
     static func build(_ template: StewardTemplate) -> TemplateRow {
@@ -78,11 +78,12 @@ struct TemplateRow: Equatable, Identifiable {
         let sign = draft.direction == "down" ? "≤" : "≥"
         let target = draft.target.map { " \(sign) \(StatusMapping.metric($0))" } ?? ""
         let automatic = draft.rules.filter { $0.decision == "auto" }.count
-        var policy = [draft.level ?? draft.autonomy]
+        // In words, never the key: "Acts alone on low risk", "routed within 1h ≥ 0.95".
+        var policy = [draft.level.map(ActionWords.autonomy) ?? draft.autonomy]
         if automatic > 0 { policy.append("\(automatic) auto") }
         return TemplateRow(
             id: id, name: name, department: department, summary: summary,
-            metric: draft.metric + target,
+            metric: MetricText.name(draft.metric) + target,
             policy: policy.joined(separator: " · "))
     }
 }

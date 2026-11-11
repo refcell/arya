@@ -97,7 +97,7 @@ import Testing
             draft: StewardDraft(
                 name: "T", outcome: "o", metric: "cost_per_lead", unit: "usd", direction: "down",
                 target: 40, rules: [.init(action: "x", decision: "auto")], adapter: "default"))
-        #expect(row.metric == "cost_per_lead ≤ 40")
+        #expect(row.metric == "cost per lead ≤ 40")
         #expect(row.policy == "ask · 1 auto")
     }
 }
@@ -263,10 +263,6 @@ import Testing
     let lines = RunFacts.lines(run, events: [], now: now, facts: facts)
     let cost = lines.first { $0.0 == "Cost" }?.1
     #expect(cost == RunMetrics.dollars(40_000) + " so far")
-}
-
-@MainActor @Test func pulseNamesTheMetricInWords() {
-    #expect(StewardPulseView.metricWords("first_reply_within_1d") == "first reply within 1d")
 }
 
 @MainActor @Test func needsYouPreviewsTheNextRequestsWrappingToTheStart() {

@@ -87,10 +87,66 @@ struct RailView: View {
                 }
             }
             activity
+            decisions
         }
         .padding(.horizontal, AryaSpace.s2)
         .padding(.top, AryaSize.trafficLightInset)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Decisions the sidebar lists on All stewards.
+    nonisolated static let decisionsLimit = 6
+
+    /// On All stewards, where the page has its own Fleet activity, the sidebar's lower half
+    /// lists the latest decisions instead: what people said to which steward, and when.
+    @ViewBuilder private var decisions: some View {
+        if case .loaded(let events) = model.featureStore?.state,
+            model.navigation.destination == .portfolio
+        {
+            let names = StewardNames.build(events: events)
+            let decided = ApprovalQueue.build(events: events).decided
+                .sorted {
+                    ($0.decision?.at ?? $0.requestedAt) > ($1.decision?.at ?? $1.requestedAt)
+                }
+                .prefix(Self.decisionsLimit)
+            if !decided.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Recent decisions").aryaText(AryaFont.label, AryaColor.inkFaint)
+                        .padding(.horizontal, AryaSpace.s1)
+                        .frame(height: AryaSize.rowHeight)
+                    ForEach(Array(decided)) { item in
+                        Button {
+                            if let steward = item.steward {
+                                model.navigation.select(steward: steward)
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(
+                                    item.kind == "question"
+                                        ? item.summary
+                                        : ActionWords.sentence(kind: item.kind, target: item.target)
+                                )
+                                .aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(1)
+                                Text(
+                                    [
+                                        item.steward.map { names[$0] ?? $0 },
+                                        item.decision.map { ApprovalText.verdict($0, now: now) },
+                                    ].compactMap { $0 }.joined(separator: " · ")
+                                )
+                                .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                                .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(.horizontal, AryaSpace.s1)
+                            .padding(.vertical, AryaSpace.s1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, AryaSpace.s2)
+            }
+        }
     }
 
     /// Lines in the sidebar's Activity feed.

@@ -11,21 +11,15 @@ import Vision
 /// `"`, `=`) are left out, and `allowed` lists the few exact strings that may keep an id.
 @MainActor
 enum SnapshotText {
-    /// Ids a person should never read: `person:sam`, `st_triage`, `cmt:CMT-1060`, `act_medium`.
+    /// Ids a person should never read: `person:sam`, `st_triage`, `cmt:CMT-1060`, and any
+    /// snake-case key (`act_medium`, `send_email`, `routed_within_1h`); metric keys too. An
+    /// opaque id after the underscore (`ev_01M7…`, `key_3f…`) is a ledger or key id, not a key.
     static let pattern = try! NSRegularExpression(
-        pattern: #"person:|st_[a-z]|\b[a-z]+:[A-Z]{2,}-\d+|_[a-z]+_"#)
+        pattern: #"person:|st_[a-z]|\b[a-z]+:[A-Z]{2,}-\d+|\b[a-z]+_[a-z][a-z0-9]*"#)
 
-    /// Metric names are the charter's own words and are shown as written; the gate drops them
-    /// from a line before matching. Add a metric here when a seeded charter gains one.
-    static let metricNames = [
-        "at_risk_with_plan", "chased_within_2d", "commitments_met_on_time",
-        "confirmed_within_1d", "digests_before_shift", "digests_on_time",
-        "first_reply_within_1d", "lapsed_accounts_followed_up", "notes_within_1d",
-        "renewals_reviewed_on_time", "routed_within_1h",
-    ]
-
-    /// Exact strings that may show an id.
-    static let allowed: [String] = []
+    /// Exact strings that may show a snake-case word: the run OUTPUT pane's verbatim wire
+    /// method names.
+    static let allowed: [String] = ["tool_call", "tool_result"]
 
     /// States excused for a while (`etc/app/rawtext-pending.txt`, owner, date, and reason on
     /// each line): reported, not failed. Every other state fails on its first raw id.
@@ -48,18 +42,6 @@ enum SnapshotText {
             day.dateFormat = "yyyy-MM-dd"
             guard day.date(from: parts[2]) != nil else { return nil }
             return PendingLine(state: parts[0], lane: parts[1], date: parts[2], reason: parts[3])
-        }
-    }
-
-    /// True when `part` appears in `name` with at most one character misread ("first_replv"
-    /// in "first_reply_within_1d"), since the recognizer confuses v and y, rn and m, _ and ".".
-    static func nearlyContains(_ name: String, _ part: String) -> Bool {
-        if name.contains(part) { return true }
-        let whole = Array(name)
-        let piece = Array(part)
-        guard piece.count >= 4, piece.count <= whole.count else { return false }
-        return (0...(whole.count - piece.count)).contains { start in
-            zip(whole[start..<start + piece.count], piece).filter { $0 != $1 }.count <= 1
         }
     }
 
@@ -94,15 +76,9 @@ enum SnapshotText {
             seen.insert(text)
             if text.contains("{") || text.contains("\"") || text.contains("=") { return false }
             if allowed.contains(where: text.contains) { return false }
-            // OCR may split a metric name at a space, so any snake-case word that is part of
-            // a metric name counts as the metric.
+            // OCR may read "_" as "." inside a snake-case word: detect it either way.
             let line = text.split(separator: " ").map { word -> String in
-                // OCR may read "_" as "." inside a snake-case word.
-                let read = word.trimmingCharacters(in: .punctuationCharacters)
-                let bare = read.contains("_") ? read.replacingOccurrences(of: ".", with: "_") : read
-                return bare.contains("_")
-                    && metricNames.contains(where: { nearlyContains($0, bare) })
-                    ? "metric" : String(word)
+                word.contains("_") ? word.replacingOccurrences(of: ".", with: "_") : String(word)
             }.joined(separator: " ")
             let range = NSRange(line.startIndex..., in: line)
             return pattern.firstMatch(in: line, range: range) != nil
@@ -151,9 +127,10 @@ enum SnapshotText {
     #expect(StewardContext.personKey("person:lee") != StewardContext.personKey("person:sam"))
 }
 
-@MainActor @Test func rawIdGateToleratesOneMisreadInAMetricName() {
-    #expect(SnapshotText.nearlyContains("first_reply_within_1d", "first_replv"))
-    #expect(SnapshotText.nearlyContains("first_reply_within_1d", "within_1d"))
-    #expect(!SnapshotText.nearlyContains("first_reply_within_1d", "adapter_not"))
-    #expect(!SnapshotText.nearlyContains("routed_within_1h", "st_x"))
+@MainActor @Test func rawIdGateFailsEverySnakeCaseKey() {
+    let lines = [
+        "0.96 / 0.95 routed_within_1h", "Acts alone on medium risk", "first_reply.within_1d",
+    ]
+    #expect(
+        SnapshotText.offenders(lines) == ["0.96 / 0.95 routed_within_1h", "first_reply.within_1d"])
 }

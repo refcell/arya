@@ -512,3 +512,15 @@ M4:
   allowance: removed from the gate once app-outcome's metric labels land (asked them).
   Live Usage repeating Cost was fixed in ba035464 (Cost plus Tokens, no Usage row).
 - Visual check (needs-you): moves (2); empty.tsv: needs-you 51.
+- 2026-11-11 VC48-VC50: the raw-id gate no longer allows metric names. Any snake_case key
+  fails (`\b[a-z]+_[a-z]…`). Opaque ids after an underscore (`ev_01M7…`, `key_3f…`) are ledger
+  and key ids and pass, and the OUTPUT pane's wire names `tool_call` and `tool_result` pass.
+  Fixed: the policy panel's actions and rule scopes read in words ("send email on crm"); the
+  new-steward templates show `MetricText.name` and the autonomy in words. Pending (connect):
+  people, people-thread, people-memory, people-thread-live, and reports show
+  "routed_within_1h" from `Reports.swift`.
+  Needs you: "Next up" previews the next request's draft, the message it answers, and why,
+  instead of repeating queue rows. Portfolio: the sidebar lists recent decisions (where
+  Activity would repeat the page), and the fleet inspector lists recent runs in words.
+- Visual check (needs-you, portfolio-live, overview, new-steward): moves (2); empty.tsv:
+  needs-you 51, portfolio-live 42, overview 34, new-steward 88.

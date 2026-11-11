@@ -382,7 +382,7 @@ private struct BindingPolicy: View {
             }
             ForEach(binding.actions, id: \.kind) { action in
                 HStack(spacing: AryaSpace.s2) {
-                    Text(action.kind).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                    Text(ActionWords.kind(action.kind)).aryaText(AryaFont.monoSmall, AryaColor.ink)
                         .frame(width: 72, alignment: .leading)
                     DecisionChip(decision: action.decision)
                     Text(action.risk).aryaText(AryaFont.monoSmall, GovernanceText.riskColor(action))
@@ -636,7 +636,9 @@ enum GovernanceText {
     }
 
     static func ruleScope(_ rule: PolicySummary.ApproverLine) -> String {
-        rule.binding.map { "\(rule.action)@\($0)" } ?? rule.action
+        // In words, never the key: "send email on crm", not "send_email@crm".
+        let action = ActionWords.kind(rule.action)
+        return rule.binding.map { "\(action) on \(PeopleDirectory.displayName($0))" } ?? action
     }
 
     static func riskColor(_ action: PolicySummary.Action) -> Color {

@@ -1,0 +1,5 @@
+people connect 2026-11-11 report line reads "routed_within_1h 0.89 against a target" (Reports.swift; MetricText.name)
+people-thread connect 2026-11-11 report line reads "routed_within_1h 0.89 against a target" (Reports.swift; MetricText.name)
+people-memory connect 2026-11-11 report line reads "routed_within_1h 0.89 against a target" (Reports.swift; MetricText.name)
+people-thread-live connect 2026-11-11 report line reads "routed_within_1h 0.89 against a target" (Reports.swift; MetricText.name)
+reports connect 2026-11-11 report line reads "routed_within_1h 0.89 against a target" (Reports.swift; MetricText.name)

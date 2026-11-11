@@ -303,12 +303,49 @@ struct InspectorView: View {
                     model.navigation.showApprovals()
                     model.navigation.approval = id
                 })
+            fleetRecentRuns
         case .access:
             AccessInspector(model: AccessModel.shared)
         case .none:
             Text("Select a steward to see its schedule, policy, connections, and people.")
                 .aryaText(AryaFont.caption, AryaColor.inkFaint)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Runs the fleet inspector lists under the oldest waiting.
+    static let fleetRunsLimit = 8
+
+    /// The fleet's latest finished work in words: what each run did, whose it was, when.
+    @ViewBuilder private var fleetRecentRuns: some View {
+        let names = Dictionary(
+            model.stewards.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
+        let runs = model.runs.values.joined().filter { $0.parent == nil }
+            .sorted { $0.startedAt > $1.startedAt }.prefix(Self.fleetRunsLimit)
+        if !runs.isEmpty {
+            VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                Text("Recent runs").aryaText(AryaFont.label, AryaColor.inkFaint)
+                ForEach(Array(runs)) { run in
+                    Button {
+                        model.navigation.select(steward: run.steward, showRun: run.id)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(model.title(of: run)).aryaText(AryaFont.caption, AryaColor.ink)
+                                .lineLimit(1)
+                            Text(
+                                (names[run.steward] ?? run.steward) + " · "
+                                    + AryaTime.label(run.startedAt, now: now, style: .short)
+                            )
+                            .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(model.title(of: run))
+                }
+            }
+            .padding(.top, AryaSpace.s2)
         }
     }
 

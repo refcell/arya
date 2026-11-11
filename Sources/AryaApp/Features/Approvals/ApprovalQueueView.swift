@@ -216,7 +216,7 @@ struct ApprovalQueueView: View {
         }
     }
 
-    /// How many upcoming requests the detail previews under the selected one.
+    /// How many upcoming requests `nextUp(after:in:)` returns; the detail previews the first.
     static let nextLimit = 3
     /// How many of the steward's own decisions the context column lists.
     static let stewardDecidedLimit = 8
@@ -230,23 +230,24 @@ struct ApprovalQueueView: View {
         return Array(rest.prefix(nextLimit))
     }
 
-    /// Previews of the next requests: what each asks, whose it is, how long it has waited, and
-    /// why, so the person sees what follows before deciding this one.
+    /// The next request in depth, which the queue row cannot show: its draft, the message it
+    /// answers, and why the steward wants it, so the person is ready before A or D lands there.
     private func nextUp(_ items: [ApprovalItem], events: [FeatureEvent]) -> some View {
         let names = StewardNames.build(events: events)
         return VStack(alignment: .leading, spacing: AryaSpace.s2) {
-            Text("Next up").aryaText(AryaFont.label, AryaColor.inkFaint)
-            ForEach(items) { item in
+            if let item = items.first {
+                let next = NeedsYouDetail.build(item: item, events: events)
                 Button {
                     move(item.id)
                 } label: {
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                        Text("Next up").aryaText(AryaFont.label, AryaColor.inkFaint)
                         Text(
                             item.kind == "question"
                                 ? item.summary
                                 : ActionWords.sentence(kind: item.kind, target: item.target)
                         )
-                        .aryaText(AryaFont.caption, AryaColor.ink).lineLimit(1)
+                        .aryaText(AryaFont.bodyStrong, AryaColor.ink).lineLimit(1)
                         Text(
                             [
                                 item.steward.map { names[$0] ?? $0 },
@@ -256,8 +257,24 @@ struct ApprovalQueueView: View {
                             ].compactMap { $0 }.joined(separator: " · ")
                         )
                         .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
-                        if let why = NeedsYouRow.context(item) {
-                            Text(ActionWords.humanize(why))
+                        if let draft = Self.draftText(next.action) {
+                            Text("Draft").aryaText(AryaFont.label, AryaColor.inkFaint)
+                                .padding(.top, AryaSpace.s1)
+                            Text(draft).aryaText(AryaFont.caption, AryaColor.ink)
+                                .lineLimit(Self.draftLines)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if let source = next.source, !source.isEmpty {
+                            Text("From").aryaText(AryaFont.label, AryaColor.inkFaint)
+                                .padding(.top, AryaSpace.s1)
+                            Text(ActionWords.humanize(source))
+                                .aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if !next.action.rationale.isEmpty {
+                            Text("Why").aryaText(AryaFont.label, AryaColor.inkFaint)
+                                .padding(.top, AryaSpace.s1)
+                            Text(next.action.rationale)
                                 .aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -266,8 +283,20 @@ struct ApprovalQueueView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .help("Open the next request")
             }
         }
+    }
+
+    /// Lines of the next request's draft the preview shows.
+    static let draftLines = 6
+
+    /// The words an action would send or write: a reply's text, an email's body, a note.
+    static func draftText(_ action: ProposedActionStep) -> String? {
+        for key in ["text", "body", "note", "message", "summary"] {
+            if let value = action.params[key]?.string, !value.isEmpty { return value }
+        }
+        return nil
     }
 
     /// The steward's own recent decisions, any target: how its asks usually go.
