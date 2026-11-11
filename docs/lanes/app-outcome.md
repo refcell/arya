@@ -148,6 +148,14 @@ is. Fix these five first; this lane owns its share:
   (`outcomeMissedText(steward:)`); the line loads its own reads on every tab.
 - Wizard: guardrail metrics for a new steward go through `StewardDraft.guardrailMetrics` and
   show in the preview charter; M3.6 #1 is done end to end.
+- IMPACT rows read the workspace's `line` (after the credit) verbatim; the app's own window
+  count (readings - 1, which read "12 of 11 windows") is gone.
+- Visual check (app-shell's empty-%, pinned 1400 x 1000): improve 39% (light 38%),
+  improve-trajectories 49%, improve-proposals 68% (two columns; the metric counts the flat
+  diff background as empty), overview 43% (light 43%; up from 33% because the post-midnight
+  reseed leaves today without runs). The header reads "RECOVERING · missed its target on 4
+  of 5 measured days in the last 7 days" beside the pill, wrapped to two lines (tail in the
+  tooltip at this width). overview-live's setup hit the 60 s stall limit under load twice.
 
 ### 2026-11-10 CEO review #8: one schedule source, honest status and impact
 - One source for scheduler state: `FeatureServe` (Outcome/OutcomeServe.swift) maps workspace
