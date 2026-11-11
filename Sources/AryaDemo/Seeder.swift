@@ -73,6 +73,9 @@ struct DemoSeeder {
                 from: examples.appendingPathComponent("\(name)/fake-script.json"))
             scripts["fake-\(name)"] = script
         }
+        // The example scripts carry no cost; seeded history is paid work, so each response
+        // without one gets a fixed cost (today's spend reads the same at any hour).
+        for (name, script) in scripts { scripts[name] = Self.priced(script) }
         if var triage = scripts["fake-triage"] {
             try reshapeTriage(&triage)
             scripts["fake-triage"] = triage
@@ -258,7 +261,7 @@ struct DemoSeeder {
                     .run(steward: run.steward, input: SharedRoutine.input(run.text))
                 ))
         }
-        guard fleet else { return sorted(steps + newest()) }
+        guard fleet else { return sorted(steps + newest(generated)) }
         // Every generated steward gets a casebook from its own runs and a rehearsal (eval).
         for (index, steward) in generated.enumerated() {
             steps.append(
@@ -308,7 +311,7 @@ struct DemoSeeder {
                     steward: "st_vendor_spend_review", person: "local")
             ))
         steps += preferences()
-        return sorted(steps + newest())
+        return sorted(steps + newest(generated))
     }
 
     /// What stewards remember about people (decision 0061): stated by the person or by you.
@@ -342,10 +345,23 @@ struct DemoSeeder {
     }
 
     /// The demo's newest moments: a quiet check about two hours ago (the last look lands after
-    /// it, `writeVisits`), a triage run, and Sam handing off MSG-140, now.
-    private func newest() -> [(Int64, DemoStep)] {
-        [
-            (nowMillis - 7_200_000, .run(steward: "st_refunds", input: "Check approved refunds")),
+    /// it, `writeVisits`), a finished lead follow-up ten minutes ago (so the live steward has
+    /// spend today at any hour), a triage run, and Sam handing off MSG-140, now.
+    private func newest(_ generated: [GeneratedSteward]) -> [(Int64, DemoStep)] {
+        // A run its script completes with a cost (some planned runs fail on purpose).
+        let steward = generated.first { $0.spec.id == "st_lead_follow_up" }
+        let lead = steward?.runs.last {
+            let response = steward?.script.response(for: $0.input)
+            return response?.status == .completed && (response?.cost.costMicros ?? 0) > 0
+        }?.input
+        let refunds: [(Int64, DemoStep)] = [
+            (nowMillis - 7_200_000, .run(steward: "st_refunds", input: "Check approved refunds"))
+        ]
+        let leads: [(Int64, DemoStep)] =
+            lead.map {
+                [(nowMillis - 600_000, .run(steward: "st_lead_follow_up", input: $0))]
+            } ?? []
+        return refunds + leads + [
             (
                 nowMillis - 120_000,
                 .run(
@@ -359,6 +375,26 @@ struct DemoSeeder {
                     text: "Take MSG-140 and close it out with the customer.")
             ),
         ]
+    }
+
+    /// `script` with a fixed cost on every response that has none.
+    static func priced(_ script: FakeScript) -> FakeScript {
+        func price(_ response: FakeScript.Response, _ salt: Int) -> FakeScript.Response {
+            guard response.cost.costMicros == 0 else { return response }
+            var priced = response
+            let size = response.events.count + response.steps.count
+            let tokens = Int64(2400 + (size * 900 + salt * 337) % 4200)
+            priced.cost = CostResult(
+                inputTokens: tokens, outputTokens: tokens / 6,
+                costMicros: tokens * 3 + tokens / 6 * 15)
+            return priced
+        }
+        var out = script
+        for (index, key) in out.responses.keys.sorted().enumerated() {
+            if let response = out.responses[key] { out.responses[key] = price(response, index) }
+        }
+        out.defaultResponse = out.defaultResponse.map { price($0, 7) }
+        return out
     }
 
     /// Steps up to now, in time order; equal times keep their order.

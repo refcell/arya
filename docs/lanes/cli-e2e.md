@@ -160,6 +160,7 @@ M4:
 - (from runtime) `OnboardSummary.records` (decision 0063): past records summarized from `history`; worth a word in `arya steward onboard` text and an e2e step with a history binding.
 - (from runtime) e2e for grants (decision 0064), once workspace stores them: a message from a person without a use grant proposes an action that is rejected `access:use` with a problem finding (`arya findings`); add the grant and the same message executes; a person without an approve grant is refused on `arya approve` (`approval.refused`, rule `grant:approve`) and one with it approves.
 - (from runtime) Grants are now storable (decision 0065): facade `setTeam`, `grantAccess`, `revokeAccess`, `undoAccess`, `access()`. For the 0064 e2e an `arya access` command (list, grant, revoke, team, undo) would drive it; then message as a person without a grant (refused, `access.refused`, finding), grant, message again (executes).
+- (from workspace) CEO review #26-29 (cost missing): I changed `Sources/AryaDemo/Seeder.swift`. `Seeder.priced` gives the example scripts' cost-free responses a fixed cost, and `newest` adds a finished, costed lead follow-up run 10 minutes before now. Seeded after midnight, only the cost-free examples had run today, so every COST TODAY read "—". The test `busyDemoHomeHasSpendToday` checks the seed from today's inputs. Adopt or reshape as you like.
 
 ## Log
 - 2026-11-11: ROADMAP M3.6 #1 flipped to done (app-outcome: wizard guardrail metrics,

@@ -42,6 +42,34 @@ private func sharedDemoHome() -> URL? {
         }
 }
 
+/// The shared seed made from today's seed inputs (the stamp `etc/scripts/demo-current.sh`
+/// computes), or nil when no worktree has seeded them yet today.
+private func currentDemoSeed() -> URL? {
+    let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent()
+    let script = """
+        cd "$(git rev-parse --show-toplevel)" && { date +%F; find etc/scripts/demo.sh \\
+          etc/examples Sources/AryaDemo Sources/Arya/Seeding.swift -type f -print0 | sort -z |
+          xargs -0 shasum -a 256; } | shasum -a 256 | cut -d' ' -f1
+        echo "$(cd "$(git rev-parse --git-common-dir)" && pwd)/arya-demo-homes"
+        """
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/bin/bash")
+    process.arguments = ["-c", script]
+    process.currentDirectoryURL = root
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = FileHandle.nullDevice
+    guard (try? process.run()) != nil else { return nil }
+    process.waitUntilExit()
+    let lines = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        .split(separator: "\n").map(String.init)
+    guard process.terminationStatus == 0, lines.count == 2 else { return nil }
+    let seed = URL(fileURLWithPath: lines[1]).appendingPathComponent(lines[0])
+    let stamp = seed.appendingPathComponent(".seed").path
+    return FileManager.default.fileExists(atPath: stamp) ? seed : nil
+}
+
 /// The busy seeded home's checks, one at a time: each copies the 26 MB seed and folds it, so
 /// running them together starves the timing tests.
 @Suite(.serialized) struct BusyDemoHome {
@@ -144,6 +172,30 @@ private func sharedDemoHome() -> URL? {
             #expect(busy >= 5, "\(steward.id): runs on \(busy) of 7 days (\(history.line))")
             #expect(history.today < history.total, "\(steward.id): every run is today")
         }
+    }
+
+    /// Today's spend is never blank on the busy demo home: the fleet spent something today and
+    /// so did the live steward, at any hour of seeding (review #26: every COST TODAY read "—"
+    /// after midnight, when only the cost-free example scripts had run today).
+    @Test func busyDemoHomeHasSpendToday() async throws {
+        guard let seed = currentDemoSeed() else {
+            print("busy demo home: no seed from today's inputs yet; just snapshot to check spend")
+            return
+        }
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent("arya-demo-\(UUID().uuidString)")
+        try FileManager.default.copyItem(at: seed, to: home)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let workspace = try await Workspace.open(home: home)
+        let today = try await workspace.runs().filter {
+            Calendar.current.isDateInToday($0.startedAt)
+        }
+        let fleet = today.reduce(0) { $0 + $1.costMicros }
+        let lead = today.filter { $0.steward == "st_lead_follow_up" }.reduce(0) {
+            $0 + $1.costMicros
+        }
+        #expect(fleet > 0, "fleet spent nothing today over \(today.count) runs")
+        #expect(lead > 0, "the live steward spent nothing today")
     }
 
     /// A copy of the shared seed whose adapter profiles point at the copy and this build's fake
