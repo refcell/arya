@@ -224,6 +224,17 @@ private func currentDemoSeed() -> URL? {
             let overBudget = try await workspace.runs(steward: steward.id)
                 .filter { $0.failureReason == "budget" }.count
             #expect(overBudget == 0, "\(steward.id): \(overBudget) runs failed on budget")
+            // Its newest rehearsal of the live charter passes at least half its cases, and no
+            // case failed on budget (VC42: every case "would do nothing" at a 0 budget).
+            if let rehearsal = try await workspace.rehearsals(steward: steward.id)
+                .filter({ $0.charterVersion != 0 }).max(by: { $0.id < $1.id })
+            {
+                #expect(
+                    rehearsal.passed * 2 >= rehearsal.total,
+                    "\(steward.id): rehearsal \(rehearsal.passed)/\(rehearsal.total) passed")
+                let budget = rehearsal.cases.filter { $0.notes.joined().contains("budget") }
+                #expect(budget.isEmpty, "\(steward.id): \(budget.count) cases failed on budget")
+            }
             let findings = try await workspace.overviewFindings(steward: steward.id)
             for finding in findings where finding.text.hasSuffix("failed this week") {
                 #expect(
