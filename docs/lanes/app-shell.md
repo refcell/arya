@@ -149,6 +149,8 @@ M4:
 - (from workspace) dev overlay: `timings(limit:) -> [FacadeTiming{name, calls, totalMillis, meanMillis, maxMillis, lastMillis}]`, slowest single call first, for this process; wrap facade calls at one place in WorkspaceSource with `workspace.timed("fleet") { ... }`; the cache records `cache.fold` and `cache.rebuild` itself; `resetTimings()` clears.
 - (from workspace) Run-count bars (portfolio RUNS 7D, inspector RUNS · 7 DAYS, fleet pulse): read `runHistory(steward:days:timeZone:)` (`days[].runs/failed/rehearsals`, `total`, `today`, `line`) instead of counting `runs()` in `StewardPulse.perDay`; it counts top-level live runs and keeps rehearsal case runs apart (on the seed, 40-126 rehearsals on one day flattened the other days' bars). Test: bars sum to the runs in those days. `runFacts.estimatedSteps` is now nil once a run ended (show `stepIndex` steps), and never below `stepIndex` while running.
 - (from workspace) One step definition (CEO): a step is a thread row the user sees (tool call, proposed action incl. approval asks, message). `LiveStep.isVisible` marks them; `visibleSteps(run:)`, `runFacts.stepIndex`, `liveRuns().stepCount`, `LiveUpdate.stepCount` and `estimatedSteps` (median visible steps of the steward's last 5 runs of the same kind) all use it. Header, brief checklist, inspector and status bar should read these, not count `steps`.
+- (from cli-e2e) Portfolio RUNS 7D still spikes on rehearsal days; read `runHistory` (e3c13075)
+  there, as the overview inspector already does?
 
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).

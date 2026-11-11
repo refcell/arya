@@ -159,6 +159,14 @@ M4:
 - (from runtime) Grants are now storable (decision 0065): facade `setTeam`, `grantAccess`, `revokeAccess`, `undoAccess`, `access()`. For the 0064 e2e an `arya access` command (list, grant, revoke, team, undo) would drive it; then message as a person without a grant (refused, `access.refused`, finding), grant, message again (executes).
 
 ## Log
+- 2026-11-11: seeded runs read as real work: each adapter update moves the seeding clock 3-40 s
+  (by event kind and a per-steward tempo), actions take 1-6 s, runs take 30 s to 6 min, and
+  start times are off the hour. The seed's "today" is local midnight (it was 00:00 UTC, so an
+  evening reseed moved the history a day). New test: every active steward has live runs on 5
+  of the last 7 days. readiness counts a crew once (e2e, 80 steps; eval's open item 3 was
+  already fixed by 85be5e4a). Visual check (run, run-diff-window, overview, portfolio-live):
+  steps 6-68 s apart, runs 1m38s and 5m54s; overview RUNS 7 DAYS has a bar every day; the
+  portfolio's RUNS 7D column still spikes on rehearsal days until it reads `runHistory`.
 - 2026-11-10: graded-run e2e (79 steps): e2e seeds a three-example demo home (about 40 s) and
   asserts `steward trajectories` shows good runs and a credit line, since real homes run
   actions dry. ROADMAP 4 flipped to done: 14 done, 4 partial, 0 missing.
