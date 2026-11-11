@@ -503,8 +503,8 @@ extension Workspace: WorkspaceSource {
             readings: impact.readings,
             rows: impact.rows.map {
                 FeatureImpact.Row(
-                    label: $0.label, credit: $0.credit, helped: $0.helped, actions: $0.actions,
-                    windows: $0.windows, confidence: $0.confidenceLevel)
+                    label: $0.label, credit: $0.credit, helped: $0.helped,
+                    confidence: $0.confidenceLevel, line: $0.line)
             }, summary: impact.summary)
     }
 

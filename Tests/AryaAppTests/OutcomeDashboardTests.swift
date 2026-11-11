@@ -185,20 +185,23 @@ private func log() -> [FeatureEvent] {
     #expect(findings.last?.text == "The current charter missed it.")
 }
 
-/// IMPACT shows the workspace's rows with their confidence; zero credit is neutral.
+/// IMPACT shows the workspace's rows verbatim, never its own window count (it once read "12
+/// of 11 windows" from readings - 1); zero credit is neutral.
 @Test func impactMapsRowsWithConfidence() {
     let impact = OutcomeImpact.build(
         FeatureImpact(
             readings: 8,
             rows: [
                 .init(
-                    label: "label + route", credit: 0.04, helped: true, actions: 12, windows: 5,
-                    confidence: "medium"),
+                    label: "label + route", credit: 0.04, helped: true, confidence: "medium",
+                    line: "label + route: +0.040 over 12 actions in 12 of 12 windows, "
+                        + "medium confidence"),
                 .init(
-                    label: "reply", credit: -0.001, helped: false, actions: 2, windows: 2,
-                    confidence: "low"),
+                    label: "reply", credit: -0.001, helped: false, confidence: "low",
+                    line: "reply: -0.001 over 2 actions in 2 of 12 windows, low confidence"),
             ], summary: "routed +0.04 over 14 actions; most of it from label + route."))
-    #expect(impact.rows.first?.detail == "12 actions in 5 of 7 windows · medium confidence")
+    #expect(impact.rows.first?.detail == "12 actions in 12 of 12 windows, medium confidence")
+    #expect(OutcomeImpact.detail("no split") == "no split")
     #expect(OutcomeImpact.tone(impact.rows[0]) == AryaColor.positive)
     #expect(OutcomeImpact.tone(impact.rows[1]) == AryaColor.inkMuted)
     #expect(OutcomeDashboardText.credit(-0.001) == "±0.00")

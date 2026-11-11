@@ -259,7 +259,8 @@ struct OutcomeImpact: Hashable, Sendable {
         var label: String
         var credit: Double
         var helped: Bool
-        /// "12 actions in 5 of 7 windows · medium confidence".
+        /// The workspace's words after the credit, verbatim: "12 actions in 5 of 7 windows,
+        /// medium confidence"; the label and credit have their own columns.
         var detail: String
         var id: String { label }
     }
@@ -268,16 +269,20 @@ struct OutcomeImpact: Hashable, Sendable {
     var summary: String
     var readings: Int
 
+    /// The app counts nothing itself: each row's detail is the workspace's line (one source).
     static func build(_ impact: FeatureImpact) -> OutcomeImpact {
-        let windows = max(0, impact.readings - 1)
-        return OutcomeImpact(
+        OutcomeImpact(
             rows: impact.rows.map { row in
-                let noun = row.actions == 1 ? "action" : "actions"
-                return Row(
+                Row(
                     label: row.label, credit: row.credit, helped: row.helped,
-                    detail: "\(row.actions) \(noun) in \(row.windows) of \(windows) windows · "
-                        + "\(row.confidence) confidence")
+                    detail: detail(row.line))
             }, summary: impact.summary, readings: impact.readings)
+    }
+
+    /// The line after "<label>: <credit> over ", or the whole line when it has another shape.
+    static func detail(_ line: String) -> String {
+        guard let over = line.range(of: " over ") else { return line }
+        return String(line[over.upperBound...])
     }
 
     /// Green for help, red for harm, muted for a change that rounds to zero.

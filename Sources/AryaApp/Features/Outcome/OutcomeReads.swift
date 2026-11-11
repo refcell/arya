@@ -34,10 +34,11 @@ struct FeatureImpact: Hashable, Sendable {
         var label: String
         var credit: Double
         var helped: Bool
-        var actions: Int
-        var windows: Int
         /// high, medium, or low.
         var confidence: String
+        /// The workspace's own line, shown verbatim: "label: +0.040 over 12 actions in 5 of 7
+        /// windows, medium confidence".
+        var line: String
     }
 
     var readings: Int
