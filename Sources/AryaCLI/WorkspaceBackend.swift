@@ -551,6 +551,52 @@ extension WorkspaceBackend {
     }
 }
 
+// Access (workspace lane): AccessCommands.swift.
+extension WorkspaceBackend {
+    func access(refusals: Int) async throws(CLIError) -> AccessOverview {
+        let workspace = try await open()
+        return try await call("access") { try await workspace.access(refusals: refusals) }
+    }
+
+    func grantAccess(
+        _ level: String, on resource: String, to subject: String, reason: String?,
+        as person: String?
+    ) async throws(CLIError) -> AccessOverview {
+        let workspace = try await open()
+        return try await call("grantAccess", rejection: { .invalidInput($0) }) {
+            try await workspace.grantAccess(
+                level, on: resource, to: subject, reason: reason, as: person ?? "local")
+        }
+    }
+
+    func revokeAccess(
+        _ level: String, on resource: String, from subject: String, reason: String?,
+        as person: String?
+    ) async throws(CLIError) -> AccessOverview {
+        let workspace = try await open()
+        return try await call("revokeAccess", rejection: { .invalidInput($0) }) {
+            try await workspace.revokeAccess(
+                level, on: resource, from: subject, reason: reason, as: person ?? "local")
+        }
+    }
+
+    func setTeam(_ id: String, name: String?, members: [String], as person: String?)
+        async throws(CLIError) -> AccessOverview
+    {
+        let workspace = try await open()
+        return try await call("setTeam", rejection: { .invalidInput($0) }) {
+            try await workspace.setTeam(id, name: name, members: members, as: person ?? "local")
+        }
+    }
+
+    func undoAccess(_ seq: Int, as person: String?) async throws(CLIError) -> AccessOverview {
+        let workspace = try await open()
+        return try await call("undoAccess", rejection: { .invalidInput($0) }) {
+            try await workspace.undoAccess(seq, as: person ?? "local")
+        }
+    }
+}
+
 // Governance (ledger lane): GovernanceCommands.swift.
 extension WorkspaceBackend {
     func policy(steward: String) async throws(CLIError) -> PolicySummary {

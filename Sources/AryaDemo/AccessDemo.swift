@@ -100,6 +100,9 @@ enum AccessDemo {
                 ("approve", "steward:st_vendor_spend_review", "person:omar"),
                 ("use", "steward:st_lead_follow_up", "team:sales"),
                 ("use", "steward:st_churn_watch", "person:lena"),
+                // Lena corrects product adoption (Specs), which needs `use` on something of it;
+                // her crm hand-offs below must still be refused, so only its usage connection.
+                ("use", "connection:usage", "person:lena"),
                 ("approve", "*", "person:jules"),
             ] {
                 _ = try await workspace.grantAccess(level, on: resource, to: subject)

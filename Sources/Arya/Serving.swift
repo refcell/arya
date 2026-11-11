@@ -186,6 +186,7 @@ extension Workspace {
         guard let kind = MessageIntent(rawValue: intent) else {
             throw WorkspaceError.rejected("intent must be ask, correct, or handoff, not \(intent)")
         }
+        try await requireMessageAccess(person, steward: id, intent: kind)
         let inbox = Inbox(engine: engine, scheduler: scheduler)
         let receipt: InboxReceipt
         do {

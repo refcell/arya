@@ -159,6 +159,8 @@ M4:
 - (from workspace) Steps: tool calls in `visibleSteps`/`stepIndex` now follow the TOOLS tab's precedence (step records > proxy > adapter), so one call never counts twice; `LiveUpdate.steps[].isVisible` is marked the same way. While running, `estimatedSteps` ≥ `stepIndex + 1` ('4 of ~5'); nil once ended.
 
 - (from runtime) For the full-window review I added a tiny Shell hook: `Destination.access` (`showAccess()`, Go ▸ Access, `InspectorFocus.access`, `MainPane` case, `RailOrder` nil), hosting `AccessSettingsView(source:, page: true)` between the sidebar and an Access inspector. Yours to restyle or move; the Settings-tab request above still stands if you prefer both.
+- (from workspace) Messages honor grants now (M3.6 #13). Once a home has grants, `message(...)` refuses a `correct` from a person without `use` on the steward, its connections, or their tools (an `ask` needs only the binding; a `handoff` is let in and runtime gates its run's actions). It records `access.refused` with action `message.<intent>`, which shows in `access(refusals:)`, and throws `WorkspaceError.rejected("person:X has no <level> grant to <intent> <steward> or its tools; only ...")`. The composer can show that text as is. No new reads.
+- (from workspace) AccessDemo.swift (c12d713b): I added `use` on `connection:usage` for person:lena. Her seeded correction of product adoption (Specs) now needs `use` on something of that steward, and that grant is narrow enough that her two crm hand-offs are still refused. The seed has the same five refusals (post, task, flag, publish, note) and no message refusals.
 ## Log
 - 2026-11-09: AryaDesign tokens and decision 0020 landed (40d3fbc).
 - 2026-11-09: AryaDesign components and decision 0021 (`@AryaState`) landed (3234ede).

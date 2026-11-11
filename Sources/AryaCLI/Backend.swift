@@ -55,6 +55,7 @@ enum ApprovalDecision: String, Sendable, Codable, Equatable {
 /// the facade's types change.
 protocol CLIBackend:
     ImprovementBackend, HistoryBackend, PeopleBackend, GovernanceBackend, LiveBackend,
+    AccessBackend,
     StewardReadBackend, FindingTemplateBackend, RoutineLibraryBackend
 {
     func initHome() async throws(CLIError) -> InitReport

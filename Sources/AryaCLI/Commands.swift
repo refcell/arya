@@ -43,6 +43,9 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case reportSend = "report send"
     case stewardPolicy = "steward policy", undo, retention, retentionApply = "retention apply"
     case encryption, export, exportVerify = "export verify", importExport = "import"
+    case accessList = "access list", accessGrant = "access grant"
+    case accessRevoke = "access revoke", accessTeam = "access team"
+    case accessUndo = "access undo"
     case runFacts = "run facts"
     case stewardLive = "steward live"
     case stewardOnboarding = "steward onboarding", stewardGate = "steward gate"
@@ -172,7 +175,7 @@ enum CommandTable {
                         help: "only this steward's events"),
                 ]),
             CommandSpec(id: .ledgerVerify, summary: "Check the ledger's hash chain and sequence"),
-        ] + improvement + history + people + governance + live + stewardReads
+        ] + improvement + history + people + governance + access + live + stewardReads
         + findingsAndTemplates + library
 
     /// M2 commands: the improvement loop.

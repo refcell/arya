@@ -174,8 +174,10 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11:
     opportunity; `arya findings`, and a person acts on one (`arya finding resolve`).
 13. Governance: fine-grained access, attributable and auditable (governance). Partial: the
     ledger audit, approver rules enforced and recorded (9af3f91c), and a people directory with
-    roles (cc50514f); access by organization, team, and tool is missing. e2e: a refused
-    approver is recorded, the allowed one approves; verify the ledger.
+    roles (cc50514f), grants and teams in the ledger with gated, undoable changes enforced on
+    use and approve (2483d6af), Settings > Access (8018d0ad), and `arya access
+    list|grant|revoke|team|undo` with message intents honoring grants (workspace). Left: the
+    e2e. e2e: a refused approver is recorded, the allowed one approves; verify the ledger.
 14. Sandboxed execution, encryption at rest, retention (governance). Done: the OS sandbox,
     encryption (d87306ce) and re-sealing older history (24284e8a), retention applied by
     archiving (ed96bb79), all in the app (6c940da4). e2e: retention, signed export and import.
