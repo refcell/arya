@@ -595,6 +595,15 @@ extension WorkspaceBackend {
             try await workspace.undoAccess(seq, as: person ?? "local")
         }
     }
+
+    func setAccessEnforcement(_ on: Bool, as person: String?) async throws(CLIError)
+        -> AccessOverview
+    {
+        let workspace = try await open()
+        return try await call("setAccessEnforcement", rejection: { .invalidInput($0) }) {
+            try await workspace.setAccessEnforcement(on, as: person ?? "local")
+        }
+    }
 }
 
 // Governance (ledger lane): GovernanceCommands.swift.

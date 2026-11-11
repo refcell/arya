@@ -77,7 +77,8 @@ public struct AccessChangeSummary: Sendable, Hashable, Codable {
 
 /// Everything Settings ▸ Access shows.
 public struct AccessOverview: Sendable, Hashable, Codable {
-    /// False while the home has no grants or teams: nothing is enforced yet.
+    /// Whether grants are enforced (decision 0066): false until the first grant or team, then
+    /// true, also with none left in force, until someone turns enforcement off.
     public var enforced: Bool
     public var teams: [AccessTeamSummary]
     public var grants: [AccessGrantSummary]
@@ -140,7 +141,7 @@ extension Workspace {
                 undone: change.undoneBy != nil)
         }
         return AccessOverview(
-            enforced: !book.isEmpty,
+            enforced: book.enforced,
             teams: teams.map { AccessTeamSummary(id: $0.team, name: $0.name, members: $0.members) },
             grants: book.grants.map {
                 AccessGrantSummary(
@@ -208,6 +209,19 @@ extension Workspace {
         return try await access()
     }
 
+    /// Turns enforcement on or off (`access.enforcement`, decision 0066). Revoking the last
+    /// grant leaves it on; this is the only way to turn it off. Undoable like any change.
+    @discardableResult
+    public func setAccessEnforcement(_ on: Bool, as person: String = "local") async throws
+        -> AccessOverview
+    {
+        guard try await sink.book(AccessBook.self).enforced != on else {
+            throw WorkspaceError.rejected("enforcement is already \(on ? "on" : "off")")
+        }
+        try await change(AccessEventType.enforcement, AccessEnforcement(on: on), as: person)
+        return try await access()
+    }
+
     /// Undoes access change `seq` by recording its inverse.
     @discardableResult
     public func undoAccess(_ seq: Int, as person: String = "local") async throws
@@ -265,6 +279,7 @@ extension Workspace {
         case AccessEventType.granted: "granted"
         case AccessEventType.revoked: "revoked"
         case AccessEventType.team: "team"
+        case AccessEventType.enforcement: "enforcement"
         default: change.type
         }
     }
@@ -288,6 +303,9 @@ extension Workspace {
         if let team = change.team {
             if team.members.isEmpty { return "Disbanded \(team.team)\(undo)" }
             return "Set \(team.team) to \(team.members.joined(separator: ", "))\(undo)"
+        }
+        if let on = change.enforcement {
+            return "Turned enforcement \(on ? "on" : "off")\(undo)"
         }
         return change.type
     }

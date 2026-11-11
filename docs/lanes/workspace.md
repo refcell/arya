@@ -305,3 +305,8 @@ M3:
 - 2026-11-11: seed check adds rehearsals (CEO, VC42): each steward's newest live-charter rehearsal passes at least half its cases, and no case fails on budget.
 - 2026-11-11: live cost (CEO, VC44). The generated live lead response had cost 0, so the adapter's mid-run `run/cost` answer read 0 and the header read "—". It now carries a cost, and the live-run test expects `RunFacts.costMicros > 0` while the run is still running.
 - 2026-11-11: eval handoff item 4 (eval's whole-ledger reads block retention): resolved by ledger's G3b. `LedgerReader` reads archived segments first, so eval's `sink.events(from: 1)` folds still see everything after archiving. What's left is performance only (about 20 full folds per eval read); move them onto the facade cache if a busy-home read proves slow. Items 1 and 2 are noted as deferred in ROADMAP M3.6 #9.
+- 2026-11-11: access fails closed (CEO, decision 0066). `AccessBook.enforced` turns on with the
+  first grant or team and stays on after the last revoke; `access.enforcement` (facade
+  `setAccessEnforcement`, CLI `arya access enforce on|off`) is the only way off, undoable. The
+  workspace gates on `enforced`, not `isEmpty`. Tests `revokingTheLastGrantKeepsEnforcementOn`
+  and the CLI access test. Notes to cli-e2e (e2e step), runtime, and app-views.

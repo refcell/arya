@@ -76,4 +76,15 @@ private func arya(_ home: URL, json: Bool = true, _ arguments: String...) async
     #expect(undoStatus == .ok)
     let after = try JSONDecoder().decode(AccessOverview.self, from: Data(undone.utf8))
     #expect(after.grants.isEmpty)
+
+    // Undoing the last grant leaves enforcement on (decision 0066); only `enforce off` ends it.
+    #expect(await arya(home, "access", "team", "support").0 == .ok)
+    let (_, closed, _) = await arya(home, json: false, "access", "list")
+    #expect(closed.contains("enforced. With none in force, anything that needs a grant is refused"))
+    #expect(await arya(home, "access", "enforce", "maybe").0 == .usage)
+    let (offStatus, off, _) = await arya(home, "access", "enforce", "off")
+    #expect(offStatus == .ok)
+    #expect(try !JSONDecoder().decode(AccessOverview.self, from: Data(off.utf8)).enforced)
+    #expect(await arya(home, "access", "enforce", "off").0 != .ok)
+    #expect(await arya(home, "access", "enforce", "on").0 == .ok)
 }

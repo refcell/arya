@@ -19,7 +19,7 @@ extension Workspace {
     {
         guard !Access.isOwner(person), intent == .correct else { return }
         let book = try await sink.book(AccessBook.self)
-        guard !book.isEmpty else { return }
+        guard book.enforced else { return }
         let who = Access.person(person)
         // The steward, its connections, and their tools: a grant on any of them is a grant to
         // work with this steward.

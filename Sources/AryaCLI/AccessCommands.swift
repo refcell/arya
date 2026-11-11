@@ -18,6 +18,8 @@ protocol AccessBackend: Sendable {
     func setTeam(_ id: String, name: String?, members: [String], as person: String?)
         async throws(CLIError) -> AccessOverview
     func undoAccess(_ seq: Int, as person: String?) async throws(CLIError) -> AccessOverview
+    func setAccessEnforcement(_ on: Bool, as person: String?) async throws(CLIError)
+        -> AccessOverview
 }
 
 extension AccessBackend {
@@ -47,6 +49,12 @@ extension AccessBackend {
 
     func undoAccess(_ seq: Int, as person: String?) async throws(CLIError) -> AccessOverview {
         throw .unavailable("undoAccess")
+    }
+
+    func setAccessEnforcement(_ on: Bool, as person: String?) async throws(CLIError)
+        -> AccessOverview
+    {
+        throw .unavailable("setAccessEnforcement")
     }
 }
 
@@ -96,6 +104,11 @@ extension CommandTable {
             id: .accessUndo, summary: "Undo an access change by its seq",
             positionals: [PositionalSpec(name: "seq", help: "the change's ledger seq")],
             options: [asPerson]),
+        CommandSpec(
+            id: .accessEnforce,
+            summary: "Turn grant enforcement on or off (it stays on after the last revoke)",
+            positionals: [PositionalSpec(name: "state", help: "on or off")],
+            options: [asPerson]),
     ]
 }
 
@@ -133,6 +146,12 @@ extension CLI {
                 throw .usage("seq must be a number", command: .accessUndo)
             }
             overview = try await backend.undoAccess(seq, as: person)
+        case .accessEnforce:
+            let state = try invocation.positional("state")
+            guard state == "on" || state == "off" else {
+                throw .usage("state is on or off", command: .accessEnforce)
+            }
+            overview = try await backend.setAccessEnforcement(state == "on", as: person)
         default:
             throw .usage("unknown command: \(invocation.command.rawValue)")
         }
@@ -145,7 +164,12 @@ enum AccessText {
         var lines = [
             overview.enforced
                 ? "\(overview.grants.count) grants, \(overview.teams.count) teams; enforced."
-                : "No grants or teams: nothing is enforced."
+                    + (overview.grants.isEmpty && overview.teams.isEmpty
+                        ? " With none in force, anything that needs a grant is refused." : "")
+                : overview.grants.isEmpty && overview.teams.isEmpty
+                    ? "No grants or teams: nothing is enforced."
+                    : "\(overview.grants.count) grants, \(overview.teams.count) teams; "
+                        + "enforcement is off."
         ]
         if !overview.teams.isEmpty {
             lines.append("teams:")

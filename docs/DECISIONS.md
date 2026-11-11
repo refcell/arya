@@ -740,3 +740,16 @@ change is undone by recording its inverse (`undoes` names the change). The facad
 (`Sources/Arya/Access.swift`, which the workspace lane may take over). Why: who may do what has
 to be attributable and reversible like every other change in arya.
 
+### 0066 — 2026-11-10 — Access enforcement fails closed and is turned off only explicitly
+
+Context: under 0065 a home with neither grants nor teams enforced nothing, so revoking the last
+grant silently opened every steward to everyone. Decision: enforcement is sticky. The first
+`access.granted` or `access.team` with members turns it on, and revoking or disbanding the last
+one leaves it on; with no grant in force, every correction and every action that needs a grant
+is refused. Only `access.enforcement` (`{on, undoes?}`, by the owner or an access admin) turns it
+off; it is recorded like any access change and undone by its inverse. A later grant or team, or
+the operator, turns it on again. `AccessBook.enforced` holds the state; the workspace hands
+grants to the runtime and gates corrections whenever it is on. A home that never had a grant
+still enforces nothing. The facade has `setAccessEnforcement`; the CLI has `arya access enforce
+on|off`. Why: taking access away must never widen it; turning enforcement off is a decision
+someone makes and can be seen making.

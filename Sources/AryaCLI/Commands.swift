@@ -45,7 +45,7 @@ enum CommandID: String, Sendable, Equatable, CaseIterable {
     case encryption, export, exportVerify = "export verify", importExport = "import"
     case accessList = "access list", accessGrant = "access grant"
     case accessRevoke = "access revoke", accessTeam = "access team"
-    case accessUndo = "access undo"
+    case accessUndo = "access undo", accessEnforce = "access enforce"
     case runFacts = "run facts"
     case stewardLive = "steward live"
     case stewardOnboarding = "steward onboarding", stewardGate = "steward gate"

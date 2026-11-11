@@ -47,7 +47,7 @@ public actor Workspace {
         let access: AccessSource =
             wiring.access ?? { _ in
                 let book = try await ledger.book(AccessBook.self)
-                return book.isEmpty ? nil : book.inForce
+                return book.enforced ? book.inForce : nil
             }
         approvalQueue = ApprovalQueue(sink: sink, ambient: wiring.ambient, access: access)
         dispatcher = ActionDispatcher(

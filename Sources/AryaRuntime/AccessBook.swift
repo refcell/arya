@@ -15,6 +15,20 @@ public enum AccessEventType {
     public static let team = "access.team"
     /// `access.refused` (`AccessRefused`): a use or approve refused for want of a grant.
     public static let refused = "access.refused"
+    /// `access.enforcement` (`AccessEnforcement`): the operator turned enforcement on or off.
+    public static let enforcement = "access.enforcement"
+}
+
+/// `access.enforcement`: enforcement on or off, set by the operator (decision 0066). Without
+/// one, the first grant or team turns enforcement on, and it stays on (fail closed).
+public struct AccessEnforcement: Sendable, Hashable, Codable {
+    public var on: Bool
+    public var undoes: Int?
+
+    public init(on: Bool, undoes: Int? = nil) {
+        self.on = on
+        self.undoes = undoes
+    }
 }
 
 /// `access.granted` and `access.revoked`.
@@ -112,22 +126,30 @@ public struct AccessChangeRecord: Sendable, Hashable, Codable {
     public var priorTeam: AccessTeam?
     /// Set once a later change undid this one.
     public var undoneBy: Int?
+    /// For `access.enforcement`: what it set, and whether enforcement was on before it.
+    public var enforcement: Bool? = nil
+    public var priorEnforced: Bool? = nil
 }
 
 /// Folds the access events.
 public struct AccessBook: RuntimeBook {
-    public static let cacheName = "runtime.access.v1"
+    public static let cacheName = "runtime.access.v2"
 
     public private(set) var grants: [AccessGrantRecord] = []
     public private(set) var teams: [String: AccessTeamRecord] = [:]
     public private(set) var changes: [Int: AccessChangeRecord] = [:]
     /// Refusals, newest last, at most `refusalLimit`.
     public private(set) var refusals: [AccessRefusalRecord] = []
+    /// Whether grants are enforced (decision 0066): on from the first grant or team, and it
+    /// stays on when the last one is revoked (with none in force, everything that needs a
+    /// grant is refused); only `access.enforcement` turns it off, and a later grant or team,
+    /// or the operator, turns it on again.
+    public private(set) var enforced = false
 
     /// Refusals kept for the Refused list.
     public static let refusalLimit = 200
 
-    enum CodingKeys: String, CodingKey { case grants, teams, changes, refusals }
+    enum CodingKeys: String, CodingKey { case grants, teams, changes, refusals, enforced }
 
     public init() {}
 
@@ -135,7 +157,8 @@ public struct AccessBook: RuntimeBook {
         for event in events { try apply(event) }
     }
 
-    /// True when the home has neither grants nor teams: nothing is enforced.
+    /// True when the home has neither grants nor teams in force. Whether grants are enforced
+    /// is `enforced`, which stays on after the last one is revoked.
     public var isEmpty: Bool { grants.isEmpty && teams.isEmpty }
 
     /// The grants and teams in force.
@@ -151,6 +174,7 @@ public struct AccessBook: RuntimeBook {
             let change = try Payload.decode(AccessChange.self, event.payload)
             grants.removeAll { $0.grant == change.grant }
             if event.type == AccessEventType.granted {
+                enforced = true
                 grants.append(
                     AccessGrantRecord(
                         grant: change.grant, by: event.draft.actor.id, seq: event.seq,
@@ -165,6 +189,7 @@ public struct AccessBook: RuntimeBook {
             if team.members.isEmpty {
                 teams[team.team] = nil
             } else {
+                enforced = true
                 teams[team.team] = AccessTeamRecord(
                     team: team.team, name: team.name, members: team.members, seq: event.seq)
             }
@@ -173,6 +198,13 @@ public struct AccessBook: RuntimeBook {
                 prior: prior
                     ?? AccessTeam(
                         team: team.team, name: team.name, members: []), undoes: team.undoes)
+        case AccessEventType.enforcement:
+            let change = try Payload.decode(AccessEnforcement.self, event.payload)
+            let prior = enforced
+            enforced = change.on
+            record(event, undoes: change.undoes)
+            changes[event.seq]?.enforcement = change.on
+            changes[event.seq]?.priorEnforced = prior
         case AccessEventType.refused:
             refusals.append(
                 AccessRefusalRecord(
@@ -227,6 +259,12 @@ public enum AccessAdmin {
                 guard var prior = change.priorTeam else { return nil }
                 prior.undoes = seq
                 return (AccessEventType.team, try Payload.encode(prior))
+            case AccessEventType.enforcement:
+                guard let prior = change.priorEnforced else { return nil }
+                return (
+                    AccessEventType.enforcement,
+                    try Payload.encode(AccessEnforcement(on: prior, undoes: seq))
+                )
             default: return nil
             }
         } catch {

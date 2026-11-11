@@ -64,3 +64,55 @@ private func peopleCharterJSON() throws -> Data {
     try await workspace.setTeam("support", members: [])
     #expect(try await workspace.access().teams.isEmpty)
 }
+
+/// Enforcement fails closed (decision 0066): revoking the last grant leaves it on, so with no
+/// grant in force every correction and action that needs one is refused. Only an explicit,
+/// undoable `setAccessEnforcement(false)` turns it off, and a later grant turns it on again.
+@Test func revokingTheLastGrantKeepsEnforcementOn() async throws {
+    let opened = try await Opened(Array(repeating: FakeScript.Run(result: liveResult), count: 4))
+    let workspace = opened.workspace
+    _ = try await workspace.createSteward(charter: try peopleCharterJSON())
+    try await workspace.grantAccess("use", on: "steward:st_inbox", to: "sam")
+    _ = try await workspace.message(
+        steward: "st_inbox", text: "Route billing to finance", intent: "correct", by: "sam")
+
+    var access = try await workspace.revokeAccess("use", on: "steward:st_inbox", from: "sam")
+    #expect(access.enforced && access.grants.isEmpty && access.teams.isEmpty)
+    await #expect(
+        throws: WorkspaceError.rejected(
+            "person:sam has no use grant to correct st_inbox or its tools; nobody holds one")
+    ) {
+        try await workspace.message(
+            steward: "st_inbox", text: "Route billing to finance", intent: "correct", by: "sam")
+    }
+    // A run on sam's behalf: both actions that call the inbox are refused before they run.
+    let executed = await opened.executor.requests.count
+    _ = try await workspace.message(steward: "st_inbox", text: "Refund please", by: "sam")
+    access = try await workspace.access()
+    #expect(Set(access.refusals.prefix(2).map(\.action)) == ["label", "route"])
+    #expect(await opened.executor.requests.count == executed)
+
+    // Off only by an explicit change; it is recorded and undoable.
+    await #expect(throws: WorkspaceError.rejected("enforcement is already on")) {
+        try await workspace.setAccessEnforcement(true)
+    }
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.setAccessEnforcement(false, as: "sam")
+    }
+    access = try await workspace.setAccessEnforcement(false)
+    #expect(!access.enforced && access.lastChange?.text == "Turned enforcement off")
+    #expect(access.lastChange?.kind == "enforcement" && access.lastChange?.undoable == true)
+    _ = try await workspace.message(
+        steward: "st_inbox", text: "Route billing to finance", intent: "correct", by: "sam")
+    access = try await workspace.undoAccess(try #require(access.lastChange?.seq))
+    #expect(access.enforced && access.lastChange?.text == "Turned enforcement on")
+    await #expect(throws: WorkspaceError.self) {
+        try await workspace.message(
+            steward: "st_inbox", text: "Route billing to finance", intent: "correct", by: "sam")
+    }
+
+    // Off again, then a new grant: enforcement is back on.
+    _ = try await workspace.setAccessEnforcement(false)
+    access = try await workspace.grantAccess("view", on: "steward:st_inbox", to: "ana")
+    #expect(access.enforced)
+}

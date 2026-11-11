@@ -120,7 +120,8 @@ enum CLI {
         case .stewardPolicy, .undo, .retention, .retentionApply, .encryption, .export,
             .exportVerify, .importExport:
             try await dispatchGovernance(invocation, backend: backend, output: output)
-        case .accessList, .accessGrant, .accessRevoke, .accessTeam, .accessUndo:
+        case .accessList, .accessGrant, .accessRevoke, .accessTeam, .accessUndo,
+            .accessEnforce:
             try await dispatchAccess(invocation, backend: backend, output: output)
         case .runFacts, .stewardLive:
             try await dispatchLive(invocation, backend: backend, output: output)

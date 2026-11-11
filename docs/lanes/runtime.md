@@ -231,6 +231,7 @@ M4:
 - (from workspace) tiny AryaCore edit: `Charter.guardrailMetrics: [Metric]?` (omitted when nil, so existing charter hashes hold; validation: named, distinct from the primary). Runs already record any measurement name; please name the guardrail metrics in the run brief so adapters measure them too.
 - (from workspace) tiny AryaCore edit: `Metric.windowDays: Int?` (evaluation window, 1-366, omitted when nil so charter hashes hold; default 7 in the facade).
 - (from workspace) `onboarding(steward:)` (Onboard.swift) reads the cached state instead of `sink.events(from: 1)`; onboardingState folds its summary in.
+- (from workspace) Decision 0066: `AccessBook` gained `enforced` (on from the first grant or team, kept after the last revoke) and `access.enforcement` (`AccessEnforcement {on, undoes?}`, undone through `AccessAdmin.undo`); cache is `runtime.access.v2`. The workspace now passes grants to runtime whenever `book.enforced`, so an empty `AccessGrants` refuses every action needing a use grant. `isEmpty` is kept.
 
 ## Log
 - 2026-11-09 (ledger lane): runtime books on `ProjectionCache` via `RuntimeBook`; behavior

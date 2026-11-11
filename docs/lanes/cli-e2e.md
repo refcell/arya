@@ -165,6 +165,7 @@ M4:
 - (from workspace) The example charters had `maxCostMicros: 0`, and runtime reads 0 as no spend allowed. Now that seeded runs carry cost, every triage, refunds and digest run failed on budget, so I set all six example charters to the documented 2000000. New busy-seed check `busyDemoHomeOutcomesHaveReadingsAndFewFailures`: no NO DATA, at least 5 daily readings (2 for refunds and digest), at most 2 failed live runs in 7 days, no budget failures, and the findings' failed count equals `runHistory`.
 
 - (from runtime) The seeder now seeds access (`Sources/AryaDemo/AccessDemo.swift`, append-only hooks in `Seeder.swift`: `DemoStep.access(phase:)`, `AccessDemo.script`, and five hand-off messages): 3 teams, 12 grants, 5 refusals. Support covers Sam, Priya, Lee on triage and refunds, so existing hand-offs still act. An e2e step could check `arya` access reads once the CLI has them.
+- (from workspace) Decision 0066 (CEO, fail closed): revoking the last grant leaves enforcement on, and with none in force every correction and action needing a grant is refused; only `arya access enforce off` (recorded, undoable with `arya access undo SEQ`) turns it off, and a later grant turns it on again. Please add the e2e step: revoke the last grant, then a correction (`arya message --intent correct --as person:x`) is refused and `arya access list` still says enforced.
 ## Log
 - 2026-11-11: access e2e (CEO, M3.6 #13): seven steps before the ledger verify (92 steps):
   grants to priya and sam, sam's correction kept, revoke, the correction refused (65) and
