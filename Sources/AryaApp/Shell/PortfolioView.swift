@@ -163,8 +163,9 @@ struct PortfolioView: View {
                         ForEach(rows) { row in rowButton(row) }
                     }
                     FleetActivity(
-                        lines: FleetActivity.lines(
-                            events: events, stewards: model.stewards, now: now)
+                        lines: FleetActivity.collapsed(
+                            FleetActivity.lines(
+                                events: events, stewards: model.stewards, now: now))
                     ) { model.navigation.select(steward: $0) }
                     .padding(.top, AryaSpace.s6)
                 }
@@ -333,6 +334,11 @@ struct FleetActivity: View {
         var failed: Bool
         /// When it happened; lines are strictly newest first.
         var at: Date = .distantPast
+        /// Like lines in a row folded into this one ("labeled MSG-140 ×5").
+        var count = 1
+
+        /// The text with its repeat count.
+        var said: String { count > 1 ? "\(text) ×\(count)" : text }
     }
 
     let lines: [Line]
@@ -357,6 +363,14 @@ struct FleetActivity: View {
     ) -> [Line] {
         let names = Dictionary(
             stewards.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        // Proposed actions by run and action id, so an execution says what it did.
+        var proposed: [String: (kind: String, target: String)] = [:]
+        for event in events where event.type == "action.proposed" {
+            guard let run = event.run, let action = event.payload["action"],
+                let id = action["id"]?.string, let kind = action["kind"]?.string
+            else { continue }
+            proposed["\(run)/\(id)"] = (kind, action["target"]?.string ?? "")
+        }
         var candidates: [Line] = []
         for event in events.reversed() {
             guard candidates.count < limit * 20 else { break }
@@ -367,6 +381,20 @@ struct FleetActivity: View {
                 event.type == "run.finished"
                 && ["failed", "error"].contains(event.payload["status"]?.string ?? "")
             if failed { text = "had a run fail" }
+            // Name the action: "labeled MSG-140", "asked to send an email to LEAD-1002".
+            if event.type == "action.executed", let run = event.run,
+                let id = event.payload["action"]?.string, let action = proposed["\(run)/\(id)"]
+            {
+                text =
+                    HumanText.pastVerb(action.kind)
+                    + (action.target.isEmpty ? "" : " " + HumanText.name(action.target))
+            } else if event.type == "approval.requested", let action = event.payload["action"],
+                let kind = action["kind"]?.string
+            {
+                let sentence = ActionWords.sentence(
+                    kind: kind, target: action["target"]?.string ?? "")
+                text = "asked to " + sentence.prefix(1).lowercased() + sentence.dropFirst()
+            }
             candidates.append(
                 Line(
                     id: event.id, time: ThreadRow.shortTime(event.at, now: now),
@@ -388,6 +416,19 @@ struct FleetActivity: View {
         }
         flush()
         return Array(out.prefix(limit))
+    }
+
+    /// Like lines in a row (same steward, same words) folded into one with a count.
+    static func collapsed(_ lines: [Line]) -> [Line] {
+        var out: [Line] = []
+        for line in lines {
+            if let last = out.last, last.steward == line.steward, last.text == line.text {
+                out[out.count - 1].count += 1
+            } else {
+                out.append(line)
+            }
+        }
+        return out
     }
 
     /// The first half of `lines` fills the left column top to bottom, the rest the right, so
@@ -451,7 +492,7 @@ struct FleetActivity: View {
                         Text(line.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                             .frame(width: Self.timeWidth, alignment: .leading)
                         Text(line.name).aryaText(AryaFont.body, AryaColor.ink).lineLimit(1)
-                        Text(line.text)
+                        Text(line.said)
                             .aryaText(
                                 AryaFont.caption,
                                 line.failed ? AryaColor.negative : AryaColor.inkMuted

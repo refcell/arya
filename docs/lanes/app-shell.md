@@ -452,3 +452,20 @@ M4:
   steward. Its fold is kept with the department folds under the key "Activity".
 - Visual check (needs-you, overview, portfolio-live): moves (2) no dead space and (4) a live
   feel; needs-you 52 → 49, portfolio-live 50 → 48, overview 44.
+- VC41/VC42: Needs you shows names, not ids (the card title says "Update commitment CMT-1060",
+  "Earlier on CMT-1060"). Run titles never fall back to the trigger kind: the summary, else the
+  workspace title (the input's first line), else "Untitled run". The run inspector always
+  shows Usage, Touched, Policy, Follow-up checks and Related runs, with a dash while a live
+  run has none, and names tools in people's words ("Search the inbox"). The sidebar Activity
+  feed names the action ("labeled MSG-140", "asked to send an email to LEAD-1002"), folds
+  repeats ("×5"), uses one-line rows (6 rows), and hides on All stewards, which has its own
+  Fleet activity.
+- Raw-id gate (STYLE.md "Raw ids"): the snapshot run reads every dark state's text with the
+  system text recognizer (offscreen hosting views build no accessibility tree) and fails a
+  state showing `person:`, `st_x`, `kind:ID-1` or `_snake_`. Metric names are allowed. The
+  21 states that still show ids are in `etc/app/rawtext-pending.txt` with their lane:
+  app-outcome (overview Recent "reply inbox:MSG-140", memory "person:lee"), app-views
+  (run-approval input, crew refusal, charter editor), connect (connections, reports, people
+  thread), workspace (routines "by st_triage"). "the cfo" vs "the CFO" is seed text (cli-e2e).
+- Visual check (needs-you, overview, portfolio-live, new-steward): moves (2) and (4);
+  empty.tsv: needs-you 51, overview 40, portfolio-live 51, new-steward 88.

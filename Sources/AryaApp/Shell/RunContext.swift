@@ -8,7 +8,7 @@ import SwiftUI
 struct RunContext: Equatable {
     /// "2.1k tokens · $0.0042", nil when the run reported neither.
     var usage: String?
-    /// "inbox · 3 calls · MSG-140, MSG-201", one per system, busiest first.
+    /// "Search the inbox · MSG-140, MSG-201", one per system, busiest first.
     var systems: [String]
     /// One line per action: what, and the policy that let it run or asked a person.
     var policy: [Line]
@@ -31,6 +31,7 @@ struct RunContext: Equatable {
     static func build(events: [FeatureEvent], run: String) -> RunContext {
         let stream = RunStream.build(events: events, run: run)
         var calls: [String: Int] = [:]
+        var words: [String: [String]] = [:]
         var targets: [String: [String]] = [:]
         var policy: [Line] = []
         var checks: [Line] = []
@@ -41,6 +42,9 @@ struct RunContext: Equatable {
                     call.binding ?? call.tool.split(separator: ".").first.map(String.init)
                     ?? call.tool
                 calls[system, default: 0] += 1
+                // People's words for the tool ("Search the inbox"); raw names stay in TOOLS.
+                let said = HumanText.tool(call.tool)
+                if words[system]?.contains(said) != true { words[system, default: []].append(said) }
             case .action(let action):
                 let what =
                     action.kind == "question"
@@ -70,11 +74,13 @@ struct RunContext: Equatable {
             }
         }
         let systems = calls.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
-            .map { system, count -> String in
+            .map { system, _ -> String in
                 // A person reads by name ("Priya"), never "person:priya · Priya".
                 let person = system.hasPrefix("person:")
                 var parts = [person ? PeopleDirectory.displayName(system) : system]
-                if count > 0 { parts.append(count == 1 ? "1 call" : "\(count) calls") }
+                if let said = words[system], !said.isEmpty {
+                    parts = [said.joined(separator: ", ")]
+                }
                 if !person, let names = targets[system], !names.isEmpty {
                     parts.append(AryaTrim.words(names.joined(separator: ", "), limit: 36))
                 }
@@ -141,39 +147,42 @@ struct RunContextView: View {
     var openRun: ((String) -> Void)?
 
     var body: some View {
+        // Every section shows, a dash while a live run has not got there yet.
         VStack(alignment: .leading, spacing: AryaSpace.s3) {
-            if !context.systems.isEmpty {
-                section("Touched") {
-                    ForEach(context.systems, id: \.self) { line in
-                        Text(line).aryaText(AryaFont.monoSmall, AryaColor.ink)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            section("Touched") {
+                if context.systems.isEmpty { dash }
+                ForEach(context.systems, id: \.self) { line in
+                    Text(line).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            if !context.policy.isEmpty {
-                section("Policy") { lines(context.policy) }
+            section("Policy") {
+                if context.policy.isEmpty { dash } else { lines(context.policy) }
             }
-            if !context.checks.isEmpty {
-                section("Follow-up checks") { lines(context.checks) }
+            section("Follow-up checks") {
+                if context.checks.isEmpty { dash } else { lines(context.checks) }
             }
-            if !context.related.isEmpty {
-                section("Related runs") {
-                    ForEach(context.related, id: \.self) { run in
-                        Button {
-                            openRun?(run)
-                        } label: {
-                            Text(title(run)).aryaText(AryaFont.caption, AryaColor.ink)
-                                .lineLimit(1)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(openRun == nil)
-                        .help(title(run))
+            section("Related runs") {
+                if context.related.isEmpty { dash }
+                ForEach(context.related, id: \.self) { run in
+                    Button {
+                        openRun?(run)
+                    } label: {
+                        Text(title(run)).aryaText(AryaFont.caption, AryaColor.ink)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .disabled(openRun == nil)
+                    .help(title(run))
                 }
             }
         }
+    }
+
+    private var dash: some View {
+        Text("—").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
     }
 
     private func section(_ label: String, @ViewBuilder _ content: () -> some View) -> some View {

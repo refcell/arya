@@ -316,7 +316,7 @@ struct InspectorView: View {
             FeatureRegistry.crewFanout(model.featureContext(), run: run.id)
             // What the thread beside it lacks: usage, systems, policy, checks, related runs.
             let context = RunContext.build(events: events, run: run.id)
-            if let usage = context.usage { fact("Usage", usage) }
+            fact("Usage", context.usage ?? "—")
             RunContextView(
                 context: context,
                 title: { id in

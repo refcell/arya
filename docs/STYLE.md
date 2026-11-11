@@ -300,6 +300,15 @@ Reduce Motion on, all of these are instant.
 Sentence case, short, specific. Buttons start with a verb and name their effect. Say what
 happened and to what: "Labeled MSG-201 as billing". No exclamation marks or emoji.
 
+### Raw ids
+
+No machine id reaches a person outside the run's TOOLS and LOG panes: not `person:sam`,
+`st_triage`, `inbox:MSG-140`, nor `snake_case_words`. Use `HumanText` and `ActionWords`.
+The snapshot run reads every state's text back from the PNG and fails a state that shows one
+(`SnapshotText`). Charter metric names are allowed as written. States still being fixed are
+listed with their lane in `etc/app/rawtext-pending.txt`, and the owner deletes the line once
+the state is clean.
+
 ## Accessibility
 
 Every text token meets WCAG AA (4.5:1) on `canvas`, `raised`, and `selection` in both schemes;

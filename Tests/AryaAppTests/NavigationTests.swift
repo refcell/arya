@@ -64,7 +64,10 @@ import Testing
             status: .finished, summary: "billing · routed MSG-201\nmore", startedAt: at)
         #expect(StatusMapping.threadTitle(of: run) == "billing · routed MSG-201")
         run.summary = nil
-        #expect(StatusMapping.threadTitle(of: run) == "manual run")
+        // Never the trigger kind: the workspace title, else "Untitled run".
+        #expect(StatusMapping.threadTitle(of: run) == "Untitled run")
+        run.title = "Which leads still have no reply?"
+        #expect(StatusMapping.threadTitle(of: run) == "Which leads still have no reply?")
         #expect(!StatusMapping.threadTitle(of: run).contains("run_"))
     }
 

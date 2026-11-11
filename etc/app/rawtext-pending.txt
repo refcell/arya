@@ -1,0 +1,25 @@
+# States known to show raw ids (person:x, st_x, inbox:MSG-1, snake_case_words) in the snapshot
+# run's raw-id gate (Tests/AryaAppTests/SnapshotText.swift). Listed states are reported in
+# .build/snapshots/rawtext-<state>.png.txt but do not fail; every other state fails on its first
+# raw id. Owners: fix the words, then delete your line. Format: <state> <lane> <example>.
+overview app-outcome "reply inbox:MSG-140", "person:lee" memory note
+overview-no-inspector app-outcome same as overview
+overview-with-inspector app-outcome same as overview
+stewards app-outcome "note risk:RISK-1069", "person:lena"
+window app-outcome overview behind the window chrome
+settings app-outcome overview behind the settings sheet
+sidebar-folded app-outcome overview beside the folded sidebar
+command-palette app-outcome overview behind the palette
+improve app-outcome "inbox:MSG-120, route"
+improve-proposal-full app-outcome "binding: 'person:lee'"
+run-approval app-views "person:sam hands this to you"
+crew-fanout-live app-views "refused adapter_not_allowed:browser"
+charter-editor app-views "person:alex"
+connections connect "reply inbox:MSG-140"
+connections-connect connect "reply inbox:MSG-140"
+connections-detail connect "reply inbox:MSG-140"
+connections-inspector connect "reply inbox:MSG-140"
+reports connect "Route inbox:MSG-140 (executed)"
+people-thread-live connect "reply inbox:MSG-140"
+routines-library workspace "Proposed by st_triage", "by person:priya"
+routines-upgrade workspace "Proposed by st_triage", "by person:priya"

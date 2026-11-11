@@ -715,6 +715,8 @@ import Testing
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try png.write(to: url)
         SnapshotSpace.report(name, file: file, png: png, dir: dir)
+        // The raw-id gate reads the dark render's strings (one scheme is enough).
+        if scheme == "dark" { SnapshotText.check(file, png: png, dir: dir) }
     }
 
     /// A panel on the canvas at `size`, padded like a pane.

@@ -95,16 +95,18 @@ struct ApprovalFacts: Hashable, Sendable {
         .compactMap { other -> String? in
             guard let decision = other.decision else { return nil }
             return [
-                decision.verdict.rawValue, other.kind, LedgerTable.actorLabel(decision.actor),
+                decision.verdict.rawValue, ActionWords.kind(other.kind),
+                LedgerTable.actorLabel(decision.actor),
                 AryaTime.label(decision.at, now: now, style: .short),
             ].joined(separator: " · ")
         }
         return ApprovalFacts(
-            title: item.kind == "question" ? item.summary : "\(item.kind) \(item.target)",
+            title: item.kind == "question"
+                ? item.summary : ActionWords.sentence(kind: item.kind, target: item.target),
             steward: item.steward.map { names[$0] ?? $0 } ?? "—", stewardID: item.steward,
             run: item.run,
             runTitle: item.run.map { RunStream.build(events: events, run: $0).title } ?? "—",
-            target: item.target.isEmpty ? "this target" : item.target,
+            target: item.target.isEmpty ? "this target" : EntityName.plain(item.target),
             risk: ActionRisk(kind: item.kind).rawValue, earlier: earlier)
     }
 }

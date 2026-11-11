@@ -104,8 +104,9 @@ enum StatusMapping {
             .map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
         // Lists show a DRY RUN pill (`RunTitle.parts`); the sentence is for the run itself.
         if !summary.isEmpty { return RunTitle.parts(summary: summary, dryRun: dryRun).title }
-        let trigger = run.trigger.trimmingCharacters(in: .whitespaces)
-        return trigger.isEmpty ? "run" : "\(trigger) run"
+        // The workspace title (the input's first line) next; never the trigger kind.
+        let title = run.title.trimmingCharacters(in: .whitespaces)
+        return title.isEmpty ? "Untitled run" : RunTitle.parts(summary: title, dryRun: dryRun).title
     }
 
     static func status(of run: RunSummary) -> AryaStatus {

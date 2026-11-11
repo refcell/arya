@@ -94,16 +94,21 @@ struct RailView: View {
     }
 
     /// Lines in the sidebar's Activity feed.
-    nonisolated static let activityLimit = 8
+    nonisolated static let activityLimit = 6
     /// The fold key for the Activity feed (kept with the department folds).
     nonisolated static let activityKey = "Activity"
 
     /// The fleet's latest events under the stewards, folded like a department: what is
     /// happening now on every screen, one click from the steward.
     @ViewBuilder private var activity: some View {
-        if case .loaded(let events) = model.featureStore?.state {
-            let lines = FleetActivity.lines(
-                events: events, stewards: model.stewards, now: now, limit: Self.activityLimit)
+        // The All stewards page has its own Fleet activity; the sidebar copy stays away there.
+        if case .loaded(let events) = model.featureStore?.state,
+            model.navigation.destination != .portfolio
+        {
+            let lines = FleetActivity.collapsed(
+                FleetActivity.lines(
+                    events: events, stewards: model.stewards, now: now, limit: 24)
+            ).prefix(Self.activityLimit)
             let folded = model.collapsedDepartments.contains(Self.activityKey)
             if !lines.isEmpty {
                 Button {
@@ -133,26 +138,23 @@ struct RailView: View {
         Button {
             model.navigation.select(steward: line.steward)
         } label: {
+            // One line: time, the steward, and what it did; a click opens the steward.
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
                 Text(line.time).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                     .frame(width: FleetActivity.timeWidth, alignment: .leading)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(line.name).aryaText(AryaFont.caption, AryaColor.inkMuted).lineLimit(1)
-                    Text(line.text)
-                        .aryaText(
-                            AryaFont.monoSmall,
-                            line.failed ? AryaColor.negative : AryaColor.inkFaint
-                        )
-                        .lineLimit(1)
-                }
+                (Text(line.name + " ").foregroundStyle(AryaColor.inkMuted)
+                    + Text(line.said)
+                    .foregroundStyle(line.failed ? AryaColor.negative : AryaColor.inkFaint))
+                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
+                    .lineLimit(1)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, AryaSpace.s1)
-            .padding(.vertical, 2)
+            .frame(height: AryaSize.rowHeight)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("\(line.name) \(line.text), \(line.time)")
+        .help("\(line.name) \(line.said), \(line.time)")
     }
 
     /// The steward's metric series from the ledger, when the feature store has loaded it.
