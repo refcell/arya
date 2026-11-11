@@ -72,34 +72,12 @@ private func store(_ opened: Opened) throws -> LedgerStore {
     #expect(try await workspace.lastSeq() > 50_000)
 
     #expect(try await workspace.approvals().count == 1)  // cold: builds the cache
-    var times: [Duration] = []
-    for _ in 0..<5 {
-        let clock = ContinuousClock()
-        let start = clock.now
-        _ = try await workspace.approvals()
-        times.append(clock.now - start)
-    }
-    let median = times.sorted()[2]
-    #expect(median < .milliseconds(20), "warm approvals() took \(median)")
-
-    _ = try await workspace.fleet()
-    let clock = ContinuousClock()
-    var start = clock.now
-    _ = try await workspace.fleet()
-    let fleet = clock.now - start
-    start = clock.now
-    _ = try await workspace.needsYou()
-    let needs = clock.now - start
-    #expect(fleet < .milliseconds(20), "warm fleet() took \(fleet)")
-    #expect(needs < .milliseconds(20), "warm needsYou() took \(needs)")
-    _ = try await workspace.liveRuns()
-    start = clock.now
-    _ = try await workspace.liveRuns()
-    let live = clock.now - start
-    #expect(live < .milliseconds(20), "warm liveRuns() took \(live)")
-
     let run = try #require(try await workspace.runs().first).id
     let reads: [(String, () async throws -> Void)] = [
+        ("approvals", { _ = try await workspace.approvals() }),
+        ("fleet", { _ = try await workspace.fleet() }),
+        ("needsYou", { _ = try await workspace.needsYou() }),
+        ("liveRuns", { _ = try await workspace.liveRuns() }),
         ("activity", { _ = try await workspace.activity(steward: "st_inbox") }),
         ("recap", { _ = try await workspace.recap(steward: "st_inbox") }),
         ("plan", { _ = try await workspace.plan(steward: "st_inbox") }),
@@ -113,15 +91,34 @@ private func store(_ opened: Opened) throws -> LedgerStore {
         ("impact", { _ = try await workspace.impact(steward: "st_inbox") }),
         ("overviewFindings", { _ = try await workspace.overviewFindings(steward: "st_inbox") }),
     ]
-    // Best of three warm calls, so a loaded machine does not fail the bound.
+    let budget = perfBudget(.milliseconds(20))
     for (name, read) in reads {
-        try await read()
-        var took = Duration.seconds(1)
-        for _ in 0..<3 {
-            start = clock.now
-            try await read()
-            took = min(took, clock.now - start)
-        }
-        #expect(took < .milliseconds(20), "warm \(name) took \(took)")
+        let took = try await bestWarm(of: 5, read)
+        #expect(took < budget, "warm \(name) took \(took) (budget \(budget))")
     }
+}
+
+/// The best of `count` warm calls (after one to warm up), so one slow call does not count.
+func bestWarm(of count: Int, _ read: () async throws -> Void) async throws -> Duration {
+    try await read()
+    let clock = ContinuousClock()
+    var best = Duration.seconds(60)
+    for _ in 0..<count {
+        let start = clock.now
+        try await read()
+        best = min(best, clock.now - start)
+    }
+    return best
+}
+
+/// A timing budget that holds on a loaded machine: when the 1-minute load average exceeds
+/// twice the core count, the budget is ten times larger (and a note says so), so a busy host
+/// slows the check down instead of failing it; a real regression still shows as 10x.
+func perfBudget(_ base: Duration) -> Duration {
+    var load = [0.0, 0.0, 0.0]
+    let cores = Double(ProcessInfo.processInfo.activeProcessorCount)
+    guard getloadavg(&load, 3) > 0, load[0] > 2 * cores else { return base }
+    print(
+        "perf budget: load \(Int(load[0])) > 2 x \(Int(cores)) cores; budget \(base) x 10")
+    return base * 10
 }
