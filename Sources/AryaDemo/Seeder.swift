@@ -15,6 +15,8 @@ enum DemoStep {
     case propose(
         steward: String, change: (inout [String: Any]) -> Void, title: String, reason: String)
     case remember(text: String, steward: String?, person: String)
+    /// A preference about a person (runtime decision 0061), stated by `by` (connect).
+    case prefer(text: String, steward: String?, about: String, by: String)
     case report(steward: String)
     /// Grows the steward's casebook from its own runs, then rehearses it (eval).
     case improve(steward: String)
@@ -27,6 +29,8 @@ enum DemoStep {
     case checkOutcomes
     /// Promotes the swept shared routine in triage and adopts it into refunds (connect).
     case shareRoutine
+    /// Promotes triage's newer shared routine version; refunds has an upgrade (connect).
+    case upgradeRoutine
 }
 
 struct DemoSeeder {
@@ -244,6 +248,9 @@ struct DemoSeeder {
         steps.append(
             (at(daysAgo: 12, hour: 9), .run(steward: "st_triage", input: SharedRoutine.sweep)))
         steps.append((at(daysAgo: 12, hour: 10), .shareRoutine))
+        steps.append(
+            (at(daysAgo: 1, hour: 13), .run(steward: "st_triage", input: SharedRoutine.sweepV2)))
+        steps.append((at(daysAgo: 1, hour: 13.5), .upgradeRoutine))
         for run in SharedRoutine.runs {
             steps.append(
                 (
@@ -300,7 +307,38 @@ struct DemoSeeder {
                     text: "Renewals over 50k go to the finance lead, not the budget owner.",
                     steward: "st_vendor_spend_review", person: "local")
             ))
+        steps += preferences()
         return sorted(steps + newest())
+    }
+
+    /// What stewards remember about people (decision 0061): stated by the person or by you.
+    private func preferences() -> [(Int64, DemoStep)] {
+        [
+            (2, 9, "Sam wants refund replies under five sentences.", "st_triage", "sam", "sam"),
+            (2, 9.5, "Sam reviews hand-offs after 2pm; morning pings wait.", nil, "sam", "local"),
+            (5, 11, "Sam signs off replies that mention a credit.", "st_triage", "sam", "sam"),
+            (
+                4, 15, "Lee wants on-call escalations in the chat thread, not email.", nil, "lee",
+                "lee"
+            ),
+            (
+                1, 10, "Lee prefers a one-line summary before the details.", "st_triage", "lee",
+                "local"
+            ),
+            (
+                3, 14, "Priya approves refunds under 200 without a call.", "st_refunds", "priya",
+                "priya"
+            ),
+            (
+                6, 10, "Lena wants churn flags with the account's last login.", "st_churn_watch",
+                "lena", "lena"
+            ),
+        ].map { days, hour, text, steward, about, by in
+            (
+                at(daysAgo: days, hour: hour),
+                .prefer(text: text, steward: steward, about: "person:\(about)", by: by)
+            )
+        }
     }
 
     /// The demo's newest moments: a quiet check about two hours ago (the last look lands after
@@ -353,22 +391,25 @@ struct DemoSeeder {
         let scripts = home.appendingPathComponent("demo", isDirectory: true)
         try FileManager.default.createDirectory(at: scripts, withIntermediateDirectories: true)
         var profiles: [String: Any] = [:]
-        func profile(_ script: String) -> [String: Any] {
+        func profile(_ script: String, label: String) -> [String: Any] {
             let args = ["--script", script]
             var entry: [String: Any] = [
                 "command": fake, "args": ["low": args, "medium": args, "high": args],
+                "label": label,
             ]
             if let paceMillis { entry["env"] = ["ARYA_FAKE_PACE_MS": "\(paceMillis)"] }
             return entry
         }
         for name in ["triage", "refunds", "digest"] {
             profiles["fake-\(name)"] = profile(
-                examples.appendingPathComponent("\(name)/fake-script.json").path)
+                examples.appendingPathComponent("\(name)/fake-script.json").path,
+                label: "Scripted \(name) (demo)")
         }
         for steward in generated {
             let file = scripts.appendingPathComponent("\(steward.adapter).json")
             try JSONEncoder().encode(steward.script).write(to: file)
-            profiles[steward.adapter] = profile(file.path)
+            profiles[steward.adapter] = profile(
+                file.path, label: "Scripted \(steward.spec.name.lowercased()) (demo)")
         }
         // Plain slashes, so `demo-current.sh` can move a cached home with `sed`.
         let document: [String: Any] = ["v": 1, "profiles": profiles]
@@ -485,6 +526,8 @@ struct Context {
                 baseVersion: version, title: title, reason: reason)
         case .remember(let text, let steward, let person):
             _ = try await workspace.remember(text, steward: steward, by: person)
+        case .prefer(let text, let steward, let about, let by):
+            _ = try await workspace.remember(text, steward: steward, about: about, by: by)
         case .report(let steward):
             _ = try await workspace.sendReport(steward: steward)
         case .checkOutcomes:
@@ -518,6 +561,8 @@ struct Context {
             _ = try? await workspace.checkProposal(proposal.id)
         case .shareRoutine:
             try await SharedRoutine.share(workspace)
+        case .upgradeRoutine:
+            try await SharedRoutine.upgrade(workspace)
         }
     }
 

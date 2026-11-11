@@ -68,6 +68,12 @@ protocol WorkspaceSource: Sendable {
     /// One person's thread with a steward, oldest first.
     func conversationEntries(steward: String, person: String) async throws
         -> [FeatureConversationEntry]
+    /// `Workspace.adapterLabels()`.
+    func adapterLabelMap() async throws -> [String: String]
+    /// `Workspace.personMemory(person:)`.
+    func personMemoryNotes(person: String) async throws -> [FeaturePersonNote]
+    /// `Workspace.routineUpgrades()`.
+    func routineUpgradeList() async throws -> [FeatureRoutineUpgrade]
     /// A run replayed under a proposal's charter, in one line.
     func whatIfSummary(run: String, proposal: String) async throws -> String
     /// A proposal backtested against the live charter.
@@ -208,6 +214,14 @@ extension WorkspaceSource {
     {
         throw FeatureReadError.unavailable("conversation")
     }
+
+    func adapterLabelMap() async throws -> [String: String] { [:] }
+
+    func personMemoryNotes(person: String) async throws -> [FeaturePersonNote] {
+        throw FeatureReadError.unavailable("person memory")
+    }
+
+    func routineUpgradeList() async throws -> [FeatureRoutineUpgrade] { [] }
 
     func reviewQueueSummary(steward: String) async throws -> FeatureReviewQueue? {
         throw FeatureReadError.unavailable("review queue")
@@ -419,6 +433,10 @@ extension Workspace: WorkspaceSource {
         case .adoptRoutine(let name, let version, let source, let target):
             _ = try await shareRoutine(
                 name: name, version: version, from: source, into: target, by: person)
+        case .upgradeRoutine(let steward, let name):
+            // Proposes the followed steward's newer version and gates it (decision 0062); a
+            // held gate leaves it pending.
+            _ = try await upgradeRoutine(steward: steward, name: name, by: person)
         }
     }
 
@@ -445,6 +463,24 @@ extension Workspace: WorkspaceSource {
                 FeatureEventDetail.Step(
                     run: $0.run, index: $0.index, count: $0.count, title: $0.title)
             })
+    }
+
+    func adapterLabelMap() async throws -> [String: String] { try await adapterLabels() }
+
+    func personMemoryNotes(person: String) async throws -> [FeaturePersonNote] {
+        try await personMemory(person: person).map {
+            FeaturePersonNote(
+                id: $0.id, steward: $0.steward, text: $0.text, author: $0.author, run: $0.run,
+                tags: $0.tags, seq: $0.seq)
+        }
+    }
+
+    func routineUpgradeList() async throws -> [FeatureRoutineUpgrade] {
+        try await routineUpgrades().map {
+            FeatureRoutineUpgrade(
+                steward: $0.steward, name: $0.name, from: $0.fromVersion, to: $0.toVersion,
+                source: $0.source, pending: $0.pending)
+        }
     }
 
     func conversationEntries(steward: String, person: String) async throws

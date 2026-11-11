@@ -261,7 +261,11 @@ enum FeatureRegistry {
                 },
                 pane: model.navigation.peoplePane,
                 selectPane: { model.navigation.peoplePane = $0 },
-                tests: model.connectionTests.results)
+                tests: model.connectionTests.results,
+                review: {
+                    model.navigation.showApprovals()
+                    model.navigation.approval = $0
+                })
         } else {
             EmptyState("No people yet.", guidance: "The people stewards work with appear here.")
         }
@@ -294,11 +298,14 @@ enum FeatureRegistry {
         -> String?
     {
         guard let steward else {
-            return PeopleRoster(
+            // Everyone: the person contacted most recently, so the detail opens on live work.
+            let people = PeopleRoster(
                 events: store.events, stewards: model.stewards.map(\.id),
                 conversations: store.conversations
-            )
-            .people.first?.id
+            ).people
+            let last = PeopleDetailText.lastContact(store.events)
+            return people.max { (last[$0.id] ?? .distantPast) < (last[$1.id] ?? .distantPast) }?
+                .id ?? people.first?.id
         }
         return PeopleDirectory(events: store.events, steward: steward).people.first?.id
     }

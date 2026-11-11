@@ -145,6 +145,8 @@ public struct AdapterProfile: Sendable, Hashable, Codable {
     /// Exec profiles: whether the agent's built-in write tools are confined to `workdir` or
     /// off with these arguments, reported as capability `sandbox` (default `none`).
     public var sandbox: SandboxSupport
+    /// A name people read ("Scripted triage (demo)"); the app shows the profile id when nil.
+    public var label: String? = nil
 
     public static let efforts = ["low", "medium", "high"]
 
@@ -177,10 +179,11 @@ public struct AdapterProfile: Sendable, Hashable, Codable {
         parse = try c.decodeIfPresent(OutputParser.self, forKey: .parse) ?? .text
         mcpConfig = try c.decodeIfPresent(MCPConfigDelivery.self, forKey: .mcpConfig) ?? .none
         sandbox = try c.decodeIfPresent(SandboxSupport.self, forKey: .sandbox) ?? .none
+        label = try c.decodeIfPresent(String.self, forKey: .label)
     }
 
     enum CodingKeys: String, CodingKey {
-        case kind, command, args, env, promptVia, parse, mcpConfig, sandbox
+        case kind, command, args, env, promptVia, parse, mcpConfig, sandbox, label
     }
 
     /// The arguments for `effort`: its own list, else `medium`'s, else none.

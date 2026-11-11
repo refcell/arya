@@ -18,6 +18,16 @@ enum SharedRoutine {
 
         """
 
+    /// Version 2 (decision 0062): also catches "billed twice"; triage promotes it, and the
+    /// refund steward, which follows triage, gets an upgrade it has not taken yet.
+    static let sweepV2 = "Weekly sweep: duplicate charges worded as billed twice"
+    static let contentV2 = """
+        #!/bin/sh
+        # Print the lines that mention a duplicate or double charge; exit 1 when none do.
+        grep -iE 'duplicate|double charge|(charged|billed) (twice|two times)|repeated charge'
+
+        """
+
     /// Messages each steward runs the routine on, by days ago; the third has no duplicate.
     static let runs: [(steward: String, days: Int, text: String)] = [
         ("st_triage", 11, "MSG-301: I was charged twice for one order"),
@@ -47,6 +57,15 @@ enum SharedRoutine {
             summary: "Swept the week's messages and proposed a routine for duplicate charges.",
             extra: ["routines": .array([routine])])
         for adapter in triage { scripts[adapter]?.responses[sweep] = sweepResponse }
+        let v2: JSONValue = .object([
+            "name": .string(name), "language": "sh", "content": .string(contentV2),
+            "reason": "Two customers wrote \"billed twice\" and version 1 missed them.",
+            "summary": "Also catch \"billed twice\"",
+        ])
+        let v2Response = try response(
+            summary: "Found two duplicate charges version 1 missed and proposed version 2.",
+            extra: ["routines": .array([v2])])
+        for adapter in triage { scripts[adapter]?.responses[sweepV2] = v2Response }
         for run in runs {
             let adapters = run.steward == "st_triage" ? triage : ["fake-refunds"]
             let action: JSONValue = .object([
@@ -71,6 +90,21 @@ enum SharedRoutine {
         ])
         return try JSONDecoder().decode(
             FakeScript.Response.self, from: try JSONEncoder().encode(json))
+    }
+
+    /// Promotes triage's version 2 (gate, else an override); refunds is left on version 1.
+    static func upgrade(_ workspace: Workspace) async throws {
+        guard
+            let row = try await workspace.routines(steward: "st_triage")
+                .first(where: { $0.name == name }), row.latestVersion != row.liveVersion
+        else { return }
+        let gated = try await workspace.gateRoutine(
+            steward: "st_triage", name: name, version: row.latestVersion)
+        if !gated.promoted {
+            try await workspace.overrideRoutine(
+                steward: "st_triage", name: name, version: row.latestVersion,
+                reason: "Checked on the two billed-twice messages.")
+        }
     }
 
     /// Promotes the swept routine in triage through its gate (an override when the gate

@@ -24,6 +24,8 @@ struct PeopleView: View {
     var selectPane: (PeoplePane) -> Void = { _ in }
     /// Connection tests, for a relay channel's status.
     var tests: [String: ConnectionTest] = [:]
+    /// Opens an approval in Needs you (the detail's Waiting on list).
+    var review: (String) -> Void = { _ in }
 
     /// `"new"`, a person id being edited, or nil.
     @AryaState private var editing: String?
@@ -68,8 +70,18 @@ struct PeopleView: View {
                     let people = PeopleDirectory(events: store.events, steward: steward)
                     switch pane {
                     case .people:
-                        directory(people, steward)
-                        others(roster.notWith(steward), directory: people)
+                        split {
+                            directory(people, steward)
+                            others(roster.notWith(steward), directory: people)
+                        } detail: {
+                            if let person = people.people.first(where: { $0.id == selected })
+                                ?? people.people.first
+                            {
+                                PersonDetailColumn(
+                                    store: store, stewards: stewards, person: person,
+                                    with: [steward], fixed: steward, review: review)
+                            }
+                        }
                     case .channels:
                         PeopleChannelsView(store: store, steward: steward, tests: tests)
                     case .reports:
@@ -79,7 +91,19 @@ struct PeopleView: View {
                         PeopleReportHistoryView(store: store, directory: people)
                     }
                 } else {
-                    everyone(roster)
+                    split {
+                        everyone(roster)
+                    } detail: {
+                        if let person = roster.people.first(where: { $0.id == selected })
+                            ?? roster.people.first
+                        {
+                            PersonDetailColumn(
+                                store: store, stewards: stewards, person: person.first,
+                                with: person.stewards, fixed: nil, review: review
+                            )
+                            .id(person.id)
+                        }
+                    }
                 }
             }
             .padding(.horizontal, AryaSize.pagePadding)
@@ -108,6 +132,19 @@ struct PeopleView: View {
         }
     }
 
+    /// The list on the left and the selected person on the right, so the page has no blank
+    /// canvas below a short list.
+    private func split<List: View, Detail: View>(
+        @ViewBuilder _ list: () -> List, @ViewBuilder detail: () -> Detail
+    ) -> some View {
+        HStack(alignment: .top, spacing: AryaSpace.s5) {
+            VStack(alignment: .leading, spacing: 0) { list() }
+                .frame(minWidth: 320, idealWidth: 400, maxWidth: 440, alignment: .leading)
+            AryaHairline(.vertical)
+            detail().frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     @ViewBuilder
     private func directory(_ directory: PeopleDirectory, _ steward: String) -> some View {
         if directory.people.isEmpty, editing == nil {
@@ -119,13 +156,6 @@ struct PeopleView: View {
                 form(directory, editing: person.id)
             } else {
                 row(person, directory: directory)
-                if selected == person.id {
-                    PersonThreadView(
-                        store: store, steward: steward, person: person,
-                        stewardName: directory.live?.charter["name"]?.string ?? steward
-                    )
-                    .padding(.bottom, AryaSpace.s2)
-                }
             }
             AryaHairline()
         }
@@ -155,6 +185,8 @@ struct PeopleView: View {
         }
     }
 
+    private var lastContact: [String: Date] { PeopleDetailText.lastContact(store.events) }
+
     private func rosterRow(_ person: PeopleRoster.Person) -> some View {
         let names = person.stewards.map { id in stewards.first { $0.id == id }?.name ?? id }
         return VStack(alignment: .leading, spacing: AryaSpace.s1) {
@@ -171,23 +203,15 @@ struct PeopleView: View {
                 }
                 Text("\(person.inbound) in · \(person.outbound) out")
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                if let first = person.stewards.first {
-                    Button("Message") { open(person.id, first) }
-                        .buttonStyle(.aryaSecondary)
-                        .help("Open \(person.name)'s thread with \(names.first ?? first)")
-                }
             }
             HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s4) {
-                Text("works with " + RosterText.names(names))
-                    .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                if !person.departments.isEmpty {
-                    Text(person.departments.joined(separator: ", "))
-                        .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                }
-                Text(person.first.reach).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                if let approves = PeopleText.approves(person.approves) {
-                    Text(approves).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
-                }
+                Text(
+                    lastContact[person.id].map {
+                        "last contact " + FeatureTime.relative($0, now: store.now)
+                    } ?? "no contact yet"
+                )
+                .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                Text(RosterText.names(names)).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             }
             .lineLimit(1)
         }
@@ -272,11 +296,6 @@ struct PeopleView: View {
                     Text(FeatureTime.relative(last.at, now: store.now))
                         .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 }
-                if selected != person.id {
-                    Button("Message") { select(person.id) }
-                        .buttonStyle(.aryaSecondary)
-                        .help("Open the conversation and write as \(person.name)")
-                }
                 MoreMenu(label: "More for \(person.name)") {
                     Button("Edit…") {
                         draft = PersonDraft(person)
@@ -297,13 +316,17 @@ struct PeopleView: View {
                 }
             }
             .lineLimit(1)
-            if selected != person.id, let last {
-                Text((last.inbound ? person.name : "Steward") + ": " + last.text)
-                    .aryaText(AryaFont.caption, AryaColor.inkMuted)
-                    .lineLimit(1)
-            }
         }
         .padding(.vertical, AryaSpace.s2)
+        .padding(.horizontal, AryaSpace.s2)
+        .background(
+            selected == person.id ? AryaColor.selection : Color.clear,
+            in: RoundedRectangle(cornerRadius: AryaRadius.small)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { select(person.id) }
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(selected == person.id ? .isSelected : [])
     }
 
     private func form(_ directory: PeopleDirectory, editing id: String?) -> some View {

@@ -193,6 +193,14 @@ import Testing
         }
         // Connections: secrets come from memory, never the Keychain, in tests (connect lane).
         model.credentials = MemoryCredentialStore(["inbox": "demo-secret"])
+        // Adapter display names from adapters.json, and what stewards remember per person.
+        if let store = model.featureStore {
+            await store.loadAdapterLabels()
+            await store.loadRoutineUpgrades()
+            // Only the people the People states show: each read rebuilds the facade from the
+            // ledger, which the live run keeps growing.
+            for person in ["person:sam", "person:lee"] { await store.loadPersonNotes(person) }
+        }
         try page("connections") {
             $0.showConnections()
             $0.inspector = false
@@ -250,9 +258,29 @@ import Testing
                 .max(by: { $0.uses.count < $1.uses.count })
         {
             await store.loadLibraryDiff(first)
+            if let source = first.source {
+                await store.loadRoutineScript(
+                    steward: source.steward, name: first.name, version: source.version)
+            }
             try page("routines-library") {
                 $0.showRoutines()
                 $0.select(routine: first.name)
+            }
+        }
+        // A routine with an upgrade (decision 0062): refunds follows triage, which promoted a
+        // newer version; the row has the pill and the inspector Upgrade to….
+        if let store = model.featureStore, let upgrade = store.routineUpgrades.first,
+            let entry = RoutineLibrary(events: store.events, now: store.now).entries
+                .first(where: { $0.name == upgrade.name })
+        {
+            await store.loadLibraryDiff(entry)
+            if let source = entry.source {
+                await store.loadRoutineScript(
+                    steward: source.steward, name: entry.name, version: source.version)
+            }
+            try page("routines-upgrade") {
+                $0.showRoutines()
+                $0.select(routine: entry.name)
             }
         }
         // A crew run fanning out (connect): the host and four delegates in the run inspector,
@@ -287,6 +315,15 @@ import Testing
         try page("people-learned") {
             $0.showPeople(steward: nil)
             $0.select(person: "person:lee")
+        }
+        // What stewards remember about Sam (decision 0061), with provenance, in the detail
+        // beside the list.
+        if let store = model.featureStore, store.personNotes["person:sam"]?.isEmpty == false {
+            let person = "person:sam"
+            try page("people-memory") {
+                $0.showPeople(steward: nil)
+                $0.select(person: person)
+            }
         }
         // The same thread while a new hand-off's run is still going: only that message and run
         // are added, so every count and report stays the workspace's own.

@@ -43,6 +43,14 @@ final class FeatureStore: ObservableObject {
     @Published var routineDiffs: [String: String] = [:]
     /// Routines library diffs by `RoutineLibrary.diffKey` (connect), loaded on selection.
     @Published var libraryDiffs: [String: RoutineDiffState] = [:]
+    /// Adapter profile labels by id (connect), loaded by Connections.
+    @Published var adapterLabels: [String: String] = [:]
+    /// What stewards remember about each person, by person id (connect), loaded by People.
+    @Published var personNotes: [String: [FeaturePersonNote]] = [:]
+    /// Routine upgrades available across stewards (connect), loaded by the Routines library.
+    @Published var routineUpgrades: [FeatureRoutineUpgrade] = []
+    /// Routine bodies by "steward/name@version" (connect), loaded by the Routines library.
+    @Published var routineScripts: [String: String] = [:]
     /// Learned checks by steward, loaded by Improve (an async read).
     @Published var learnedChecks: [String: FeatureLearnedChecks] = [:]
     /// What worked per steward (eval's trajectory grading), loaded by Improve.
@@ -96,6 +104,34 @@ final class FeatureStore: ObservableObject {
     }
 
     /// Loads a proposed routine against its previous version as unified diff text.
+    /// Loads adapter labels; a home without them keeps profile ids.
+    func loadAdapterLabels() async {
+        if let labels = try? await workspace.adapterLabels() { adapterLabels = labels }
+    }
+
+    /// Loads what stewards remember about `person`.
+    func loadPersonNotes(_ person: String) async {
+        if let notes = try? await workspace.personMemory(person: person) {
+            personNotes[person] = notes
+        }
+    }
+
+    /// Loads one routine version's body once.
+    func loadRoutineScript(steward: String, name: String, version: String) async {
+        let key = "\(steward)/\(name)@\(version)"
+        guard routineScripts[key] == nil else { return }
+        if let body = try? await workspace.routineContent(
+            steward: steward, name: name, version: version)
+        {
+            routineScripts[key] = body
+        }
+    }
+
+    /// Loads the routine upgrades available now.
+    func loadRoutineUpgrades() async {
+        if let upgrades = try? await workspace.routineUpgrades() { routineUpgrades = upgrades }
+    }
+
     /// Loads the Routines library's diff for a routine (its default comparison) once.
     func loadLibraryDiff(_ entry: RoutineLibrary.Entry) async {
         guard let key = entry.diffKey, libraryDiffs[key] == nil,

@@ -4,6 +4,16 @@ import Foundation
 /// version, every version, and how its runs went (a `routine` action naming it, settled by
 /// `action.executed` or `action.failed`). The Routines library reads it.
 struct RoutineLibrary: Hashable, Sendable {
+    /// One run of a routine: the `routine` action, where it ran, on what, and how it settled.
+    struct Run: Identifiable, Hashable, Sendable {
+        enum Outcome: String, Hashable, Sendable { case passed, failed, denied, waiting }
+        var id: String
+        var steward: String?
+        var input: String
+        var at: Date
+        var outcome: Outcome
+    }
+
     struct Entry: Identifiable, Hashable, Sendable {
         var name: String
         /// One per steward that has proposed or runs it, by steward id.
@@ -14,6 +24,10 @@ struct RoutineLibrary: Hashable, Sendable {
         var lastRun: Date?
         /// Runs per day for the last 7 days, oldest first.
         var daily: [Double]
+        /// Every run, oldest first.
+        var all: [Run] = []
+        /// The newest runs first, at most 20.
+        var recent: [Run] { Array(all.reversed().prefix(20)) }
 
         var id: String { name }
 
@@ -57,6 +71,8 @@ struct RoutineLibrary: Hashable, Sendable {
         let items = RoutineList.build(events: events).routines
         var runs: [String: (runs: Int, passed: Int, failed: Int, last: Date?, at: [Date])] = [:]
         var pending: [String: String] = [:]
+        var history: [String: [Run]] = [:]
+        var spots: [String: (name: String, index: Int)] = [:]
         for event in events {
             switch event.type {
             case "action.proposed":
@@ -67,11 +83,28 @@ struct RoutineLibrary: Hashable, Sendable {
                 runs[name]?.last = event.at
                 runs[name]?.at.append(event.at)
                 if let run = event.run, let id = action["id"]?.string {
-                    pending["\(run)/\(id)"] = name
+                    let key = "\(run)/\(id)"
+                    pending[key] = name
+                    let input =
+                        action["params"]?["input"]?.string ?? action["target"]?.string ?? ""
+                    history[name, default: []].append(
+                        Run(
+                            id: key, steward: event.steward, input: input, at: event.at,
+                            outcome: .waiting))
+                    spots[key] = (name, (history[name]?.count ?? 1) - 1)
                 }
-            case "action.executed", "action.failed":
-                guard let run = event.run, let id = event.payload["action"]?.string,
-                    let name = pending.removeValue(forKey: "\(run)/\(id)")
+            case "action.executed", "action.failed", "action.rejected":
+                guard let run = event.run, let id = event.payload["action"]?.string else {
+                    continue
+                }
+                let key = "\(run)/\(id)"
+                if let spot = spots[key] {
+                    history[spot.name]?[spot.index].outcome =
+                        event.type == "action.executed"
+                        ? .passed : event.type == "action.failed" ? .failed : .denied
+                }
+                guard event.type != "action.rejected",
+                    let name = pending.removeValue(forKey: key)
                 else { continue }
                 if event.type == "action.executed" {
                     runs[name]?.passed += 1
@@ -97,28 +130,21 @@ struct RoutineLibrary: Hashable, Sendable {
             return Entry(
                 name: name, uses: grouped[name] ?? [], runs: tally?.runs ?? 0,
                 passed: tally?.passed ?? 0, failed: tally?.failed ?? 0, lastRun: tally?.last,
-                daily: daily)
+                daily: daily, all: history[name] ?? [])
         }
     }
 }
 
 enum RoutineLibraryText {
+    /// "Upgrade to 1a2b3c4d5e6f" or "upgrade pending", for a steward that follows another.
+    static func upgrade(_ upgrade: FeatureRoutineUpgrade) -> String {
+        upgrade.pending ? "upgrade pending" : "Upgrade to " + RoutinesText.shortVersion(upgrade.to)
+    }
+
     /// "pinned 1a2b3c4d5e6f": each steward runs its own live version until it adopts another
     /// (decision 0060); "proposed only" before one goes live.
     static func pin(_ use: RoutineItem) -> String {
         use.live.map { "pinned " + RoutinesText.shortVersion($0) } ?? "proposed only"
-    }
-
-    /// The newer live version another steward runs, when `use` is pinned to an older one (or
-    /// has none live) and has not proposed that version yet.
-    static func behind(_ use: RoutineItem, _ entry: RoutineLibrary.Entry)
-        -> (steward: String, version: String)?
-    {
-        guard let source = entry.source, source.steward != use.steward,
-            entry.live.contains(where: { $0.steward == source.steward }),
-            use.live != source.version, !use.versions.contains(source.version)
-        else { return nil }
-        return source
     }
 
     /// "92% pass · 25 runs", "no settled runs · 3 runs", or "not run yet".

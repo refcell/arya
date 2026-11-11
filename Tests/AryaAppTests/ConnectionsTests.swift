@@ -511,8 +511,118 @@ private func events() -> [FeatureEvent] {
         let a = try #require(entry.uses.first { $0.steward == "st_a" })
         let b = try #require(entry.uses.first { $0.steward == "st_b" })
         #expect(RoutineLibraryText.pin(b) == "pinned old")
-        #expect(RoutineLibraryText.behind(b, entry)?.version == "sha256:new")
-        #expect(RoutineLibraryText.behind(a, entry) == nil)
+        #expect(RoutineLibraryText.pin(a) == "pinned new")
+        #expect(
+            RoutineLibraryText.upgrade(
+                FeatureRoutineUpgrade(
+                    steward: "st_b", name: "spot", from: "sha256:old", to: "sha256:new",
+                    source: "st_a", pending: false)) == "Upgrade to new")
         #expect(RoutineLibraryText.version(entry) == "2 live versions")
+    }
+}
+
+@Suite struct PersonDetailTests {
+    private let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+    /// The detail's Waiting on list holds questions to the person and held actions of a kind
+    /// they approve, and drops each once it is answered.
+    @Test func waitingOnAPersonIsTheirQuestionsAndApprovalsStillOpen() {
+        var log = FeatureEventBuilder(start: start)
+        log.add(
+            "approval.requested", steward: "st_a",
+            [
+                "approval": "ap_1", "kind": "question", "to": "person:sam",
+                "question": "Is the refund for ORDER-1 a duplicate charge on renewal?",
+            ])
+        log.add(
+            "approval.requested", steward: "st_a",
+            [
+                "approval": "ap_2", "kind": "action", "to": "local",
+                "action": ["kind": "reply", "target": "inbox:MSG-1"],
+            ])
+        log.add(
+            "approval.requested", steward: "st_b",
+            [
+                "approval": "ap_3", "kind": "action", "to": "local",
+                "action": ["kind": "reply", "target": "inbox:MSG-2"],
+            ])
+        log.add(
+            "approval.requested", steward: "st_a",
+            [
+                "approval": "ap_4", "kind": "action", "to": "local",
+                "action": ["kind": "refund", "target": "order:ORDER-9"],
+            ])
+        log.add("approval.granted", steward: "st_a", ["approval": "ap_2"])
+        let items = PersonWaiting.build(
+            events: log.events, person: "person:sam", approves: ["reply"], stewards: ["st_a"])
+        #expect(items.map(\.id) == ["ap_1"])
+        #expect(items.first?.question == true)
+        #expect(items.first?.text.hasSuffix("duplicate charge on renewal?") == true)
+    }
+
+    /// Provenance says who stated a note and which steward keeps it.
+    @Test func aNoteSaysWhoToldItAndWhereItIsKept() {
+        func note(_ author: String, tags: [String] = [], run: String? = nil, steward: String)
+            -> FeaturePersonNote
+        {
+            FeaturePersonNote(
+                id: "n", steward: steward, text: "t", author: author, run: run, tags: tags,
+                seq: 1)
+        }
+        let people = ["person:sam": "Sam"]
+        let stewards = ["st_triage": "Support inbox triage"]
+        #expect(
+            PeopleDetailText.provenance(
+                note("human:sam", steward: "st_triage"), people: people, stewards: stewards)
+                == "told by Sam · Support inbox triage")
+        #expect(
+            PeopleDetailText.provenance(
+                note("local", steward: "shared"), people: people, stewards: stewards)
+                == "noted by you · shared by every steward")
+        #expect(
+            PeopleDetailText.provenance(
+                note("person:sam", tags: ["correction"], steward: "st_triage"), people: people,
+                stewards: stewards) == "Sam's correction · Support inbox triage")
+    }
+
+    /// Rows show last contact and the strip counts in and out per day.
+    @Test func lastContactAndDailyCountsFollowMessagesAndReplies() {
+        var log = FeatureEventBuilder(start: start)
+        log.add("inbox.message", ["from": "person:sam", "text": "hi"])
+        log.add(
+            "action.proposed", after: 86_400,
+            ["action": ["kind": "reply", "binding": "person:sam"]])
+        let now = start.addingTimeInterval(86_400 + 60)
+        #expect(PeopleDetailText.lastContact(log.events)["person:sam"] == log.events.last?.at)
+        let days = PeopleDetailText.daily(log.events, person: "person:sam", now: now)
+        #expect(days.count == 14)
+        #expect(days.map(\.inbound).reduce(0, +) == 1 && days.map(\.outbound).reduce(0, +) == 1)
+        #expect(days.last?.outbound == 1)
+    }
+}
+
+@Suite struct RoutineRunHistoryTests {
+    /// Run history settles each routine action as passed, failed, denied or still waiting.
+    @Test func eachRunSettlesFromItsActionEvents() throws {
+        var log = FeatureEventBuilder(start: Date(timeIntervalSince1970: 1_800_000_000))
+        log.add("routine.proposed", ["name": "spot", "version": "sha256:a", "summary": ""])
+        let outcomes = ["action.executed", "action.failed", "action.rejected", nil]
+        for (index, outcome) in outcomes.enumerated() {
+            let run = "run_\(index)"
+            log.add(
+                "action.proposed", run: run,
+                [
+                    "action": [
+                        "id": "a1", "kind": "routine",
+                        "params": ["name": "spot", "input": .string("MSG-\(index)")],
+                    ]
+                ])
+            if let outcome { log.add(outcome, run: run, ["action": "a1"]) }
+        }
+        let now = log.events.last?.at ?? .now
+        let entry = try #require(RoutineLibrary(events: log.events, now: now).entries.first)
+        #expect(entry.recent.map(\.outcome) == [.waiting, .denied, .failed, .passed])
+        #expect(entry.recent.map(\.input) == ["MSG-3", "MSG-2", "MSG-1", "MSG-0"])
+        #expect(entry.passed == 1 && entry.failed == 1)
     }
 }

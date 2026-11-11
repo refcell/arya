@@ -164,3 +164,13 @@ public struct ConnectionTest: Hashable, Sendable {
             servesHistory: report.servesHistory, latencyMilliseconds: report.latencyMilliseconds)
     }
 }
+
+extension Workspace {
+    /// Each adapter profile's display label (`adapters.json` `label`), by profile id; profiles
+    /// without one are left out, and a home without the file has none.
+    public func adapterLabels() async throws -> [String: String] {
+        let file = home.appendingPathComponent("adapters.json")
+        guard FileManager.default.fileExists(atPath: file.path) else { return [:] }
+        return try AdapterProfiles.load(from: file).profiles.compactMapValues(\.label)
+    }
+}

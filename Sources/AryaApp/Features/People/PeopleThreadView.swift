@@ -104,6 +104,7 @@ struct PersonThreadView: View {
                 .padding(.horizontal, AryaSpace.s2)
                 .padding(.vertical, AryaSpace.s1)
                 .background(AryaColor.sunken, in: RoundedRectangle(cornerRadius: AryaRadius.small))
+                .frame(maxWidth: .infinity)
                 .onSubmit(send)
             Button("Send", action: send)
                 .buttonStyle(.aryaSecondary)

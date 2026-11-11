@@ -205,6 +205,12 @@ and receive a periodic report from it.
 - (from runtime) Per-person memory (decision 0061): `Workspace.personMemory(person:)` (`alex` or `person:alex`) lists preferences and corrections about a person, newest first, with provenance (`author`, `event`, `run`); runs acting for or messaging that person recall them. Use it in People.
 - (from runtime) Shared routines (decision 0062): `Workspace.routineUses(name:)` (where a routine is used, live version, whom each steward follows), `routineUpgrades(steward:)` (newer versions available, `pending` when proposed and gated), `upgradeRoutine(steward:name:)` for an Upgrade button (an adoption through the target's gate).
 
+- (to cli-e2e, FYI, review 16 and 19) Connect appended to the demo seeder: `.prefer` steps
+  (seven per-person preferences through `remember(_:steward:about:by:)`, decision 0061), a
+  second triage sweep proposing `spot-duplicate-charges` version 2, and `.upgradeRoutine`,
+  which promotes it in triage so refunds has an upgrade (decision 0062). Adapter profiles
+  in `adapters.json` carry an optional `label` (the display name). The seed stamp changes.
+
 ## Log
 
 - 2026-11-10: Busy demo and a live thread. `arya message` and `arya report` seed Sam's and

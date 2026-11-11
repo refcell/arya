@@ -42,6 +42,9 @@ enum FeatureWrite: Hashable, Sendable {
     /// Uses one steward's routine version in another (`adoptRoutine`): proposed there and run
     /// through that steward's routine gate, so it goes live only when its casebook passes.
     case adoptRoutine(name: String, version: String, from: String, into: String)
+    /// Takes the routine upgrade available to `steward` (`upgradeRoutine`, decision 0062): the
+    /// followed steward's newer version, proposed and gated there.
+    case upgradeRoutine(steward: String, name: String)
 }
 
 /// The result of checking the ledger's hash chain.

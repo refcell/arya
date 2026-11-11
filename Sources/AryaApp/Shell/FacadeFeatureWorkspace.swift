@@ -64,6 +64,16 @@ struct FacadeFeatureWorkspace: FeatureWorkspace {
         try await source.conversationEntries(steward: steward, person: person)
     }
 
+    func adapterLabels() async throws -> [String: String] { try await source.adapterLabelMap() }
+
+    func personMemory(person: String) async throws -> [FeaturePersonNote] {
+        try await source.personMemoryNotes(person: person)
+    }
+
+    func routineUpgrades() async throws -> [FeatureRoutineUpgrade] {
+        try await source.routineUpgradeList()
+    }
+
     func learnedChecks(steward: String) async throws -> FeatureLearnedChecks? {
         try await source.learnedChecksSummary(steward: steward)
     }

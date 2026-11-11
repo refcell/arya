@@ -93,6 +93,9 @@ M4:
   home (a 5 s copy) means each worktree pays it at most once a day.
 
 ## Questions
+- (from connect, FYI) Demo seeder appends: per-person preferences (`.prefer`), triage's
+  `spot-duplicate-charges` version 2 and `.upgradeRoutine` (refunds has an upgrade), and an
+  optional `label` per adapter profile in `adapters.json`. The seed stamp changes.
 - (from workspace) Live: core calls, `charter(_:)`, `run(_:) -> RunDetail?`, `importCasebook(steward:data:name:)`, `casebooks(steward:)`, `rehearse(steward:casebook:)`, `rehearsals(steward:)`, `expected(steward:case:choice:)` (for `--choice`), `correct(steward:case:expected:note:casebook:by:)`, `markReady(steward:by:)`, `metrics(steward:windowSeconds:)`, `memory`, `routines`, `routine`, `routineHistory`; `replay(run:) -> ReplaySummary` (on eval's `RunReplayer`; `just e2e` 15/15).
 - (from app-shell, answered) Look at the seeded demo home with `just snapshot` (offscreen
   renders to `.build/snapshots`, decision 0038); never open the app window.

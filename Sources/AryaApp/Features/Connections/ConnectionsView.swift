@@ -62,11 +62,18 @@ struct ConnectionsView: View {
                         unusedGroup(unused, catalog: catalog, activity: activity)
                     }
                 }
-                if !catalog.adapters.isEmpty { adapters(catalog.adapters) }
-                if !catalog.entries.isEmpty {
-                    recentCalls(
-                        ConnectionActivity(events: store.events, relays: catalog.relays),
-                        connections: Set(catalog.entries.map(\.id)))
+                let activity = ConnectionActivity(events: store.events, relays: catalog.relays)
+                let ids = Set(catalog.entries.map(\.id))
+                HStack(alignment: .top, spacing: AryaSpace.s5) {
+                    VStack(alignment: .leading, spacing: AryaSpace.s4) {
+                        if !ids.isEmpty { callsStrip(activity, connections: ids) }
+                        if !catalog.adapters.isEmpty { adapters(catalog.adapters) }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    if !ids.isEmpty {
+                        recentCalls(activity, connections: ids)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
             .padding(.horizontal, AryaSize.pagePadding)
@@ -74,6 +81,7 @@ struct ConnectionsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityLabel("Connections")
+        .task { await store.loadAdapterLabels() }
         .confirmationDialog(
             confirmTitle, isPresented: confirmBinding, titleVisibility: .visible
         ) {
@@ -262,7 +270,7 @@ struct ConnectionsView: View {
     {
         let calls = activity.calls.filter { connections.contains($0.key) }
             .flatMap { id, calls in calls.map { (id, $0) } }
-            .sorted { $0.1.at > $1.1.at }.prefix(16)
+            .sorted { $0.1.at > $1.1.at }.prefix(18)
         let names = StewardNames.build(events: store.events)
         return VStack(alignment: .leading, spacing: AryaSpace.s1) {
             Text("RECENT CALLS").aryaText(AryaFont.label, AryaColor.inkFaint)
@@ -275,8 +283,10 @@ struct ConnectionsView: View {
                         .aryaText(AryaFont.monoSmall, ConnectionInspector.color(call.kind))
                         .frame(width: 64, alignment: .leading)
                     Text(connection).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                        .frame(width: 64, alignment: .leading)
-                    Text(call.what).aryaText(AryaFont.monoSmall, AryaColor.ink).lineLimit(1)
+                        .frame(width: 56, alignment: .leading)
+                    Text(call.what).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
                     Spacer(minLength: AryaSpace.s3)
                     Text(call.steward.map { names[$0] ?? $0 } ?? "")
                         .aryaText(AryaFont.caption, AryaColor.inkFaint).lineLimit(1)
@@ -284,10 +294,50 @@ struct ConnectionsView: View {
                         .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                         .frame(width: 44, alignment: .trailing)
                 }
-                .frame(height: 20)
+                .frame(minHeight: 20)
                 .accessibilityElement(children: .combine)
             }
         }
+    }
+
+    /// Calls across the listed connections per day for two weeks, today last.
+    private func callsStrip(_ activity: ConnectionActivity, connections: Set<String>)
+        -> some View
+    {
+        let days = 14
+        var totals = [Double](repeating: 0, count: days)
+        for id in connections {
+            for (index, value) in activity.daily(id, now: store.now, days: days).enumerated()
+            where index < days {
+                totals[index] += value
+            }
+        }
+        let peak = max(totals.max() ?? 0, 1)
+        let barHeight: CGFloat = 44
+        return VStack(alignment: .leading, spacing: AryaSpace.s1) {
+            HStack(spacing: AryaSpace.s2) {
+                Text("CALLS · 14 DAYS").aryaText(AryaFont.label, AryaColor.inkFaint)
+                Spacer()
+                Text("\(Int(totals.reduce(0, +))) calls · \(Int(totals.last ?? 0)) today")
+                    .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+            }
+            HStack(alignment: .bottom, spacing: 3) {
+                ForEach(Array(totals.enumerated()), id: \.offset) { index, value in
+                    RoundedRectangle(cornerRadius: AryaRadius.small)
+                        .fill(index == days - 1 ? AryaColor.positive : AryaColor.inkFaint)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: max(2, barHeight * value / peak))
+                }
+            }
+            .frame(height: barHeight, alignment: .bottom)
+            HStack {
+                Text("14d ago").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                Spacer()
+                Text("today").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Calls per day for two weeks, \(Int(totals.reduce(0, +))) in all")
     }
 
     private func adapters(_ adapters: [ConnectionsCatalog.Adapter]) -> some View {
@@ -295,20 +345,25 @@ struct ConnectionsView: View {
             Text("ADAPTERS").aryaText(AryaFont.label, AryaColor.inkFaint)
                 .padding(.bottom, AryaSpace.s1)
             ForEach(adapters, id: \.name) { adapter in
-                HStack(alignment: .center, spacing: AryaSpace.s3) {
-                    Text(adapter.name).aryaText(AryaFont.monoStrong, AryaColor.ink)
-                        .frame(minWidth: 72, alignment: .leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s3) {
+                        Text(store.adapterLabels[adapter.name] ?? adapter.name)
+                            .aryaText(AryaFont.bodyStrong, AryaColor.ink)
+                            .lineLimit(1)
+                            .help("Adapter profile \(adapter.name)")
+                        Spacer(minLength: AryaSpace.s3)
+                        Text(
+                            adapter.stewards.count == 1
+                                ? "1 steward" : "\(adapter.stewards.count) stewards"
+                        )
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    }
                     Text("used by " + RosterText.names(adapter.stewards.map(name), shown: 3))
                         .aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
-                        .lineLimit(1)
-                    Spacer(minLength: AryaSpace.s3)
-                    Text(
-                        adapter.stewards.count == 1
-                            ? "1 steward" : "\(adapter.stewards.count) stewards"
-                    )
-                    .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, AryaSpace.s2)
+                .padding(.vertical, AryaSpace.s1)
                 .frame(minHeight: AryaSize.rowHeight)
                 .accessibilityElement(children: .combine)
                 AryaHairline()
@@ -476,7 +531,7 @@ struct ConnectionInspector: View {
                             entry, secret: (try? credentials.credential(for: entry.id)) ?? nil,
                             probe: probe)
                     }
-                    .buttonStyle(.aryaPrimary)
+                    .buttonStyle(.aryaSecondary)
                     .disabled(running)
                 }
             }
