@@ -71,21 +71,24 @@ struct PortfolioRow: Identifiable, Equatable {
             let mine = runs[steward.id] ?? []
             let last = mine.map(\.startedAt).max()
             // Workspace `runHistory` per steward: rehearsal bursts never flatten the bars.
-            let totals = histories[steward.id]?.days.map(\.runs) ?? []
-            let failed = histories[steward.id]?.days.map(\.failed) ?? []
-            let cost = StewardPulse.costToday(mine, now: now, timeZone: timeZone)
+            let history: RunHistory? = histories[steward.id]
+            let totals: [Int] = history?.days.map(\.runs) ?? []
+            let failed: [Int] = history?.days.map(\.failed) ?? []
+            let cost: String = StewardPulse.costToday(mine, now: now, timeZone: timeZone)
+            // Typed lets, so the initializer below never strains the type checker under load.
+            let behind: Bool = StatusMapping.isBehind(
+                steward, fleet: fleet, meetsTarget: series?.meetsTarget)
+            let lastRun: String = last.map { ThreadRow.shortTime($0, now: now) } ?? "never"
+            let costToday: String = cost.replacingOccurrences(of: " today", with: "")
+            let running: Bool = going.contains(steward.id)
+            let department: String = departments[steward.id] ?? ""
+            let word: String = stateWord(steward)
             return PortfolioRow(
                 id: steward.id, name: steward.name, outcome: steward.outcome, metric: metric,
-                trend: state.trend,
-                behind: StatusMapping.isBehind(
-                    steward, fleet: fleet, meetsTarget: series?.meetsTarget),
-                state: stateWord(steward),
-                waiting: waiting,
-                lastRun: last.map { ThreadRow.shortTime($0, now: now) } ?? "never",
-                nextWake: wake, health: sidebar.health, runsPerDay: totals, failedPerDay: failed,
-                costToday: cost.replacingOccurrences(of: " today", with: ""),
-                running: going.contains(steward.id),
-                department: departments[steward.id] ?? "")
+                trend: state.trend, behind: behind, state: word, waiting: waiting,
+                lastRun: lastRun, nextWake: wake, health: sidebar.health, runsPerDay: totals,
+                failedPerDay: failed, costToday: costToday, running: running,
+                department: department)
         }
         // Need first: health, then the most waiting on a person, then by name.
         return rows.sorted {

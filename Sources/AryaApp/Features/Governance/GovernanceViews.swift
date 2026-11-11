@@ -361,8 +361,14 @@ private struct BindingPolicy: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: AryaSpace.s2) {
-                Text(binding.id).aryaText(AryaFont.monoStrong, AryaColor.ink)
-                Text(binding.kind).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                // A person reads by name ("Sam"), never "person:sam person".
+                if binding.kind == "person" {
+                    Text(PeopleDirectory.displayName(binding.id))
+                        .aryaText(AryaFont.bodyStrong, AryaColor.ink)
+                } else {
+                    Text(binding.id).aryaText(AryaFont.monoStrong, AryaColor.ink)
+                    Text(binding.kind).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
                 if binding.network {
                     Text("net").aryaText(AryaFont.monoSmall, AryaColor.warning)
                 }

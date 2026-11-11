@@ -817,8 +817,9 @@ enum SnapshotSpace {
 }
 
 /// One watchdog over every state's setup and render: each state that finishes re-arms it, so
-/// any state (its setup included) that takes 60 s stops the run and is named by the state
-/// before it. Counts the running snapshot tests and stands down when the last one ends.
+/// any state (its setup included) that takes 60 s, longer under load, stops the run and is
+/// named by the state before it. Counts the running snapshot tests and stands down when the
+/// last one ends.
 enum SnapshotProgress {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var active = 0
@@ -852,7 +853,16 @@ enum SnapshotProgress {
 final class SnapshotWatchdog: @unchecked Sendable {
     private let item: DispatchWorkItem
 
-    init(_ state: String, seconds: Double = 60) {
+    /// 60 s on a quiet machine, stretched by the load per core so a busy machine is not
+    /// mistaken for a hang (a real hang still stops, just later).
+    static var budget: Double {
+        var load = [Double](repeating: 0, count: 1)
+        let cores = Double(max(1, ProcessInfo.processInfo.activeProcessorCount))
+        let busy = getloadavg(&load, 1) == 1 ? load[0] / cores : 1
+        return 60 * max(1, busy)
+    }
+
+    init(_ state: String, seconds: Double = SnapshotWatchdog.budget) {
         item = DispatchWorkItem {
             let text = "snapshot state \(state) did not finish in \(Int(seconds)) s; stopping\n"
             FileHandle.standardError.write(Data(text.utf8))

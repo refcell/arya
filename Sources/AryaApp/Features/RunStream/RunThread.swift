@@ -353,21 +353,37 @@ struct InlineApproval: View {
                 if let refusal = action.refusal {
                     Text("Refused: \(refusal)").aryaText(AryaFont.caption, AryaColor.negative)
                 }
-                HStack(spacing: AryaSpace.s2) {
-                    Spacer()
-                    if let correct {
-                        Button("Correct", action: correct)
-                            .buttonStyle(AryaSecondaryButtonStyle(keys: showsKeys ? "C" : nil))
-                            .help("Open the run to correct its decision")
+                // One row when it fits; otherwise Approve gets its own line under the others.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: AryaSpace.s2) {
+                        Spacer()
+                        correctButton
+                        deny
+                        approve
                     }
-                    deny
-                    approve
+                    VStack(alignment: .trailing, spacing: AryaSpace.s2) {
+                        HStack(spacing: AryaSpace.s2) {
+                            Spacer()
+                            correctButton
+                            deny
+                        }
+                        approve
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
         }
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Approval: \(RunThreadText.approvalTitle(action))")
+    }
+
+    @ViewBuilder private var correctButton: some View {
+        if let correct {
+            Button("Correct", action: correct)
+                .buttonStyle(AryaSecondaryButtonStyle(keys: showsKeys ? "C" : nil))
+                .help("Open the run to correct its decision")
+        }
     }
 
     @ViewBuilder private var deny: some View {

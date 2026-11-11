@@ -45,8 +45,11 @@ struct ApprovalQueueView: View {
     @AryaState private var confirming: ApprovalItem?
     @FocusState private var focused: Bool
 
+    /// The detail's context column; the request column takes the rest, so its buttons fit.
+    static let contextWidth: CGFloat = 210
+
     /// The queue column's width.
-    static let queueWidth: CGFloat = 320
+    static let queueWidth: CGFloat = 300
 
     @ViewBuilder
     private func content(_ queue: ApprovalQueue, events: [FeatureEvent]) -> some View {
@@ -199,7 +202,7 @@ struct ApprovalQueueView: View {
                 }
                 if !others.isEmpty { alsoWaiting(others) }
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(width: Self.contextWidth, alignment: .topLeading)
         }
     }
 

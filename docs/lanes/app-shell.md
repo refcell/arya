@@ -425,3 +425,7 @@ M4:
   policy, approvers, the steward's other requests). Recent decisions show under the queue.
   Card reasons say "Wants to remind about invoice INV-1066". Person connections read "Maya ·
   owner". Governance's policy line says "Acts alone on medium risk". Dead-space target 30%.
+- Visual check (needs-you, portfolio-live, overview, run-approval): moves (2) no dead space,
+  needs-you 65 → 58, portfolio-live 51 → 50, overview 45 → 43; (3) real controls, approval
+  buttons wrap and never clip. Seven daily bars in portfolio RUNS 7D. The snapshot watchdog
+  stretches 60 s by load per core, after a false stop at load 190.

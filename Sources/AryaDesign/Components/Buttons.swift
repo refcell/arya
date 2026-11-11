@@ -25,6 +25,8 @@ struct AryaButtonBody: View {
             }
         }
         .lineLimit(1)
+        // A label is never cut: a row that cannot fit its buttons wraps them instead.
+        .fixedSize(horizontal: true, vertical: false)
         .padding(.horizontal, AryaSpace.s2)
         .frame(height: AryaSize.buttonHeight)
         .background(fill, in: shape)
