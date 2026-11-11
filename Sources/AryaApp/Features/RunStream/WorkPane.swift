@@ -129,6 +129,13 @@ struct WorkPane: View {
                 Text("LOG").aryaText(AryaFont.label, AryaColor.inkFaint)
                     .padding(.top, AryaSpace.s3).padding(.bottom, AryaSpace.s1)
                 ForEach(work.log.suffix(WorkPane.logTail)) { WorkLineView(line: $0) }
+                if running && work.output.isEmpty { BlinkingCaret() }
+            }
+            if !work.output.isEmpty {
+                // And what the adapter printed last, so one tab shows the whole session.
+                Text("OUTPUT").aryaText(AryaFont.label, AryaColor.inkFaint)
+                    .padding(.top, AryaSpace.s3).padding(.bottom, AryaSpace.s1)
+                ForEach(work.output.suffix(WorkPane.logTail)) { WorkLineView(line: $0) }
                 if running { BlinkingCaret() }
             }
         case .diff:
@@ -167,7 +174,9 @@ private struct WorkBlockView: View {
                         .lineLimit(1).truncationMode(.middle)
                 }
                 Spacer(minLength: AryaSpace.s2)
-                Text(block.meta).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
+                Text(EntityName.humanize(block.meta)).aryaText(
+                    AryaFont.monoSmall, AryaColor.inkFaint
+                ).lineLimit(1)
             }
             .contentShape(Rectangle())
             .onTapGesture(perform: select)

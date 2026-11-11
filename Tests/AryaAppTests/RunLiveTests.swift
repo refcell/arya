@@ -287,3 +287,23 @@ import Testing
         #expect(brief.plan.filter { $0.mark != .next }.count == steps.count)
     }
 }
+
+@Test func oneHumanizerForEveryLane() {
+    #expect(HumanText.name("person:priya-shah") == "Priya Shah")
+    #expect(HumanText.pastVerb("send_email") == "sent email")
+    #expect(
+        HumanText.action(kind: "assign", target: "tracker:ISSUE-7", params: ["to": "person:alex"])
+            == "Assign ISSUE-7 to Alex")
+    #expect(HumanText.action(kind: "archive", target: "inbox:MSG-9") == "Archive MSG-9")
+    #expect(HumanText.adapter("fake-triage") == "Triage (test)")
+}
+
+@Test func earlierRunsListTheStewardsFinishedRunsNewestFirst() {
+    let events = PreviewFixtures.live(now: FeatureTestClock.now)
+    let steward = events.first { $0.run == PreviewFixtures.inProgressRun }?.steward
+    let runs = EarlierRun.list(
+        events: events, steward: steward, excluding: PreviewFixtures.inProgressRun)
+    #expect(runs.map(\.id) == ["run_h2", "run_h1"])
+    #expect(runs.first?.steps == 5)
+    #expect(runs.first?.meta.hasPrefix("5 steps · ") == true)
+}

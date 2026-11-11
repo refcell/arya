@@ -73,11 +73,19 @@ struct RunStreamView: View {
                         .padding(.vertical, AryaSpace.s3)
                         AryaHairline()
                         ScrollView {
-                            RunThread(
-                                stream: stream, now: now, context: context(stream),
-                                showsHeader: false, showsInput: false,
-                                selection: selectionBinding
-                            )
+                            VStack(alignment: .leading, spacing: AryaSpace.s5) {
+                                RunThread(
+                                    stream: stream, now: now, context: context(stream),
+                                    showsHeader: false, showsInput: false,
+                                    selection: selectionBinding
+                                )
+                                // How the same work went before, under a short thread.
+                                EarlierRunsView(
+                                    runs: EarlierRun.list(
+                                        events: store.events, steward: stream.steward,
+                                        excluding: run),
+                                    now: now, openRun: openRun)
+                            }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, AryaSpace.s4)
                             .padding(.vertical, AryaSpace.s3)

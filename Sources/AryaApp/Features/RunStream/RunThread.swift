@@ -464,7 +464,10 @@ enum RunThreadText {
 
     /// "via tracker · live · 1.2 s", or "via shell · running… 3 s" with the time so far.
     static func toolMeta(_ call: ToolCallStep, elapsed: Double? = nil) -> String {
-        var parts = [call.binding.map { "via \($0)" }, call.source.map(StreamStepText.sourceWord)]
+        var parts = [
+            call.binding.map { "via \(EntityName.plain($0))" },
+            call.source.map(StreamStepText.sourceWord),
+        ]
         if !call.finished {
             let counter = elapsed.map { FeatureRunFacts.elapsedText(max(0, $0), running: true) }
             parts.append(counter.map { "running… \($0)" } ?? "running")
@@ -514,7 +517,7 @@ enum RunThreadText {
     /// "via inbox · risk medium"; why it was held is the workspace's sentence.
     static func approvalMeta(_ action: ProposedActionStep) -> String {
         var parts: [String] = []
-        if let binding = action.binding { parts.append("via \(binding)") }
+        if let binding = action.binding { parts.append("via \(EntityName.plain(binding))") }
         parts.append("risk \(action.risk.rawValue)")
         return parts.joined(separator: " · ")
     }
