@@ -127,3 +127,35 @@ struct OutcomeContextSection: View {
         }
     }
 }
+
+/// KNOWS on the Overview: the notes the steward keeps about its work (newest first), so the
+/// person sees what it will act on.
+struct OutcomeKnowsSection: View {
+    let notes: [OutcomeContext.Line]
+    /// Notes shown before the rest fold into a count.
+    var limit = 6
+
+    var body: some View {
+        if !notes.isEmpty {
+            VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("KNOWS").aryaText(AryaFont.overline, AryaColor.inkFaint)
+                    Spacer(minLength: AryaSpace.s2)
+                    Text("\(notes.count)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                }
+                ForEach(notes.prefix(limit)) { note in
+                    HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                        Text(note.key).aryaText(AryaFont.mono, AryaColor.ink)
+                        Text(note.text).aryaText(AryaFont.body, AryaColor.inkMuted)
+                            .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(minHeight: AryaSize.rowHeight, alignment: .leading)
+                }
+                if notes.count > limit {
+                    Text("\(notes.count - limit) more under Context")
+                        .aryaText(AryaFont.caption, AryaColor.inkFaint)
+                }
+            }
+        }
+    }
+}

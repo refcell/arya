@@ -152,24 +152,23 @@ struct OverviewTab: View {
                     now: store.now)
                 let reads = store.outcomeReads[steward]
                 let impact = reads?.impact.map(OutcomeImpact.build)
-                columns {
-                    VStack(alignment: .leading, spacing: AryaSpace.s4) {
-                        OutcomeNowSection(
-                            now: OutcomeNow.build(
-                                events: events, steward: steward, state: snapshot.state,
-                                now: store.now, live: reads?.live),
-                            openRun: openRun, startServing: startServing)
-                        if let plan = snapshot.plan, !plan.steps.isEmpty {
-                            OutcomePlanSection(plan: plan, now: store.now, openRun: openRun)
-                        }
+                // Each panel drops into the shorter column, so both columns reach RECENT
+                // together whatever a steward has to say.
+                OutcomeColumns(spacing: AryaSpace.s5, rowSpacing: AryaSpace.s4) {
+                    OutcomeNowSection(
+                        now: OutcomeNow.build(
+                            events: events, steward: steward, state: snapshot.state,
+                            now: store.now, live: reads?.live),
+                        openRun: openRun, startServing: startServing)
+                    OutcomeFindingsSection(
+                        findings: OutcomeFinding.build(
+                            reads?.findings ?? [], events: events, steward: steward))
+                    if let plan = snapshot.plan, !plan.steps.isEmpty {
+                        OutcomePlanSection(plan: plan, now: store.now, openRun: openRun)
                     }
-                } trailing: {
-                    VStack(alignment: .leading, spacing: AryaSpace.s4) {
-                        OutcomeFindingsSection(
-                            findings: OutcomeFinding.build(
-                                reads?.findings ?? [], events: events, steward: steward))
-                        if let impact { OutcomeImpactSection(impact: impact) }
-                    }
+                    if let impact { OutcomeImpactSection(impact: impact) }
+                    OutcomeKnowsSection(
+                        notes: OutcomeContext.build(events: events, steward: steward).notes)
                 }
                 OutcomeActivitySection(
                     activity: snapshot.activity, now: store.now, openRun: openRun,
@@ -189,14 +188,42 @@ struct OverviewTab: View {
     }
 }
 
-/// Two panels side by side, top-aligned, splitting the stream's width.
-@ViewBuilder
-private func columns<Leading: View, Trailing: View>(
-    @ViewBuilder _ leading: () -> Leading, @ViewBuilder trailing: () -> Trailing
-) -> some View {
-    HStack(alignment: .top, spacing: AryaSpace.s5) {
-        leading().frame(maxWidth: .infinity, alignment: .topLeading)
-        trailing().frame(maxWidth: .infinity, alignment: .topLeading)
+/// Panels in two equal columns, each placed under whichever column is shorter so far (in
+/// order), so neither column ends with a hole above the next full-width section.
+struct OutcomeColumns: Layout {
+    var spacing: CGFloat
+    var rowSpacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 800
+        let (_, heights) = place(subviews, width: width)
+        return CGSize(width: width, height: heights.max() ?? 0)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
+    ) {
+        let (spots, _) = place(subviews, width: bounds.width)
+        let column = (bounds.width - spacing) / 2
+        for (subview, spot) in zip(subviews, spots) {
+            subview.place(
+                at: CGPoint(x: bounds.minX + spot.x, y: bounds.minY + spot.y), anchor: .topLeading,
+                proposal: ProposedViewSize(width: column, height: nil))
+        }
+    }
+
+    private func place(_ subviews: Subviews, width: CGFloat) -> ([CGPoint], [CGFloat]) {
+        let column = max(0, (width - spacing) / 2)
+        var heights: [CGFloat] = [0, 0]
+        var spots: [CGPoint] = []
+        for subview in subviews {
+            let size = subview.sizeThatFits(ProposedViewSize(width: column, height: nil))
+            let index = heights[1] < heights[0] ? 1 : 0
+            let top = heights[index] == 0 ? 0 : heights[index] + rowSpacing
+            spots.append(CGPoint(x: index == 0 ? 0 : column + spacing, y: top))
+            if size.height > 0 { heights[index] = top + size.height }
+        }
+        return (spots, heights)
     }
 }
 

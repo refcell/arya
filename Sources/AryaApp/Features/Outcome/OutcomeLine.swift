@@ -56,8 +56,7 @@ struct OutcomeLineContent: View {
     /// The charter's owner by name: "person:maya" reads "Maya".
     static func owner(_ charter: FeatureJSON, events: [FeatureEvent], steward: String) -> String? {
         guard let owner = charter["owner"]?.string, !owner.isEmpty else { return nil }
-        let names = OutcomePeople.names(events: events, steward: steward)
-        return owner.hasPrefix("person:") ? names[owner] ?? OutcomePeople.name(owner) : owner
+        return HumanText.actor(owner)
     }
 
     var body: some View {

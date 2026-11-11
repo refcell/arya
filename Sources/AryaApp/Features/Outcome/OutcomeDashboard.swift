@@ -314,7 +314,10 @@ struct OutcomeMetricsPanel: View {
         // The chart spans the stream; the series sit beneath it in as many columns as fit.
         OutcomeSection("Metrics", trailing: "\(OutcomeMetrics.windowDays) days") {
             VStack(alignment: .leading, spacing: AryaSpace.s3) {
-                chart.frame(maxWidth: .infinity)
+                HStack(alignment: .top, spacing: AryaSpace.s5) {
+                    chart.frame(maxWidth: .infinity)
+                    days
+                }
                 grid(metrics.series.filter { !$0.guardrail })
                 let guardrails = metrics.series.filter(\.guardrail)
                 if !guardrails.isEmpty {
@@ -340,7 +343,7 @@ struct OutcomeMetricsPanel: View {
                     }
                     OutcomeSparkline(
                         values: values, target: metrics.metric?.target,
-                        height: AryaSize.outcomeChartHeight, gridlines: 3)
+                        height: AryaSize.outcomeChartHeight, gridlines: 5)
                 }
                 .frame(height: AryaSize.outcomeChartHeight)
                 HStack {
@@ -359,6 +362,38 @@ struct OutcomeMetricsPanel: View {
         } else {
             Text("Fewer than two days measured; the chart starts with the second reading.")
                 .aryaText(AryaFont.caption, AryaColor.inkFaint)
+        }
+    }
+
+    /// The chart's last week as numbers, newest first: each day's reading and how many
+    /// measurements made it. No verdicts here; the header carries the workspace's.
+    @ViewBuilder private var days: some View {
+        let recent = Array(metrics.points.suffix(7).reversed())
+        if recent.count >= 2 {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("DAY").frame(maxWidth: .infinity, alignment: .leading)
+                    Text("VALUE").frame(width: AryaSize.outcomeDayValue, alignment: .trailing)
+                    Text("N").frame(width: AryaSize.outcomeDayCount, alignment: .trailing)
+                }
+                .aryaText(AryaFont.overline, AryaColor.inkFaint)
+                .frame(height: AryaSize.rowHeight)
+                ForEach(recent) { point in
+                    HStack {
+                        Text(lastLabel(point)).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(MetricText.value(point.value))
+                            .aryaText(AryaFont.mono, AryaColor.ink)
+                            .frame(width: AryaSize.outcomeDayValue, alignment: .trailing)
+                        Text("\(point.count)").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                            .frame(width: AryaSize.outcomeDayCount, alignment: .trailing)
+                    }
+                    .monospacedDigit()
+                    .frame(height: AryaSize.rowHeight)
+                }
+            }
+            .frame(width: AryaSize.outcomeDaysWidth)
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -593,10 +628,13 @@ enum OutcomeDashboardText {
 }
 
 extension AryaSize {
-    static let outcomeChartHeight: CGFloat = 112
+    static let outcomeChartHeight: CGFloat = 168
+    static let outcomeDaysWidth: CGFloat = 200
+    static let outcomeDayValue: CGFloat = 64
+    static let outcomeDayCount: CGFloat = 32
     static let outcomeSeriesWidth: CGFloat = 300
     static let outcomeSeriesLabel: CGFloat = 96
-    static let outcomeSeriesSpark: CGFloat = 14
+    static let outcomeSeriesSpark: CGFloat = 20
     static let outcomeSeriesValue: CGFloat = 64
     static let outcomeBarHeight: CGFloat = 2
 }
