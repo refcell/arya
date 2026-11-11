@@ -606,9 +606,19 @@ enum GovernanceText {
         return "\(summary.count) events to seq \(summary.head)\(sealed) · \(summary.key)"
     }
 
+    /// What was done and what undoes it, in words: "Labeled MSG-140 → remove label".
     static func undoLine(_ option: UndoOption) -> String {
-        let target = option.target.map { " \($0)" } ?? ""
-        return "\(option.kind)\(target) → \(option.with)"
+        let target = option.target.map { " " + EntityName.plain($0) } ?? ""
+        let done = HumanText.pastVerb(option.kind)
+        return done.prefix(1).uppercased() + done.dropFirst() + target + " → "
+            + undoVerb(option.with)
+    }
+
+    /// "unlabel" -> "remove label", "untag" -> "remove tag", else the kind in words.
+    static func undoVerb(_ kind: String) -> String {
+        let words = HumanText.verb(kind)
+        for verb in ["label", "tag"] where words == "un" + verb { return "remove " + verb }
+        return words
     }
 
     static func autonomyLine(_ policy: PolicySummary) -> String {

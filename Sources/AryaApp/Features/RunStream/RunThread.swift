@@ -352,8 +352,9 @@ struct InlineApproval: View {
                     VStack(alignment: .leading, spacing: AryaSpace.s1) {
                         Text(RunThreadText.sourceLabel(action)).aryaText(
                             AryaFont.overline, AryaColor.inkFaint)
-                        Text(source).aryaText(AryaFont.body, AryaColor.inkMuted).textSelection(
-                            .enabled)
+                        Text(HumanText.sentence(RunInput.message(source)))
+                            .aryaText(AryaFont.body, AryaColor.inkMuted).textSelection(
+                                .enabled)
                     }
                 }
                 if !action.rationale.isEmpty {

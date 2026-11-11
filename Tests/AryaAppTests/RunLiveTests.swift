@@ -1,3 +1,4 @@
+import Arya
 import Foundation
 import Testing
 
@@ -456,4 +457,14 @@ import Testing
     #expect(metrics.text.hasSuffix("$0.01 so far"))
     metrics.costSoFar = false
     #expect(metrics.text.hasSuffix("$0.01"))
+}
+
+@Test func undoAndHandOffLinesReadInWords() throws {
+    let json =
+        #"{"run":"r1","action":"a1","kind":"label","target":"inbox:MSG-140","with":"unlabel"}"#
+    let option = try JSONDecoder().decode(UndoOption.self, from: Data(json.utf8))
+    #expect(GovernanceText.undoLine(option) == "Labeled MSG-140 → remove label")
+    #expect(
+        HumanText.sentence(RunInput.message("person:sam hands this to you: Take MSG-140"))
+            == "Sam handed this to you: Take MSG-140")
 }
