@@ -285,10 +285,13 @@ struct ConnectionsView: View {
                         .aryaText(AryaFont.monoSmall, ConnectionInspector.color(call.kind))
                         .frame(width: 64, alignment: .leading)
                     // The target names its connection ("inbox:MSG-140"); bare reads get a prefix.
-                    Text(call.what.contains(":") ? call.what : "\(connection) \(call.what)")
-                        .aryaText(AryaFont.monoSmall, AryaColor.ink)
-                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                        .layoutPriority(1)
+                    Text(
+                        HumanText.sentence(
+                            call.what.contains(":") ? call.what : "\(connection) \(call.what)")
+                    )
+                    .aryaText(AryaFont.monoSmall, AryaColor.ink)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
                     Spacer(minLength: AryaSpace.s3)
                     Text(call.steward.map { names[$0] ?? $0 } ?? "")
                         .aryaText(AryaFont.caption, AryaColor.inkFaint)
@@ -497,7 +500,8 @@ struct ConnectionInspector: View {
                             Text(call.kind.rawValue)
                                 .aryaText(AryaFont.monoSmall, Self.color(call.kind))
                                 .frame(width: 56, alignment: .leading)
-                            Text(call.what).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                            Text(HumanText.sentence(call.what))
+                                .aryaText(AryaFont.monoSmall, AryaColor.ink)
                                 .lineLimit(1)
                             Spacer(minLength: 0)
                             Text(FeatureTime.relative(call.at, now: store.now))

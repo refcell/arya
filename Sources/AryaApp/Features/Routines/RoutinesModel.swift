@@ -83,11 +83,15 @@ enum RoutinesText {
         item.live.map { "live \(shortVersion($0))" } ?? "not live"
     }
 
-    /// "Proposed 4d5e6f by st_triage: Label duplicates directly".
-    static func history(_ event: RoutineEvent) -> String {
+    /// "Proposed 4d5e6f by Support triage: Label duplicates directly", the actor named by
+    /// `name` (a steward's display name), else by `HumanText.actor`.
+    static func history(_ event: RoutineEvent, name: (String) -> String? = { _ in nil })
+        -> String
+    {
         let verb = event.kind.rawValue.prefix(1).uppercased() + event.kind.rawValue.dropFirst()
-        var text = "\(verb) \(shortVersion(event.version)) by \(HumanText.actor(event.actor))"
-        let detail = event.summary.isEmpty ? event.reason : event.summary
+        let by = name(event.actor.id) ?? HumanText.actor(event.actor)
+        var text = "\(verb) \(shortVersion(event.version)) by \(by)"
+        let detail = HumanText.sentence(event.summary.isEmpty ? event.reason : event.summary)
         if !detail.isEmpty { text += ": \(detail)" }
         return text
     }

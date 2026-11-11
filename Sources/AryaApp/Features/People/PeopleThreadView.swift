@@ -55,7 +55,8 @@ struct PersonThreadView: View {
         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
             StatusDot(.running)
             Text(stewardName).aryaText(AryaFont.bodyStrong, AryaColor.accent)
-            Text(working.doing + "…").aryaText(AryaFont.mono, AryaColor.inkMuted)
+            Text(HumanText.sentence(working.doing) + "…").aryaText(
+                AryaFont.mono, AryaColor.inkMuted)
             Text("step \(working.steps)")
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             Spacer()
@@ -78,13 +79,14 @@ struct PersonThreadView: View {
                     Text(tag).aryaText(AryaFont.monoSmall, AryaColor.inkMuted)
                 }
                 if let title = entry.run.flatMap({ titles[$0] }) {
-                    Text(title).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
+                    Text(HumanText.sentence(title))
+                        .aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
                 }
                 Spacer()
                 Text(FeatureTime.relative(entry.at, now: store.now))
                     .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
             }
-            Text(entry.text.isEmpty ? "(no text)" : entry.text)
+            Text(entry.text.isEmpty ? "(no text)" : HumanText.sentence(entry.text))
                 .aryaText(AryaFont.body, entry.text.isEmpty ? AryaColor.inkFaint : AryaColor.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
@@ -156,7 +158,8 @@ struct PersonInspector: View {
             }
             ForEach(items.prefix(5)) { item in
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.text).aryaText(AryaFont.caption, AryaColor.ink).lineLimit(3)
+                    Text(HumanText.sentence(item.text)).aryaText(AryaFont.caption, AryaColor.ink)
+                        .lineLimit(3)
                     Text(
                         [
                             item.source,
@@ -208,8 +211,10 @@ struct PersonInspector: View {
                             Text(task.status.label)
                                 .aryaText(AryaFont.monoSmall, Self.color(task.status))
                                 .frame(width: 96, alignment: .leading)
-                            Text(task.text).aryaText(AryaFont.caption, AryaColor.ink)
-                                .lineLimit(2)
+                            Text(HumanText.sentence(task.text)).aryaText(
+                                AryaFont.caption, AryaColor.ink
+                            )
+                            .lineLimit(2)
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -228,8 +233,10 @@ struct PersonInspector: View {
                                     entry.inbound ? AryaColor.inkMuted : AryaColor.accent
                                 )
                                 .frame(width: 56, alignment: .leading)
-                            Text(entry.text).aryaText(AryaFont.caption, AryaColor.ink)
-                                .lineLimit(2)
+                            Text(HumanText.sentence(entry.text)).aryaText(
+                                AryaFont.caption, AryaColor.ink
+                            )
+                            .lineLimit(2)
                             Spacer(minLength: 0)
                             Text(FeatureTime.relative(entry.at, now: store.now))
                                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)

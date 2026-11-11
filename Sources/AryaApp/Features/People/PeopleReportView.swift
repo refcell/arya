@@ -70,7 +70,7 @@ struct PeopleReportSection: View {
                 Text(digest.configured ? "NEXT REPORT" : "PREVIEW")
                     .aryaText(AryaFont.label, AryaColor.inkFaint)
                 ForEach(Array(digest.lines.enumerated()), id: \.offset) { _, line in
-                    Text(line).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                    Text(HumanText.sentence(line)).aryaText(AryaFont.monoSmall, AryaColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
@@ -185,7 +185,7 @@ struct PeopleReportHistoryView: View {
             ForEach(history.sent) { sent in
                 row(sent)
                 if open == sent.id {
-                    Text(sent.text).aryaText(AryaFont.monoSmall, AryaColor.ink)
+                    Text(HumanText.sentence(sent.text)).aryaText(AryaFont.monoSmall, AryaColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                         .padding(AryaSpace.s3)
@@ -206,7 +206,8 @@ struct PeopleReportHistoryView: View {
             Text(FeatureTime.relative(sent.at, now: store.now))
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 .frame(minWidth: 44, alignment: .leading)
-            Text(sent.subject).aryaText(AryaFont.caption, AryaColor.ink).lineLimit(1)
+            Text(HumanText.sentence(sent.subject)).aryaText(AryaFont.caption, AryaColor.ink)
+                .lineLimit(1)
             Spacer(minLength: AryaSpace.s3)
             ForEach(sent.recipients) { recipient in
                 Text("\(recipient.name) · \(recipient.status.label)")

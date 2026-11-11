@@ -306,3 +306,10 @@ and receive a periodic report from it.
   one line in a fixed column. Visual check, `empty.tsv` verbatim: people.png 50,
   people-memory.png 50, connections.png 53, connections-detail.png 53, routines-library.png
   55, routines-upgrade.png 55, people-thread.png 61, people-learned.png 62.
+- 2026-11-11 (CEO, raw-id gate): recent calls, the connection inspector, the person thread
+  (working line, run titles, messages, tasks), report previews and past reports read refs as
+  names through `HumanText.sentence`; routine history names stewards ("by Support inbox
+  triage"). Removed connect's eight states from `etc/app/rawtext-pending.txt`; all eight
+  render clean under the gate. Visual check, `empty.tsv` verbatim: connections-connect.png 66,
+  connections-detail.png 52, connections-inspector.png 46, connections.png 51,
+  people-thread-live.png 60, reports.png 82, routines-library.png 57, routines-upgrade.png 57.

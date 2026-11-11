@@ -115,9 +115,11 @@ struct RoutinesLibraryView: View {
             Text("RECENT CHANGES").aryaText(AryaFont.label, AryaColor.inkFaint)
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(RoutinesText.history(item.2))
-                        .aryaText(AryaFont.caption, AryaColor.ink)
-                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    Text(
+                        RoutinesText.history(item.2, name: known)
+                    )
+                    .aryaText(AryaFont.caption, AryaColor.ink)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     Text(
                         [item.0, item.1.map(name), FeatureTime.relative(item.2.at, now: store.now)]
                             .compactMap { $0 }.joined(separator: " · ")
@@ -171,6 +173,7 @@ struct RoutinesLibraryView: View {
     }
 
     private func name(_ id: String) -> String { stewards.first { $0.id == id }?.name ?? id }
+    private func known(_ id: String) -> String? { stewards.first { $0.id == id }?.name }
 }
 
 /// The right half of the library: the live script, the newest version diff, and recent runs
@@ -295,6 +298,7 @@ struct RoutineDetail: View {
     }
 
     private func name(_ id: String) -> String { stewards.first { $0.id == id }?.name ?? id }
+    private func known(_ id: String) -> String? { stewards.first { $0.id == id }?.name }
 }
 
 /// The inspector for a routine in the library: each steward's live version and upgrade,
@@ -362,7 +366,8 @@ struct RoutineInspector: View {
                     .sorted { $0.1.at > $1.1.at }.prefix(6)
                 ForEach(Array(history.enumerated()), id: \.offset) { _, pair in
                     Text(
-                        "\(name(pair.0.steward ?? "")): \(RoutinesText.history(pair.1))"
+                        name(pair.0.steward ?? "") + ": "
+                            + RoutinesText.history(pair.1, name: known)
                             + " · \(FeatureTime.relative(pair.1.at, now: store.now))"
                     )
                     .aryaText(AryaFont.caption, AryaColor.inkMuted)
@@ -422,4 +427,5 @@ struct RoutineInspector: View {
     }
 
     private func name(_ id: String) -> String { stewards.first { $0.id == id }?.name ?? id }
+    private func known(_ id: String) -> String? { stewards.first { $0.id == id }?.name }
 }
