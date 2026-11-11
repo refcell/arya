@@ -80,7 +80,8 @@ private let utc = TimeZone(identifier: "UTC")!
 
 @Test func backdatedHistoryReadsAsOld() async throws {
     let home = TempHome()
-    let weeksAgo = Date().addingTimeInterval(-21 * 86_400)
+    // 22 days, not 21: a slow seed must not slip under three weeks.
+    let weeksAgo = Date().addingTimeInterval(-22 * 86_400)
     let seeding = try await Workspace.open(
         home: home.url,
         ambient: .fixed(start: Timestamp(millis: Int64(weeksAgo.timeIntervalSince1970 * 1000))))
