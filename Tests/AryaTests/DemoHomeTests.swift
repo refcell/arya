@@ -130,10 +130,14 @@ func busyDemoHomeHasRunsOnMostOfTheLastWeek() async throws {
     try FileManager.default.copyItem(at: seed, to: home)
     defer { try? FileManager.default.removeItem(at: home) }
     let workspace = try await Workspace.open(home: home)
-    // A paused steward does not run, so only the active ones are held to it.
-    for steward in try await workspace.stewards() where steward.status == .active {
-        let history = try await workspace.runHistory(steward: steward.id)
-        let busy = history.days.filter { $0.runs > 0 }.count
+    // A paused steward does not run, and the refund and digest examples follow the cadence of
+    // their history files (an order every two to three days), so they are not held to it.
+    // Complete days only: early in the morning today has no runs yet.
+    let examples: Set<String> = ["st_refunds", "st_digest"]
+    for steward in try await workspace.stewards()
+    where steward.status == .active && !examples.contains(steward.id) {
+        let history = try await workspace.runHistory(steward: steward.id, days: 8)
+        let busy = history.days.dropLast().filter { $0.runs > 0 }.count
         #expect(busy >= 5, "\(steward.id): runs on \(busy) of 7 days (\(history.line))")
         #expect(history.today < history.total, "\(steward.id): every run is today")
     }
