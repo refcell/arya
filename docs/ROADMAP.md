@@ -108,8 +108,8 @@ redesigned Overview and run-approval screens; the other screens still await revi
 
 Functional parity comes before polishing any one screen. Each item has a status (done,
 partial, missing) judged on what works end to end in the app on real data, the commits that
-built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11: 15 done,
-3 partial, 0 missing.
+built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11: 16 done,
+2 partial, 0 missing.
 
 | #  | Item                                   | Status  |
 | -- | -------------------------------------- | ------- |
@@ -125,7 +125,7 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11:
 | 10 | Fleets of sub-agents                   | done    |
 | 11 | Organizational memory                  | partial |
 | 12 | Persistent and proactive               | done    |
-| 13 | Fine-grained access and audit          | partial |
+| 13 | Fine-grained access and audit          | done    |
 | 14 | Sandbox, encryption, retention         | done    |
 | 15 | Many stewards, portfolio               | done    |
 | 16 | Templates                              | done    |
@@ -174,12 +174,13 @@ built it, its owning lanes, and what `just e2e` covers. Status as of 2026-11-11:
 12. Persistent and proactive (runtime; app-outcome). Done: the scheduler, proactive findings
     (afc02209), and overview findings (b4548d6e). e2e: a sweep raises a problem and an
     opportunity; `arya findings`, and a person acts on one (`arya finding resolve`).
-13. Governance: fine-grained access, attributable and auditable (governance). Partial: the
+13. Governance: fine-grained access, attributable and auditable (governance). Done: the
     ledger audit, approver rules enforced and recorded (9af3f91c), and a people directory with
     roles (cc50514f), grants and teams in the ledger with gated, undoable changes enforced on
     use and approve (2483d6af), Settings > Access (8018d0ad), and `arya access
-    list|grant|revoke|team|undo` with message intents honoring grants (workspace). Left: the
-    e2e. e2e: a refused approver is recorded, the allowed one approves; verify the ledger.
+    list|grant|revoke|team|undo` with message intents honoring grants (0ea50e55). e2e: a refused
+    approver is recorded, the allowed one approves; grant, a correction passes, revoke, the
+    correction is refused and recorded, undo; verify the ledger.
 14. Sandboxed execution, encryption at rest, retention (governance). Done: the OS sandbox,
     encryption (d87306ce) and re-sealing older history (24284e8a), retention applied by
     archiving (ed96bb79), all in the app (6c940da4). e2e: retention, signed export and import.

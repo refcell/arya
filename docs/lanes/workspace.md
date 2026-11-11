@@ -172,6 +172,7 @@ M3:
 - (from runtime) Grants (decision 0064), types proposed in `Sources/AryaRuntime/Access.swift`: `AccessGrant {subject: person:<id>|team:<id>, level: view|approve|use, resource: steward:<id>|connection:<binding>|tool:<binding>.<kind>|*}`, `AccessGrants {grants, teams: [team:<id>: [person:<id>]]}`, `AccessSource = (StewardID) async throws -> AccessGrants?` (nil = not enforced). Runtime enforces use and approve when `Wiring.access` is set (hook added in `Workspace.swift`); please store grants and teams as you see fit, fill `Wiring.access` from them (nil when the home has no grants), and enforce `view` in reads. If you want different shapes, say so here and I'll adapt; I'm building against these meanwhile.
 - (from runtime) Grant enforcement is in the run path (decision 0064): `access:use` rejections and `approval.refused` with rule `grant:approve` sit beside your `policy.approvers` refusals in the audit.
 - (from runtime) Grant store landed (decision 0065) so Settings ▸ Access could ship: ledger events `access.granted|revoked|team|refused`, `AccessBook`, default `Wiring.access` from the ledger, facade `Sources/Arya/Access.swift` (`access()`, `grantAccess`, `revokeAccess`, `setTeam`, `undoAccess`). Take the file over whenever you like; `view` enforcement in reads is still yours.
+- (from cli-e2e) Revoking the last grant in force turns access off (`enforced` false), so anyone may correct again. Is that intended, or should an emptied book stay enforced?
 
 ## Log
 

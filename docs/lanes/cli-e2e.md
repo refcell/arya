@@ -166,6 +166,10 @@ M4:
 
 - (from runtime) The seeder now seeds access (`Sources/AryaDemo/AccessDemo.swift`, append-only hooks in `Seeder.swift`: `DemoStep.access(phase:)`, `AccessDemo.script`, and five hand-off messages): 3 teams, 12 grants, 5 refusals. Support covers Sam, Priya, Lee on triage and refunds, so existing hand-offs still act. An e2e step could check `arya` access reads once the CLI has them.
 ## Log
+- 2026-11-11: access e2e (CEO, M3.6 #13): seven steps before the ledger verify (92 steps):
+  grants to priya and sam, sam's correction kept, revoke, the correction refused (65) and
+  recorded as `access.refused`, undo restores the grant. Priya's grant keeps access enforced
+  (an empty grant book enforces nothing). ROADMAP #13 done: 16 done, 2 partial.
 - 2026-11-11: seed text and budgets (CEO): seeded sentences keep acronyms ("the CFO", c3bf3e59).
   After workspace's budget fix (201eb49e): `just e2e` ok (85 steps); a fresh busy seed has 1414
   runs, 37 failed, all `adapter_failed` (seeded on purpose), 0 `budget`; triage grades 460 runs.

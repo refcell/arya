@@ -342,6 +342,33 @@ check_fanout() {
 check_forgotten() { ! grep -q "\"${memory_id:-none}\"" "$out" || { echo "    $memory_id still recalled"; return 1; }; }
 
 # refused_step NAME GROUP NEEDS TEXT ARGS...: `arya ARGS...` must fail with TEXT on stderr.
+check_granted() {
+  expect change "$(get lastChange.kind)" granted &&
+    expect level "$(get lastChange.grant.level)" use
+}
+check_revoked() {
+  expect change "$(get lastChange.kind)" revoked &&
+    expect subject "$(get lastChange.grant.subject)" person:sam || return 1
+  access_revoke=$(get lastChange.seq)
+}
+# True when some entry of the array at $1 has $2 == $3 and, if given, $4 == $5.
+has_entry() {
+  local i=0
+  while [ -n "$(get "$1.$i.$2")" ]; do
+    [ "$(get "$1.$i.$2")" = "$3" ] && { [ -z "${4:-}" ] || [ "$(get "$1.$i.$4")" = "$5" ]; } &&
+      return 0
+    i=$((i + 1))
+  done
+  return 1
+}
+check_refusal() {
+  expect enforced "$(get enforced)" true || return 1
+  has_entry refusals action message.correct person person:sam ||
+    { echo "    no recorded refusal of sam's correction"; return 1; }
+}
+check_access_undone() {
+  has_entry grants subject person:sam level use || { echo "    sam has no use grant"; return 1; }
+}
 refused_step() {
   local name=$1 group=$2 needs=$3 text=$4 dep
   shift 4
@@ -582,6 +609,21 @@ step "only the opportunity stays open" findings live check_one_finding_open \
 step "templates: five examples to start from" templates setup check_templates template list
 step "start a steward from a template" templates setup check_from_template \
   template use lead_follow_up --id st_leads --owner person:priya
+# Access (M3.6 #13): with grants in force, a correction needs a use grant on the steward.
+# Priya's grant keeps access enforced once sam's is revoked; undo gives it back.
+step "access: priya may use triage" access setup check_granted \
+  access grant use steward:st_triage person:priya --reason "runs the support desk"
+step "access: sam may use triage" access setup check_granted \
+  access grant use steward:st_triage person:sam --reason "covers weekends"
+step "with a grant, sam's correction is kept" access setup check_message_kept \
+  message st_triage "Gift card refunds go to billing." --as person:sam --intent correct
+step "access: revoke sam's grant" access setup check_revoked \
+  access revoke use steward:st_triage person:sam --reason "moved teams"
+refused_step "without it, sam's correction is refused" access setup "has no use grant" \
+  message st_triage "Gift card refunds go to sales." --as person:sam --intent correct
+step "the refusal is recorded" access setup check_refusal access list --refusals 5
+step "undo the revoke: sam may use triage" access setup check_access_undone \
+  access undo "${access_revoke:-0}"
 step "verify the ledger" setup - check_verify ledger verify
 
 case "$state" in
