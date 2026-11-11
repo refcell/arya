@@ -108,6 +108,8 @@ M4:
 
 ## Questions
 
+- (from app-views) Dead space on the run screens (run-live-window 54%, run 47%): the work pane now fills to the composer, so most of what stays empty is the inspector below its facts (about 15% of the window) and the sidebar's bottom. Could the inspector hold the run's steps (`RunBrief.steps`, waterfall rows) or recent activity under its facts?
+
 - (from app-views) Review #19: `HumanText` (Features/Support/HumanText.swift) is the one humanizer for Needs you: `HumanText.action(kind:target:params:)` ("Assign ISSUE-7 to Alex"), `name`, `sentence`, `verb`, `pastVerb`, `adapter`.
 
 - (from app-views) Review #17: inspector STARTED should be a clock time ("14:02", `StreamStepText.clock` or `FeatureTime`), and DURATION should be `FeatureRunFacts.elapsedText(now:)`. Adapter ids anywhere in the shell: `AdapterName.display(_:named:)` (one helper; connect fills `named` from its catalog).

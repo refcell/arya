@@ -9,6 +9,16 @@ struct RunBrief: Hashable, Sendable {
     struct Item: Hashable, Sendable {
         var mark: Mark
         var text: String
+        /// Where the step sits in the run, as fractions of the run's span (a waterfall bar);
+        /// nil for plan items, which have no times.
+        var span: Span? = nil
+        /// "1.6 s", for steps that took time.
+        var took: String? = nil
+    }
+
+    struct Span: Hashable, Sendable {
+        var start: Double
+        var length: Double
     }
 
     /// "Started by you", "Priya handed this off", "Started by its schedule".
@@ -97,27 +107,29 @@ struct RunBrief: Hashable, Sendable {
     /// The run's work steps as a checklist: done, the one running, and while the run is live
     /// how many more its steward usually takes.
     static func steps(_ stream: RunStream, done: Int? = nil, expected: Int?) -> [Item] {
-        var items = stream.steps.compactMap { step -> Item? in
-            switch step.kind {
-            case .toolCall(let call):
-                let text = [call.tool, RunThreadText.argument(call.input)].compactMap { $0 }
-                    .joined(separator: " ")
-                return Item(mark: call.finished ? .done : .current, text: text)
-            case .action(let action):
-                let target = EntityName.plain(action.target)
-                let mark: Mark = RunThreadText.failed(action) ? .blocked : .done
-                return Item(mark: mark, text: RunTitle.verb(action.kind) + " " + target)
-            case .delegated(let delegation):
-                return Item(
-                    mark: delegation.childStatus == .running ? .current : .done,
-                    text: "hand off: " + delegation.title)
-            case .message(let role, _) where role == "streaming":
-                return Item(mark: .current, text: "write the reply")
-            case .message:
-                return Item(mark: .done, text: StreamStepText.title(step.kind))
-            default: return nil
-            }
-        }
+        var items = RunBrief.timed(
+            stream,
+            stream.steps.compactMap { step -> Item? in
+                switch step.kind {
+                case .toolCall(let call):
+                    let text = [call.tool, RunThreadText.argument(call.input)].compactMap { $0 }
+                        .joined(separator: " ")
+                    return Item(mark: call.finished ? .done : .current, text: text)
+                case .action(let action):
+                    let target = EntityName.plain(action.target)
+                    let mark: Mark = RunThreadText.failed(action) ? .blocked : .done
+                    return Item(mark: mark, text: RunTitle.verb(action.kind) + " " + target)
+                case .delegated(let delegation):
+                    return Item(
+                        mark: delegation.childStatus == .running ? .current : .done,
+                        text: "hand off: " + delegation.title)
+                case .message(let role, _) where role == "streaming":
+                    return Item(mark: .current, text: "write the reply")
+                case .message:
+                    return Item(mark: .done, text: StreamStepText.title(step.kind))
+                default: return nil
+                }
+            })
         if stream.status == .running {
             let done = done ?? RunThreadText.steps(stream.steps).count
             if let expected, expected > done {
@@ -129,6 +141,33 @@ struct RunBrief: Hashable, Sendable {
             }
         }
         return items
+    }
+
+    /// Adds each step's waterfall span: from its time to its end (a call's duration, else the
+    /// next step), over the run from its start to its last step or end.
+    private static func timed(_ stream: RunStream, _ items: [Item]) -> [Item] {
+        let work = stream.steps.filter { RunThreadText.isStep($0.kind) }
+        guard work.count == items.count, let first = stream.steps.first?.at else { return items }
+        let ends = work.indices.map { index -> Date in
+            let step = work[index]
+            if case .toolCall(let call) = step.kind, let seconds = call.durationSeconds {
+                return step.at.addingTimeInterval(seconds)
+            }
+            return index + 1 < work.count ? work[index + 1].at : step.at
+        }
+        let last = max(stream.steps.last?.at ?? first, ends.max() ?? first)
+        let total = max(last.timeIntervalSince(first), 0.001)
+        return zip(items, zip(work, ends)).map { item, pair in
+            var item = item
+            let (step, end) = pair
+            let start = step.at.timeIntervalSince(first) / total
+            let length = max(end.timeIntervalSince(step.at), 0) / total
+            item.span = Span(start: min(1, start), length: min(1 - min(1, start), length))
+            if case .toolCall(let call) = step.kind, let seconds = call.durationSeconds {
+                item.took = FeatureTime.duration(seconds)
+            }
+            return item
+        }
     }
 
     static func reads(_ stream: RunStream) -> [String] {
@@ -155,6 +194,9 @@ struct RunBrief: Hashable, Sendable {
 
 /// The brief as a compact block: trigger and input, the checklist, what it read.
 struct RunBriefView: View {
+    /// The step label column, then the waterfall takes the rest of the row.
+    static let labelWidth: CGFloat = 260
+    static let tookWidth: CGFloat = 48
     var brief: RunBrief
     var reading: RunInput?
     var openRun: ((String) -> Void)?
@@ -204,6 +246,12 @@ struct RunBriefView: View {
                 AryaFont.mono, item.mark == .next ? AryaColor.inkFaint : AryaColor.ink
             )
             .lineLimit(1).truncationMode(.middle)
+            .frame(maxWidth: RunBriefView.labelWidth, alignment: .leading)
+            if let span = item.span {
+                WaterfallBar(span: span, color: color(item.mark))
+                Text(item.took ?? "").aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                    .frame(width: RunBriefView.tookWidth, alignment: .trailing)
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(RunBrief.spoken(item.mark)): \(item.text)")
@@ -228,5 +276,26 @@ extension RunBrief {
         case .skipped: "skipped"
         case .blocked: "blocked"
         }
+    }
+}
+
+/// One step's place in the run: a thin track with the step's stretch filled.
+struct WaterfallBar: View {
+    var span: RunBrief.Span
+    var color: Color
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            ZStack(alignment: .leading) {
+                Rectangle().fill(AryaColor.rule).frame(height: 1)
+                Rectangle().fill(color)
+                    .frame(width: max(AryaSpace.s1, width * span.length), height: AryaSpace.s1)
+                    .offset(x: min(width - AryaSpace.s1, width * span.start))
+            }
+            .frame(height: geometry.size.height)
+        }
+        .frame(height: AryaSpace.s2)
+        .accessibilityHidden(true)
     }
 }

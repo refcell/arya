@@ -114,6 +114,15 @@ struct WorkPane: View {
         .padding(.horizontal, AryaSpace.s3)
     }
 
+    /// The log's tail under a short Diff or Output tab, so the pane reads as one session.
+    @ViewBuilder private var logTailSection: some View {
+        if !work.log.isEmpty {
+            Text("LOG").aryaText(AryaFont.label, AryaColor.inkFaint)
+                .padding(.top, AryaSpace.s3).padding(.bottom, AryaSpace.s1)
+            ForEach(work.log.suffix(WorkPane.logTail)) { WorkLineView(line: $0) }
+        }
+    }
+
     @ViewBuilder private var content: some View {
         switch tab {
         case .tools:
@@ -143,6 +152,7 @@ struct WorkPane: View {
             ForEach(work.diffs) { diff in
                 WorkDiffView(store: store, diff: diff, selected: diff.id == selection).id(diff.id)
             }
+            logTailSection
         case .log:
             if work.log.isEmpty { empty("No events yet.") }
             ForEach(work.log) { WorkLineView(line: $0) }
@@ -150,6 +160,7 @@ struct WorkPane: View {
             if work.output.isEmpty && !running { empty("The adapter wrote nothing.") }
             ForEach(work.output) { WorkLineView(line: $0) }
             if running { BlinkingCaret() }
+            logTailSection
         }
     }
 
