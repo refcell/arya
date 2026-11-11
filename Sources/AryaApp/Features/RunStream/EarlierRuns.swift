@@ -55,7 +55,7 @@ struct EarlierRunsView: View {
     /// Wide enough for "12h ago" in mono small.
     private static let timeWidth: CGFloat = 64
     /// Each run's time as a bar against the longest of them.
-    private static let barWidth: CGFloat = 64
+    private static let barWidth: CGFloat = 120
 
     var body: some View {
         if !runs.isEmpty {
@@ -76,23 +76,33 @@ struct EarlierRunsView: View {
         }
     }
 
+    /// The time and mark, then the title across the whole row; the run's time bar and its
+    /// counts sit under the title, so the title is never cut to make room for them.
     private func row(_ run: EarlierRun) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
             Text(FeatureTime.relative(run.at, now: now))
                 .aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
                 .frame(width: Self.timeWidth, alignment: .leading)
             MarkGlyph(mark: run.ok ? .ok : .failed)
-            Text(run.title).aryaText(AryaFont.body, AryaColor.inkMuted)
-                .lineLimit(1).truncationMode(.tail)
-            if run.isDryRun { DryRunPill() }
-            Spacer(minLength: AryaSpace.s2)
-            WaterfallBar(
-                span: RunBrief.Span(start: 0, length: (run.seconds ?? 0) / longest),
-                color: run.ok ? AryaColor.inkFaint : AryaColor.negative
-            )
-            .frame(width: Self.barWidth)
-            Text(run.meta).aryaText(AryaFont.monoSmall, AryaColor.inkFaint).lineLimit(1)
-                .fixedSize()
+            VStack(alignment: .leading, spacing: AryaSpace.s1) {
+                HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
+                    Text(run.title).aryaText(AryaFont.body, AryaColor.inkMuted)
+                        .lineLimit(2).truncationMode(.tail)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .help(run.title)
+                    if run.isDryRun { DryRunPill() }
+                }
+                HStack(spacing: AryaSpace.s2) {
+                    WaterfallBar(
+                        span: RunBrief.Span(start: 0, length: (run.seconds ?? 0) / longest),
+                        color: run.ok ? AryaColor.inkFaint : AryaColor.negative
+                    )
+                    .frame(width: Self.barWidth)
+                    Text(run.meta).aryaText(AryaFont.monoSmall, AryaColor.inkFaint)
+                        .lineLimit(1).fixedSize()
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)

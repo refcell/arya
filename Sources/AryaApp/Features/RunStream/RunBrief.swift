@@ -14,6 +14,8 @@ struct RunBrief: Hashable, Sendable {
         var span: Span? = nil
         /// "1.6 s", for steps that took time.
         var took: String? = nil
+        /// The step as the run recorded it ("inbox.search label:billing"), for the tooltip.
+        var full: String? = nil
     }
 
     struct Span: Hashable, Sendable {
@@ -114,11 +116,17 @@ struct RunBrief: Hashable, Sendable {
                 case .toolCall(let call):
                     let text = [call.tool, RunThreadText.argument(call.input)].compactMap { $0 }
                         .joined(separator: " ")
-                    return Item(mark: call.finished ? .done : .current, text: text)
+                    return Item(
+                        mark: call.finished ? .done : .current,
+                        text: [HumanText.tool(call.tool), RunThreadText.argument(call.input)]
+                            .compactMap { $0 }.joined(separator: ": "),
+                        full: text)
                 case .action(let action):
                     let target = EntityName.plain(action.target)
                     let mark: Mark = RunThreadText.failed(action) ? .blocked : .done
-                    return Item(mark: mark, text: RunTitle.verb(action.kind) + " " + target)
+                    return Item(
+                        mark: mark, text: HumanText.step(kind: action.kind, target: action.target),
+                        full: RunTitle.verb(action.kind) + " " + target)
                 case .delegated(let delegation):
                     return Item(
                         mark: delegation.childStatus == .running ? .current : .done,
@@ -197,6 +205,8 @@ struct RunBriefView: View {
     /// The step label column, then the waterfall takes the rest of the row.
     static let labelWidth: CGFloat = 260
     static let tookWidth: CGFloat = 48
+    /// What fits in `labelWidth` in mono; longer labels are cut at a word end.
+    static let labelChars = 34
     var brief: RunBrief
     var reading: RunInput?
     var openRun: ((String) -> Void)?
@@ -242,10 +252,13 @@ struct RunBriefView: View {
         HStack(alignment: .firstTextBaseline, spacing: AryaSpace.s2) {
             Text(RunBrief.glyph(item.mark)).aryaText(AryaFont.mono, color(item.mark))
                 .accessibilityHidden(true)
-            Text(item.text).aryaText(
+            Text(HumanText.clip(item.text, max: RunBriefView.labelChars)).aryaText(
                 AryaFont.mono, item.mark == .next ? AryaColor.inkFaint : AryaColor.ink
             )
-            .lineLimit(1).truncationMode(.middle)
+            .lineLimit(1).truncationMode(.tail)
+            .frame(width: item.span == nil ? nil : RunBriefView.labelWidth, alignment: .leading)
+            .layoutPriority(1)
+            .help(item.full ?? item.text)
             .frame(maxWidth: RunBriefView.labelWidth, alignment: .leading)
             if let span = item.span {
                 WaterfallBar(span: span, color: color(item.mark))

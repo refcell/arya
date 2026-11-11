@@ -369,3 +369,16 @@ import Testing
     #expect(ApprovalText.verdict(decision, now: at).hasPrefix("Approved by you"))
     #expect(GovernanceText.people(["person:sam", "local"]) == "Sam, you")
 }
+
+@Test func briefStepsReadAsWordsAndCutOnlyAtWordEnds() {
+    #expect(HumanText.tool("inbox.search") == "Search the inbox")
+    #expect(HumanText.tool("crm.get") == "Read the CRM")
+    #expect(HumanText.tool("run_tests") == "Run tests")
+    #expect(HumanText.step(kind: "edit", target: "routine:refund-charges.sh") == "Edit the routine")
+    #expect(HumanText.step(kind: "reply", target: "person:priya") == "Reply to Priya")
+    #expect(HumanText.clip("Search the inbox", max: 36) == "Search the inbox")
+    #expect(
+        HumanText.clip("Three similar teams bought the annual plan", max: 20)
+            == "Three similar teams…")
+    #expect(HumanText.clip("supercalifragilistic", max: 8) == "superca…")
+}
